@@ -28,7 +28,7 @@ else
     BWA=/software/crgadm/software/BWA/0.7.17-foss-2018b/bin/bwa
     SAM=$NGSUTILS/samtools-0.1.19/samtools
     BED=$NGSUTILS/bedtools2/bin/bedtools
-    PY27_PREFIX=$NGSUTILS/python_2.7/linux-x86_64/Python-2.7.18
+    PY27_PREFIX=$NGSUTILS/python_2.7/linux-x86_64/python27_portable
 fi
 
 # CNAG HPC Cluster (Java/17.0.2) <---required                                                                                

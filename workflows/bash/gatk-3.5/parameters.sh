@@ -32,7 +32,7 @@ else
     BWA=$NGSUTILS/bwa-0.7.18/bwa
     SAM=$NGSUTILS/samtools-0.1.19/samtools
     BED=$NGSUTILS/bedtools2/bin/bedtools
-    PY27_PREFIX=$NGSUTILS/python_2.7/linux-x86_64/Python-2.7.18
+    PY27_PREFIX=$NGSUTILS/python_2.7/linux-x86_64/python27_portable
 fi
 
 # Picard (shared by GATK3 & bed conversion)

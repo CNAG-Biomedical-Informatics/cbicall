@@ -138,9 +138,18 @@ $SAM index $out_raw
 echo "Analyzing mitochondrial DNA with MToolBox..."
 export PATH="$MTOOLBOXDIR:$PATH"
 
-# Add the local site-packages to PYTHONPATH
-export PATH="$PY27_PREFIX:$PATH"
-export PYTHONPATH="$PY27_PREFIX/Lib/site-packages:${PYTHONPATH:-}"
+(
+  # ---- Python 2 env only inside this block ----
+  export PATH="$PY27_PREFIX/bin:$PATH"
+  export PYTHONNOUSERSITE=1
+  export PYTHONHOME="$PY27_PREFIX"
+  export PYTHONPATH="$PY27_PREFIX/lib/python2.7/site-packages"
+
+  echo "Using numpy and pandas versions:"
+  python2 -c "import numpy, pandas; print(numpy.__version__, pandas.__version__)"
+
+  MToolBox.sh -i "$BINDIRMTB/MToolBox_config.sh" -m "-t $THREADS"
+)
 
 # Execute Mtoolbox
 MToolBox.sh -i $BINDIRMTB/MToolBox_config.sh -m "-t $THREADS"
