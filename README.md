@@ -163,8 +163,6 @@ CBICall is optimized for multi-core Linux desktop, workstation, or server enviro
     * Java 8 (install via C<sudo apt install openjdk-8-jdk>).
     * Snakemake (install via C<pip3 install -r requirements.txt>).
 
-Integration tests are conducted manually by verifying VCF outputs against established test datasets.
-
 # Citation
 
 CBICall: a pipeline-agnostic framework for variant calling in large DNA-seq cohorts. _Manuscript In preparation._

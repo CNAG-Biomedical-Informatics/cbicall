@@ -104,7 +104,7 @@ Finally, inside the `cbicall` repo:
 
 Change `DATADIR` variable in `workflows/bash/gatk-4.6/parameters.sh` and `workflows/snakemake/gatk-4.6/config.yaml` to `/cbicall-data`.
 
-## Performing unit tests
+## Performing integration tests
 
 Inside the container:
 
