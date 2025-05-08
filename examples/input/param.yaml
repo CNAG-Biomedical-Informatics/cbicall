@@ -1,0 +1,5 @@
+mode: single
+pipeline: wes
+workflow_engine: bash
+gatk_version: gatk-4.6
+sample: CNAG999_exome/CNAG99901P_ex
