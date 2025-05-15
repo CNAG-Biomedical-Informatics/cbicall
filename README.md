@@ -61,6 +61,12 @@ Install `cpanminus` (analog to Python's `pip`) and GNU compilers:
 
     sudo apt install cpanminus gcc
 
+Note: If you don't have `sudo` privileges:
+
+    curl -L https://cpanmin.us | perl - App::cpanminus -l ~/perl5
+
+Then the `cpanm` exe will be at `~/perl5/bin/cpanm` or similar.
+
 We will install the dependencies at `~/perl5`:
 
     cpanm --local-lib=~/perl5 local::lib && eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)
