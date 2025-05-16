@@ -79,7 +79,7 @@ fi
 #------------------------------------------------------------------------------
 echo ">>> STEP 1: Align & add read groups"
 for R1 in ../*R1*fastq.gz; do
-  # Build the “base” exactly like Snakemake (“SAMPLE_L1” or “SAMPLE_L2”)
+  # Build the "base" exactly like Snakemake ("SAMPLE_L1" or "SAMPLE_L2")
   fn=$(basename "$R1" .fastq.gz)
   base=${fn%_R1*}
   R2=${R1/_R1_/_R2_}
@@ -91,7 +91,7 @@ for R1 in ../*R1*fastq.gz; do
   out_bam="$BAMDIR/${base}.rg.bam"
   echo "Aligning $fn -> $(basename "$out_bam")"
 
-  $BWA mem -M -t "$THREADS" "$REF" "$R1" "$R2" \
+  $BWA mem -M -t "$THREADS" "$REFGZ" "$R1" "$R2" \
     | $GATK4_CMD AddOrReplaceReadGroups \
         --INPUT /dev/stdin \
         --OUTPUT "$out_bam" \
