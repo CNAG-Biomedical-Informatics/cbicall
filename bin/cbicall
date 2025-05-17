@@ -398,6 +398,12 @@ Two modes are supported: C<single> (default, for individual samples) and C<cohor
 
 Specifies the analysis pipeline. Currently available options: C<wes> (whole-exome sequencing) and C<mit> (mitochondrial DNA analysis). Note: to run C<cohort> analysis, first complete a C<single> analysis for each sample.
 
+=item B<projectdir>
+
+The prefix for dir name (e.g., 'cancer_sample_001'). Note that it can also contain a path (e.g., foo/cancer_sample_001).
+
+B<Note:> Such directory will be always created below the B<sample> directory. The script will automatically add an unique identifier to each job.
+
 =item B<sample>
 
 Path (relative or absolute) to the directory containing FASTQ files for analysis. See the C<examples> directory for detailed guidance.

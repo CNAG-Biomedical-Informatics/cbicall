@@ -38,6 +38,7 @@ my %default = (
     technology      => 'Illumina HiSeq',
     workflow_engine => 'bash',
     gatk_version    => 'gatk-3.5',
+    projectdir      => 'cbicall'
 );
 
 # Define allowed pipeline-mode combinations per GATK version
@@ -129,10 +130,12 @@ sub set_config_values {
     $config{date} = localtime();
     my $tmp_str = join '_',
       (
-        'cbicall', $param->{workflow_engine},
-        $param->{pipeline}, $param->{mode}, $param->{gatk_version},
+        $param->{projectdir}, $param->{workflow_engine},
+        $param->{pipeline},   $param->{mode}, $param->{gatk_version},
         $config{id},
       );
+
+    # The directory is ALWAYS created below $param->{sample}
     $config{projectdir} =
       catdir( abs_path( $param->{sample} ), $tmp_str );
     my @parts = split m{/}, $param->{sample};

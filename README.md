@@ -159,6 +159,12 @@ Below is a detailed description of key parameters:
 
     Specifies the analysis pipeline. Currently available options: `wes` (whole-exome sequencing) and `mit` (mitochondrial DNA analysis). Note: to run `cohort` analysis, first complete a `single` analysis for each sample.
 
+- **projectdir**
+
+    The prefix for dir name (e.g., 'cancer\_sample\_001'). Note that it can also contain a path (e.g., foo/cancer\_sample\_001).
+
+    **Note:** Such directory will be always created below the **sample** directory. The script will automatically add an unique identifier to each job.
+
 - **sample**
 
     Path (relative or absolute) to the directory containing FASTQ files for analysis. See the `examples` directory for detailed guidance.
