@@ -16,8 +16,11 @@ if [[ "$PIPELINE" != "wes" && "$PIPELINE" != "wgs" ]]; then
   exit 1
 fi
 
+# Uppercase version of pipeline
+PIPELINE_UC=${PIPELINE^^}
+
 # where your data and logs live
-WORKDIR="/software/biomed/test/${PIPELINE}/${SAMPLE_ID}"
+WORKDIR="/scratch_isilon/projects/0012-hereditary/dbgap/fastq/phs001585/${PIPELINE_UC}/${SAMPLE_ID}"
 
 # name the generated job script
 JOB_SCRIPT="job_${SAMPLE_ID}_${PIPELINE}.slurm"
@@ -55,6 +58,7 @@ pipeline: ${PIPELINE}
 workflow_engine: bash
 gatk_version: gatk-4.6
 sample: ${WORKDIR}
+projectdir: ${SAMPLE_ID}_cbicall
 YAML
 
 srun "\$CBICALL" \\
