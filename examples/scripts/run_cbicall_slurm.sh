@@ -22,6 +22,9 @@ WORKDIR="/software/biomed/test/${PIPELINE}/${SAMPLE_ID}"
 # name the generated job script
 JOB_SCRIPT="job_${SAMPLE_ID}_${PIPELINE}.slurm"
 
+# Number of threads
+THREADS=4
+
 cat > "${JOB_SCRIPT}" <<EOF
 #!/bin/bash
 #SBATCH --job-name=cbicall
@@ -30,7 +33,7 @@ cat > "${JOB_SCRIPT}" <<EOF
 #SBATCH -e ${WORKDIR}/slurm-%N.%j.err
 #SBATCH -o ${WORKDIR}/slurm-%N.%j.out
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=${THREADS}
 #SBATCH --mem=8G
 #SBATCH -t 10:00:00
 #SBATCH --mail-type=END,FAIL
@@ -41,7 +44,6 @@ eval "\$(perl -Mlocal::lib=/software/biomed/cbi_perl5)"
 
 CBICALL_DIR="/software/biomed/cbicall"
 CBICALL="\$CBICALL_DIR/bin/cbicall"
-THREADS=4
 
 cd \$SLURM_SUBMIT_DIR
 
@@ -57,7 +59,7 @@ YAML
 
 srun "\$CBICALL" \\
      -p "\${YAML_FILE}" \\
-     -t \$THREADS \\
+     -t $THREADS \\
      --no-color \\
      --no-emoji
 EOF
