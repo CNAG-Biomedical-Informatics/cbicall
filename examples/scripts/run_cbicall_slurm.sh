@@ -42,6 +42,9 @@ cat > "${JOB_SCRIPT}" <<EOF
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=manuel.rueda@cnag.eu
 
+export LANG=en_US.utf8
+export LC_ALL=en_US.utf8
+
 module load Perl/5.36.0-GCCcore-12.2.0
 eval "\$(perl -Mlocal::lib=/software/biomed/cbi_perl5)"
 

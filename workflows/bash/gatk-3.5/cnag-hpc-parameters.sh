@@ -9,8 +9,6 @@ NGSUTILS=$DATADIR/NGSutils
 export TMPDIR=$DATADIR/tmp
 export LC_ALL=C
 export GATK_DISABLE_AUTO_S3_UPLOAD=true   # disable unintended S3 uploads
-export LANG=en_US.utf8
-export LC_ALL=en_US.utf8
 
 # Memory & architecture
 MEM=8G
