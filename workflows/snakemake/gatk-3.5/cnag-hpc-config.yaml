@@ -1,0 +1,73 @@
+# config.yaml
+# $VERSION taken from CBICall
+
+# Base directories
+datadir: "/software/biomed/cbicall-data"
+dbdir: "{datadir}/Databases"
+ngsutils: "{datadir}/NGSutils"
+tmpdir: "{datadir}/tmp"
+
+# General resources
+mem: "8G"
+
+# Java paths for different architectures
+java:
+  aarch64: "/usr/lib/jvm/java-8-openjdk-arm64/bin/java"
+  amd64:   "/usr/lib/jvm/java-8-openjdk-amd64/bin/java"
+
+# Tool binaries per architecture
+tools:
+  aarch64:
+    bwa:   "{ngsutils}/bwa-0.7.18_arm64/bwa"
+    samtools:   "{ngsutils}/samtools-0.1.19_arm64/samtools"
+    bedtools:   "{ngsutils}/bedtools2_arm64/bin/bedtools"
+  amd64:
+    bwa:   "{ngsutils}/bwa-0.7.18/bwa"
+    samtools:   "{ngsutils}/samtools-0.1.19/samtools"
+    bedtools:   "{ngsutils}/bedtools2/bin/bedtools"
+
+# Picard (shared by GATK tools)
+picard: "{java} -Xmx{mem} -Djava.io.tmpdir={tmpdir} -jar {ngsutils}/picard-3.4/build/libs/picard.jar"
+
+# GATK 3.5
+gatk: "{java} -Xmx{mem} -Djava.io.tmpdir={tmpdir} -jar {ngsutils}/gatk/gatk-3.5/GenomeAnalysisTK.jar"
+
+# GATK4 driver
+gatk4_cmd: "{ngsutils}/gatk/gatk-4.6.2.0/gatk --java-options -Xmx{mem}"
+
+# MToolBox
+mtoolboxdir: "{ngsutils}/MToolBox-master/MToolBox"
+
+# Reference bundle (b37)
+bundle: "{dbdir}/GATK_bundle/b37"
+ref: "{bundle}/references_b37_Homo_sapiens_assembly19.fasta"
+refgz: "{bundle}/references_b37_Homo_sapiens_assembly19.fasta.gz"
+ref_dict: "{bundle}/references_b37_Homo_sapiens_assembly19.dict"
+
+# Known-sites VCFs
+dbsnp: "{dbdir}/dbSNP/human_9606_b144_GRCh37p13/All_20160408.vcf.gz"
+mills_indels: "{bundle}/b37_Mills_and_1000G_gold_standard.indels.b37.vcf.gz"
+kg_indels:    "{bundle}/b37_1000G_phase1.indels.b37.vcf.gz"
+hapmap:       "{bundle}/b37_hapmap_3.3.b37.vcf.gz"
+omni:         "{bundle}/b37_1000G_omni2.5.b37.vcf.gz"
+
+# VQSR resource strings (rraining sets for variant recalibration)                                                                     
+snp_res: >-
+  -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {hapmap}
+  -resource:omni,known=false,training=true,truth=false,prior=12.0 {omni}
+  -resource:dbsnp,known=true,training=false,truth=false,prior=6.0 {dbsnp}
+
+indel_res: >-
+  -resource:mills,known=true,training=true,truth=true,prior=12.0 {mills_indels}
+
+# Exome target BED directory
+exom: "{dbdir}/Agilent_SureSelect/hg19/bed"
+
+# Exome intervals
+exome_bed: "{bundle}/b37_Broad.human.exome.b37.bed"
+interval_list: "{bundle}/b37_Broad.human.exome.b37.interval_list"
+
+# Legacy UG params (GATK 3.5)
+dcov:    1000
+ug_call: 50
+ug_emit: 10
