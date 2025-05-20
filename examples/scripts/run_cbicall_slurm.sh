@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# submit_cbicall.sh
-# usage: submit_cbicall.sh <sample_id> <pipeline: wes|wgs>
+# run_cbicall_slurm.sh
+# usage: ./run_cbicall_slurm.sh <sample_id> <pipeline: wes|wgs>
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <sample_id> <pipeline: wes|wgs>"
@@ -14,6 +14,17 @@ PIPELINE=$2
 if [[ "$PIPELINE" != "wes" && "$PIPELINE" != "wgs" ]]; then
   echo "Error: pipeline must be 'wes' or 'wgs'"
   exit 1
+fi
+
+# choose SLURM settings based on pipeline
+if [ "$PIPELINE" = "wes" ]; then
+  QUEUE="normal"
+  MEM="8G"
+  TIME="10:00:00"
+elif [ "$PIPELINE" = "wgs" ]; then
+  QUEUE="long"
+  MEM="20G"
+  TIME="24:00:00"
 fi
 
 # Uppercase version of pipeline
@@ -31,19 +42,20 @@ THREADS=4
 cat > "${JOB_SCRIPT}" <<EOF
 #!/bin/bash
 #SBATCH --job-name=cbicall
-#SBATCH -q normal
+#SBATCH -q ${QUEUE}
 #SBATCH -D ${WORKDIR}
 #SBATCH -e ${WORKDIR}/slurm-%N.%j.err
 #SBATCH -o ${WORKDIR}/slurm-%N.%j.out
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=${THREADS}
-#SBATCH --mem=8G
-#SBATCH -t 10:00:00
+#SBATCH --mem=${MEM}
+#SBATCH -t ${TIME}
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=manuel.rueda@cnag.eu
 
-export LANG=en_US.utf8
-export LC_ALL=en_US.utf8
+# use a simple ASCII locale
+export LANG=C
+export LC_ALL=C
 
 module load Perl/5.36.0-GCCcore-12.2.0
 eval "\$(perl -Mlocal::lib=/software/biomed/cbi_perl5)"
@@ -65,7 +77,7 @@ projectdir: ${SAMPLE_ID}_cbicall
 YAML
 
 srun "\$CBICALL" \\
-     -p "\${YAML_FILE}" \\
+     -p "\$YAML_FILE" \\
      -t $THREADS \\
      --no-color \\
      --no-emoji
