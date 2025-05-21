@@ -11,7 +11,7 @@ export LC_ALL=C
 export GATK_DISABLE_AUTO_S3_UPLOAD=true   # disable unintended S3 uploads
 
 # Memory & architecture
-MEM=8G
+MEM=16G
 ARCH=$(uname -m)
 
 # Java & tool binaries per architecture

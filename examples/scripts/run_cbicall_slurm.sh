@@ -19,12 +19,10 @@ fi
 # choose SLURM settings based on pipeline
 if [ "$PIPELINE" = "wes" ]; then
   QUEUE="normal"
-  MEM="8G"
   TIME="10:00:00"
 elif [ "$PIPELINE" = "wgs" ]; then
-  QUEUE="long"
-  MEM="20G"
-  TIME="24:00:00"
+  QUEUE="vlong"
+  TIME="2-00:00:00"
 fi
 
 # Uppercase version of pipeline
@@ -38,6 +36,10 @@ JOB_SCRIPT="job_${SAMPLE_ID}_${PIPELINE}.slurm"
 
 # Number of threads
 THREADS=4
+
+# RAM
+MEM="16G"
+
 
 cat > "${JOB_SCRIPT}" <<EOF
 #!/bin/bash
