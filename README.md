@@ -256,7 +256,7 @@ Recommended specifications:
     * Java 8 (install via C<sudo apt install openjdk-8-jdk>).
     * Snakemake (install via C<pip3 install -r requirements.txt>).
 
-Perl scripts in CBICall use minimal RAM (~2% of a 16â€¯GB system). Genome mapping with BWA benefits from higher memory but lacks built-in RAM limits; its usage depends on thread count and reference size. To constrain BWAâ€™s memory, external tools like ulimit are required. In contrast, GATK and Picard default to 8â€¯GB RAM, adjustable via the configuration file.
+Perl scripts in CBICall use minimal RAM (~2% of a 16 GB system). Genome mapping with BWA benefits from higher memory but lacks built-in RAM limits. Its usage depends on thread count and reference size. To constrain BWA's memory, external tools like shell `ulimit` are required. In contrast, GATK and Picard default to 8 GB RAM, adjustable via the configuration file.
 
 Parallel execution is supported but does not scale linearly. Optimal performance is achieved using ~ 4 threads per task. For example, with 12 cores, running 3 tasks in parallel with 4 cores each is typically more efficient than one task with all 12 cores. See example in figure below:
 
@@ -311,11 +311,3 @@ Written by Manuel Rueda (mrueda). GitHub repository: [https://github.com/mrueda/
 # COPYRIGHT AND LICENSE
 
 Please see the included LICENSE file for distribution and usage terms.
-
-# POD ERRORS
-
-Hey! **The above document had some coding errors, which are explained below:**
-
-- Around line 520:
-
-    Non-ASCII character seen before =encoding in '16â€¯GB'. Assuming CP1252
