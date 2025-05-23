@@ -40,7 +40,6 @@ THREADS=4
 # RAM
 MEM="16G"
 
-
 cat > "${JOB_SCRIPT}" <<EOF
 #!/bin/bash
 #SBATCH --job-name=cbicall
@@ -68,7 +67,7 @@ CBICALL="\$CBICALL_DIR/bin/cbicall"
 cd \$SLURM_SUBMIT_DIR
 
 # write a pipeline‐specific yaml
-YAML_FILE="test.bash_${PIPELINE}_single.yaml"
+YAML_FILE="${SAMPLE_ID}_${PIPELINE}_param.yaml"
 cat <<YAML > "\${YAML_FILE}"
 mode: single
 pipeline: ${PIPELINE}

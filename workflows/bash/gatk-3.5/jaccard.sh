@@ -31,14 +31,14 @@ source "$BINDIR/parameters.sh"
 
 dir=../*_ex/cbicall_${workflow_engine}_wes_single*/02_varcall
 
-for vcf1 in $( ls -1 $dir/*.*QC.vcf )
+for vcf1 in $( ls -1 "$dir"/*.*QC.vcf )
 do
- short1=$( echo $vcf1 | awk -F'/' '{print $NF}' | sed 's/.ug.QC.vcf//' )
- for vcf2 in $( ls -1 $dir/*.*QC.vcf )
+ short1=$( echo "$vcf1" | awk -F'/' '{print $NF}' | sed 's/.ug.QC.vcf//' )
+ for vcf2 in $( ls -1 "$dir"/*.*QC.vcf )
  do
-  short2=$( echo $vcf2 | awk -F'/' '{print $NF}' | sed 's/.ug.QC.vcf//' )
+  short2=$( echo "$vcf2" | awk -F'/' '{print $NF}' | sed 's/.ug.QC.vcf//' )
   echo -n "$short1 $short2 "
-  $BED jaccard -a $vcf1 -b $vcf2 | sed '1d' | cut -f3 | tr '\n' ' '
+  $BED jaccard -a "$vcf1" -b "$vcf2" | sed '1d' | cut -f3 | tr '\n' ' '
   echo
  done
 done
