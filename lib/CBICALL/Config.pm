@@ -55,6 +55,10 @@ my %allowed_combos = (
 
 sub read_param_file {
     my $yaml_file = shift;
+
+    # Keeping booleans as 'true' or 'false'. Perl still handles 0 and 1 internally.
+    $YAML::XS::Boolean = 'JSON::PP';
+
     my $param     = LoadFile($yaml_file);
 
     # Merge provided parameters with defaults, and validate allowed values

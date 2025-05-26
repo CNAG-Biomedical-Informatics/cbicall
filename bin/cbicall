@@ -550,7 +550,7 @@ Date: May-2025
 
 =over
 
-=item * GATK Errors (wes_single.sh or wes_cohort.sh)
+=item * GATK|Picard Errors (wes_single.sh or wes_cohort.sh)
 
 =over
 
@@ -563,6 +563,18 @@ Solution: Increase minimum INDEL count (e.g., to >8000) in relevant pipeline scr
 =item Error: C<there aren't enough columns for line ... dbsnp_137.hg19.vcf>
 
 Solution: Remove the problematic line from the VCF file and document changes in a README file.
+
+=item Error: C<Error parsing text SAM file. Not enough fields; File /dev/stdin; Line 105120626...>
+
+Certain SRA‐derived or dbGaP datasets can contain duplicate reads.
+
+When piping BWA output into C<AddOrReplaceReadGroups>, you may need to remove secondary (C<0x100>) and supplementary (C<0x800>) alignments.
+
+This can prevent duplicate-read collisions in downstream Picard/GATK steps.
+
+B<Solution>: Uncomment the following line in F<wes_single.sh>:
+
+C<| $SAM view -bSh -F 0x900 ->
 
 =back
 

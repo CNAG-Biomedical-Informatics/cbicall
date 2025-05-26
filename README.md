@@ -283,7 +283,7 @@ Date: May-2025
 
 # COMMON ERRORS AND TROUBLESHOOTING
 
-- GATK Errors (wes\_single.sh or wes\_cohort.sh)
+- GATK|Picard Errors (wes\_single.sh or wes\_cohort.sh)
     - Error: `NaN LOD value assigned` in recalibration steps.
 
         Occurs due to insufficient INDEL variants (typically fewer than 8000) for negative model training. The default threshold is 8000.
@@ -293,6 +293,18 @@ Date: May-2025
     - Error: `there aren't enough columns for line ... dbsnp_137.hg19.vcf`
 
         Solution: Remove the problematic line from the VCF file and document changes in a README file.
+
+    - Error: `Error parsing text SAM file. Not enough fields; File /dev/stdin; Line 105120626...`
+
+        Certain SRA‐derived or dbGaP datasets can contain duplicate reads.
+
+        When piping BWA output into `AddOrReplaceReadGroups`, you may need to remove secondary (`0x100`) and supplementary (`0x800`) alignments.
+
+        This can prevent duplicate-read collisions in downstream Picard/GATK steps.
+
+        **Solution**: Uncomment the following line in `wes_single.sh`:
+
+        `| $SAM view -bSh -F 0x900 -`
 - **MTOOLBOX Errors**
 
     \- Failure related to unsupported N\_CIGAR:  
@@ -311,3 +323,11 @@ Written by Manuel Rueda (mrueda). GitHub repository: [https://github.com/mrueda/
 # COPYRIGHT AND LICENSE
 
 Please see the included LICENSE file for distribution and usage terms.
+
+# POD ERRORS
+
+Hey! **The above document had some coding errors, which are explained below:**
+
+- Around line 569:
+
+    Non-ASCII character seen before =encoding in 'SRA‐derived'. Assuming UTF-8

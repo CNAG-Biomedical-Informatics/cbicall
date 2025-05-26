@@ -79,25 +79,32 @@ fi
 #------------------------------------------------------------------------------
 echo ">>> STEP 1: Align & add read groups"
 for R1 in ../*R1*fastq.gz; do
-  # Build the "base" exactly like Snakemake ("SAMPLE_L1" or "SAMPLE_L2")
   fn=$(basename "$R1" .fastq.gz)
   base=${fn%_R1*}
   R2=${R1/_R1_/_R2_}
 
   SAMPLE=$(echo "$base" | cut -d'_' -f1-2)
-  RGPU=$(echo "$base" | cut -d'_' -f3)
-  RGID=$(echo "$base" | cut -d'_' -f4)
+  LANE=$(echo   "$base" | cut -d'_' -f3)
+  # ensure RGIDs are unique by appending a timestamp
+  RGID="${SAMPLE}.${LANE}.$(date +%s)"
+  RGPU="${SAMPLE}.${LANE}.unit1"
 
   out_bam="$BAMDIR/${base}.rg.bam"
   echo "Aligning $fn -> $(basename "$out_bam")"
 
+  # Align
   $BWA mem -M -t "$THREADS" "$REFGZ" "$R1" "$R2" \
+    # drop secondary (0x100) & supplementary (0x800) alignments before RG tagging
+    # | $SAM view -b -F 0x900 - \
     | $GATK4_CMD AddOrReplaceReadGroups \
         --INPUT /dev/stdin \
         --OUTPUT "$out_bam" \
         --TMP_DIR "$TMPDIR" \
-        --RGPL ILLUMINA --RGLB sureselect \
-        --RGSM "$SAMPLE" --RGID "$RGID" --RGPU "$RGPU" \
+        --RGPL ILLUMINA \
+        --RGLB sureselect \
+        --RGSM "$SAMPLE" \
+        --RGID "$RGID" \
+        --RGPU "$RGPU" \
     2>> "$LOG"
 done
 
