@@ -92,10 +92,13 @@ for R1 in ../*R1*fastq.gz; do
   out_bam="$BAMDIR/${base}.rg.bam"
   echo "Aligning $fn -> $(basename "$out_bam")"
 
-  # Align
+  # Align and drop secondary (0x100) & supplementary (0x800) alignments before RG tagging
+  #$BWA mem -M -t "$THREADS" "$REFGZ" "$R1" "$R2" \
+  #  | $SAM view -b -F 0x900 - \
+  # ...
+
+  # Align without filtering (keep all alignments):
   $BWA mem -M -t "$THREADS" "$REFGZ" "$R1" "$R2" \
-    # drop secondary (0x100) & supplementary (0x800) alignments before RG tagging
-    # | $SAM view -b -F 0x900 - \
     | $GATK4_CMD AddOrReplaceReadGroups \
         --INPUT /dev/stdin \
         --OUTPUT "$out_bam" \
