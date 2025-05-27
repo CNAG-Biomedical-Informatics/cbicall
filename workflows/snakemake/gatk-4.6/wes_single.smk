@@ -405,30 +405,37 @@ rule coverage_stats:
         raw   = os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.bam"),
         recal = os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.recal.bam")
     output:
-        cov           = os.path.join(STATSDIR, f"{ID}.coverage.txt"),
-        tmp_raw       = temp("tmp_raw.bam"),
-        tmp_raw_bai   = temp("tmp_raw.bam.bai"),
-        tmp_recal     = temp("tmp_recal.bam"),
-        tmp_recal_bai = temp("tmp_recal.bam.bai")
+        cov   = os.path.join(STATSDIR, f"{ID}.coverage.txt")
     log:
         os.path.join(LOGDIR, "coverage.log")
     params:
-        chrN="1" if "b37" in str(REF) else "chr1"
+        chrN = "1" if "b37" in str(REF) else "chr1"
     shell:
         r"""
+        # ensure indexes exist
         {SAM} index {input.raw}   2>> {log} || true
         {SAM} index {input.recal} 2>> {log} || true
 
-        {SAM} view -b {input.raw}   {params.chrN} > {output.tmp_raw}
-        {SAM} view -b {input.recal} {params.chrN} > {output.tmp_recal}
+        # define scratch paths inside STATSDIR
+        RAW_TMP={STATSDIR}/{params.chrN}.tmp_raw.bam
+        RECAL_TMP={STATSDIR}/{params.chrN}.tmp_recal.bam
 
-        {SAM} index {output.tmp_raw}
-        {SAM} index {output.tmp_recal}
+        # slice out chr, index them
+        {SAM} view -b {input.raw}   {params.chrN} > $RAW_TMP
+        {SAM} view -b {input.recal} {params.chrN} > $RECAL_TMP
+        {SAM} index $RAW_TMP
+        {SAM} index $RECAL_TMP
 
-        bash {COV} {ID} {output.tmp_raw} {output.tmp_recal} {PIPELINE} \
+        # run coverage
+        bash {COV} {ID} $RAW_TMP $RECAL_TMP {PIPELINE} \
           > {output.cov} 2>> {log}
 
-        rm {output.tmp_raw} {output.tmp_recal}
+        # clean up both BAM + BAI in STATSDIR
+        rm \
+          {STATSDIR}/{params.chrN}.tmp_raw.bam \
+          {STATSDIR}/{params.chrN}.tmp_raw.bam.bai \
+          {STATSDIR}/{params.chrN}.tmp_recal.bam \
+          {STATSDIR}/{params.chrN}.tmp_recal.bam.bai
         """
 
 # ----------------------------------------

@@ -294,7 +294,7 @@ $SAM index "$out_dedup"  2>> "$LOG"
     > "$STATSDIR/${id}.sex.txt" 2>> "$LOG"
 
 # Delete $STATSDIR/*bam
-rm "$bam_raw" "$bam_recal"
+rm "$out_raw" "$out_dedup" "$out_raw.bai" "$out_dedup.bai"
 
 # End
 echo "All done! QC VCF: $VARCALLDIR/${id}.hc.QC.vcf.gz"
