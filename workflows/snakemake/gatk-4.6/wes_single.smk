@@ -427,6 +427,8 @@ rule coverage_stats:
 
         bash {COV} {ID} {output.tmp_raw} {output.tmp_recal} {PIPELINE} \
           > {output.cov} 2>> {log}
+
+        rm {output.tmp_raw} {output.tmp_recal}
         """
 
 # ----------------------------------------

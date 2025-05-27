@@ -158,7 +158,7 @@ $GATK4_CMD ApplyBQSR \
 $SAM index "$BAMDIR/${id}.rg.merged.dedup.recal.bam"
 
 #------------------------------------------------------------------------------
-# STEP 5: HaplotypeCaller → gVCF
+# STEP 5: HaplotypeCaller -> gVCF
 # Theory: Local de Bruijn graph assembly per active region improves indel calling;
 # emits reference-confidence gVCF required for joint genotyping.
 #------------------------------------------------------------------------------
@@ -170,7 +170,7 @@ $GATK4_CMD HaplotypeCaller \
   --native-pair-hmm-threads "$THREADS" -ERC GVCF 2>> "$LOG"
 
 #------------------------------------------------------------------------------
-# STEP 6: GenotypeGVCFs → Raw VCF
+# STEP 6: GenotypeGVCFs -> Raw VCF
 # Theory: Jointly genotype one or more gVCFs to produce high-confidence sample VCF.
 #------------------------------------------------------------------------------
 echo ">>> STEP 6: GenotypeGVCFs -> raw VCF"
@@ -287,10 +287,14 @@ $SAM view -b "$bam_recal" "$chrN"  > "$out_dedup" 2>> "$LOG"
 $SAM index "$out_raw"    2>> "$LOG"
 $SAM index "$out_dedup"  2>> "$LOG"
 
-# run coverage & sex scripts: STDOUT → stats file, STDERR → main log
+# run coverage & sex scripts: STDOUT -> stats file, STDERR -> main log
 "$BINDIR"/coverage.sh "$id" "$out_raw" "$out_dedup" "$PIPELINE" \
     > "$STATSDIR/${id}.coverage.txt" 2>> "$LOG"
 "$BINDIR"/vcf2sex.sh "$VARCALLDIR/${id}.hc.QC.vcf.gz" \
     > "$STATSDIR/${id}.sex.txt" 2>> "$LOG"
 
+# Delete $STATSDIR/*bam
+rm "$bam_raw" "$bam_recal"
+
+# End
 echo "All done! QC VCF: $VARCALLDIR/${id}.hc.QC.vcf.gz"
