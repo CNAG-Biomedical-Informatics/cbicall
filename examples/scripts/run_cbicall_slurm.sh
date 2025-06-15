@@ -37,8 +37,8 @@ JOB_SCRIPT="job_${SAMPLE_ID}_${PIPELINE}.slurm"
 # Number of threads
 THREADS=4
 
-# RAM
-MEM="16G"
+# RAM (x2 to avoid OOM errors)
+MEM="32G"
 
 cat > "${JOB_SCRIPT}" <<EOF
 #!/bin/bash
