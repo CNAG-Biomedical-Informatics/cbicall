@@ -73,7 +73,7 @@ for d in [BAMDIR, VARCALLDIR, STATSDIR]:
 
 # Define input FASTQ files (assumes they are in the parent directory)
 FASTQ_DIR  = "../"
-FASTQ_R1   = sorted(glob.glob(os.path.join(FASTQ_DIR, "*R1*fastq.gz")))
+FASTQ_R1   = sorted(glob.glob(os.path.join(FASTQ_DIR, "*_R1_*fastq.gz")))
 
 # Build FASTQ pairs (assuming filenames like MA0004701P_ex_S5_L001_R1_001.fastq.gz)
 FASTQ_PAIRS = []

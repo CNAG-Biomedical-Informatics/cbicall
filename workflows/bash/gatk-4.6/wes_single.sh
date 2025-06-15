@@ -64,12 +64,12 @@ id=${rawid%%_*}
 LOG=$LOGDIR/${id}.log
 
 # Set interval argument for WES vs WGS
-if [[ "$PIPELINE" == "WES" ]]; then
-  INTERVAL_ARG=( -L "$INTERVAL_LIST" )
-  echo "Running in WES mode: restricting to target intervals."
+if [ "$PIPELINE" = "WES" ]; then
+  INTERVAL_ARG="-L $INTERVAL_LIST"
+  echo "WES mode: restricting to $INTERVAL_LIST"
 else
-  INTERVAL_ARG=()
-  echo "Running in WGS mode: processing whole genome."
+  INTERVAL_ARG=""
+  echo "WGS mode: processing whole genome"
 fi
 
 #------------------------------------------------------------------------------
@@ -78,7 +78,7 @@ fi
 # information, enabling per-sample metrics and proper handling of multi-library data.
 #------------------------------------------------------------------------------
 echo ">>> STEP 1: Align & add read groups"
-for R1 in ../*R1*fastq.gz; do
+for R1 in ../*_R1_*fastq.gz; do
   fn=$(basename "$R1" .fastq.gz)
   base=${fn%_R1*}
   R2=${R1/_R1_/_R2_}
@@ -166,7 +166,7 @@ echo ">>> STEP 5: HaplotypeCaller -> gVCF"
 $GATK4_CMD HaplotypeCaller \
   -R "$REF" -I "$BAMDIR/${id}.rg.merged.dedup.recal.bam" \
   -O "$VARCALLDIR/${id}.hc.g.vcf.gz" \
-  "${INTERVAL_ARG[@]}" \
+  $INTERVAL_ARG \
   --native-pair-hmm-threads "$THREADS" -ERC GVCF 2>> "$LOG"
 
 #------------------------------------------------------------------------------

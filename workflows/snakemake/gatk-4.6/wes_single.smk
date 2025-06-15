@@ -80,7 +80,7 @@ for d in [BAMDIR, VARCALLDIR, STATSDIR, LOGDIR]:
 # Build FASTQ pairs and sample ID
 #-----------------------------------------
 FASTQ_DIR   = "../"
-FASTQ_R1    = sorted(glob.glob(os.path.join(FASTQ_DIR, "*R1*fastq.gz")))
+FASTQ_R1    = sorted(glob.glob(os.path.join(FASTQ_DIR, "*_R1_*fastq.gz")))
 FASTQ_PAIRS = []
 for r1 in FASTQ_R1:
     r2   = r1.replace("_R1_", "_R2_")

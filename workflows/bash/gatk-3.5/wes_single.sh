@@ -111,7 +111,7 @@ function update_bam_name {
 # Working at FASTQ level
 echo "Aligning reads to REF with BWA and adding groups with Picard"
 
-for R1 in ../*R1*gz 
+for R1 in ../*_R1_*fastq.gz
 do
  R2=${R1/_R1_/_R2_} # substitute R1 by R2 in $R1 to create $R2
  string_R1=$( echo $R1 | awk -F'/' '{print $NF}' )
