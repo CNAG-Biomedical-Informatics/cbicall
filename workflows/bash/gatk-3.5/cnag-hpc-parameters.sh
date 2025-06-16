@@ -6,7 +6,7 @@ DBDIR=$DATADIR/Databases
 NGSUTILS=$DATADIR/NGSutils
 
 # Environment
-export TMPDIR=$DATADIR/tmp
+export TMPDIR=/scratch_isilon/groups/biomed/tmp
 export LC_ALL=C
 export GATK_DISABLE_AUTO_S3_UPLOAD=true   # disable unintended S3 uploads
 
