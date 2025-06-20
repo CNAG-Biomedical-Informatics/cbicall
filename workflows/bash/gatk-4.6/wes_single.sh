@@ -21,24 +21,45 @@
 
 set -eu
 
+CLEANUP_BAM=false
+
 function usage {
     cat <<EOF
-Usage: $0 -t <n_threads> -p <wes|wgs>
-  -t THREADS   Number of CPU threads for GATK tools
-  -p PIPELINE  Pipeline mode: 'wes' or 'wgs'
+Usage: $0 -t <n_threads> -p <wes|wgs> [-c]
+
+  -t, --threads         Number of CPU threads for GATK tools
+  -p, --pipeline        Pipeline mode: 'wes' or 'wgs'
+  -c, --cleanup-bam     If set, delete all 01_bam/*.bam when done (default: off)
 EOF
     exit 1
 }
 
 # Parse command-line arguments
-if [ $# -ne 4 ]; then usage; fi
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -t|--threads)     THREADS="$2"; shift 2;;
-    -p|--pipeline)    PIPELINE="$2";     shift 2;;
-    *)            usage;;
+    -t|--threads)
+      THREADS="$2"
+      shift 2
+      ;;
+    -p|--pipeline)
+      PIPELINE="$2"
+      shift 2
+      ;;
+    -c|--cleanup-bam)
+      CLEANUP_BAM=true
+      shift
+      ;;
+    *)
+      usage
+      ;;
   esac
 done
+
+# make sure the required ones really got set
+if [ -z "${THREADS:-}" ] || [ -z "${PIPELINE:-}" ]; then
+  usage
+fi
+
 # Convert to Uppercase
 PIPELINE=${PIPELINE^^}
 if [[ "$PIPELINE" != "WES" && "$PIPELINE" != "WGS" ]]; then
@@ -295,6 +316,15 @@ $SAM index "$out_dedup"  2>> "$LOG"
 
 # Delete $STATSDIR/*bam
 rm "$out_raw" "$out_dedup" "$out_raw.bai" "$out_dedup.bai"
+
+#------------------------------------------------------------------------------
+# STEP 11: Cleanup BAMs (optional)
+#------------------------------------------------------------------------------
+if [ "${CLEANUP_BAM:-false}" = true ]; then
+  echo ">>> STEP 11: Cleanup BAMs" 2>> "$LOG"
+  # -f silences “no such file” errors if the glob is empty
+  rm -f "$BAMDIR"/*.{bam,bai} 2>> "$LOG"
+fi
 
 # End
 echo "All done! QC VCF: $VARCALLDIR/${id}.hc.QC.vcf.gz"

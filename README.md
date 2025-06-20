@@ -141,6 +141,7 @@ Below are the parameters that can be customized, along with their default values
     sample:          undef        
     workflow_engine:   bash
     gatk_version:      gatk3.5
+    cleanup_bam:       false
 
 ## Optional Parameters (Currently Unused)
 
@@ -150,6 +151,14 @@ Below are the parameters that can be customized, along with their default values
 CBICall will create a dedicated project directory (`cbicall_*`) to store analysis outputs. This design allows multiple independent runs concurrently without modifying original input files.
 
 Below is a detailed description of key parameters:
+
+- **cleanup\_bam**
+
+    Set it to `true` to delete `01_bam/*.{bam,bai}`.
+
+- **gatk\_version**
+
+    Supported values: `gatk3.5` or `gatk4.6`.
 
 - **mode**
 
@@ -176,10 +185,6 @@ Below is a detailed description of key parameters:
 - **workflow\_engine**
 
     Supported workflow engines: `bash` or `snakemake`.
-
-- **gatk\_version**
-
-    Supported values: `gatk3.5` or `gatk4.6`.
 
 ## Example Commands
 
@@ -296,7 +301,7 @@ Date: May-2025
 
     - Error: `Error parsing text SAM file. Not enough fields; File /dev/stdin; Line 105120626...`
 
-        Certain SRA‐derived or dbGaP datasets can contain duplicate reads.
+        Certain SRA-derived or dbGaP datasets can contain duplicate reads.
 
         When piping BWA output into `AddOrReplaceReadGroups`, you may need to remove secondary (`0x100`) and supplementary (`0x800`) alignments.
 
@@ -323,11 +328,3 @@ Written by Manuel Rueda (mrueda). GitHub repository: [https://github.com/mrueda/
 # COPYRIGHT AND LICENSE
 
 Please see the included LICENSE file for distribution and usage terms.
-
-# POD ERRORS
-
-Hey! **The above document had some coding errors, which are explained below:**
-
-- Around line 570:
-
-    Non-ASCII character seen before =encoding in 'SRA‐derived'. Assuming UTF-8

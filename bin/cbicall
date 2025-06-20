@@ -132,6 +132,7 @@ my $rah_cbicall = {    # Ref anonymous hash to be used w/ the object wes
     sample          => $param->{sample},
     workflow_engine => $param->{workflow_engine},
     gatk_version    => $param->{gatk_version},
+    cleanup_bam     => $param->{cleanup_bam},
     threads         => $arg->{threads},
     id              => $config->{id},
     debug           => $arg->{debug},
@@ -379,6 +380,7 @@ Below are the parameters that can be customized, along with their default values
   sample:          undef        
   workflow_engine:   bash
   gatk_version:      gatk3.5
+  cleanup_bam:       false
 
 =head2 Optional Parameters (Currently Unused)
 
@@ -390,6 +392,14 @@ CBICall will create a dedicated project directory (C<cbicall_*>) to store analys
 Below is a detailed description of key parameters:
 
 =over
+
+=item B<cleanup_bam>
+
+Set it to C<true> to delete C<01_bam/*.{bam,bai}>.
+
+=item B<gatk_version>
+
+Supported values: C<gatk3.5> or C<gatk4.6>.
 
 =item B<mode>
 
@@ -416,10 +426,6 @@ examples/input/CNAG999_exome/CNAG99901P_ex
 =item B<workflow_engine>
 
 Supported workflow engines: C<bash> or C<snakemake>.
-
-=item B<gatk_version>
-
-Supported values: C<gatk3.5> or C<gatk4.6>.
 
 =back
 
@@ -567,7 +573,7 @@ Solution: Remove the problematic line from the VCF file and document changes in 
 
 =item Error: C<Error parsing text SAM file. Not enough fields; File /dev/stdin; Line 105120626...>
 
-Certain SRA‐derived or dbGaP datasets can contain duplicate reads.
+Certain SRA-derived or dbGaP datasets can contain duplicate reads.
 
 When piping BWA output into C<AddOrReplaceReadGroups>, you may need to remove secondary (C<0x100>) and supplementary (C<0x800>) alignments.
 

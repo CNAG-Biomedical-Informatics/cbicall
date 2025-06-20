@@ -38,7 +38,8 @@ my %default = (
     technology      => 'Illumina HiSeq',
     workflow_engine => 'bash',
     gatk_version    => 'gatk-3.5',
-    projectdir      => 'cbicall'
+    projectdir      => 'cbicall',
+    cleanup_bam     => 0
 );
 
 # Define allowed pipeline-mode combinations per GATK version
