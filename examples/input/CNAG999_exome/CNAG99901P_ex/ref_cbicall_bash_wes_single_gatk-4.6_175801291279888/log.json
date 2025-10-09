@@ -1,0 +1,43 @@
+{
+   "arg" : {
+      "debug" : 0,
+      "help" : null,
+      "man" : null,
+      "nocolor" : null,
+      "noemoji" : null,
+      "paramfile" : "param.yaml",
+      "threads" : "4",
+      "verbose" : null
+   },
+   "config" : {
+      "arch" : "arm64",
+      "bash_coverage" : "/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/workflows/bash/gatk-4.6/coverage.sh",
+      "bash_jaccard" : "/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/workflows/bash/gatk-4.6/jaccard.sh",
+      "bash_parameters" : "/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/workflows/bash/gatk-4.6/parameters.sh",
+      "bash_vcf2sex" : "/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/workflows/bash/gatk-4.6/vcf2sex.sh",
+      "bash_wes_single" : "/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/workflows/bash/gatk-4.6/wes_single.sh",
+      "capture" : "GATK_bundle_b37",
+      "date" : "Tue Sep 16 10:55:12 2025",
+      "genome" : "b37",
+      "hostname" : "mrueda-ws1",
+      "id" : "175801291279888",
+      "output_basename" : "CNAG99901P_ex",
+      "projectdir" : "/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_175801291279888",
+      "threadshost" : "6",
+      "threadsless" : "5",
+      "user" : "mrueda",
+      "version" : "0.0.1",
+      "zip" : "/usr/bin/pigz -p 5"
+   },
+   "param" : {
+      "cleanup_bam" : true,
+      "gatk_version" : "gatk-4.6",
+      "mode" : "single",
+      "organism" : "Homo Sapiens",
+      "pipeline" : "wes",
+      "projectdir" : "cbicall",
+      "sample" : "CNAG999_exome/CNAG99901P_ex",
+      "technology" : "Illumina HiSeq",
+      "workflow_engine" : "bash"
+   }
+}
