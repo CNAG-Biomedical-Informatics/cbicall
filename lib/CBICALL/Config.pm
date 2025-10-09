@@ -11,6 +11,8 @@ use List::Util            qw(all);
 use Types::Standard       qw(Str Int);
 use Type::Utils           qw(enum);
 
+#use Data::Dumper;
+
 # Define custom enum types for allowed parameter values
 my $mode_type            = enum [qw(single cohort)];
 my $pipeline_type        = enum [qw(wes wgs mit)];
@@ -33,6 +35,8 @@ my %param_types = (
 my %default = (
     mode            => 'single',
     sample          => undef,
+    sample_map      => undef,
+    output_basename => undef,
     pipeline        => 'wes',
     organism        => 'Homo Sapiens',
     technology      => 'Illumina HiSeq',
@@ -49,8 +53,8 @@ my %allowed_combos = (
         mit => [qw(single cohort)],
     },
     'gatk-4.6' => {
-        wes => [qw(single)],
-        wgs => [qw(single)],
+        wes => [qw(single cohort)],
+        wgs => [qw(single cohort)],
     },
 );
 
@@ -60,7 +64,7 @@ sub read_param_file {
     # Keeping booleans as 'true' or 'false'. Perl still handles 0 and 1 internally.
     $YAML::XS::Boolean = 'JSON::PP';
 
-    my $param     = LoadFile($yaml_file);
+    my $param = LoadFile($yaml_file);
 
     # Merge provided parameters with defaults, and validate allowed values
     foreach my $key ( keys %$param ) {
@@ -74,6 +78,11 @@ sub read_param_file {
         else {
             die "Parameter '$key' does not exist (typo?)\n";
         }
+    }
+
+    # Add full path to 'sample_map'
+    if ( defined $param->{sample_map} ) {
+        $default{sample_map} = abs_path( $param->{sample_map} );
     }
 
     # Validate pipeline-mode combination for the selected GATK version
@@ -141,11 +150,16 @@ sub set_config_values {
       );
 
     # The directory is ALWAYS created below $param->{sample}
-    $config{projectdir} =
-      catdir( abs_path( $param->{sample} ), $tmp_str );
-    my @parts = split m{/}, $param->{sample};
-    $config{output_basename} = $parts[-1];
-    $config{hostname}        = hostname;
+    if ( $param->{sample} ) {
+        $config{projectdir} =
+          catdir( abs_path( $param->{sample} ), $tmp_str );
+        my @parts = split m{/}, $param->{sample};
+        $config{output_basename} = $parts[-1];
+    }
+    else {
+        $config{projectdir} = catdir( abs_path($tmp_str) );
+    }
+    $config{hostname} = hostname;
     chomp( my $threadshost = qx{/usr/bin/nproc} // 1 );
     $config{threadshost} = 0 + $threadshost;
     $config{threadsless} = $threadshost > 1 ? $threadshost - 1 : 1;

@@ -89,13 +89,18 @@ say BOLD BLUE, "$prompt", ( $no_emoji ? "" : " ⚙️ " ), " CONFIGURATION VALUE
 
 $~ = "CONFIG";
 my $l_config = '';
+my $l_config_val;
 foreach $l_config ( sort keys %{$config} ) {
+    # provide a safe display value for the format to avoid "uninitialized" warnings
+    $l_config_val = defined $config->{$l_config} && length($config->{$l_config}) 
+                   ? $config->{$l_config} 
+                   : '(undef)';
     write;
 }
 
 format CONFIG =
 @|||||@<<<<<<<<<<<<<<<< @<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-$prompt, $l_config, $arrow, $config->{$l_config}
+$prompt, $l_config, $arrow, $l_config_val
 .
 
 # Printing the config values to stdout according to the format below
@@ -104,13 +109,16 @@ say BOLD GREEN, "$prompt", ( $no_emoji ? "" : " 🎬" ), " CBICALL PARAMETERS:",
 
 $~ = "PARAMS";
 my $l_param = '';
+my $l_param_val;
 foreach $l_param ( sort keys %{$param} ) {
+    $l_param_val = defined $param->{$l_param} && length($param->{$l_param}) 
+                   ? $param->{$l_param} 
+                   : '(undef)';
     write;
 }
-
 format PARAMS =
 @|||||@<<<<<<<<<<<<<<<< @<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-$prompt, $l_param, $arrow, $param->{$l_param}
+$prompt, $l_param, $arrow, $l_param_val
 .
 
 # Start CBICall
@@ -130,6 +138,7 @@ my $rah_cbicall = {    # Ref anonymous hash to be used w/ the object wes
     pipeline        => $param->{pipeline},
     mode            => $param->{mode},
     sample          => $param->{sample},
+    sample_map      => $param->{sample_map},
     workflow_engine => $param->{workflow_engine},
     gatk_version    => $param->{gatk_version},
     cleanup_bam     => $param->{cleanup_bam},

@@ -12,6 +12,7 @@ export GATK_DISABLE_AUTO_S3_UPLOAD=true   # disable unintended S3 uploads
 
 # Memory & architecture
 MEM=8G
+MEM_GENOTYPE=64G
 ARCH=$(uname -m)
 
 # Java & tool binaries per architecture
@@ -34,7 +35,10 @@ PIC="$JAVA -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/picard-2.25/build/li
 GATK="$JAVA -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/gatk/gatk-3.5/GenomeAnalysisTK.jar"
 
 # GATK 4+ launcher (recommended)
-GATK4_CMD="$NGSUTILS/gatk/gatk-4.6.2.0/gatk --java-options -Xmx${MEM}"
+# with two variables:
+GATK4_BIN="$NGSUTILS/gatk/gatk-4.6.2.0/gatk"
+GATK4_JAVA_OPTS="--java-options -Xmx${MEM}"
+GATK4_JAVA_OPTS_64G="--java-options -Xmx${MEM}"
 
 # MToolBox directory
 MTOOLBOXDIR=$NGSUTILS/MToolBox-master/MToolBox
@@ -65,8 +69,12 @@ INTERVAL_LIST=$BUNDLE/b37_Broad.human.exome.b37.interval_list
 # Agilent SureSelect Whole Exome
 EXOM=$DBDIR/Agilent_SureSelect/hg19/bed
 
+# Joint variant calling
+BATCH_SIZE=50
+MIN_SNP_FOR_VQSR=1000
+MIN_INDEL_FOR_VQSR=8000
+
 # UnifiedGenotyper parameters (legacy)
 DCOV=1000
 UG_CALL=50
 UG_EMIT=10
-

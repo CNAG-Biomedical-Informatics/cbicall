@@ -120,7 +120,7 @@ for R1 in ../*_R1_*fastq.gz; do
 
   # Align without filtering (keep all alignments):
   $BWA mem -M -t "$THREADS" "$REFGZ" "$R1" "$R2" \
-    | $GATK4_CMD AddOrReplaceReadGroups \
+    | "$GATK4_BIN" $GATK4_JAVA_OPTS AddOrReplaceReadGroups \
         --INPUT /dev/stdin \
         --OUTPUT "$out_bam" \
         --TMP_DIR "$TMPDIR" \
@@ -139,11 +139,13 @@ done
 #------------------------------------------------------------------------------
 echo ">>> STEP 2: Merge lane-level BAMs"
 rg_bams=( $BAMDIR/*.rg.bam )
-$GATK4_CMD MergeSamFiles \
+set -x
+"$GATK4_BIN" $GATK4_JAVA_OPTS MergeSamFiles \
   ${rg_bams[@]/#/-I } \
   -O "$BAMDIR/${id}.rg.merged.bam" \
   --CREATE_INDEX true --VALIDATION_STRINGENCY SILENT --TMP_DIR "$TMPDIR" \
   2>> "$LOG"
+set +x
 
 #------------------------------------------------------------------------------
 # STEP 3: Mark Duplicates
@@ -151,12 +153,14 @@ $GATK4_CMD MergeSamFiles \
 # so marking them reduces false positives in variant calling.
 #------------------------------------------------------------------------------
 echo ">>> STEP 3: Mark duplicates"
-$GATK4_CMD MarkDuplicates \
+set -x
+"$GATK4_BIN" $GATK4_JAVA_OPTS MarkDuplicates \
   -I "$BAMDIR/${id}.rg.merged.bam" \
   -O "$BAMDIR/${id}.rg.merged.dedup.bam" \
   --METRICS_FILE "$BAMDIR/${id}.rg.merged.dedup.metrics.txt" \
   --CREATE_INDEX true --TMP_DIR "$TMPDIR" \
   2>> "$LOG"
+set +x
 $SAM index "$BAMDIR/${id}.rg.merged.dedup.bam"
 
 #------------------------------------------------------------------------------
@@ -166,17 +170,19 @@ $SAM index "$BAMDIR/${id}.rg.merged.dedup.bam"
 #------------------------------------------------------------------------------
 echo ">>> STEP 4: Base recalibration"
 bqsr_table="$BAMDIR/${id}.rg.merged.dedup.recal.table"
-$GATK4_CMD BaseRecalibrator \
+set -x
+"$GATK4_BIN" $GATK4_JAVA_OPTS BaseRecalibrator \
   -R "$REF" \
   -I "$BAMDIR/${id}.rg.merged.dedup.bam" \
   --known-sites "$dbSNP" --known-sites "$MILLS_INDELS" --known-sites "$KG_INDELS" \
   -O "$bqsr_table" --tmp-dir "$TMPDIR" 2>> "$LOG"
 
-$GATK4_CMD ApplyBQSR \
+"$GATK4_BIN" $GATK4_JAVA_OPTS ApplyBQSR \
   -R "$REF" -I "$BAMDIR/${id}.rg.merged.dedup.bam" \
   --bqsr-recal-file "$bqsr_table" \
   -O "$BAMDIR/${id}.rg.merged.dedup.recal.bam" --tmp-dir "$TMPDIR" 2>> "$LOG"
 $SAM index "$BAMDIR/${id}.rg.merged.dedup.recal.bam"
+set +x
 
 #------------------------------------------------------------------------------
 # STEP 5: HaplotypeCaller -> gVCF
@@ -184,20 +190,24 @@ $SAM index "$BAMDIR/${id}.rg.merged.dedup.recal.bam"
 # emits reference-confidence gVCF required for joint genotyping.
 #------------------------------------------------------------------------------
 echo ">>> STEP 5: HaplotypeCaller -> gVCF"
-$GATK4_CMD HaplotypeCaller \
+set -x
+"$GATK4_BIN" $GATK4_JAVA_OPTS HaplotypeCaller \
   -R "$REF" -I "$BAMDIR/${id}.rg.merged.dedup.recal.bam" \
   -O "$VARCALLDIR/${id}.hc.g.vcf.gz" \
   $INTERVAL_ARG \
   --native-pair-hmm-threads "$THREADS" -ERC GVCF 2>> "$LOG"
+set +x
 
 #------------------------------------------------------------------------------
 # STEP 6: GenotypeGVCFs -> Raw VCF
 # Theory: Jointly genotype one or more gVCFs to produce high-confidence sample VCF.
 #------------------------------------------------------------------------------
 echo ">>> STEP 6: GenotypeGVCFs -> raw VCF"
-$GATK4_CMD GenotypeGVCFs \
+set -x
+"$GATK4_BIN" $GATK4_JAVA_OPTS GenotypeGVCFs \
   -R "$REF" -V "$VARCALLDIR/${id}.hc.g.vcf.gz" \
   -O "$VARCALLDIR/${id}.hc.raw.vcf.gz" --stand-call-conf 10 2>> "$LOG"
+set +x
 
 #------------------------------------------------------------------------------
 # STEP 7: Build VQSR Models
@@ -210,7 +220,7 @@ nINDEL=$(zgrep -v '^#' "$VARCALLDIR/${id}.hc.raw.vcf.gz" | awk 'length($5)!=1' |
 minSNP=1000; minINDEL=8000; apply_snp=false; apply_indel=false
 
 if (( nSNP >= minSNP )); then
-  $GATK4_CMD VariantRecalibrator \
+  "$GATK4_BIN" $GATK4_JAVA_OPTS VariantRecalibrator \
     -R "$REF" \
     -V "$VARCALLDIR/${id}.hc.raw.vcf.gz" \
     $SNP_RES \
@@ -224,7 +234,7 @@ if (( nSNP >= minSNP )); then
 fi
 
 if (( nINDEL >= minINDEL )); then
-  $GATK4_CMD VariantRecalibrator \
+  "$GATK4_BIN" $GATK4_JAVA_OPTS VariantRecalibrator \
     -R "$REF" \
     -V "$VARCALLDIR/${id}.hc.raw.vcf.gz" \
     $INDEL_RES \
@@ -243,7 +253,7 @@ fi
 echo ">>> STEP 8: Apply VQSR or fallback"
 tmp_vcf="$VARCALLDIR/${id}.hc.raw.vcf.gz"
 if [ "$apply_snp" = true ]; then
-  $GATK4_CMD ApplyVQSR \
+  "$GATK4_BIN" $GATK4_JAVA_OPTS ApplyVQSR \
     -R "$REF" -V "$tmp_vcf" \
     --recal-file "$VARCALLDIR/${id}.snp.recal.vcf.gz" \
     --tranches-file "$VARCALLDIR/${id}.snp.tranches.txt" \
@@ -252,7 +262,7 @@ if [ "$apply_snp" = true ]; then
   tmp_vcf="$VARCALLDIR/${id}.hc.post_snp.vcf.gz"
 fi
 if [ "$apply_indel" = true ]; then
-  $GATK4_CMD ApplyVQSR \
+  "$GATK4_BIN" $GATK4_JAVA_OPTS ApplyVQSR \
     -R "$REF" -V "$tmp_vcf" \
     --recal-file "$VARCALLDIR/${id}.indel.recal.vcf.gz" \
     --tranches-file "$VARCALLDIR/${id}.indel.tranches.txt" \
@@ -268,7 +278,7 @@ fi
 #   INDELs: QD<2.0, FS>200.0, ReadPosRankSum<-20.0
 #------------------------------------------------------------------------------
 echo ">>> STEP 9: Hard-filter & write QC.vcf"
-$GATK4_CMD VariantFiltration \
+"$GATK4_BIN" $GATK4_JAVA_OPTS VariantFiltration \
   -R "$REF" \
   -V "$tmp_vcf" \
   --filter-name "LowQUAL" --filter-expression "QUAL < 30.0" \
@@ -320,7 +330,7 @@ rm "$out_raw" "$out_dedup" "$out_raw.bai" "$out_dedup.bai"
 #------------------------------------------------------------------------------
 # STEP 11: Cleanup BAMs (optional)
 #------------------------------------------------------------------------------
-if [ "${CLEANUP_BAM:-false}" = true ]; then
+if [ "$CLEANUP_BAM" = true ]; then
   echo ">>> STEP 11: Cleanup BAMs" 2>> "$LOG"
   # -f silences “no such file” errors if the glob is empty
   rm -f "$BAMDIR"/*.{bam,bai} 2>> "$LOG"

@@ -18,7 +18,7 @@ sub variant_calling {
     my $self = shift;
     my ( $pipeline, $mode, $dir, $threads, $engine, $gatk_version, $id, $debug )
       = @{$self}{
-        qw/pipeline mode projectdir threads workflow_engine gatk_version id debug cleanup_bam/
+        qw/pipeline mode projectdir threads workflow_engine gatk_version id debug/
       };
 
     # Build the script name and base command
@@ -45,6 +45,9 @@ sub variant_calling {
 
             # Add cleanup_bam if set to true
             $cmd_base .= " --cleanup-bam" if $self->{cleanup_bam};
+
+            # Add flags if 'cohort'
+            $cmd_base .= " --sample-map $self->{sample_map} --workspace cohort.genomicsdb.$id" if $self->{sample_map};
         }
         else {
             $cmd_base .= " --config pipeline=$pipeline";
