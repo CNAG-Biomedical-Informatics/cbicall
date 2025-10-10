@@ -51,7 +51,7 @@ cd $VARCALLDIR
 
 LOGDIR="logs"
 mkdir -p "$LOGDIR"
-LOG="$LOGDIR/cohort_genomicsdb.log"
+LOG="$LOGDIR/cohort_joint_genotyping.log"
 
 # pipeline mode
 # Convert to Uppercase
