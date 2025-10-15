@@ -16,8 +16,8 @@
   - [Synopsis](#synopsis)
   - [Summary](#summary)
 - [Installation](#installation)
-  - [Non-Containerized](#non-containerized)
-  - [Containerized](#containerized)
+  - [Non-Containerized](non-containerized/README.md)
+  - [Containerized](docker/README.md)
 - [How to run cbicall](#how-to-run-cbicall)
 - [Citation](#citation)
   - [Author](#author)
@@ -46,77 +46,7 @@ CBICall: CNAG Biomedical Informatics Framework for Variant Calling on Illumina D
 
 # SUMMARY
 
-CBICall (**C**NAG **B**iomedical **I**nformatics framework for variant **Call**ing) is a computational pipeline designed for variant calling analysis using Illumina Next-Generation Sequencing (NGS) data.
-
-# INSTALLATION
-
-## From GitHub
-
-Clone the repository:
-
-    git clone https://github.com/mrueda/cbicall.git
-    cd cbicall
-
-Install `cpanminus` (analog to Python's `pip`) and GNU compilers:
-
-    sudo apt install cpanminus gcc
-
-Note: If you don't have `sudo` privileges:
-
-    curl -L https://cpanmin.us | perl - App::cpanminus -l ~/perl5
-
-Then the `cpanm` exe will be at `~/perl5/bin/cpanm` or similar.
-
-We will install the dependencies at `~/perl5`:
-
-    cpanm --local-lib=~/perl5 local::lib && eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)
-    cpanm --notest --installdeps .
-
-To ensure Perl recognizes your local modules every time you start a new terminal, you should type:
-
-    echo 'eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)' >> ~/.bashrc
-
-If only need to update do:
-
-    git pull
-
-Optional, peform tests:
-
-    prove -l
-
-Install dependencies for Python 3:
-
-    pip3 install -r requirements.txt
-
-Finally, navigate to a directory where you want the databases stored and execute:
-
-    python3 $path_to_cbicall/scripts/01_download_external_data.py  # Replace $path_to_cbicall with your CBICall installation path.
-
-Note: Google Drive can be a tad restrictive with the download. If you get an error, please use the error URL link in a browser and you should be able to retrieve it there.
-
-Once downloaded, perform a checksum to make sure the files were not corrupted:
-
-    md5sum -c data.tar.gz.md5
-
-Now let's reassemble the split files into the original tar archive:
-
-    cat data.tar.gz.part-?? > data.tar.gz
-
-Clean up split files to save space (when you think you are ready!):
-
-    rm data.tar.gz.part-??
-
-Extract the tar archive:
-
-    tar -xzvf data.tar.gz
-
-Finally, in the `cbicall` repo: 
-
-Change `DATADIR` variable in `workflows/bash/parameters.sh` and `workflows/snakemake/config.yaml` so that it matches the location of your downloaded data.
-
-Ok, finally we are going to install `Java 8` in case you don't have it already:
-
-    sudo apt install openjdk-8-jdk
+CBICall (**C**NAG **B**iomedical **I**nformatics framework for variant **Call**ing) is a computational framework designed for variant calling analysis using Illumina Next-Generation Sequencing (NGS) data.
 
 # HOW TO RUN CBICALL
 
@@ -162,7 +92,7 @@ Below is a detailed description of key parameters:
 
 - **mode**
 
-    Two modes are supported: `single` (default, for individual samples) and `cohort` (for family-based or small cohort analyses).
+    Two modes are supported: `single` (default, for individual samples) and `cohort` (for family/cohort-based analyses).
 
 - **pipeline**
 
@@ -265,7 +195,7 @@ Perl scripts in CBICall use minimal RAM (~2% of a 16 GB system). Genome mapping 
 
 Parallel execution is supported but does not scale linearly. Optimal performance is achieved using ~ 4 threads per task. For example, with 12 cores, running 3 tasks in parallel with 4 cores each is typically more efficient than one task with all 12 cores. See example in figure below:
 
-![Time](https://github.com/mrueda/cbicall/blob/main/docs/img/run-time.png)
+![Time](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/docs/img/run-time.png)
 
 Unit/integration tests are conducted manually by verifying CSV and VCF outputs against established test datasets.
 
@@ -273,12 +203,12 @@ Unit/integration tests are conducted manually by verifying CSV and VCF outputs a
 
 The following table shows valid pipeline and mode combinations for each GATK version:
 
-| GATK Version | wes\_single | wes\_cohort | mit\_single | mit\_cohort | wgs\_single |
-|--------------|------------|------------|------------|------------|------------|
-| gatk3.5      | +          | +          | +          | +          | -          |
-| gatk4.6      | +          | -          | -          | -          | +          |
+| GATK Version | wes\_single | wes\_cohort | wgs\_single | wgs\_cohort | mit\_single | mit\_cohort |
+|--------------|------------|------------|------------|------------|------------| -----------|
+| gatk3.5      | +          | +          | -          | -          |   +        | +          | 
+| gatk4.6      | +          | +          | +          | +          |   -        | -          | 
 
-Date: May-2025
+Date: Oct-2025
 
 ## Capture Kits
 
@@ -323,7 +253,7 @@ To be determined.
 
 # AUTHOR
 
-Written by Manuel Rueda (mrueda). GitHub repository: [https://github.com/mrueda/cbicall](https://github.com/mrueda/cbicall). CBICall takes ideas from ScrippsCall, developed while at [SRTI](https://www.scripps.edu/science-and-medicine/translational-institute/) (Scripps Research Translational Institute) during 2015-2017.
+Written by Manuel Rueda (mrueda). GitHub repository: [https://github.com/CNAG-Biomedical-Informatics/cbicall](https://github.com/CNAG-Biomedical-Informatics/cbicall).
 
 # COPYRIGHT AND LICENSE
 

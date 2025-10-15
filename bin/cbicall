@@ -290,77 +290,7 @@ CBICall: CNAG Biomedical Informatics Framework for Variant Calling on Illumina D
 
 =head1 SUMMARY
 
-CBICall (B<C>NAG B<B>iomedical B<I>nformatics framework for variant B<Call>ing) is a computational pipeline designed for variant calling analysis using Illumina Next-Generation Sequencing (NGS) data.
-
-=head1 INSTALLATION
-
-=head2 From GitHub
-
-Clone the repository:
-
-  git clone https://github.com/mrueda/cbicall.git
-  cd cbicall
-
-Install C<cpanminus> (analog to Python's C<pip>) and GNU compilers:
-
-  sudo apt install cpanminus gcc
-
-Note: If you don't have C<sudo> privileges:
-
-  curl -L https://cpanmin.us | perl - App::cpanminus -l ~/perl5
-
-Then the C<cpanm> exe will be at C<~/perl5/bin/cpanm> or similar.
-
-We will install the dependencies at C<~/perl5>:
-
-  cpanm --local-lib=~/perl5 local::lib && eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)
-  cpanm --notest --installdeps .
-
-To ensure Perl recognizes your local modules every time you start a new terminal, you should type:
-
-  echo 'eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)' >> ~/.bashrc
-
-If only need to update do:
-
-  git pull
-
-Optional, peform tests:
-
-  prove -l
-
-Install dependencies for Python 3:
-
-  pip3 install -r requirements.txt
-
-Finally, navigate to a directory where you want the databases stored and execute:
-
-  python3 $path_to_cbicall/scripts/01_download_external_data.py  # Replace $path_to_cbicall with your CBICall installation path.
-
-Note: Google Drive can be a tad restrictive with the download. If you get an error, please use the error URL link in a browser and you should be able to retrieve it there.
-
-Once downloaded, perform a checksum to make sure the files were not corrupted:
-
-  md5sum -c data.tar.gz.md5
-
-Now let's reassemble the split files into the original tar archive:
-
-  cat data.tar.gz.part-?? > data.tar.gz
-
-Clean up split files to save space (when you think you are ready!):
-
-  rm data.tar.gz.part-??
-
-Extract the tar archive:
-
-  tar -xzvf data.tar.gz
-
-Finally, in the C<cbicall> repo: 
-
-Change C<DATADIR> variable in C<workflows/bash/parameters.sh> and C<workflows/snakemake/config.yaml> so that it matches the location of your downloaded data.
-
-Ok, finally we are going to install C<Java 8> in case you don't have it already:
-
-  sudo apt install openjdk-8-jdk
+CBICall (B<C>NAG B<B>iomedical B<I>nformatics framework for variant B<Call>ing) is a computational framework designed for variant calling analysis using Illumina Next-Generation Sequencing (NGS) data.
 
 =head1 HOW TO RUN CBICALL
 
@@ -412,7 +342,7 @@ Supported values: C<gatk3.5> or C<gatk4.6>.
 
 =item B<mode>
 
-Two modes are supported: C<single> (default, for individual samples) and C<cohort> (for family-based or small cohort analyses).
+Two modes are supported: C<single> (default, for individual samples) and C<cohort> (for family/cohort-based analyses).
 
 =item B<pipeline>
 
@@ -539,7 +469,7 @@ Parallel execution is supported but does not scale linearly. Optimal performance
 
 =begin markdown
 
-![Time](https://github.com/mrueda/cbicall/blob/main/docs/img/run-time.png)
+![Time](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/docs/img/run-time.png)
 
 =end markdown
 
@@ -549,12 +479,12 @@ Unit/integration tests are conducted manually by verifying CSV and VCF outputs a
 
 The following table shows valid pipeline and mode combinations for each GATK version:
 
-| GATK Version | wes_single | wes_cohort | mit_single | mit_cohort | wgs_single |
-|--------------|------------|------------|------------|------------|------------|
-| gatk3.5      | +          | +          | +          | +          | -          |
-| gatk4.6      | +          | -          | -          | -          | +          |
+| GATK Version | wes_single | wes_cohort | wgs_single | wgs_cohort | mit_single | mit_cohort |
+|--------------|------------|------------|------------|------------|------------| -----------|
+| gatk3.5      | +          | +          | -          | -          |   +        | +          | 
+| gatk4.6      | +          | +          | +          | +          |   -        | -          | 
 
-Date: May-2025
+Date: Oct-2025
 
 =head2 Capture Kits
 
@@ -611,7 +541,7 @@ To be determined.
 
 =head1 AUTHOR
 
-Written by Manuel Rueda (mrueda). GitHub repository: L<https://github.com/mrueda/cbicall>. CBICall takes ideas from ScrippsCall, developed while at L<SRTI|https://www.scripps.edu/science-and-medicine/translational-institute/> (Scripps Research Translational Institute) during 2015-2017.
+Written by Manuel Rueda (mrueda). GitHub repository: L<https://github.com/CNAG-Biomedical-Informatics/cbicall>.
 
 =head1 COPYRIGHT AND LICENSE
 
