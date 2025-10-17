@@ -317,6 +317,7 @@ Below are the parameters that can be customized, along with their default values
   mode:            single  
   pipeline:        wes          
   sample:          undef        
+  sample_map:      undef
   workflow_engine:   bash
   gatk_version:      gatk3.5
   cleanup_bam:       false
@@ -361,6 +362,12 @@ Path (relative or absolute) to the directory containing FASTQ files for analysis
 Example:
 
 examples/input/CNAG999_exome/CNAG99901P_ex
+
+=item B<sample_map> (cohort-mode only)
+
+Path (relative or absolute) to the file containing the sample ids and teh paths for the GVCF files
+
+See example L<here|https://github.com/CNAG-Biomedical-Informatics/cbicall/tree/main/examples/input/sample_map.tsv>
 
 =item B<workflow_engine>
 

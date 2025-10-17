@@ -69,6 +69,7 @@ Below are the parameters that can be customized, along with their default values
     mode:            single  
     pipeline:        wes          
     sample:          undef        
+    sample_map:      undef
     workflow_engine:   bash
     gatk_version:      gatk3.5
     cleanup_bam:       false
@@ -111,6 +112,12 @@ Below is a detailed description of key parameters:
     Example:
 
     examples/input/CNAG999\_exome/CNAG99901P\_ex
+
+- **sample\_map** (cohort-mode only)
+
+    Path (relative or absolute) to the file containing the sample ids and teh paths for the GVCF files
+
+    See example [here](https://github.com/CNAG-Biomedical-Informatics/cbicall/tree/main/examples/input/sample_map.tsv)
 
 - **workflow\_engine**
 
