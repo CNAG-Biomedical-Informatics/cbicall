@@ -83,20 +83,7 @@ Then build the container:
 
 ```bash
 # Please update '/absolute/path/to/cbicall-data' with your actual local data path
-docker run -tid --volume /absolute/path/to/cbicall-data:/cbicall--data --name cbicall cnag/cbicall:latest
-```
-
-To connect to the container:
-
-```bash
-docker exec -ti cbicall bash
-
-## Running and Interacting with the Container
-
-To run the container:
-
-```bash
-docker run -tid -e USERNAME=root --name cbicall cnag/cbicall:latest
+docker run -tid --volume /absolute/path/to/cbicall-data:/cbicall-data -e USERNAME=root --name cbicall cnag/cbicall:latest
 ```
 
 To connect to the container:
@@ -107,7 +94,16 @@ docker exec -ti cbicall bash
 
 Finally, inside the `cbicall` repo:
 
-Change `DATADIR` variable in `workflows/bash/parameters.sh` and `workflows/snakemake/config.yaml` so that it matches the location of your downloaded data.
+Change `DATADIR` variable in `workflows/bash/parameters.sh` and `workflows/snakemake/config.yaml` to `/cbicall-data`.
+
+## Performing unit test
+
+Inside the container
+
+```bash
+cd examples/input
+./run_test.sh
+```
 
 ## System requirements
 

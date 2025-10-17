@@ -10,7 +10,9 @@ ENV PATH="/usr/local/sbin:/usr/sbin:/sbin:${PATH}"
 
 # Install Linux tools
 RUN apt-get update && \
-    apt-get -y install gcc make git cpanminus perl-doc vim sudo libperl-dev
+    apt-get -y install gcc make git cpanminus perl-doc vim sudo libperl-dev \
+    libncurses5 libtinfo \
+    python3-pip openjdk-17-jre
 
 # Download Convert-Pheno
 WORKDIR /usr/share/
