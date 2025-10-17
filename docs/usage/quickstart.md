@@ -2,28 +2,18 @@ This guide provides a one-page cheat sheet for common commands:
 
 ```bash
 # Display help for the tool
-bin/bff-tools --help
+bin/cbicall --help
 ```
 
 ```bash
 # Display man for the tool
-bin/bff-tools --man
-```
-
---8<-- "about/disclaimer.md"
-
-```bash
-# Convert VCF to BFF
-bin/bff-tools vcf -i test/vcf/test_1000G.vcf.gz -p test/vcf/param.yaml
+bin/cbicall --man
 ```
 
 ```bash
-# ✨ Convert TSV (SNP microarray) to BFF
-bin/bff-tools tsv -i test/tsv/input.txt.gz -p test/tsv/param.yaml
-```
-
-```bash
-# Validate metadata and convert to BFF
-mkdir bff_out
-bin/bff-tools validate -i utils/bff_validator/Beacon-v2-Models_template.xlsx --out-dir bff_out
+# Run CBICall with different options
+$ bin/cbicall -p param_file.yaml -t 6
+$ bin/cbicall -p param_file.yaml -t 4 -verbose
+$ bin/cbicall -p param_file.yaml -t 16 > log 2>&1
+$ $path_to_cbicall/bin/cbicall -p param_file.yaml -t 8 -debug 5
 ```

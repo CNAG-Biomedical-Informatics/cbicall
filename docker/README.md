@@ -1,5 +1,53 @@
 # Containerized Installation
 
+## Downloading Required Databases and Software
+
+First, we need to download the necessary databases and software. The data will be etored externally to container. This implies data persistence and allows software updates without requiring a full re-download of all data.
+
+Install dependencies for Python 3:
+
+```
+pip3 install -r requirements.txt
+```
+
+Finally, navigate to a directory where you want the databases stored and execute:
+
+```
+wget https://raw.githubusercontent.com/mrueda/cbicall/refs/heads/main/scripts/01_download_external_data.py
+python3 ./01_download_external_data.py
+```
+
+Note: Google Drive can be a tad restrictive with the download. If you get an error, please use the error URL link in a browser and you should be able to retrieve it there.
+
+Once downloaded, perform a checksum to make sure the files were not corrupted:
+
+```
+md5sum -c data.tar.gz.md5
+```
+
+Now let's reassemble the split files into the original tar archive:
+
+```
+cat data.tar.gz.part-?? > data.tar.gz
+```
+
+Clean up split files to save space (when you think you are ready!):
+
+```
+rm data.tar.gz.part-??
+```
+
+Extract the tar archive:
+
+```
+tar -xzvf data.tar.gz
+```
+
+Finally, in the `cbicall` repo:
+
+Change `DATADIR` variable in `workflows/bash/parameters.sh` and `workflows/snakemake/config.yaml` so that it matches the location of your downloaded data.
+
+
 ### Method 2: Installing from Docker Hub (fast)
 
 Pull the latest Docker image from [Docker Hub](https://hub.docker.com/r/manuelrueda/cbicall):
@@ -33,6 +81,18 @@ Then build the container:
 
 ## Running and Interacting with the Container
 
+```bash
+# Please update '/absolute/path/to/cbicall-data' with your actual local data path
+docker run -tid --volume /absolute/path/to/cbicall-data:/cbicall--data --name cbicall cnag/cbicall:latest
+```
+
+To connect to the container:
+
+```bash
+docker exec -ti cbicall bash
+
+## Running and Interacting with the Container
+
 To run the container:
 
 ```bash
@@ -45,54 +105,7 @@ To connect to the container:
 docker exec -ti cbicall bash
 ```
 
-Or, to run directly from the host:
-
-```bash
-alias cbicall='docker exec -ti cbicall /usr/share/cbicall/bin/cbicall'
-cbicall
-```
-
-### Install required external software
-
-Install dependencies for Python 3:
-
-```
-pip3 install -r requirements.txt
-```
-
-Finally, navigate to a directory where you want the databases stored and execute:
-
-```
-python3 $path_to_cbicall/scripts/01_download_external_data.py  # Replace $path_to_cbicall with your CBICall installation path.
-```
-
-Note: Google Drive can be a tad restrictive with the download. If you get an error, please use the error URL link in a browser and you should be able to retrieve it there.
-
-Once downloaded, perform a checksum to make sure the files were not corrupted:
-
-```
-md5sum -c data.tar.gz.md5
-```
-
-Now let's reassemble the split files into the original tar archive:
-
-```
-cat data.tar.gz.part-?? > data.tar.gz
-```
-
-Clean up split files to save space (when you think you are ready!):
-
-```
-rm data.tar.gz.part-??
-```
-
-Extract the tar archive:
-
-```
-tar -xzvf data.tar.gz
-```
-
-Finally, in the `cbicall` repo:
+Finally, inside the `cbicall` repo:
 
 Change `DATADIR` variable in `workflows/bash/parameters.sh` and `workflows/snakemake/config.yaml` so that it matches the location of your downloaded data.
 
