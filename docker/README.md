@@ -2,7 +2,7 @@
 
 ## Downloading Required Databases and Software
 
-First, we need to download the necessary databases and software. The data will be etored externally to container. This implies data persistence and allows software updates without requiring a full re-download of all data.
+Begin by downloading the required databases and software. Save the data outside the container; this preserves it across container restarts and lets you update the software without downloading the data again.
 
 Install dependencies for Python 3:
 

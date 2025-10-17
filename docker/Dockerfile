@@ -8,13 +8,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Ensure that system sbin directories are in PATH
 ENV PATH="/usr/local/sbin:/usr/sbin:/sbin:${PATH}"
 
-# Install Linux tools
+# Install Linux tools (use --no-install-recommends and headless JRE)
 RUN apt-get update && \
-    apt-get -y install gcc make git cpanminus perl-doc vim sudo libperl-dev \
-    libncurses5 libtinfo \
-    python3-pip openjdk-17-jre
+    apt-get install -y \
+      gcc make git cpanminus perl-doc vim sudo libperl-dev \
+      libncurses5 libtinfo5 \
+      python3-pip openjdk-17-jre-headless ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
-# Download Convert-Pheno
+# Download CBICall
 WORKDIR /usr/share/
 RUN git clone https://github.com/mrueda/cbicall.git
 
