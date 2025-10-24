@@ -7,8 +7,7 @@
 </div>
 
 
-[![Build and Test](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/build-and-test.yml)
-[![Coverage Status](https://coveralls.io/repos/github/CNAG-Biomedical-Informatics/cbicall/badge.svg?branch=main)](https://coveralls.io/github/CNAG-Biomedical-Informatics/cbicall?branch=main)
+[![Build](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/build.yml/badge.svg)](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/build.yml)
 ![version](https://img.shields.io/badge/version-0.0.1-28a745)
 [![Docker Build](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/docker-build-multi-arch.yml/badge.svg)](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/docker-build-multi-arch.yml)
 [![Docker Pulls](https://badgen.net/docker/pulls/manuelrueda/cbicall?icon=docker&label=pulls)](https://hub.docker.com/r/manuelrueda/cbicall/)
@@ -53,7 +52,7 @@ CBICall: CNAG Biomedical Informatics Framework for Variant Calling on Illumina D
       -debug            Debugging level (from 1 to 5; 5 is maximum verbosity)
       -h|help           Brief help message
       -man              Full documentation
-      -v                Show version information
+      -v                Show  information
       -verbose          Enable verbose output
       -nc|no-color      Do not print colors to STDOUT
       -ne|no-emoji      Do not print emojis to STDOUT
@@ -85,7 +84,7 @@ Below are the parameters that can be customized, along with their default values
     sample:          undef        
     sample_map:      undef
     workflow_engine:   bash
-    gatk_version:      gatk3.5
+    gatk_:      gatk3.5
     cleanup_bam:       false
 
 ## Optional Parameters (Currently Unused)
@@ -101,7 +100,7 @@ Below is a detailed description of key parameters:
 
     Set it to `true` to delete `01_bam/*.{bam,bai}`.
 
-- **gatk\_version**
+- **gatk\_**
 
     Supported values: `gatk3.5` or `gatk4.6`.
 
@@ -222,7 +221,7 @@ Unit/integration tests are conducted manually by verifying CSV and VCF outputs a
 
 # SUPPORTED PIPELINES
 
-The following table shows valid pipeline and mode combinations for each GATK version:
+The following table shows valid pipeline and mode combinations for each GATK :
 
 | GATK Version | wes\_single | wes\_cohort | wgs\_single | wgs\_cohort | mit\_single | mit\_cohort |
 |--------------|------------|------------|------------|------------|------------| -----------|
@@ -233,9 +232,9 @@ Date: Oct-2025
 
 ## Capture Kits
 
-\* For GATK version 3.5: Exome capture is based on Agilent SureSelect.
+\* For GATK  3.5: Exome capture is based on Agilent SureSelect.
 
-\* For GATK version 4.6: Exome and WGS reference is based on the GATK bundle (b37).
+\* For GATK  4.6: Exome and WGS reference is based on the GATK bundle (b37).
 
 # COMMON ERRORS AND TROUBLESHOOTING
 

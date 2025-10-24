@@ -1,4 +1,4 @@
-name: Build and test
+name: Build
 
 on:
   workflow_dispatch
@@ -37,12 +37,3 @@ jobs:
       - name: Execute Perl tests
         run: |
           prove -l t
-
-      - name: Run tests (with coverage)
-        if: ${{ matrix.perl == '5.38' && matrix.os == 'ubuntu-latest' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          perl Makefile.PL
-          cpanm -n Devel::Cover::Report::Coveralls
-          cover -test -report Coveralls

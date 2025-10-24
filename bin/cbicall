@@ -36,8 +36,8 @@ use CBICALL::DNAseq;
 # Set STDOUT to output UTF-8
 binmode STDOUT, ':encoding(UTF-8)';
 
-# CBICall version
-my $version = '0.0.1';
+# CBICall 
+my $VERSION = '0.0.1';
 
 # Initialize a few more variables
 my $prompt       = 'Info:';
@@ -60,7 +60,7 @@ $| = 1;
 ##############################################################
 
 # Parsing arguments and getting help if needed
-my $arg = Help::usage($version);
+my $arg = Help::usage($VERSION);
 my $no_emoji = $arg->{noemoji} // 0;    # 0 means emojis enabled by default
 my $no_spinner = $arg->{debug} || $arg->{verbose};
 
@@ -69,11 +69,11 @@ my $no_spinner = $arg->{debug} || $arg->{verbose};
 my $param  = Config::read_param_file( $arg->{paramfile} );
 my $config = Config::set_config_values($param);
 
-# Add version to $config
-$config->{version} = $version;
+# Add  to $config
+$config->{version} = $VERSION;
 
 # Start CBICALL
-say BOLD CYAN "$prompt", ( $no_emoji ? "" : " 🚀" ), " CBICall $version", RESET;
+say BOLD CYAN "$prompt", ( $no_emoji ? "" : " 🚀" ), " CBICall $VERSION", RESET;
 say "$prompt", ( $no_emoji ? "" : " 🖥️ " ), " CBICall exe: $cbicall_path";
 say "$prompt", ( $no_emoji ? "" : " ✍️ " ), " $author";
 say "$prompt", ( $no_emoji ? "" : " 📜" ),  " $license\n$prompt";
@@ -140,7 +140,7 @@ my $rah_cbicall = {    # Ref anonymous hash to be used w/ the object wes
     sample          => $param->{sample},
     sample_map      => $param->{sample_map},
     workflow_engine => $param->{workflow_engine},
-    gatk_version    => $param->{gatk_version},
+    gatk_    => $param->{gatk_version},
     cleanup_bam     => $param->{cleanup_bam},
     threads         => $arg->{threads},
     id              => $config->{id},
@@ -283,7 +283,7 @@ CBICall: CNAG Biomedical Informatics Framework for Variant Calling on Illumina D
      -debug            Debugging level (from 1 to 5; 5 is maximum verbosity)
      -h|help           Brief help message
      -man              Full documentation
-     -v                Show version information
+     -v                Show  information
      -verbose          Enable verbose output
      -nc|no-color      Do not print colors to STDOUT
      -ne|no-emoji      Do not print emojis to STDOUT
@@ -319,7 +319,7 @@ Below are the parameters that can be customized, along with their default values
   sample:          undef        
   sample_map:      undef
   workflow_engine:   bash
-  gatk_version:      gatk3.5
+  gatk_:      gatk3.5
   cleanup_bam:       false
 
 =head2 Optional Parameters (Currently Unused)
@@ -337,7 +337,7 @@ Below is a detailed description of key parameters:
 
 Set it to C<true> to delete C<01_bam/*.{bam,bai}>.
 
-=item B<gatk_version>
+=item B<gatk_>
 
 Supported values: C<gatk3.5> or C<gatk4.6>.
 
@@ -484,7 +484,7 @@ Unit/integration tests are conducted manually by verifying CSV and VCF outputs a
 
 =head1 SUPPORTED PIPELINES
 
-The following table shows valid pipeline and mode combinations for each GATK version:
+The following table shows valid pipeline and mode combinations for each GATK :
 
 | GATK Version | wes_single | wes_cohort | wgs_single | wgs_cohort | mit_single | mit_cohort |
 |--------------|------------|------------|------------|------------|------------| -----------|
@@ -495,9 +495,9 @@ Date: Oct-2025
 
 =head2 Capture Kits
 
-* For GATK version 3.5: Exome capture is based on Agilent SureSelect.
+* For GATK  3.5: Exome capture is based on Agilent SureSelect.
 
-* For GATK version 4.6: Exome and WGS reference is based on the GATK bundle (b37).
+* For GATK  4.6: Exome and WGS reference is based on the GATK bundle (b37).
 
 =head1 COMMON ERRORS AND TROUBLESHOOTING
 
