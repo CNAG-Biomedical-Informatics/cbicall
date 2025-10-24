@@ -3,20 +3,15 @@ site_description: 'CBICall: CNAG Biomedical Informatics framework for variant Ca
 site_author: 'Manuel Rueda, PhD'
 copyright: '&copy; Copyright 2024-2025, Manuel Rueda, CNAG'
 repo_name: 'CBICall'
-repo_url: https://github.com/CNAG-Biomedical-Informatics/clarid-tools
+repo_url: https://github.com/CNAG-Biomedical-Informatics/cbicall
 edit_uri: edit/main/docs/
 extra_css:
-  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.css
-  - https:////cdn.datatables.net/2.3.2/css/dataTables.dataTables.min.css
   - css/theme_overrides.css
 
 extra_javascript:
   - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.js
   - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/contrib/auto-render.min.js
   - js/vendor/katex.js               # your KaTeX init AFTER the libs
-  - https://code.jquery.com/jquery-3.7.1.js
-  - https://cdn.datatables.net/2.3.2/js/dataTables.min.js
-  - js/datatables-init.js            # DT init AFTER the DT lib
   - js/theme_overrides.js            # Custom tweaks last
 
 plugins:
@@ -52,7 +47,7 @@ markdown_extensions:
     - tables
     - mdx_gh_links:
         user: CNAG-Biomedical-Informatics
-        repo: clarid-tools
+        repo: cbicall
     - pymdownx.emoji:
         emoji_index: !!python/name:material.extensions.emoji.twemoji
         emoji_generator: !!python/name:material.extensions.emoji.to_svg
