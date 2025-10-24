@@ -6,4 +6,4 @@ requires 'JSON::XS';
 requires 'YAML::XS';
 requires 'Path::Tiny';
 requires 'Term::ANSIColor';
-requires 'Types::Standard.pm';
+requires 'Types::Standard';

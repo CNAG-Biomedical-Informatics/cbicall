@@ -23,19 +23,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install dependencies on Ubuntu
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qrencode zbar-tools
-
-      - name: Install dependencies on macOS
-        if: startsWith(matrix.os, 'macos')
-        run: |
-          brew install qrencode zbar
-          #mkdir ~/lib
-          #ln -s $(brew --prefix zbar)/lib/libzbar.dylib ~/lib/libzbar.dylib
-
       - name: Set up Perl
         uses: shogo82148/actions-setup-perl@v1
         with:
