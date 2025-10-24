@@ -52,7 +52,7 @@ CBICall: CNAG Biomedical Informatics Framework for Variant Calling on Illumina D
       -debug            Debugging level (from 1 to 5; 5 is maximum verbosity)
       -h|help           Brief help message
       -man              Full documentation
-      -v                Show  information
+      -v                Show version information
       -verbose          Enable verbose output
       -nc|no-color      Do not print colors to STDOUT
       -ne|no-emoji      Do not print emojis to STDOUT
@@ -84,7 +84,7 @@ Below are the parameters that can be customized, along with their default values
     sample:          undef        
     sample_map:      undef
     workflow_engine:   bash
-    gatk_:      gatk3.5
+    gatk_version:      gatk3.5
     cleanup_bam:       false
 
 ## Optional Parameters (Currently Unused)
@@ -100,7 +100,7 @@ Below is a detailed description of key parameters:
 
     Set it to `true` to delete `01_bam/*.{bam,bai}`.
 
-- **gatk\_**
+- **gatk\_version**
 
     Supported values: `gatk3.5` or `gatk4.6`.
 
@@ -221,7 +221,7 @@ Unit/integration tests are conducted manually by verifying CSV and VCF outputs a
 
 # SUPPORTED PIPELINES
 
-The following table shows valid pipeline and mode combinations for each GATK :
+The following table shows valid pipeline and mode combinations for each GATK version:
 
 | GATK Version | wes\_single | wes\_cohort | wgs\_single | wgs\_cohort | mit\_single | mit\_cohort |
 |--------------|------------|------------|------------|------------|------------| -----------|
@@ -232,9 +232,9 @@ Date: Oct-2025
 
 ## Capture Kits
 
-\* For GATK  3.5: Exome capture is based on Agilent SureSelect.
+\* For GATK version 3.5: Exome capture is based on Agilent SureSelect.
 
-\* For GATK  4.6: Exome and WGS reference is based on the GATK bundle (b37).
+\* For GATK version 4.6: Exome and WGS reference is based on the GATK bundle (b37).
 
 # COMMON ERRORS AND TROUBLESHOOTING
 

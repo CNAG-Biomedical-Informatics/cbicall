@@ -45,7 +45,7 @@ tar -xzvf data.tar.gz
 
 Finally, in the `cbicall` repo:
 
-Change `DATADIR` variable in `workflows/bash/parameters.sh` and `workflows/snakemake/config.yaml` so that it matches the location of your downloaded data.
+Change `DATADIR` variable in `workflows/bash/*/parameters.sh` and `workflows/snakemake/*/config.yaml` so that it matches the location of your downloaded data.
 
 
 ### Method 2: Installing from Docker Hub (fast)

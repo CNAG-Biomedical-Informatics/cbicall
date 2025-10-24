@@ -82,7 +82,7 @@ tar -xzvf data.tar.gz
 
 Finally, in the `cbicall` repo:
 
-Change `DATADIR` variable in `workflows/bash/parameters.sh` and `workflows/snakemake/config.yaml` so that it matches the location of your downloaded data.
+Change `DATADIR` variable in `workflows/bash/*/parameters.sh` and `workflows/snakemake/*/config.yaml` so that it matches the location of your downloaded data.
 
 Ok, finally we are going to install `Java 8` in case you don't have it already:
 
