@@ -87,7 +87,7 @@ Change `DATADIR` variable in `workflows/bash/*/parameters.sh` and `workflows/sna
 Ok, finally we are going to install `Java 8` in case you don't have it already:
 
 ```
-sudo apt install openjdk-8-jdk # In some systems you maight need Java 17 -> openjdk-17-jre
+sudo apt install openjdk-8-jdk # In some systems you might need Java 17 -> openjdk-17-jre
 ```
 
 ## Performing unit test
