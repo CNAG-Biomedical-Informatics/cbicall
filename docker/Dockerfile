@@ -11,7 +11,7 @@ ENV PATH="/usr/local/sbin:/usr/sbin:/sbin:${PATH}"
 # Install Linux tools (use --no-install-recommends and headless JRE)
 RUN apt-get update && \
     apt-get install -y \
-      git vim sudo \
+      gcc make git vim sudo \
       libncurses5 libtinfo5 \
       python3-pip openjdk-17-jre-headless ca-certificates && \
     rm -rf /var/lib/apt/lists/*
@@ -24,7 +24,7 @@ RUN git clone https://github.com/mrueda/cbicall.git
 RUN rm -rf cbicall/.git
 
 # Install Python packages
-RUN pip3 install -r requirements.txt --break-system-packages
+RUN pip3 install -r requirements.txt
 
 # Add user "dockeruser"
 ARG UID=1000
