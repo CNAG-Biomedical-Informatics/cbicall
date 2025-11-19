@@ -24,7 +24,7 @@ RUN git clone https://github.com/mrueda/cbicall.git
 RUN rm -rf cbicall/.git
 
 # Install Python packages
-RUN pip3 install -r requirements.txt
+RUN pip3 install -r /usr/share/cbicall/requirements.txt
 
 # Add user "dockeruser"
 ARG UID=1000
