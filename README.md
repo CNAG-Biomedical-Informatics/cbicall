@@ -208,7 +208,7 @@ Recommended specifications:
     * >= 8 GB RAM.
     * >= 4 CPU cores (Intel i7 or Xeon preferred).
     * >= 250 GB HDD space.
-    * Python 3
+    * Python >= 3.8
     * Java 8 (install via C<sudo apt install openjdk-8-jdk>).
     * Snakemake (install via C<pip3 install -r requirements.txt>).
 

@@ -15,6 +15,12 @@ If you only new to update to the lastest version do:
 git pull
 ```
 
+Install dependencies for Python 3:
+
+```
+pip3 install -r requirements.txt
+```
+
 Testing the deployment:
 
 ```bash
@@ -23,13 +29,7 @@ pytest
 
 ### Install required external software
 
-Install dependencies for Python 3:
-
-```
-pip3 install -r requirements.txt
-```
-
-Finally, navigate to a directory where you want the databases stored and execute:
+Navigate to a directory where you want the databases stored and execute:
 
 ```
 python3 $path_to_cbicall/scripts/01_download_external_data.py  # Replace $path_to_cbicall with your CBICall installation path.
@@ -84,7 +84,7 @@ cd examples/input
 
 - OS/ARCH supported: **linux/amd64** and **linux/arm64**.
 - Ideally a Debian-based distribution (Ubuntu or Mint), but any other (e.g., CentOS, OpenSUSE) should do as well (untested).
-- Python 3
+- Python >= 3.8
 - Java 8
 - 16GB of RAM
 - \>= 1 core (ideally i7 or Xeon).
