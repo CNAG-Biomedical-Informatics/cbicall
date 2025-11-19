@@ -1,3 +1,4 @@
+PyYAML
 pulp==2.6.0
 snakemake
-gdown
+pytest

@@ -7,7 +7,7 @@ Begin by downloading the required databases and software. Save the data outside 
 Install dependencies for Python 3:
 
 ```
-pip3 install -r requirements.txt
+pip3 install gdown
 ```
 
 Finally, navigate to a directory where you want the databases stored and execute:

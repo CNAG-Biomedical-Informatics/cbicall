@@ -23,6 +23,9 @@ RUN git clone https://github.com/mrueda/cbicall.git
 # Remove the .git folder to save space and avoid shipping VCS data
 RUN rm -rf cbicall/.git
 
+# Install Python packages
+RUN pip3 install -r requirements.txt --break-system-packages
+
 # Add user "dockeruser"
 ARG UID=1000
 ARG GID=1000
