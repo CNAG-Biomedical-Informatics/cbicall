@@ -108,11 +108,16 @@ def set_config_values(param: dict) -> dict:
     Build internal config structure from parameters.
     Mirrors Config::set_config_values.
     """
+    try:
+        fallback_user = getpass.getuser()
+    except Exception:
+        fallback_user = "unknown"
+
     # User
     user = (
         os.environ.get("LOGNAME")
         or os.environ.get("USER")
-        or os.getlogin()
+        or fallback_user
     )
 
     # Base directories for workflows (using this file as anchor)
