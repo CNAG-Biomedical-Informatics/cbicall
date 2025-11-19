@@ -5,11 +5,10 @@ import threading
 import time
 from pathlib import Path
 
-from . import config as cfgmod
+from . import config as config_mod
 from .dnaseq import DNAseq
-from .helpmod import usage
+from .helpmod import usage, parse_args as _parse_args
 from .goodbye import GoodBye
-
 
 VERSION = "0.0.1"
 PROMPT = "Info:"
@@ -38,17 +37,25 @@ CYAN = _code("\033[36m")
 WHITE = _code("\033[37m")
 
 
-def write_log(config: dict, arg: dict, param: dict) -> None:
+def parse_args(argv):
+    """
+    Convenience wrapper so tests can do cli.parse_args([...])
+    and get an argparse.Namespace.
+    """
+    return _parse_args(argv, VERSION)
+
+
+def write_log(cfg: dict, arg: dict, param: dict) -> None:
     """
     Create log.json in projectdir with arg, config, param.
     Mirrors Perl write_log.
     """
-    projectdir = Path(config["projectdir"])
+    projectdir = Path(cfg["projectdir"])
     projectdir.mkdir(parents=True, exist_ok=True)
     file_path = projectdir / "log.json"
     payload = {
         "arg": arg,
-        "config": config,
+        "config": cfg,
         "param": param,
     }
     with file_path.open("w", encoding="utf-8") as fh:
@@ -111,14 +118,14 @@ def run_with_spinner(func, *args, no_spinner: bool = False, no_emoji: bool = Fal
     return result
 
 
-def _print_config(config: dict, no_emoji: bool) -> None:
+def _print_config(cfg: dict, no_emoji: bool) -> None:
     print(BOLD + BLUE + f"{PROMPT}{'' if no_emoji else ' ⚙️ '} CONFIGURATION VALUES:" + RESET)
     print(WHITE + PROMPT + RESET)
 
     # Simple aligned output (not exactly Perl 'format', but similar spirit)
-    max_key = max(len(k) for k in config.keys())
-    for key in sorted(config.keys()):
-        val = config.get(key)
+    max_key = max(len(k) for k in cfg.keys())
+    for key in sorted(cfg.keys()):
+        val = cfg.get(key)
         val_disp = str(val) if val is not None and str(val) != "" else "(undef)"
         line = f"{PROMPT:>5} {key:<{max_key}} {ARROW} {val_disp}"
         print(line)
@@ -147,9 +154,9 @@ def main() -> int:
     no_spinner = bool(arg.get("debug") or arg.get("verbose"))
 
     # Read parameters and build config (Config::read_param_file + set_config_values)
-    param = cfgmod.read_param_file(arg["paramfile"])
-    config = cfgmod.set_config_values(param)
-    config["version"] = VERSION
+    param = config_mod.read_param_file(arg["paramfile"])
+    cfg = config_mod.set_config_values(param)
+    cfg["version"] = VERSION
 
     # Start CBICall banners
     print(
@@ -169,7 +176,7 @@ def main() -> int:
     print(WHITE + PROMPT + RESET)
 
     # Print config and params
-    _print_config(config, no_emoji)
+    _print_config(cfg, no_emoji)
     _print_params(param, no_emoji)
 
     # Start CBICall
@@ -178,12 +185,12 @@ def main() -> int:
     print(f"{PROMPT} {SPACER}")
 
     # Create working dir and log
-    Path(config["projectdir"]).mkdir(parents=True, exist_ok=True)
-    write_log(config, arg, param)
+    Path(cfg["projectdir"]).mkdir(parents=True, exist_ok=True)
+    write_log(cfg, arg, param)
 
     # Build settings hash (rah_cbicall)
     settings = {
-        "projectdir": config["projectdir"],
+        "projectdir": cfg["projectdir"],
         "pipeline": param["pipeline"],
         "mode": param["mode"],
         "sample": param.get("sample"),
@@ -192,18 +199,18 @@ def main() -> int:
         "gatk_version": param["gatk_version"],
         "cleanup_bam": param.get("cleanup_bam", False),
         "threads": arg["threads"],
-        "id": config["id"],
+        "id": cfg["id"],
         "debug": arg["debug"],
-        "bash_mit_cohort": config.get("bash_mit_cohort"),
-        "bash_mit_single": config.get("bash_mit_single"),
-        "bash_wes_cohort": config.get("bash_wes_cohort"),
-        "bash_wes_single": config.get("bash_wes_single"),
-        "bash_wgs_single": config.get("bash_wgs_single"),
-        "smk_mit_cohort": config.get("smk_mit_cohort"),
-        "smk_mit_single": config.get("smk_mit_single"),
-        "smk_wes_cohort": config.get("smk_wes_cohort"),
-        "smk_wes_single": config.get("smk_wes_single"),
-        "smk_wgs_single": config.get("smk_wgs_single"),
+        "bash_mit_cohort": cfg.get("bash_mit_cohort"),
+        "bash_mit_single": cfg.get("bash_mit_single"),
+        "bash_wes_cohort": cfg.get("bash_wes_cohort"),
+        "bash_wes_single": cfg.get("bash_wes_single"),
+        "bash_wgs_single": cfg.get("bash_wgs_single"),
+        "smk_mit_cohort": cfg.get("smk_mit_cohort"),
+        "smk_mit_single": cfg.get("smk_mit_single"),
+        "smk_wes_cohort": cfg.get("smk_wes_cohort"),
+        "smk_wes_single": cfg.get("smk_wes_single"),
+        "smk_wgs_single": cfg.get("smk_wgs_single"),
     }
 
     print(
@@ -235,3 +242,4 @@ def main() -> int:
     print(f"{WHITE}{PROMPT}{'' if no_emoji else ' 👋 '} {gb.say_goodbye()}{RESET}")
 
     return 0
+

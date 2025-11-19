@@ -5,7 +5,6 @@ import argparse
 
 
 def _build_parser(version: str) -> argparse.ArgumentParser:
-    # We implement manual -h/--help/-man to mimic Perl behaviour.
     parser = argparse.ArgumentParser(
         add_help=False,
         prog="cbicall",
@@ -60,10 +59,43 @@ def _build_parser(version: str) -> argparse.ArgumentParser:
     return parser
 
 
+def _validate_args_core(args: argparse.Namespace) -> argparse.Namespace:
+    if args.threads is None or args.paramfile is None:
+        print("Options --threads and --param are required", file=sys.stderr)
+        raise SystemExit(1)
+
+    if args.threads is not None and args.threads <= 0:
+        print("Option --threads requires a positive integer", file=sys.stderr)
+        raise SystemExit(1)
+
+    if args.paramfile is not None:
+        if (not os.path.isfile(args.paramfile)
+                or os.path.getsize(args.paramfile) == 0):
+            print(
+                "Option --param requires an existing, non-empty parameters file",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+
+    return args
+
+def parse_args(argv, version: str) -> argparse.Namespace:
+    """
+    Pure argument parsing + validation.
+    Does not call sys.exit; raises ValueError on invalid args.
+    Suitable for tests.
+    """
+    parser = _build_parser(version)
+    args = parser.parse_args(argv)
+    return _validate_args_core(args)
+
+
+
 def usage(version: str) -> dict:
     """
-    Parse CLI args and apply basic validation.
-    Mirrors Help::usage (but using argparse instead of Pod::Usage).
+    CLI entry-point style argument handling.
+    Uses sys.argv, prints help/usage, and exits on error.
+    Returns a dict of parsed args on success.
     """
     parser = _build_parser(version)
     args = parser.parse_args()
@@ -76,22 +108,12 @@ def usage(version: str) -> dict:
         parser.print_help()
         sys.exit(0)
 
-    # Control checks
-    if args.threads is None or args.paramfile is None:
-        parser.print_usage()
-        sys.exit(1)
+    try:
+        _validate_args_core(args)
+    except ValueError as e:
+        # parser.error() prints message and exits with status 2
+        parser.error(str(e))
 
-    if not (args.threads and args.threads > 0):
-        parser.error("Option --threads requires a positive integer")
-
-    if not os.path.isfile(args.paramfile) or os.path.getsize(args.paramfile) == 0:
-        parser.error("Option --param requires an existing, non-empty parameters file")
-
-    # Initialize undefs
-    if args.debug is None:
-        args.debug = 0
-
-    # Global setting: disable ANSI colors
     if args.nocolor:
         os.environ["ANSI_COLORS_DISABLED"] = "1"
 

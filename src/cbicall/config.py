@@ -116,7 +116,8 @@ def set_config_values(param: dict) -> dict:
 
     # Base directories for workflows (using this file as anchor)
     here = Path(__file__).resolve()
-    project_root = here.parent.parent  # cbicall/.. (like $Bin/..)
+    # Go up from src/cbicall/config.py -> src/cbicall -> src -> cbicall
+    project_root = here.parents[2]
     workflows_bash_dir = (project_root / "workflows" / "bash").resolve()
     workflows_snakemake_dir = (project_root / "workflows" / "snakemake").resolve()
 

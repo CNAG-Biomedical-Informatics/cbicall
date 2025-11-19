@@ -1,10 +1,41 @@
 #!/usr/bin/env python3
-import sys
-import os
+#
+# CBICall: Framework for variant calling of Illumina's NGS data
+#
+# Last Modified: Nov/18/2025
+#
+# Copyright (C) 2025 Manuel Rueda - CNAG (manuel.rueda@cnag.eu)
+#
+# License: GNU General Public License v3
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+import os
+import sys
+
+# Resolve the real path of this script (follows symlinks)
+BIN_PATH = os.path.realpath(__file__)
+BIN_DIR = os.path.dirname(BIN_PATH)
+PROJECT_ROOT = os.path.dirname(BIN_DIR)
+
+# Prefer src/ layout if present (modern Python style)
+SRC_DIR = os.path.join(PROJECT_ROOT, "src")
+if os.path.isdir(SRC_DIR):
+    sys.path.insert(0, SRC_DIR)
+else:
+    # Fallback: maybe package lives directly under project root
+    sys.path.insert(0, PROJECT_ROOT)
+
+# Optional: allow overriding via env var on HPC (if you ever need it)
+# If CBICALL_ROOT is set, it will be checked first.
+env_root = os.environ.get("CBICALL_ROOT")
+if env_root:
+    env_src = os.path.join(env_root, "src")
+    if os.path.isdir(env_src):
+        sys.path.insert(0, env_src)
+    else:
+        sys.path.insert(0, env_root)
+
 from cbicall.cli import main
+
 
 if __name__ == "__main__":
     main()
-
