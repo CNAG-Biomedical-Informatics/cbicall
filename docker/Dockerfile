@@ -11,7 +11,7 @@ ENV PATH="/usr/local/sbin:/usr/sbin:/sbin:${PATH}"
 # Install Linux tools (use --no-install-recommends and headless JRE)
 RUN apt-get update && \
     apt-get install -y \
-      gcc make git cpanminus perl-doc vim sudo libperl-dev \
+      git vim sudo \
       libncurses5 libtinfo5 \
       python3-pip openjdk-17-jre-headless ca-certificates && \
     rm -rf /var/lib/apt/lists/*
@@ -22,10 +22,6 @@ RUN git clone https://github.com/mrueda/cbicall.git
 
 # Remove the .git folder to save space and avoid shipping VCS data
 RUN rm -rf cbicall/.git
-
-# Install Perl modules
-WORKDIR /usr/share/cbicall
-RUN cpanm --notest --installdeps .
 
 # Add user "dockeruser"
 ARG UID=1000

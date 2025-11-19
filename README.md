@@ -36,6 +36,7 @@
   - [Author](#author)
 - [License](#copyright-and-license)
 
+
 # NAME
 
 CBICall: CNAG Biomedical Informatics Framework for Variant Calling on Illumina DNA-seq (germline) NGS Data.
@@ -141,7 +142,7 @@ Below is a detailed description of key parameters:
     $ bin/cbicall -p param_file.yaml -t 8
     $ bin/cbicall -p param_file.yaml -t 4 -verbose
     $ bin/cbicall -p param_file.yaml -t 16 > log 2>&1
-    $ $path_to_cbicall/bin/cbicall -p param_file.yaml -t 8 -debug 5
+    $ /bin/cbicall -p param_file.yaml -t 8 -debug 5
 
 Note: For Trio analyses, unique (de novo) variant rates for probands typically should be ~1%, and ~10% for parents. Significant deviations may indicate issues.
 
@@ -207,11 +208,11 @@ Recommended specifications:
     * >= 8 GB RAM.
     * >= 4 CPU cores (Intel i7 or Xeon preferred).
     * >= 250 GB HDD space.
-    * Perl >= 5.36 and required CPAN modules (install via C<cpanm --notest --installdeps .>).
+    * Python 3
     * Java 8 (install via C<sudo apt install openjdk-8-jdk>).
     * Snakemake (install via C<pip3 install -r requirements.txt>).
 
-Perl scripts in CBICall use minimal RAM (~2% of a 16 GB system). Genome mapping with BWA benefits from higher memory but lacks built-in RAM limits. Its usage depends on thread count and reference size. To constrain BWA's memory, external tools like shell `ulimit` are required. In contrast, GATK and Picard default to 8 GB RAM, adjustable via the configuration file.
+Python's scripts in CBICall use minimal RAM (~2% of a 16 GB system). Genome mapping with BWA benefits from higher memory but lacks built-in RAM limits. Its usage depends on thread count and reference size. To constrain BWA's memory, external tools like shell `ulimit` are required. In contrast, GATK and Picard default to 8 GB RAM, adjustable via the configuration file.
 
 Parallel execution is supported but does not scale linearly. Optimal performance is achieved using ~ 4 threads per task. For example, with 12 cores, running 3 tasks in parallel with 4 cores each is typically more efficient than one task with all 12 cores. See example in figure below:
 
@@ -259,7 +260,7 @@ Date: Oct-2025
 
         **Solution**: Uncomment the following line in `wes_single.sh`:
 
-        `| $SAM view -bSh -F 0x900 -`
+        `|  view -bSh -F 0x900 -`
 - **MTOOLBOX Errors**
 
     \- Failure related to unsupported N\_CIGAR:  
@@ -278,3 +279,4 @@ Written by Manuel Rueda (mrueda). GitHub repository: [https://github.com/CNAG-Bi
 # COPYRIGHT AND LICENSE
 
 Please see the included LICENSE file for distribution and usage terms.
+

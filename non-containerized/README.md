@@ -2,12 +2,6 @@
 
 ### Method 1: Download from GitHub
 
-First, we need to install a few system components (note you might have them already in your system):
-
-```bash
-sudo apt install gcc make git cpanminus libperl-dev
-```
-
 Use `git clone` to get the latest (stable) version:
 
 ```bash
@@ -21,23 +15,10 @@ If you only new to update to the lastest version do:
 git pull
 ```
 
-We use `cpanm` to install the CPAN modules. We'll install the dependencies at `~/perl5`:
-
-```bash
-cpanm --local-lib=~/perl5 local::lib && eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)
-cpanm --notest --installdeps .
-bin/cbicall
-```
 Testing the deployment:
 
 ```bash
-prove
-```
-
-To ensure Perl recognizes your local modules every time you start a new terminal, run:
-
-```bash
-echo 'eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)' >> ~/.bashrc
+pytest
 ```
 
 ### Install required external software
@@ -103,18 +84,18 @@ cd examples/input
 
 - OS/ARCH supported: **linux/amd64** and **linux/arm64**.
 - Ideally a Debian-based distribution (Ubuntu or Mint), but any other (e.g., CentOS, OpenSUSE) should do as well (untested).
-- Perl 5 (>= 5.36 core; installed by default in many Linux distributions). Check the version with `perl -v`
+- Python 3
 - Java 8
 - 16GB of RAM
 - \>= 1 core (ideally i7 or Xeon).
 - At least 100GB HDD.
 
 ## Platform Compatibility
-This distribution is written in pure Perl and is intended to run on any platform supported by Perl 5. It has been tested on Debian Linux and macOS. Please report any issues.
+This distribution is written in Python 3 and is intended to run on any platform supported by Python 3. It has been tested on Debian Linux and macOS. Please report any issues.
 
 ## Common errors: Symptoms and treatment
 
-* Perl errors:
+* Python errors:
     - Foo
 
       Solution: 
