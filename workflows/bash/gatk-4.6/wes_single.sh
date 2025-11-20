@@ -226,10 +226,9 @@ if (( nSNP >= minSNP )); then
     $SNP_RES \
     -an QD -an MQRankSum -an ReadPosRankSum -an FS -an MQ \
     --mode SNP \
-    -O "$VARCALLDIR/${id}.snp.recal.vcf.gz" \
-    --tranches-file "$VARCALLDIR/${id}.snp.tranches.txt" \
+    -O "$VARCALLDIR/${id}.hc.snp.recal.vcf.gz" \
+    --tranches-file "$VARCALLDIR/${id}.hc.snp.tranches.txt" \
     --max-gaussians 6 2>> "$LOG"
-    #--rscript-file "$VARCALLDIR/${id}.snp.plots.R"
   apply_snp=true
 fi
 
@@ -240,10 +239,9 @@ if (( nINDEL >= minINDEL )); then
     $INDEL_RES \
     -an QD -an FS -an ReadPosRankSum \
     --mode INDEL \
-    -O "$VARCALLDIR/${id}.indel.recal.vcf.gz" \
-    --tranches-file "$VARCALLDIR/${id}.indel.tranches.txt" \
+    -O "$VARCALLDIR/${id}.hc.indel.recal.vcf.gz" \
+    --tranches-file "$VARCALLDIR/${id}.hc.indel.tranches.txt" \
     --max-gaussians 4 2>> "$LOG"
-    #--rscript-file "$VARCALLDIR/${id}.indel.plots.R"
   apply_indel=true
 fi
 
@@ -252,20 +250,22 @@ fi
 #------------------------------------------------------------------------------
 echo ">>> STEP 8: Apply VQSR or fallback"
 tmp_vcf="$VARCALLDIR/${id}.hc.raw.vcf.gz"
+
 if [ "$apply_snp" = true ]; then
   "$GATK4_BIN" $GATK4_JAVA_OPTS ApplyVQSR \
     -R "$REF" -V "$tmp_vcf" \
-    --recal-file "$VARCALLDIR/${id}.snp.recal.vcf.gz" \
-    --tranches-file "$VARCALLDIR/${id}.snp.tranches.txt" \
+    --recal-file "$VARCALLDIR/${id}.hc.snp.recal.vcf.gz" \
+    --tranches-file "$VARCALLDIR/${id}.hc.snp.tranches.txt" \
     --mode SNP --truth-sensitivity-filter-level 99.0 \
     -O "$VARCALLDIR/${id}.hc.post_snp.vcf.gz" 2>> "$LOG"
   tmp_vcf="$VARCALLDIR/${id}.hc.post_snp.vcf.gz"
 fi
+
 if [ "$apply_indel" = true ]; then
   "$GATK4_BIN" $GATK4_JAVA_OPTS ApplyVQSR \
     -R "$REF" -V "$tmp_vcf" \
-    --recal-file "$VARCALLDIR/${id}.indel.recal.vcf.gz" \
-    --tranches-file "$VARCALLDIR/${id}.indel.tranches.txt" \
+    --recal-file "$VARCALLDIR/${id}.hc.indel.recal.vcf.gz" \
+    --tranches-file "$VARCALLDIR/${id}.hc.indel.tranches.txt" \
     --mode INDEL --truth-sensitivity-filter-level 95.0 \
     -O "$VARCALLDIR/${id}.hc.vqsr.vcf.gz" 2>> "$LOG"
   tmp_vcf="$VARCALLDIR/${id}.hc.vqsr.vcf.gz"

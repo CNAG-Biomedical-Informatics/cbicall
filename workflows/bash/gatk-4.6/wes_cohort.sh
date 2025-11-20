@@ -80,13 +80,13 @@ else
 fi
 
 # Derived output names
-COHORT_RAW_VCF="cohort.raw.vcf.gz"
+COHORT_RAW_VCF="cohort.gv.raw.vcf.gz"
 COHORT_VQSR_SNP="cohort.snp.recal.vcf.gz"
 COHORT_SNP_TRANCHES="cohort.snp.tranches.txt"
 COHORT_VQSR_INDEL="cohort.indel.recal.vcf.gz"
 COHORT_INDEL_TRANCHES="cohort.indel.tranches.txt"
-COHORT_POST_SNP="cohort.hc.post_snp.vcf.gz"
-COHORT_POST_VQSR="cohort.gv.vqsr.vcf.gz"
+COHORT_POST_SNP="cohort.post_snp.vcf.gz"
+COHORT_POST_VQSR="cohort.vqsr.vcf.gz"
 COHORT_QC_VCF="cohort.gv.QC.vcf.gz"
 
 echo "## Cohort GenomicsDBImport -> Genotype -> VQSR/Hard-filter"
