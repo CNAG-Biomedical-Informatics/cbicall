@@ -7,7 +7,6 @@ from typing import Dict
 class DNAseq:
     """
     Thin wrapper around bash/snakemake pipelines.
-    Mirrors Perl DNAseq package.
     """
 
     def __init__(self, settings: Dict):

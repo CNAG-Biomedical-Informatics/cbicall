@@ -17,7 +17,7 @@ TECHNOLOGY_VALUES = {"Illumina HiSeq", "NovaSeq"}
 WORKFLOW_ENGINE_VALUES = {"bash", "nextflow", "snakemake"}
 GATK_VALUES = {"gatk-3.5", "gatk-4.6"}
 
-# Defaults (Perl %default)
+# Defaults
 _DEFAULTS = {
     "mode": "single",
     "sample": None,
@@ -32,7 +32,7 @@ _DEFAULTS = {
     "cleanup_bam": False,
 }
 
-# Allowed pipeline-mode combinations per GATK version (Perl %allowed_combos)
+# Allowed pipeline-mode combinations per GATK version
 _ALLOWED_COMBOS = {
     "gatk-3.5": {
         "wes": ["single", "cohort"],

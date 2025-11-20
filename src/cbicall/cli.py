@@ -48,7 +48,6 @@ def parse_args(argv):
 def write_log(cfg: dict, arg: dict, param: dict) -> None:
     """
     Create log.json in projectdir with arg, config, param.
-    Mirrors Perl write_log.
     """
     projectdir = Path(cfg["projectdir"])
     projectdir.mkdir(parents=True, exist_ok=True)
@@ -65,7 +64,6 @@ def write_log(cfg: dict, arg: dict, param: dict) -> None:
 def run_with_spinner(func, *args, no_spinner: bool = False, no_emoji: bool = False):
     """
     Run a callable with an optional UTF-8 spinner and elapsed time message.
-    Mirrors run_with_spinner in Perl cbicall.
     """
     if no_spinner or not sys.stdout.isatty():
         return func(*args)
