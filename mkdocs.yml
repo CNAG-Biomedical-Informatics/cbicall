@@ -91,6 +91,7 @@ nav:
   - "❓ Help & Reference":
       - "🏷️ Naming Conventions": help/naming-conventions.md
       - "⚙️ Performance": help/performance.md
+      - "🐛 Troubleshooting": help/troubleshooting.md
       - "🤔 FAQ": help/faq.md
 
   - "ℹ️ About":
