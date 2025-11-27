@@ -1,7 +1,3 @@
-## ADDENDUM: Nomenclature Guidelines
-
-All parts must follow a strict character count, and everything after the underscore is mandatory.
-
 ## Directory Naming
 
 - Format: `[ProjectCode]_[SampleType]`

@@ -1,9 +1,3 @@
-# Software Architecture
-
-This page describes the main components of CBIcall and how they interact to run different variant-calling pipelines (WES, WGS, mtDNA) in a consistent and extensible way.
-
----
-
 ## Overview
 
 CBIcall is a thin orchestration layer around one or more concrete pipelines. Its main responsibilities are:
@@ -52,18 +46,18 @@ flowchart TD
   B --> W[Python wrapper]
 
   W --> C[Parse & validate YAML]
-  W --> S[Set up project directory (projectdir/, 01_bam/, 02_varcall/, 03_stats/, logs/)]
+  W --> S["Set up project directory (projectdir/, 01_bam/, 02_varcall/, 03_stats/, logs/)"]
 
   W --> E{Select workflow engine}
   E --> BE[Bash engine]
   E --> SE[Snakemake engine]
 
-  BE --> PB{Select pipeline (bash)}
+  BE --> PB{Select pipeline - bash}
   PB --> BE_WES[wes_bash]
   PB --> BE_WGS[wgs_bash]
   PB --> BE_MIT[mit_bash]
 
-  SE --> PS{Select pipeline (snakemake)}
+  SE --> PS{Select pipeline - snakemake}
   PS --> SE_WES[wes_smk]
   PS --> SE_WGS[wgs_smk]
   PS --> SE_MIT[mit_smk]
@@ -139,4 +133,4 @@ New pipelines can be added without modifying the core system:
 
 See:
 
-- **Adding Your Own Pipeline** (add-your-own-pipeline.md)
+[➡️ Extend Pipelines](extend-pipelines.md){ .md-button .md-button--primary }

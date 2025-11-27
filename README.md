@@ -161,16 +161,6 @@ CBICall is optimized for multi-core Linux desktop, workstation, or server enviro
 
 Unit/integration tests are conducted manually by verifying CSV and VCF outputs against established test datasets.
 
-## Reference genome
-
-GRCh37 (b37/hs37d5) - GATK-compatible reference genome
-
-## Capture Kits
-
-\* For GATK version 3.5: Exome capture is based on Agilent SureSelect.
-
-\* For GATK version 4.6: Exome and WGS reference is based on the GATK bundle (b37).
-
 # Common errors and troubleshooting
 
 Note: For Trio analyses, unique (de novo) variant rates for probands typically should be ~1%, and ~10% for parents. Significant deviations may indicate issues.
@@ -206,7 +196,7 @@ Note: For Trio analyses, unique (de novo) variant rates for probands typically s
 
 # Citation
 
-To be determined.
+CBICall: a pipeline-agnostic framework for var-iant calling in large DNA-seq cohorts. _Manuscript In preparation._
 
 # Author
 

@@ -1,5 +1,3 @@
-# Adding Your Own Pipeline to CBIcall
-
 CBICall is designed to be extensible, allowing developers to integrate new analysis pipelines with minimal changes to the core framework.  
 This guide explains the recommended structure, required components, and best practices for adding a custom pipeline.
 
@@ -7,45 +5,32 @@ This guide explains the recommended structure, required components, and best pra
 
 ## 1. Overview
 
-A CBICall pipeline consists of:
+A CBICall pipeline (or workflow) consists of:
 
-- A directory under `pipelines/<pipeline_name>/`
-- One or more workflow scripts (Bash or Snakemake)
+- One workflow scripts (Bash or Snakemake) under `workflows/{bash,snakemake}/gatk_{3.5,4.6}/`
 - Registration inside the Python wrapper
 - Configuration options exposed through the YAML parameters
-- (Optional) container definitions and test data
 
 Following the existing structure ensures that your pipeline integrates cleanly with the logging, directory layout, QC modules, and project management mechanisms.
 
 ---
 
-## 2. Create the Pipeline Directory
+## 2. Create the Pipeline
 
-Inside the `pipelines/` folder, create a directory for your pipeline:
-
-```
-pipelines/
-  mypipeline/
-```
-
-Within this folder, you can choose one or both workflow engines:
+Within the `workflows/` folder, you can choose one or both workflow engines:
 
 ### **Bash workflow**
 
 ```
-pipelines/mypipeline/
+workflows/bash/gatk_4.6/
   mypipeline_single.sh
-  mypipeline_cohort.sh
 ```
 
 ### **Snakemake workflow**
 
 ```
-pipelines/mypipeline/
-  Snakefile
-  rules/
-    step1.smk
-    step2.smk
+workflows/snakemake/gatk_4.6/
+    mypipeline_single.smk
 ```
 
 The naming convention follows the existing WES/WGS/mit modules.
@@ -89,15 +74,7 @@ sample: /path/to/sample_prefix
 projectdir: /path/to/output
 ```
 
-If your pipeline requires extra options (e.g., target BED, annotation files, specialized tools), add them under:
-
-```yaml
-mypipeline_options:
-    param1: value
-    param2: value
-```
-
-Keep the structure consistent with the existing pipelines.
+If your pipeline requires extra options (e.g., target BED, annotation files, specialized tools), add them to `parameters.sh`.
 
 ---
 
@@ -106,19 +83,12 @@ Keep the structure consistent with the existing pipelines.
 CBICall generates a standardized output structure:
 
 ```
-cbicall_run/
+cbicall_run_<pipeline_name>/
   logs/
-  work/
-  results/
-    <pipeline_name>/
+  01_step/
+  02_step/
+  . . .
 ```
-
-To ensure compatibility:
-
-- Write temporary or intermediate files into `work/`
-- Place final outputs under `results/<pipeline_name>/`
-- Do not overwrite data from other pipelines
-- Use logging consistent with the rest of CBICall (stdout + file)
 
 ---
 
@@ -139,34 +109,7 @@ CBICall will raise an informative error if a user selects an unsupported mode.
 
 ---
 
-## 7. Optional: Snakemake Integration
-
-If using Snakemake:
-
-- Include a `Snakefile`
-- Place reusable rules in a `rules/` subdirectory
-- Use CBICall's existing pattern for cluster submission, logging, and checkpoints
-- Expose thread/memory settings using Snakemake resources
-
-Example rule snippet:
-
-```python
-rule align:
-    input:
-        r1 = "{sample}_R1.fastq.gz",
-        r2 = "{sample}_R2.fastq.gz"
-    output:
-        bam = "work/{sample}.bam"
-    threads: 8
-    resources:
-        mem_mb = 16000
-    shell:
-        "bwa mem -t {threads} {input.r1} {input.r2} | samtools sort -o {output.bam}"
-```
-
----
-
-## 8. Add Test Data (Recommended)
+## 7. Add Test Data (Recommended)
 
 Create a minimal test dataset:
 
@@ -186,7 +129,7 @@ This helps users and CI workflows verify that the pipeline works.
 
 ---
 
-## 9. Document Your Pipeline
+## 8. Document Your Pipeline
 
 Add a new page under:
 
@@ -214,20 +157,3 @@ If your pipeline requires additional software:
 - Create a new image under `docker/`
 
 Ensure reproducibility by pinning versions of required tools.
-
----
-
-## Summary
-
-To add a new pipeline:
-
-1. Create a pipeline directory  
-2. Add Bash or Snakemake workflow scripts  
-3. Register the pipeline in the Python wrapper  
-4. Define YAML configuration options  
-5. Follow output + logging conventions  
-6. Support single/cohort modes if needed  
-7. Provide optional test data + docs  
-
-Following this structure ensures your pipeline integrates cleanly with the CBICall framework and remains compatible as the project evolves.
-

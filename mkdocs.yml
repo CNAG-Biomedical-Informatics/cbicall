@@ -71,8 +71,8 @@ nav:
   - "🏠 Home": index.md
 
   - "⬇️ Installation":
-      - "🛠️ Non-containerized": download-and-installation/non-containerized.md
-      - "🐳 Docker": download-and-installation/docker-based.md
+      - "🛠️ Non-containerized": installation/non-containerized.md
+      - "🐳 Docker": installation/docker.md
 
   - "🚀 Getting Started":
       - "⚡ Quickstart": usage/quickstart.md
