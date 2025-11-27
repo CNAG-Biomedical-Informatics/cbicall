@@ -159,40 +159,7 @@ CBICall is optimized for multi-core Linux desktop, workstation, or server enviro
     * Java 8 (install via C<sudo apt install openjdk-8-jdk>).
     * Snakemake (install via C<pip3 install -r requirements.txt>).
 
-Unit/integration tests are conducted manually by verifying CSV and VCF outputs against established test datasets.
-
-# Common errors and troubleshooting
-
-Note: For Trio analyses, unique (de novo) variant rates for probands typically should be ~1%, and ~10% for parents. Significant deviations may indicate issues.
-
-- GATK|Picard Errors (wes\_single.sh or wes\_cohort.sh)
-    - Error: `NaN LOD value assigned` in recalibration steps.
-
-        Occurs due to insufficient INDEL variants (typically fewer than 8000) for negative model training. The default threshold is 8000.
-
-        Solution: Increase minimum INDEL count (e.g., to >8000) in relevant pipeline scripts. Only rerun failed samples.
-
-    - Error: `there aren't enough columns for line ... dbsnp_137.hg19.vcf`
-
-        Solution: Remove the problematic line from the VCF file and document changes in a README file.
-
-    - Error: `Error parsing text SAM file. Not enough fields; File /dev/stdin; Line 105120626...`
-
-        Certain SRA-derived or dbGaP datasets can contain duplicate reads.
-
-        When piping BWA output into `AddOrReplaceReadGroups`, you may need to remove secondary (`0x100`) and supplementary (`0x800`) alignments.
-
-        This can prevent duplicate-read collisions in downstream Picard/GATK steps.
-
-        **Solution**: Uncomment the following line in `wes_single.sh`:
-
-        `|  view -bSh -F 0x900 -`
-- **MTOOLBOX Errors**
-
-    \- Failure related to unsupported N\_CIGAR:  
-      Add flag `--filter_reads_with_N_cigar` in Mtoolbox.sh (line ~386).
-
-    \- Samples with coverage below ~10x yield unreliable heteroplasmy fractions (HF). Extremely low coverage (<10x) can render HFs meaningless, despite generally consistent results across widely varying coverage levels.
+Integration tests are conducted manually by verifying VCF outputs against established test datasets.
 
 # Citation
 
