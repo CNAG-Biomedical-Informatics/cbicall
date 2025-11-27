@@ -28,6 +28,6 @@
 
     !!! Note "Citation"
 
-        CBICall: a pipeline-agnostic framework for var-iant calling in large DNA-seq cohorts. _Manuscript In preparation._
+        CBICall: a pipeline-agnostic framework for variant calling in large DNA-seq cohorts. _Manuscript In preparation._
 
     ##### last change 2025-10-15 by Manuel Rueda [:fontawesome-brands-github:](https://github.com/mrueda)

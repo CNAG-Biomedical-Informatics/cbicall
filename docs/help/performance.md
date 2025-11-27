@@ -22,4 +22,5 @@ For example, on a 12-core workstation:
 A runtime example is shown in the figure below.
 
 !!! Example "Performance"
-    ![Time](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/docs/img/run-time.png)
+
+    ![Time](https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/refs/heads/main/docs/img/run-time.png)

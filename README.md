@@ -196,7 +196,7 @@ Note: For Trio analyses, unique (de novo) variant rates for probands typically s
 
 # Citation
 
-CBICall: a pipeline-agnostic framework for var-iant calling in large DNA-seq cohorts. _Manuscript In preparation._
+CBICall: a pipeline-agnostic framework for variant calling in large DNA-seq cohorts. _Manuscript In preparation._
 
 # Author
 

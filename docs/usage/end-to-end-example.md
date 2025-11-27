@@ -20,8 +20,9 @@ MA00001_exome/MA0000101P_ex/
   MA0000101P_ex_S1_L001_R2_001.fastq.gz
 ```
 
-The project dirname is not relevant but the sample dirname is.
+!!! Note "Note on nomenclature"
 
+    Please see [this page](../help/naming-conventions.md).
 ---
 
 ## 2. Create a parameters file

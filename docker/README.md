@@ -48,7 +48,7 @@ Finally, in the `cbicall` repo:
 Change `DATADIR` variable in `workflows/bash/*/parameters.sh` and `workflows/snakemake/*/config.yaml` so that it matches the location of your downloaded data.
 
 
-### Method 2: Installing from Docker Hub (fast)
+### Method 1: Installing from Docker Hub (fast)
 
 Pull the latest Docker image from [Docker Hub](https://hub.docker.com/r/manuelrueda/cbicall):
 
@@ -57,7 +57,7 @@ docker pull manuelrueda/cbicall:latest
 docker image tag manuelrueda/cbicall:latest cnag/cbicall:latest
 ```
 
-### Method 3: Installing from Dockerfile (slow)
+### Method 2: Installing from Dockerfile (slow)
 
 Download the `Dockerfile` from [GitHub](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/Dockerfile):
 
