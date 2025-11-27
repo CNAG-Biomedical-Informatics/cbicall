@@ -39,11 +39,11 @@
 - [License](#copyright-and-license)
 
 
-# NAME
+# Name
 
 CBICall: CNAG Biomedical Informatics Framework for Variant Calling on Illumina DNA-seq (germline) NGS Data.
 
-# SYNOPSIS
+# Synopsis
 
     cbicall -p <parameters_file.yaml> -t <n_threads> [options]
 
@@ -60,11 +60,11 @@ CBICall: CNAG Biomedical Informatics Framework for Variant Calling on Illumina D
       -nc|no-color      Do not print colors to STDOUT
       -ne|no-emoji      Do not print emojis to STDOUT
 
-# SUMMARY
+# Summary
 
 CBICall (**C**NAG **B**iomedical **I**nformatics framework for variant **Call**ing) is a computational framework designed for variant calling analysis using Illumina Next-Generation Sequencing (NGS) data.
 
-# HOW TO RUN CBICALL
+# How to run CBICall
 
 CBICall execution requires:
 
@@ -146,64 +146,9 @@ Below is a detailed description of key parameters:
     $ bin/cbicall -p param_file.yaml -t 16 > log 2>&1
     $ /bin/cbicall -p param_file.yaml -t 8 -debug 5
 
-Note: For Trio analyses, unique (de novo) variant rates for probands typically should be ~1%, and ~10% for parents. Significant deviations may indicate issues.
+# Recommended specifications:
 
-## ADDENDUM: Nomenclature Guidelines
-
-All parts must follow a strict character count, and everything after the underscore is mandatory.
-
-## Directory Naming
-
-- Format: `[ProjectCode]_[SampleType]`
-
-    - - `ProjectCode`: Exactly 7 characters \[a-zA-Z0-9\] (e.g., `MA99999`)
-    - - `SampleType`: Must be `exome` (5 characters)
-
-    Example:
-
-        MA99999_exome
-
-    Total: 7 + 1 + 5 = 13 characters.
-
-## Subdirectory Naming
-
-- Format: `[ProjectCode][SampleID][Role]_[SampleTypeShort]`
-
-    - - `ProjectCode`: 7 characters (\[a-zA-Z0-9\] e.g., `MA99999`)
-    - - `SampleID`: 2 characters (e.g., `01`)
-    - - `Role`: 1 character (e.g., `P` for Proband, `F` for Father, `M` for Mother)
-    - - `SampleTypeShort`: Must be `ex` (2 characters)
-
-    Example:
-
-        MA9999901F_ex
-
-    Total: 7 + 2 + 1 + 1 + 2 = 13 characters (excluding any file extension).
-
-## FASTQ Naming Convention
-
-This convention is adapted from the following document:
-
-[Document](https://support.illumina.com/help/BaseSpace_Sequence_Hub_OLH_009008_2/Source/Informatics/BS/NamingConvention_FASTQ-files-swBS.htm)
-
-We have added a custom suffix to indicate sequencing type:
-
-    - _ex for exome sequencing
-    - _wg for whole genome sequencing
-
-Example:
-
-    MA0004701P_ex_S5_L001_R1_001.fastq.gz
-
-In summary, you need to have something like this:
-
-    MA00001_exome/MA0000101P_ex/MA0000101P_ex_S1_L001_R?_001.fastq.gz
-
-# SYSTEM REQUIREMENTS
-
-CBICall is optimized for multi-core Linux desktop, workstation, or server environments. Snakemake-based workflows can also be adapted for HPC clusters.
-
-Recommended specifications:
+CBICall is optimized for multi-core Linux desktop, workstation, or server environments.
 
     * Works in amd64 and arm64 archs (M-based Macs).
     * Ideally a Debian-based distribution (Ubuntu or Mint), but any other (e.g., CentOS, OpenSUSE) should do as well (untested).
@@ -214,24 +159,11 @@ Recommended specifications:
     * Java 8 (install via C<sudo apt install openjdk-8-jdk>).
     * Snakemake (install via C<pip3 install -r requirements.txt>).
 
-Python's scripts in CBICall use minimal RAM (~2% of a 16 GB system). Genome mapping with BWA benefits from higher memory but lacks built-in RAM limits. Its usage depends on thread count and reference size. To constrain BWA's memory, external tools like shell `ulimit` are required. In contrast, GATK and Picard default to 8 GB RAM, adjustable via the configuration file.
-
-Parallel execution is supported but does not scale linearly. Optimal performance is achieved using ~ 4 threads per task. For example, with 12 cores, running 3 tasks in parallel with 4 cores each is typically more efficient than one task with all 12 cores. See example in figure below:
-
-![Time](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/docs/img/run-time.png)
-
 Unit/integration tests are conducted manually by verifying CSV and VCF outputs against established test datasets.
 
-# SUPPORTED PIPELINES
+## Reference genome
 
-The following table shows valid pipeline and mode combinations for each GATK version:
-
-| GATK Version | wes\_single | wes\_cohort | wgs\_single | wgs\_cohort | mit\_single | mit\_cohort |
-|--------------|------------|------------|------------|------------|------------| -----------|
-| gatk3.5      | +          | +          | -          | -          |   +        | +          | 
-| gatk4.6      | +          | +          | +          | +          |   -        | -          | 
-
-Date: Oct-2025
+GRCh37 (b37/hs37d5) - GATK-compatible reference genome
 
 ## Capture Kits
 
@@ -239,7 +171,9 @@ Date: Oct-2025
 
 \* For GATK version 4.6: Exome and WGS reference is based on the GATK bundle (b37).
 
-# COMMON ERRORS AND TROUBLESHOOTING
+# Common errors and troubleshooting
+
+Note: For Trio analyses, unique (de novo) variant rates for probands typically should be ~1%, and ~10% for parents. Significant deviations may indicate issues.
 
 - GATK|Picard Errors (wes\_single.sh or wes\_cohort.sh)
     - Error: `NaN LOD value assigned` in recalibration steps.
@@ -270,15 +204,15 @@ Date: Oct-2025
 
     \- Samples with coverage below ~10x yield unreliable heteroplasmy fractions (HF). Extremely low coverage (<10x) can render HFs meaningless, despite generally consistent results across widely varying coverage levels.
 
-# CITATION
+# Citation
 
 To be determined.
 
-# AUTHOR
+# Author
 
 Written by Manuel Rueda (mrueda). GitHub repository: [https://github.com/CNAG-Biomedical-Informatics/cbicall](https://github.com/CNAG-Biomedical-Informatics/cbicall).
 
-# COPYRIGHT AND LICENSE
+# Copyright and license
 
 Please see the included LICENSE file for distribution and usage terms.
 

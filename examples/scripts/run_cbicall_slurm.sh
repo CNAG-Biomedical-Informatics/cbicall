@@ -58,7 +58,7 @@ cat > "${JOB_SCRIPT}" <<EOF
 module load Python/3.10.8-GCCcore-12.2.0
 export PYTHONPATH="/software/biomed/cbi_py3/lib/python3.10/site-packages:${PYTHONPATH}"
 
-# Set exe
+# Set CBICALL exe
 CBICALL_DIR="/software/biomed/cbicall"
 CBICALL="\$CBICALL_DIR/bin/cbicall"
 

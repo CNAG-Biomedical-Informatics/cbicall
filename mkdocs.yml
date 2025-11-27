@@ -68,26 +68,34 @@ markdown_extensions:
         generic: true
 
 nav:
-  - "🏠 Introduction": index.md
-  - "⬇️ Download & Installation":
-      - "🛠 Non-containerized": download-and-installation/non-containerized.md
-      - "🐳 Docker-based": download-and-installation/docker-based.md
+  - "🏠 Home": index.md
+
+  - "⬇️ Installation":
+      - "🛠️ Non-containerized": download-and-installation/non-containerized.md
+      - "🐳 Docker": download-and-installation/docker-based.md
+
   - "🚀 Getting Started":
-      - "Quickstart": usage/quickstart.md
-      - "Usage": usage/usage.md
-#  - "🧪 Use Cases":
-#      - "Subject": use-cases/subject.md
-#      - "Biosample": use-cases/biosample.md
-#  - "🔧 Technical Details":
-#      - "Implementation": technical-details/implementation.md
-#      - "Specification": technical-details/specification.md
-#      - "Codebook & Schema": technical-details/codebook-and-schema.md
-#      - "Pre-processing script": technical-details/pre-processing-script.md
-  - "❓ Help":
-     - "🤔 FAQs": help/faq.md
+      - "⚡ Quickstart": usage/quickstart.md
+      - "🧪 End-to-end Example": usage/end-to-end-example.md
+      - "📘 General Usage": usage/usage.md
+
+  - "🧪 Pipelines":
+      - "🔬 WES WGS Single":  pipelines/wes_wgs_single.md
+      - "🧫 WES WGS Cohort": pipelines/wes_wgs_cohort.md
+      - "🧬 mtDNA": pipelines/mtdna.md
+
+  - "🔧 Technical Details":
+      - "🏗️ Architecture": technical-details/architecture.md
+      - "🧱 Extend Pipelines": technical-details/extend-pipelines.md
+
+  - "❓ Help & Reference":
+      - "🏷️ Naming Conventions": help/naming-conventions.md
+      - "⚙️ Performance": help/performance.md
+      - "🤔 FAQ": help/faq.md
+
   - "ℹ️ About":
-      - "About": about/about.md
-      - "Citation": about/citation.md
+      - "👤 About": about/about.md
+      - "📄 Citation": about/citation.md
 
 theme:
   name: material

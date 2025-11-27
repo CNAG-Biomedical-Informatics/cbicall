@@ -1,5 +1,7 @@
 # Non-containerized installation
 
+Feel free to work with your preferred virtual environment. For this document, we'll move directly to the setup steps.
+
 ### Method 1: Download from GitHub
 
 Use `git clone` to get the latest (stable) version:
@@ -92,12 +94,3 @@ cd examples/input
 
 ## Platform Compatibility
 This distribution is written in Python 3 and is intended to run on any platform supported by Python 3. It has been tested on Debian Linux and macOS. Please report any issues.
-
-## Common errors: Symptoms and treatment
-
-* Python errors:
-    - Foo
-
-      Solution: 
-
-      `Bar`
