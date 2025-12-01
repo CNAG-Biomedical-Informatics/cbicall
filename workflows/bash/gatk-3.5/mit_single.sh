@@ -76,8 +76,7 @@ out_raw=$id.bam
 # Prefer GATK 3.5 BAM if available
 bam_raw=""
 
-#for f in ../../cbicall_bash_wes_single_gatk-3.5*/01_bam/input.merged.filtered.realigned.fixed.bam
-for f in /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/bam/exoma.rg.merged.dedup.recal.bam
+for f in ../../cbicall_bash_wes_single_gatk-3.5*/01_bam/input.merged.filtered.realigned.fixed.bam
 do
     echo $f
     if [ -f "$f" ]; then
