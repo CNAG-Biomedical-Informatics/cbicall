@@ -36,7 +36,7 @@ This is the minimal invocation required for any workflow.
 
 ---
 
-## 3. Run a small internal test
+## 3. Run a small WES job (workstation)
 
 CBIcall includes small test configurations to validate that your installation works.
 
@@ -44,10 +44,10 @@ Example:
 
 ```bash
 cd examples/input
-../../bin/cbicall -p param.yaml -t 4
+../../bin/cbicall -p wes_single.yaml -t 4
 ```
 
-When the test completes successfully, you should see:
+When the job completes successfully (<2 min), you should see:
 
 ```
 CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_*/
@@ -62,12 +62,36 @@ The final `VCF` will be located at:
 02_varcall/CNAG99901P.hc.QC.vcf.gz
 ```
 
-This verifies that CBIcall, references and dependencies are correctly installed.
+---
+
+## 4. Run a small mtDNA job (workstation)
+
+Example:
+
+```bash
+cd examples/input # ommit if you are already there
+../../bin/cbicall -p mit_single.yaml -t 4
+```
+
+When the job completes successfully (~ 5 min), you should see:
+
+```
+CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_gatk-3.5_*/
+  01_mtoolbox/
+  02_browser/
+```
+
+We recommend you to check:
+
+```
+02_browser/README.txt
+```
 
 ---
 
-## 4. Next steps
+
+## 5. Next steps
 
 For a complete, real-case workflow demonstration, see:
 
-[➡️ End-to-end example](end-to-end-example.md){ .md-button .md-button--primary }
+[➡️ End-to-end example WES](end-to-end-example-wes-single.md){ .md-button .md-button--primary }

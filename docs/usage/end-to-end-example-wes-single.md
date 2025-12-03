@@ -11,6 +11,7 @@ This example demonstrates how to run CBIcall on a real WES sample from FASTQ fil
 
 ## 1. Prepare your FASTQ files
 
+
 CBIcall expects paired-end FASTQ files with a shared prefix, for example:
 
 ```

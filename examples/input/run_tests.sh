@@ -141,7 +141,7 @@ if [ "$RUN_MIT" -eq 1 ]; then
   echo "========================================"
 
   REF_MIT='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_mit_single_gatk-3.5_647711741572483/01_mtoolbox/mit_prioritized_variants.txt'
-  PARAM_MIT='mit.yaml'
+  PARAM_MIT='mit_single.yaml'
 
   echo "Running MIT unit test..."
   "$CBICALL" -p "$PARAM_MIT" -t "$THREADS" > /dev/null 2>&1
