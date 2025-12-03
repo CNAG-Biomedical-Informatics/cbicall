@@ -1,5 +1,11 @@
 #!/bin/bash
 
+############################################
+# IMPORTANT NOTICE – ARCHITECTURE SUPPORT  #
+############################################
+# MToolBox relies on pre-compiled binaries available only for x86_64.
+# Consequently, Linux/aarch64 and Apple Silicon (ARM) systems are not supported.
+
 BINDIR=/media/mrueda/2TBS/NGSutils
 DBDIR=/media/mrueda/2TBS/Databases/mtDNA
 

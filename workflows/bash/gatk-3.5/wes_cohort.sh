@@ -15,7 +15,7 @@ function usage {
     USAGE="""
     Usage: $0 -t n_threads
 
-    NB1: The script is expecting that you follow STSI nomenclature for samples
+    NB1: The script is expecting that you follow SRTI nomenclature for samples
 
 MA00024_exome  <-- ID taken from here
 ├── MA0002401P_ex

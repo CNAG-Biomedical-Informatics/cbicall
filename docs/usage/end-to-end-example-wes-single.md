@@ -15,9 +15,9 @@ CBIcall expects paired-end FASTQ files with a shared prefix, for example:
 
 ```
 # Project    / Sample (Proband WES)
-MA00001_exome/MA0000101P_ex/
-  MA0000101P_ex_S1_L001_R1_001.fastq.gz
-  MA0000101P_ex_S1_L001_R2_001.fastq.gz
+CN00001_exome/CN0000101P_ex/
+  CN0000101P_ex_S1_L001_R1_001.fastq.gz
+  CN0000101P_ex_S1_L001_R2_001.fastq.gz
 ```
 
 !!! Note "Note on nomenclature"
@@ -34,8 +34,7 @@ mode:            single
 pipeline:        wes
 workflow_engine: bash
 gatk_version:    gatk4.6
-sample:          MA00001_exome/MA0000101P_ex
-projectdir:      cbicall_test
+sample:          CN00001_exome/CN0000101P_ex
 cleanup_bam:     false
 ```
 
@@ -63,8 +62,7 @@ bin/cbicall -p wes_single.yaml -t 4
 After completion, you will find:
 
 ```
-MA00001_exome/MA0000101P_ex/cbicall_test*/
-CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_*/
+CN00001_exome/CN0000101P_ex/cbicall_bash_wes_single_gatk-4.6_*/
   01_bam/
   02_varcall/
   03_stats/

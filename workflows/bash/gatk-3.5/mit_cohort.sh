@@ -16,7 +16,7 @@ function usage {
     USAGE="""
     Usage: $0 -t n_threads
 
-    NB1: The script is expecting that you follow STSI nomenclature for samples
+    NB1: The script is expecting that you follow SRTI nomenclature for samples
     NB2: There is no need to run wes_cohort prior to mit_cohort.
 
 MA00024_exome  <-- ID taken from here

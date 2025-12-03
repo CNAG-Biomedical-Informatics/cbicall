@@ -36,6 +36,18 @@ if env_root:
 
 from cbicall.cli import main
 
-
 if __name__ == "__main__":
-    main()
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        # Clean Ctrl+C
+        print("Interrupted by user", file=sys.stderr)
+        sys.exit(130)
+    except Exception as e:
+        # If user passed --debug on the command line, keep the traceback
+        if "--debug" in sys.argv:
+            raise
+
+        # Otherwise, suppress traceback and just print a short error
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(1)

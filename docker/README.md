@@ -96,13 +96,13 @@ Finally, inside the `cbicall` repo:
 
 Change `DATADIR` variable in `workflows/bash/parameters.sh` and `workflows/snakemake/config.yaml` to `/cbicall-data`.
 
-## Performing unit test
+## Performing unit tests
 
-Inside the container
+Inside the container:
 
 ```bash
 cd examples/input
-./run_test.sh
+./run_tests.sh --mit
 ```
 
 ## System requirements

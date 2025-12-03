@@ -74,10 +74,11 @@ nav:
       - "🛠️ Non-containerized": installation/non-containerized.md
       - "🐳 Docker": installation/docker.md
 
-  - "🚀 Getting Started":
-      - "⚡ Quickstart": usage/quickstart.md
-      - "🧪 End-to-end Example": usage/end-to-end-example.md
-      - "📘 General Usage": usage/usage.md
+- "🚀 Getting Started":
+    - "⚡ Quickstart": usage/quickstart.md
+    - "🧪 End-to-end Example (WES)": usage/end-to-end-example-wes-single.md
+    - "🧬 End-to-end Example (MIT Single)": usage/end-to-end-mit-single.md
+    - "📘 General Usage": usage/usage.md
 
   - "🧪 Pipelines":
       - "🔬 WES WGS Single":  pipelines/wes_wgs_single.md

@@ -18,7 +18,7 @@ function usage {
     USAGE="""
     Usage: $0 -t n_threads
 
-    NB1: The script is expecting that you follow STSI nomenclature for samples
+    NB1: The script is expecting that you follow SRTI nomenclature for samples
 
 MA00047_exome
 └── MA0004701P_ex  <--- ID taken from here
@@ -26,7 +26,7 @@ MA00047_exome
     ├── MA0004701P_ex_S5_L001_R2_001.fastq.gz
     ├── MA0004701P_ex_S5_L002_R1_001.fastq.gz
     ├── MA0004701P_ex_S5_L002_R2_001.fastq.gz
-    └── cbicall_bash_mit_single_146657420113136 <- The script expects that you are submitting the job from inside this directory
+    └── cbicall_bash_mit_single_gatk-3.5_* <- The script expects that you are submitting the job from inside this directory
     """
     echo "$USAGE"
     exit 1
@@ -55,35 +55,66 @@ source "$BINDIR/parameters.sh"
 
 # Set up variables and Defining directories
 DIR=$( pwd )
-BINDIRMTB=$BINDIR/../../mtdna
+BINDIRMTB=$BINDIR/../../../mtdna
+BROWSERDIR=$BINDIR/../../../browser
+ASSETS=$BROWSERDIR/assets
 
-# Check that nomenclature exists
-if [[ $DIR != *cbicall_bash_mit_single* ]]
- then 
-  usage
-fi 
-
-# The id need to have this format LP6005831-???_???.bam, otherwise MToolBox will fail
-id=$( echo $DIR | awk -F'/' '{print $(NF-1)}' | awk -F'_' '{print $1}' |sed 's/$/-DNA_MIT/' )
+# The id needs to have this format LP6005831-???_???.bam, otherwise MToolBox will fail
+id=$( echo "$DIR" | awk -F'/' '{print $(NF-1)}' | awk -F'_' '{print $1}' | sed 's/$/-DNA_MIT/' )
+job_id=$( echo "$DIR" | awk -F'_' '{print $NF}' )
 
 # From now on we will work on VARCALL dir
-VARCALLDIR=$DIR/MTOOLBOX
-mkdir $VARCALLDIR
-cd $VARCALLDIR
-
-# NB: We are using UCSC's hg19 for Exome.
-# There are a few minor differences between GRCh37 and hg19. 
-# The contig sequences are the same but the names are different, i.e. "1" may need to be converted to "chr1". 
-# In addition UCSC hg19 is currenly using the old mitochondrial sequence but NCBI and Ensembl have transitioned to NC_012920.
-# For using MtoolBox we need to align again to RSRS
+VARCALLDIR=$DIR/01_mtoolbox
+mkdir "$VARCALLDIR"
+cd "$VARCALLDIR"
 
 # Using Samtools to extract chrM
-# NB: BAMs may include duplicates entries at this stage
 echo "Extracting Mitochondrial DNA from exome BAM file..."
-BAMDIR=../../cbicall_bash_wes_single*/01_bam
-bam_raw=$BAMDIR/input.merged.filtered.realigned.fixed.bam
-bam_raw_index=$BAMDIR/input.merged.filtered.realigned.fixed.bai
+
 out_raw=$id.bam
+
+# Prefer GATK 3.5 BAM if available
+bam_raw=""
+
+#for f in ../../cbicall_bash_wes_single_gatk-3.5*/01_bam/input.merged.filtered.realigned.fixed.bam
+for f in /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/bam/exoma.rg.merged.dedup.recal.bam
+do
+    echo $f
+    if [ -f "$f" ]; then
+        bam_raw="$f"
+        echo "Using GATK 3.5 BAM: $bam_raw"
+        break
+    fi
+done
+
+# If no GATK 3.5 BAM, fall back to GATK 4.6 naming: ${ID}.rg.merged.dedup.recal.bam
+if [ -z "$bam_raw" ]; then
+    # ID is expected to be defined (e.g. via parameters.sh)
+    if [ -z "${ID:-}" ]; then
+        echo "ERROR: ID is not set and no GATK 3.5 BAM was found." >&2
+        exit 1
+    fi
+
+    for f in ../../cbicall_bash_wes_single_gatk-4.6*/01_bam/"$ID".rg.merged.dedup.recal.bam
+    do
+        if [ -f "$f" ]; then
+            bam_raw="$f"
+            echo "Using GATK 4.6 BAM: $bam_raw"
+            break
+        fi
+    done
+fi
+
+# If still nothing found, bail out
+if [ -z "$bam_raw" ]; then
+    echo "ERROR: Could not find BAM for ID '${ID:-$id}' in either:" >&2
+    echo "  ../../cbicall_bash_wes_single_gatk-3.5*/01_bam/input.merged.filtered.realigned.fixed.bam" >&2
+    echo "  ../../cbicall_bash_wes_single_gatk-4.6*/01_bam/\$ID.rg.merged.dedup.recal.bam" >&2
+    exit 1
+fi
+
+BAMDIR=$(dirname "$bam_raw")
+bam_raw_index="${bam_raw%.bam}.bai"
 
 if [[ $REF == *b37*.fasta ]]
  then
@@ -100,7 +131,8 @@ echo "Analyzing mitochondrial DNA with MToolBox..."
 export PATH="$MTOOLBOXDIR:$PATH"
 
 # Add the local site-packages to PYTHONPATH
-export PYTHONPATH=~/.local/lib/python2.7/site-packages:${PYTHONPATH:-}
+export PATH="$PY27_PREFIX:$PATH"
+export PYTHONPATH="$PY27_PREFIX/Lib/site-packages:${PYTHONPATH:-}"
 
 cp $BINDIRMTB/MToolBox_config.sh .
 MToolBox.sh -i MToolBox_config.sh -m "-t $THREADS"
@@ -131,6 +163,26 @@ do
 done
 paste $in_file $out_file > $final_file
 rm $out_file
+
+# HMTL creation
+echo "Creating Browser HTML..."
+HTMLDIR=../02_browser
+mkdir $HTMLDIR
+mit_json=mit.json
+$BROWSERDIR/mtb2json.py  -i $final_file -f json4html > $HTMLDIR/$mit_json
+$BROWSERDIR/mtb2html.py --id $id --json $mit_json --out $HTMLDIR/$job_id.html --job-id $job_id
+ln -s $ASSETS $HTMLDIR/assets
+
+cat<<EOF>$HTMLDIR/README.txt
+# To visualize <$job_id.html>:
+
+# Option 1: Open <176099009134887.html> directly in Chromium
+chromium --allow-file-access-from-files --disable-web-security $job_id.html
+
+# Option 2: Use an HTTP server. Example using Python 3:
+python3 -m http.server
+EOF
+
 
 # Fin
 echo "All done!!!"

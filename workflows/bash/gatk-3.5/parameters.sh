@@ -2,6 +2,7 @@
 
 # Paths
 DATADIR=/media/mrueda/2TBS
+#DATADIR=/cbicall-data  # From inside the container
 DBDIR=$DATADIR/Databases
 NGSUTILS=$DATADIR/NGSutils
 
@@ -9,23 +10,26 @@ NGSUTILS=$DATADIR/NGSutils
 export TMPDIR=$DATADIR/tmp
 export LC_ALL=C
 export GATK_DISABLE_AUTO_S3_UPLOAD=true   # disable unintended S3 uploads
+export ARCH=$(uname -m)
 
 # Memory & architecture
 MEM=8G
 MEM_GENOTYPE=64G
-ARCH=$(uname -m)
 
 # Java & tool binaries per architecture
 if [ "$ARCH" == "aarch64" ]; then
-    JAVA=/usr/lib/jvm/java-8-openjdk-arm64/bin/java
+    export JAVA=/usr/lib/jvm/java-8-openjdk-arm64/bin/java
     BWA=$NGSUTILS/bwa-0.7.18_arm64/bwa
     SAM=$NGSUTILS/samtools-0.1.19_arm64/samtools
     BED=$NGSUTILS/bedtools2_arm64/bin/bedtools
+    # Mtoolbox bundled binaries do not work with aarch64
+    # PY27_PREFIX=$NGSUTILS/python_2.7/linux-aarch64/Python-2.7.18
 else
-    JAVA=/usr/lib/jvm/java-8-openjdk-amd64/bin/java
+    export JAVA=/usr/lib/jvm/java-8-openjdk-amd64/bin/java
     BWA=$NGSUTILS/bwa-0.7.18/bwa
     SAM=$NGSUTILS/samtools-0.1.19/samtools
     BED=$NGSUTILS/bedtools2/bin/bedtools
+    PY27_PREFIX=$NGSUTILS/python_2.7/linux-x86_64/Python-2.7.18
 fi
 
 # Picard (shared by GATK3 & bed conversion)

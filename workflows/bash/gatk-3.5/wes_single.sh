@@ -18,7 +18,7 @@ function usage {
     USAGE="""
     Usage: $0 -t n_threads
 
-    NB1: The script is expecting that you follow STSI nomenclature for samples. 
+    NB1: The script is expecting that you follow SRTI nomenclature for samples. 
          This will work    => MA0004701P_ex_S5_L001_R1_001.fastq.gz
          This wll NOT work => 62236832_S1_LALL_R1_001.fastq.gz (missing _ex before S1)
 

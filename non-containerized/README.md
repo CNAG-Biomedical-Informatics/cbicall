@@ -79,7 +79,7 @@ Once you are in the root directory of the repo:
 
 ```bash
 cd examples/input
-./run_test.sh
+./run_tests.sh --wes --mit
 ```
 
 ## System requirements
