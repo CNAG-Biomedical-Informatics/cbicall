@@ -1,3 +1,0 @@
-1
-sampleID	mode	total_reads	mean_cov	ten_pct	nondup_pct	ins_size	in_pct	out_pct
-CNAG99901P	WES	56	0.0	0.0	0.0	510.4	0.0	100.0
