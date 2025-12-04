@@ -156,6 +156,7 @@ Converts BAM → FASTQ using:
 ---
 ### 3. Variant Calling & Annotation (MToolBox)
 Pipeline steps include:
+
 - *mpileup* (SAMtools)
 - *mtVariantCaller.py*
 - *VCFoutput.py* (with [PyVCF](https://github.com/jamescasbon/PyVCF))

@@ -1,0 +1,292 @@
+12:34:50.294 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar!/com/intel/gkl/native/libgkl_compression.so
+[Thu Dec 04 12:34:50 CET 2025] AddOrReplaceReadGroups --INPUT /dev/stdin --OUTPUT /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P_ex_S2_L001.rg.bam --RGID CNAG99901P_ex.S2.1764848089 --RGLB sureselect --RGPL ILLUMINA --RGPU CNAG99901P_ex.S2.unit1 --RGSM CNAG99901P_ex --TMP_DIR /media/mrueda/2TBS/tmp --VERBOSITY INFO --QUIET false --VALIDATION_STRINGENCY STRICT --COMPRESSION_LEVEL 2 --MAX_RECORDS_IN_RAM 500000 --CREATE_INDEX false --CREATE_MD5_FILE false --help false --version false --showHidden false --USE_JDK_DEFLATER false --USE_JDK_INFLATER false
+[Thu Dec 04 12:34:50 CET 2025] Executing as mrueda@mrueda-ws5 on Linux 5.4.0-216-generic amd64; OpenJDK 64-Bit Server VM 17.0.15+6-Ubuntu-0ubuntu120.04; Deflater: Intel; Inflater: Intel; Provider GCS is available; Picard version: Version:4.6.2.0
+INFO	2025-12-04 12:35:00	AddOrReplaceReadGroups	Created read-group ID=CNAG99901P_ex.S2.1764848089 PL=ILLUMINA LB=sureselect SM=CNAG99901P_ex
+
+[Thu Dec 04 12:35:01 CET 2025] picard.sam.AddOrReplaceReadGroups done. Elapsed time: 0.19 minutes.
+Runtime.totalMemory()=310378496
+Using GATK jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar
+Running:
+    java -Dsamjdk.use_async_io_read_samtools=false -Dsamjdk.use_async_io_write_samtools=true -Dsamjdk.use_async_io_write_tribble=false -Dsamjdk.compression_level=2 -Xmx8G -jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar AddOrReplaceReadGroups --INPUT /dev/stdin --OUTPUT /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P_ex_S2_L001.rg.bam --TMP_DIR /media/mrueda/2TBS/tmp --RGPL ILLUMINA --RGLB sureselect --RGSM CNAG99901P_ex --RGID CNAG99901P_ex.S2.1764848089 --RGPU CNAG99901P_ex.S2.unit1
+12:35:02.626 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar!/com/intel/gkl/native/libgkl_compression.so
+[Thu Dec 04 12:35:02 CET 2025] MergeSamFiles --INPUT /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P_ex_S2_L001.rg.bam --OUTPUT /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.bam --TMP_DIR /media/mrueda/2TBS/tmp --VALIDATION_STRINGENCY SILENT --CREATE_INDEX true --SORT_ORDER coordinate --ASSUME_SORTED false --MERGE_SEQUENCE_DICTIONARIES false --USE_THREADING false --VERBOSITY INFO --QUIET false --COMPRESSION_LEVEL 2 --MAX_RECORDS_IN_RAM 500000 --CREATE_MD5_FILE false --help false --version false --showHidden false --USE_JDK_DEFLATER false --USE_JDK_INFLATER false
+[Thu Dec 04 12:35:02 CET 2025] Executing as mrueda@mrueda-ws5 on Linux 5.4.0-216-generic amd64; OpenJDK 64-Bit Server VM 17.0.15+6-Ubuntu-0ubuntu120.04; Deflater: Intel; Inflater: Intel; Provider GCS is available; Picard version: Version:4.6.2.0
+INFO	2025-12-04 12:35:02	MergeSamFiles	Sorting input files using temp directory [/media/mrueda/2TBS/tmp]
+INFO	2025-12-04 12:35:02	MergeSamFiles	Finished reading inputs.
+[Thu Dec 04 12:35:03 CET 2025] picard.sam.MergeSamFiles done. Elapsed time: 0.01 minutes.
+Runtime.totalMemory()=473956352
+Using GATK jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar
+Running:
+    java -Dsamjdk.use_async_io_read_samtools=false -Dsamjdk.use_async_io_write_samtools=true -Dsamjdk.use_async_io_write_tribble=false -Dsamjdk.compression_level=2 -Xmx8G -jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar MergeSamFiles -I /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P_ex_S2_L001.rg.bam -O /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.bam --CREATE_INDEX true --VALIDATION_STRINGENCY SILENT --TMP_DIR /media/mrueda/2TBS/tmp
+12:35:04.283 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar!/com/intel/gkl/native/libgkl_compression.so
+[Thu Dec 04 12:35:04 CET 2025] MarkDuplicates --INPUT /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.bam --OUTPUT /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.bam --METRICS_FILE /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.metrics.txt --TMP_DIR /media/mrueda/2TBS/tmp --CREATE_INDEX true --MAX_SEQUENCES_FOR_DISK_READ_ENDS_MAP 50000 --MAX_FILE_HANDLES_FOR_READ_ENDS_MAP 8000 --SORTING_COLLECTION_SIZE_RATIO 0.25 --TAG_DUPLICATE_SET_MEMBERS false --REMOVE_SEQUENCING_DUPLICATES false --TAGGING_POLICY DontTag --CLEAR_DT true --DUPLEX_UMI false --FLOW_MODE false --FLOW_DUP_STRATEGY FLOW_QUALITY_SUM_STRATEGY --FLOW_USE_END_IN_UNPAIRED_READS false --FLOW_USE_UNPAIRED_CLIPPED_END false --FLOW_UNPAIRED_END_UNCERTAINTY 0 --FLOW_UNPAIRED_START_UNCERTAINTY 0 --FLOW_SKIP_FIRST_N_FLOWS 0 --FLOW_Q_IS_KNOWN_END false --FLOW_EFFECTIVE_QUALITY_THRESHOLD 15 --ADD_PG_TAG_TO_READS true --REMOVE_DUPLICATES false --ASSUME_SORTED false --DUPLICATE_SCORING_STRATEGY SUM_OF_BASE_QUALITIES --PROGRAM_RECORD_ID MarkDuplicates --PROGRAM_GROUP_NAME MarkDuplicates --READ_NAME_REGEX <optimized capture of last three ':' separated fields as numeric values> --OPTICAL_DUPLICATE_PIXEL_DISTANCE 100 --MAX_OPTICAL_DUPLICATE_SET_SIZE 300000 --VERBOSITY INFO --QUIET false --VALIDATION_STRINGENCY STRICT --COMPRESSION_LEVEL 2 --MAX_RECORDS_IN_RAM 500000 --CREATE_MD5_FILE false --help false --version false --showHidden false --USE_JDK_DEFLATER false --USE_JDK_INFLATER false
+[Thu Dec 04 12:35:04 CET 2025] Executing as mrueda@mrueda-ws5 on Linux 5.4.0-216-generic amd64; OpenJDK 64-Bit Server VM 17.0.15+6-Ubuntu-0ubuntu120.04; Deflater: Intel; Inflater: Intel; Provider GCS is available; Picard version: Version:4.6.2.0
+INFO	2025-12-04 12:35:04	MarkDuplicates	Start of doWork freeMemory: 93627216; totalMemory: 125829120; maxMemory: 8589934592
+INFO	2025-12-04 12:35:04	MarkDuplicates	Reading input file and constructing read end information.
+INFO	2025-12-04 12:35:04	MarkDuplicates	Will retain up to 31122951 data points before spilling to disk.
+WARNING	2025-12-04 12:35:04	AbstractOpticalDuplicateFinderCommandLineProgram	A field field parsed out of a read name was expected to contain an integer and did not. Read name: SRR769545.30687720. Cause: String 'SRR769545.30687720' did not start with a parsable number.
+INFO	2025-12-04 12:35:04	MarkDuplicates	Read 110112 records. 0 pairs never matched.
+INFO	2025-12-04 12:35:04	MarkDuplicates	After buildSortedReadEndLists freeMemory: 592337832; totalMemory: 889192448; maxMemory: 8589934592
+INFO	2025-12-04 12:35:04	MarkDuplicates	Will retain up to 268435456 duplicate indices before spilling to disk.
+INFO	2025-12-04 12:35:05	MarkDuplicates	Traversing read pair information and detecting duplicates.
+INFO	2025-12-04 12:35:05	MarkDuplicates	Traversing fragment information and detecting duplicates.
+INFO	2025-12-04 12:35:05	MarkDuplicates	Sorting list of duplicate records.
+INFO	2025-12-04 12:35:05	MarkDuplicates	After generateDuplicateIndexes freeMemory: 1522762592; totalMemory: 3707764736; maxMemory: 8589934592
+INFO	2025-12-04 12:35:05	MarkDuplicates	Marking 580 records as duplicates.
+INFO	2025-12-04 12:35:05	MarkDuplicates	Found 0 optical duplicate clusters.
+INFO	2025-12-04 12:35:05	MarkDuplicates	Reads are assumed to be ordered by: coordinate
+INFO	2025-12-04 12:35:05	MarkDuplicates	Writing complete. Closing input iterator.
+INFO	2025-12-04 12:35:05	MarkDuplicates	Duplicate Index cleanup.
+INFO	2025-12-04 12:35:05	MarkDuplicates	Getting Memory Stats.
+INFO	2025-12-04 12:35:05	MarkDuplicates	Before output close freeMemory: 1256424288; totalMemory: 3707764736; maxMemory: 8589934592
+INFO	2025-12-04 12:35:05	MarkDuplicates	Closed outputs. Getting more Memory Stats.
+INFO	2025-12-04 12:35:05	MarkDuplicates	After output close freeMemory: 151357376; totalMemory: 184549376; maxMemory: 8589934592
+[Thu Dec 04 12:35:05 CET 2025] picard.sam.markduplicates.MarkDuplicates done. Elapsed time: 0.03 minutes.
+Runtime.totalMemory()=184549376
+Using GATK jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar
+Running:
+    java -Dsamjdk.use_async_io_read_samtools=false -Dsamjdk.use_async_io_write_samtools=true -Dsamjdk.use_async_io_write_tribble=false -Dsamjdk.compression_level=2 -Xmx8G -jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar MarkDuplicates -I /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.bam -O /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.bam --METRICS_FILE /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.metrics.txt --CREATE_INDEX true --TMP_DIR /media/mrueda/2TBS/tmp
+12:35:07.048 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar!/com/intel/gkl/native/libgkl_compression.so
+12:35:07.133 INFO  BaseRecalibrator - ------------------------------------------------------------
+12:35:07.134 INFO  BaseRecalibrator - The Genome Analysis Toolkit (GATK) v4.6.2.0
+12:35:07.134 INFO  BaseRecalibrator - For support and documentation go to https://software.broadinstitute.org/gatk/
+12:35:07.134 INFO  BaseRecalibrator - Executing as mrueda@mrueda-ws5 on Linux v5.4.0-216-generic amd64
+12:35:07.135 INFO  BaseRecalibrator - Java runtime: OpenJDK 64-Bit Server VM v17.0.15+6-Ubuntu-0ubuntu120.04
+12:35:07.135 INFO  BaseRecalibrator - Start Date/Time: December 4, 2025 at 12:35:07 PM CET
+12:35:07.135 INFO  BaseRecalibrator - ------------------------------------------------------------
+12:35:07.135 INFO  BaseRecalibrator - ------------------------------------------------------------
+12:35:07.135 INFO  BaseRecalibrator - HTSJDK Version: 4.2.0
+12:35:07.135 INFO  BaseRecalibrator - Picard Version: 3.4.0
+12:35:07.135 INFO  BaseRecalibrator - Built for Spark Version: 3.5.0
+12:35:07.137 INFO  BaseRecalibrator - HTSJDK Defaults.COMPRESSION_LEVEL : 2
+12:35:07.137 INFO  BaseRecalibrator - HTSJDK Defaults.USE_ASYNC_IO_READ_FOR_SAMTOOLS : false
+12:35:07.137 INFO  BaseRecalibrator - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_SAMTOOLS : true
+12:35:07.137 INFO  BaseRecalibrator - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_TRIBBLE : false
+12:35:07.137 INFO  BaseRecalibrator - Deflater: IntelDeflater
+12:35:07.137 INFO  BaseRecalibrator - Inflater: IntelInflater
+12:35:07.137 INFO  BaseRecalibrator - GCS max retries/reopens: 20
+12:35:07.138 INFO  BaseRecalibrator - Requester pays: disabled
+12:35:07.138 INFO  BaseRecalibrator - Initializing engine
+12:35:07.227 INFO  FeatureManager - Using codec VCFCodec to read file file:///media/mrueda/2TBS/Databases/dbSNP/human_9606_b144_GRCh37p13/All_20160408.vcf.gz
+12:35:07.290 INFO  FeatureManager - Using codec VCFCodec to read file file:///media/mrueda/2TBS/Databases/GATK_bundle/b37/b37_Mills_and_1000G_gold_standard.indels.b37.vcf.gz
+12:35:07.341 INFO  FeatureManager - Using codec VCFCodec to read file file:///media/mrueda/2TBS/Databases/GATK_bundle/b37/b37_1000G_phase1.indels.b37.vcf.gz
+12:35:07.372 WARN  IndexUtils - Feature file "file:///media/mrueda/2TBS/Databases/dbSNP/human_9606_b144_GRCh37p13/All_20160408.vcf.gz" appears to contain no sequence dictionary. Attempting to retrieve a sequence dictionary from the associated index file
+12:35:07.437 INFO  BaseRecalibrator - Done initializing engine
+12:35:07.440 INFO  BaseRecalibrationEngine - The covariates being used here: 
+12:35:07.440 INFO  BaseRecalibrationEngine - 	ReadGroupCovariate
+12:35:07.440 INFO  BaseRecalibrationEngine - 	QualityScoreCovariate
+12:35:07.440 INFO  BaseRecalibrationEngine - 	ContextCovariate
+12:35:07.440 INFO  BaseRecalibrationEngine - 	CycleCovariate
+12:35:07.443 INFO  ProgressMeter - Starting traversal
+12:35:07.444 INFO  ProgressMeter -        Current Locus  Elapsed Minutes       Reads Processed     Reads/Minute
+12:35:17.518 INFO  ProgressMeter -          22:38057583              0.2                 60000         357462.0
+12:35:23.895 INFO  BaseRecalibrator - 2937 read(s) filtered by: MappingQualityNotZeroReadFilter 
+0 read(s) filtered by: MappingQualityAvailableReadFilter 
+0 read(s) filtered by: MappedReadFilter 
+4 read(s) filtered by: NotSecondaryAlignmentReadFilter 
+573 read(s) filtered by: NotDuplicateReadFilter 
+0 read(s) filtered by: PassesVendorQualityCheckReadFilter 
+0 read(s) filtered by: WellformedReadFilter 
+3514 total reads filtered out of 110112 reads processed
+12:35:23.895 INFO  ProgressMeter -             MT:14750              0.3                106598         388783.7
+12:35:23.896 INFO  ProgressMeter - Traversal complete. Processed 106598 total reads in 0.3 minutes.
+12:35:23.900 INFO  BaseRecalibrator - Calculating quantized quality scores...
+12:35:23.912 INFO  BaseRecalibrator - Writing recalibration report...
+12:35:24.687 INFO  BaseRecalibrator - ...done!
+12:35:24.688 INFO  BaseRecalibrator - BaseRecalibrator was able to recalibrate 106598 reads
+12:35:24.688 INFO  BaseRecalibrator - Shutting down engine
+[December 4, 2025 at 12:35:24 PM CET] org.broadinstitute.hellbender.tools.walkers.bqsr.BaseRecalibrator done. Elapsed time: 0.29 minutes.
+Runtime.totalMemory()=767557632
+Using GATK jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar
+Running:
+    java -Dsamjdk.use_async_io_read_samtools=false -Dsamjdk.use_async_io_write_samtools=true -Dsamjdk.use_async_io_write_tribble=false -Dsamjdk.compression_level=2 -Xmx8G -jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar BaseRecalibrator -R /media/mrueda/2TBS/Databases/GATK_bundle/b37/references_b37_Homo_sapiens_assembly19.fasta -I /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.bam --known-sites /media/mrueda/2TBS/Databases/dbSNP/human_9606_b144_GRCh37p13/All_20160408.vcf.gz --known-sites /media/mrueda/2TBS/Databases/GATK_bundle/b37/b37_Mills_and_1000G_gold_standard.indels.b37.vcf.gz --known-sites /media/mrueda/2TBS/Databases/GATK_bundle/b37/b37_1000G_phase1.indels.b37.vcf.gz -O /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.recal.table --tmp-dir /media/mrueda/2TBS/tmp
+12:35:25.720 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar!/com/intel/gkl/native/libgkl_compression.so
+12:35:25.793 INFO  ApplyBQSR - ------------------------------------------------------------
+12:35:25.795 INFO  ApplyBQSR - The Genome Analysis Toolkit (GATK) v4.6.2.0
+12:35:25.795 INFO  ApplyBQSR - For support and documentation go to https://software.broadinstitute.org/gatk/
+12:35:25.795 INFO  ApplyBQSR - Executing as mrueda@mrueda-ws5 on Linux v5.4.0-216-generic amd64
+12:35:25.795 INFO  ApplyBQSR - Java runtime: OpenJDK 64-Bit Server VM v17.0.15+6-Ubuntu-0ubuntu120.04
+12:35:25.795 INFO  ApplyBQSR - Start Date/Time: December 4, 2025 at 12:35:25 PM CET
+12:35:25.795 INFO  ApplyBQSR - ------------------------------------------------------------
+12:35:25.795 INFO  ApplyBQSR - ------------------------------------------------------------
+12:35:25.796 INFO  ApplyBQSR - HTSJDK Version: 4.2.0
+12:35:25.796 INFO  ApplyBQSR - Picard Version: 3.4.0
+12:35:25.796 INFO  ApplyBQSR - Built for Spark Version: 3.5.0
+12:35:25.797 INFO  ApplyBQSR - HTSJDK Defaults.COMPRESSION_LEVEL : 2
+12:35:25.797 INFO  ApplyBQSR - HTSJDK Defaults.USE_ASYNC_IO_READ_FOR_SAMTOOLS : false
+12:35:25.797 INFO  ApplyBQSR - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_SAMTOOLS : true
+12:35:25.798 INFO  ApplyBQSR - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_TRIBBLE : false
+12:35:25.798 INFO  ApplyBQSR - Deflater: IntelDeflater
+12:35:25.798 INFO  ApplyBQSR - Inflater: IntelInflater
+12:35:25.798 INFO  ApplyBQSR - GCS max retries/reopens: 20
+12:35:25.798 INFO  ApplyBQSR - Requester pays: disabled
+12:35:25.798 INFO  ApplyBQSR - Initializing engine
+12:35:25.882 INFO  ApplyBQSR - Done initializing engine
+12:35:25.893 INFO  ProgressMeter - Starting traversal
+12:35:25.894 INFO  ProgressMeter -        Current Locus  Elapsed Minutes       Reads Processed     Reads/Minute
+12:35:27.473 INFO  ApplyBQSR - 0 read(s) filtered by: WellformedReadFilter 
+
+12:35:27.474 INFO  ProgressMeter -       GL000238.1:283              0.0                110112        4181468.4
+12:35:27.474 INFO  ProgressMeter - Traversal complete. Processed 110112 total reads in 0.0 minutes.
+12:35:27.524 INFO  ApplyBQSR - Shutting down engine
+[December 4, 2025 at 12:35:27 PM CET] org.broadinstitute.hellbender.tools.walkers.bqsr.ApplyBQSR done. Elapsed time: 0.03 minutes.
+Runtime.totalMemory()=339738624
+Using GATK jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar
+Running:
+    java -Dsamjdk.use_async_io_read_samtools=false -Dsamjdk.use_async_io_write_samtools=true -Dsamjdk.use_async_io_write_tribble=false -Dsamjdk.compression_level=2 -Xmx8G -jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar ApplyBQSR -R /media/mrueda/2TBS/Databases/GATK_bundle/b37/references_b37_Homo_sapiens_assembly19.fasta -I /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.bam --bqsr-recal-file /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.recal.table -O /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.recal.bam --tmp-dir /media/mrueda/2TBS/tmp
+12:35:28.693 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar!/com/intel/gkl/native/libgkl_compression.so
+12:35:28.771 INFO  HaplotypeCaller - ------------------------------------------------------------
+12:35:28.773 INFO  HaplotypeCaller - The Genome Analysis Toolkit (GATK) v4.6.2.0
+12:35:28.773 INFO  HaplotypeCaller - For support and documentation go to https://software.broadinstitute.org/gatk/
+12:35:28.774 INFO  HaplotypeCaller - Executing as mrueda@mrueda-ws5 on Linux v5.4.0-216-generic amd64
+12:35:28.774 INFO  HaplotypeCaller - Java runtime: OpenJDK 64-Bit Server VM v17.0.15+6-Ubuntu-0ubuntu120.04
+12:35:28.774 INFO  HaplotypeCaller - Start Date/Time: December 4, 2025 at 12:35:28 PM CET
+12:35:28.774 INFO  HaplotypeCaller - ------------------------------------------------------------
+12:35:28.774 INFO  HaplotypeCaller - ------------------------------------------------------------
+12:35:28.774 INFO  HaplotypeCaller - HTSJDK Version: 4.2.0
+12:35:28.775 INFO  HaplotypeCaller - Picard Version: 3.4.0
+12:35:28.775 INFO  HaplotypeCaller - Built for Spark Version: 3.5.0
+12:35:28.776 INFO  HaplotypeCaller - HTSJDK Defaults.COMPRESSION_LEVEL : 2
+12:35:28.776 INFO  HaplotypeCaller - HTSJDK Defaults.USE_ASYNC_IO_READ_FOR_SAMTOOLS : false
+12:35:28.776 INFO  HaplotypeCaller - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_SAMTOOLS : true
+12:35:28.776 INFO  HaplotypeCaller - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_TRIBBLE : false
+12:35:28.777 INFO  HaplotypeCaller - Deflater: IntelDeflater
+12:35:28.777 INFO  HaplotypeCaller - Inflater: IntelInflater
+12:35:28.777 INFO  HaplotypeCaller - GCS max retries/reopens: 20
+12:35:28.777 INFO  HaplotypeCaller - Requester pays: disabled
+12:35:28.777 INFO  HaplotypeCaller - Initializing engine
+12:35:28.868 INFO  FeatureManager - Using codec IntervalListCodec to read file file:///media/mrueda/2TBS/Databases/GATK_bundle/b37/b37_Broad.human.exome.b37.interval_list
+12:35:29.508 INFO  IntervalArgumentCollection - Processing 32950014 bp from intervals
+12:35:29.582 INFO  HaplotypeCaller - Done initializing engine
+12:35:29.584 INFO  HaplotypeCallerEngine - Tool is in reference confidence mode and the annotation, the following changes will be made to any specified annotations: 'StrandBiasBySample' will be enabled. 'ChromosomeCounts', 'FisherStrand', 'StrandOddsRatio' and 'QualByDepth' annotations have been disabled
+12:35:29.589 INFO  NativeLibraryLoader - Loading libgkl_utils.so from jar:file:/media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar!/com/intel/gkl/native/libgkl_utils.so
+12:35:29.590 INFO  NativeLibraryLoader - Loading libgkl_smithwaterman.so from jar:file:/media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar!/com/intel/gkl/native/libgkl_smithwaterman.so
+12:35:29.591 INFO  IntelSmithWaterman - Using CPU-supported AVX-512 instructions
+12:35:29.591 INFO  SmithWatermanAligner - Using AVX accelerated SmithWaterman implementation
+12:35:29.594 INFO  HaplotypeCallerEngine - Standard Emitting and Calling confidence set to -0.0 for reference-model confidence output
+12:35:29.594 INFO  HaplotypeCallerEngine - All sites annotated with PLs forced to true for reference-model confidence output
+12:35:29.599 INFO  NativeLibraryLoader - Loading libgkl_pairhmm_omp.so from jar:file:/media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar!/com/intel/gkl/native/libgkl_pairhmm_omp.so
+12:35:29.607 INFO  IntelPairHmm - Using CPU-supported AVX-512 instructions
+12:35:29.608 INFO  IntelPairHmm - Flush-to-zero (FTZ) is enabled when running PairHMM
+12:35:29.608 INFO  IntelPairHmm - Available threads: 12
+12:35:29.608 INFO  IntelPairHmm - Requested threads: 12
+12:35:29.608 INFO  PairHMM - Using the OpenMP multi-threaded AVX-accelerated native PairHMM implementation
+12:35:29.627 INFO  ProgressMeter - Starting traversal
+12:35:29.628 INFO  ProgressMeter -        Current Locus  Elapsed Minutes     Regions Processed   Regions/Minute
+12:35:39.629 INFO  ProgressMeter -           16:1364292              0.2                160580         963480.0
+12:35:42.334 WARN  DepthPerSampleHC - org.broadinstitute.hellbender.tools.walkers.annotator.DepthPerSampleHC$$Lambda$516/0x00007f6ed062aa58@72f3acc9
+12:35:42.334 WARN  StrandBiasBySample - org.broadinstitute.hellbender.tools.walkers.annotator.StrandBiasBySample$$Lambda$517/0x00007f6ed062ac80@584136c1
+12:35:42.335 WARN  InbreedingCoeff - InbreedingCoeff will not be calculated at position 22:17619107 and possibly subsequent; at least 10 samples must have called genotypes
+12:35:44.906 INFO  HaplotypeCaller - 38 read(s) filtered by: MappingQualityReadFilter 
+0 read(s) filtered by: MappingQualityAvailableReadFilter 
+0 read(s) filtered by: MappedReadFilter 
+0 read(s) filtered by: NotSecondaryAlignmentReadFilter 
+0 read(s) filtered by: NotDuplicateReadFilter 
+0 read(s) filtered by: PassesVendorQualityCheckReadFilter 
+0 read(s) filtered by: NonZeroReferenceLengthAlignmentReadFilter 
+0 read(s) filtered by: GoodCigarReadFilter 
+0 read(s) filtered by: WellformedReadFilter 
+38 total reads filtered out of 5601 reads processed
+12:35:44.906 INFO  ProgressMeter -           Y:59337091              0.3                220045         864164.2
+12:35:44.906 INFO  ProgressMeter - Traversal complete. Processed 220045 total regions in 0.3 minutes.
+12:35:44.932 INFO  VectorLoglessPairHMM - Time spent in setup for JNI call : 3.8446000000000004E-4
+12:35:44.932 INFO  PairHMM - Total compute time in PairHMM computeLogLikelihoods() : 0.333698614
+12:35:44.932 INFO  SmithWatermanAligner - Total compute time in native Smith-Waterman : 0.01 sec
+12:35:44.933 INFO  HaplotypeCaller - Shutting down engine
+[December 4, 2025 at 12:35:44 PM CET] org.broadinstitute.hellbender.tools.walkers.haplotypecaller.HaplotypeCaller done. Elapsed time: 0.27 minutes.
+Runtime.totalMemory()=696254464
+Using GATK jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar
+Running:
+    java -Dsamjdk.use_async_io_read_samtools=false -Dsamjdk.use_async_io_write_samtools=true -Dsamjdk.use_async_io_write_tribble=false -Dsamjdk.compression_level=2 -Xmx8G -jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar HaplotypeCaller -R /media/mrueda/2TBS/Databases/GATK_bundle/b37/references_b37_Homo_sapiens_assembly19.fasta -I /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.recal.bam -O /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.g.vcf.gz -L /media/mrueda/2TBS/Databases/GATK_bundle/b37/b37_Broad.human.exome.b37.interval_list --native-pair-hmm-threads 12 -ERC GVCF
+12:35:46.011 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar!/com/intel/gkl/native/libgkl_compression.so
+12:35:46.090 INFO  GenotypeGVCFs - ------------------------------------------------------------
+12:35:46.092 INFO  GenotypeGVCFs - The Genome Analysis Toolkit (GATK) v4.6.2.0
+12:35:46.093 INFO  GenotypeGVCFs - For support and documentation go to https://software.broadinstitute.org/gatk/
+12:35:46.093 INFO  GenotypeGVCFs - Executing as mrueda@mrueda-ws5 on Linux v5.4.0-216-generic amd64
+12:35:46.093 INFO  GenotypeGVCFs - Java runtime: OpenJDK 64-Bit Server VM v17.0.15+6-Ubuntu-0ubuntu120.04
+12:35:46.093 INFO  GenotypeGVCFs - Start Date/Time: December 4, 2025 at 12:35:45 PM CET
+12:35:46.093 INFO  GenotypeGVCFs - ------------------------------------------------------------
+12:35:46.093 INFO  GenotypeGVCFs - ------------------------------------------------------------
+12:35:46.094 INFO  GenotypeGVCFs - HTSJDK Version: 4.2.0
+12:35:46.094 INFO  GenotypeGVCFs - Picard Version: 3.4.0
+12:35:46.094 INFO  GenotypeGVCFs - Built for Spark Version: 3.5.0
+12:35:46.096 INFO  GenotypeGVCFs - HTSJDK Defaults.COMPRESSION_LEVEL : 2
+12:35:46.096 INFO  GenotypeGVCFs - HTSJDK Defaults.USE_ASYNC_IO_READ_FOR_SAMTOOLS : false
+12:35:46.096 INFO  GenotypeGVCFs - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_SAMTOOLS : true
+12:35:46.096 INFO  GenotypeGVCFs - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_TRIBBLE : false
+12:35:46.096 INFO  GenotypeGVCFs - Deflater: IntelDeflater
+12:35:46.096 INFO  GenotypeGVCFs - Inflater: IntelInflater
+12:35:46.096 INFO  GenotypeGVCFs - GCS max retries/reopens: 20
+12:35:46.096 INFO  GenotypeGVCFs - Requester pays: disabled
+12:35:46.097 INFO  GenotypeGVCFs - Initializing engine
+12:35:46.175 INFO  FeatureManager - Using codec VCFCodec to read file file:///media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.g.vcf.gz
+12:35:46.238 INFO  GenotypeGVCFs - Done initializing engine
+12:35:46.262 INFO  ProgressMeter - Starting traversal
+12:35:46.262 INFO  ProgressMeter -        Current Locus  Elapsed Minutes    Variants Processed  Variants/Minute
+12:35:48.901 WARN  ReferenceConfidenceVariantContextMerger - Detected invalid annotations: When trying to merge variant contexts at location 22:19960826 the annotation MLEAC=[1, 0] was not a numerical value and was ignored
+12:35:48.935 WARN  InbreedingCoeff - InbreedingCoeff will not be calculated at position 22:19960826 and possibly subsequent; at least 10 samples must have called genotypes
+12:35:49.372 INFO  ProgressMeter -          X:153135509              0.1                204989        3954771.7
+12:35:49.372 INFO  ProgressMeter - Traversal complete. Processed 204989 total variants in 0.1 minutes.
+12:35:49.375 INFO  GenotypeGVCFs - Shutting down engine
+[December 4, 2025 at 12:35:49 PM CET] org.broadinstitute.hellbender.tools.walkers.GenotypeGVCFs done. Elapsed time: 0.06 minutes.
+Runtime.totalMemory()=708837376
+Using GATK jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar
+Running:
+    java -Dsamjdk.use_async_io_read_samtools=false -Dsamjdk.use_async_io_write_samtools=true -Dsamjdk.use_async_io_write_tribble=false -Dsamjdk.compression_level=2 -Xmx8G -jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar GenotypeGVCFs -R /media/mrueda/2TBS/Databases/GATK_bundle/b37/references_b37_Homo_sapiens_assembly19.fasta -V /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.g.vcf.gz -O /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.raw.vcf.gz --stand-call-conf 10
+12:35:50.423 INFO  NativeLibraryLoader - Loading libgkl_compression.so from jar:file:/media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar!/com/intel/gkl/native/libgkl_compression.so
+12:35:50.499 INFO  VariantFiltration - ------------------------------------------------------------
+12:35:50.501 INFO  VariantFiltration - The Genome Analysis Toolkit (GATK) v4.6.2.0
+12:35:50.501 INFO  VariantFiltration - For support and documentation go to https://software.broadinstitute.org/gatk/
+12:35:50.501 INFO  VariantFiltration - Executing as mrueda@mrueda-ws5 on Linux v5.4.0-216-generic amd64
+12:35:50.501 INFO  VariantFiltration - Java runtime: OpenJDK 64-Bit Server VM v17.0.15+6-Ubuntu-0ubuntu120.04
+12:35:50.501 INFO  VariantFiltration - Start Date/Time: December 4, 2025 at 12:35:50 PM CET
+12:35:50.501 INFO  VariantFiltration - ------------------------------------------------------------
+12:35:50.501 INFO  VariantFiltration - ------------------------------------------------------------
+12:35:50.502 INFO  VariantFiltration - HTSJDK Version: 4.2.0
+12:35:50.502 INFO  VariantFiltration - Picard Version: 3.4.0
+12:35:50.502 INFO  VariantFiltration - Built for Spark Version: 3.5.0
+12:35:50.504 INFO  VariantFiltration - HTSJDK Defaults.COMPRESSION_LEVEL : 2
+12:35:50.504 INFO  VariantFiltration - HTSJDK Defaults.USE_ASYNC_IO_READ_FOR_SAMTOOLS : false
+12:35:50.504 INFO  VariantFiltration - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_SAMTOOLS : true
+12:35:50.504 INFO  VariantFiltration - HTSJDK Defaults.USE_ASYNC_IO_WRITE_FOR_TRIBBLE : false
+12:35:50.504 INFO  VariantFiltration - Deflater: IntelDeflater
+12:35:50.504 INFO  VariantFiltration - Inflater: IntelInflater
+12:35:50.504 INFO  VariantFiltration - GCS max retries/reopens: 20
+12:35:50.505 INFO  VariantFiltration - Requester pays: disabled
+12:35:50.505 INFO  VariantFiltration - Initializing engine
+12:35:50.589 INFO  FeatureManager - Using codec VCFCodec to read file file:///media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.raw.vcf.gz
+12:35:50.611 INFO  VariantFiltration - Done initializing engine
+12:35:50.648 INFO  ProgressMeter - Starting traversal
+12:35:50.648 INFO  ProgressMeter -        Current Locus  Elapsed Minutes    Variants Processed  Variants/Minute
+12:35:50.660 WARN  JexlEngine - ![0,14]: 'ReadPosRankSum < -20.0;' undefined variable ReadPosRankSum
+12:35:50.660 WARN  JexlEngine - ![0,14]: 'ReadPosRankSum < -8.0;' undefined variable ReadPosRankSum
+12:35:50.660 WARN  JexlEngine - ![0,9]: 'MQRankSum < -12.5;' undefined variable MQRankSum
+12:35:50.663 WARN  JexlEngine - ![0,14]: 'ReadPosRankSum < -20.0;' undefined variable ReadPosRankSum
+12:35:50.663 WARN  JexlEngine - ![0,14]: 'ReadPosRankSum < -8.0;' undefined variable ReadPosRankSum
+12:35:50.663 WARN  JexlEngine - ![0,9]: 'MQRankSum < -12.5;' undefined variable MQRankSum
+12:35:50.664 WARN  JexlEngine - ![0,14]: 'ReadPosRankSum < -20.0;' undefined variable ReadPosRankSum
+12:35:50.664 WARN  JexlEngine - ![0,14]: 'ReadPosRankSum < -8.0;' undefined variable ReadPosRankSum
+12:35:50.664 WARN  JexlEngine - ![0,9]: 'MQRankSum < -12.5;' undefined variable MQRankSum
+12:35:50.664 WARN  JexlEngine - ![0,14]: 'ReadPosRankSum < -20.0;' undefined variable ReadPosRankSum
+12:35:50.664 WARN  JexlEngine - ![0,14]: 'ReadPosRankSum < -8.0;' undefined variable ReadPosRankSum
+12:35:50.665 WARN  JexlEngine - ![0,9]: 'MQRankSum < -12.5;' undefined variable MQRankSum
+12:35:50.665 WARN  JexlEngine - ![0,14]: 'ReadPosRankSum < -20.0;' undefined variable ReadPosRankSum
+12:35:50.665 WARN  JexlEngine - ![0,14]: 'ReadPosRankSum < -8.0;' undefined variable ReadPosRankSum
+12:35:50.665 WARN  JexlEngine - ![0,9]: 'MQRankSum < -12.5;' undefined variable MQRankSum
+12:35:50.665 WARN  JexlEngine - ![0,14]: 'ReadPosRankSum < -20.0;' undefined variable ReadPosRankSum
+12:35:50.665 WARN  JexlEngine - ![0,14]: 'ReadPosRankSum < -8.0;' undefined variable ReadPosRankSum
+12:35:50.666 WARN  JexlEngine - ![0,9]: 'MQRankSum < -12.5;' undefined variable MQRankSum
+12:35:50.666 INFO  ProgressMeter -             unmapped              0.0                     6          20000.0
+12:35:50.666 INFO  ProgressMeter - Traversal complete. Processed 6 total variants in 0.0 minutes.
+12:35:50.669 INFO  VariantFiltration - Shutting down engine
+[December 4, 2025 at 12:35:50 PM CET] org.broadinstitute.hellbender.tools.walkers.filters.VariantFiltration done. Elapsed time: 0.00 minutes.
+Runtime.totalMemory()=343932928
+Using GATK jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar
+Running:
+    java -Dsamjdk.use_async_io_read_samtools=false -Dsamjdk.use_async_io_write_samtools=true -Dsamjdk.use_async_io_write_tribble=false -Dsamjdk.compression_level=2 -Xmx8G -jar /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk-package-4.6.2.0-local.jar VariantFiltration -R /media/mrueda/2TBS/Databases/GATK_bundle/b37/references_b37_Homo_sapiens_assembly19.fasta -V /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.raw.vcf.gz --filter-name LowQUAL --filter-expression QUAL < 30.0 --filter-name QD2 --filter-expression QD < 2.0 --filter-name FS60 --filter-expression FS > 60.0 --filter-name MQ40 --filter-expression MQ < 40.0 --filter-name MQRS-12.5 --filter-expression MQRankSum < -12.5 --filter-name RPRS-8 --filter-expression ReadPosRankSum < -8.0 --filter-name QD2_indel --filter-expression QD < 2.0 --filter-name FS200 --filter-expression FS > 200.0 --filter-name RPRS-20 --filter-expression ReadPosRankSum < -20.0 -O /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.QC.vcf.gz
+Use of uninitialized value $counter in division (/) at /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/workflows/bash/gatk-4.6/desv.pl line 41.
+Use of uninitialized value $sum in division (/) at /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/workflows/bash/gatk-4.6/desv.pl line 41.
+Illegal division by zero at /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/workflows/bash/gatk-4.6/desv.pl line 41.
+Use of uninitialized value $counter in division (/) at /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/workflows/bash/gatk-4.6/desv.pl line 41.
+Use of uninitialized value $sum in division (/) at /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/workflows/bash/gatk-4.6/desv.pl line 41.
+Illegal division by zero at /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/workflows/bash/gatk-4.6/desv.pl line 41.

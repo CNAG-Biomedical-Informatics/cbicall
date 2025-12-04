@@ -39,13 +39,14 @@ def main():
     vcf_file = base_dir + "/VCF_file.vcf"
     report_file = base_dir + "/mit_prioritized_variants.txt"
     haplo_file = base_dir + "/mt_classification_best_results.csv"
+    json_raw_file = base_dir + "/mit.raw.json"
 
     # Download buttons HTML
     download_buttons = "\n      ".join([
         '<a class="btn pull-right" href="{rep}"><i class="icon-download"></i> REPORT</a>'.format(rep=report_file),
         '<a class="btn pull-right" href="{hap}"><i class="icon-download"></i> HAPLOg</a>'.format(hap=haplo_file),
         '<a class="btn pull-right" href="{vcf}"><i class="icon-download"></i> VCF</a>'.format(vcf=vcf_file),
-        '<a class="btn pull-right" href="./{json}"><i class="icon-download"></i> mtDNA JSON</a>'.format(json=json_file),
+        '<a class="btn pull-right" href="./{json}"><i class="icon-download"></i> mtDNA JSON</a>'.format(json=json_raw_file),
     ])
 
     try:

@@ -56,22 +56,27 @@ source "$BINDIR/parameters.sh"
 # Set up variables and Defining directories
 DIR=$( pwd )
 BINDIRMTB=$BINDIR/../../../mtdna
-BROWSERDIR=$BINDIR/../../../browser
-ASSETS=$BROWSERDIR/assets
+PYBINDIR=$BINDIR/../../../browser
+ASSETS=$PYBINDIR/assets
 
-# The id needs to have this format LP6005831-???_???.bam, otherwise MToolBox will fail
-id=$( echo "$DIR" | awk -F'/' '{print $(NF-1)}' | awk -F'_' '{print $1}' | sed 's/$/-DNA_MIT/' )
+id=$( echo "$DIR" | awk -F'/' '{print $(NF-1)}' | awk -F'_' '{print $1}' )
+# The mtb_id needs to have this format LP6005831-???_???.bam, otherwise MToolBox will fail
+mtb_id="$id-DNA_MIT"
 job_id=$( echo "$DIR" | awk -F'_' '{print $NF}' )
 
-# From now on we will work on VARCALL dir
+# Set up dirs
 VARCALLDIR=$DIR/01_mtoolbox
+BROWSERDIR=$DIR/02_browser
 mkdir "$VARCALLDIR"
+mkdir $BROWSERDIR
+
+# From now on we will work on VARCALL dir
 cd "$VARCALLDIR"
 
 # Using Samtools to extract chrM
 echo "Extracting Mitochondrial DNA from exome BAM file..."
 
-out_raw=$id.bam
+out_raw=$mtb_id.bam
 
 # Prefer GATK 3.5 BAM if available
 bam_raw=""
@@ -88,13 +93,7 @@ done
 
 # If no GATK 3.5 BAM, fall back to GATK 4.6 naming: ${ID}.rg.merged.dedup.recal.bam
 if [ -z "$bam_raw" ]; then
-    # ID is expected to be defined (e.g. via parameters.sh)
-    if [ -z "${ID:-}" ]; then
-        echo "ERROR: ID is not set and no GATK 3.5 BAM was found." >&2
-        exit 1
-    fi
-
-    for f in ../../cbicall_bash_wes_single_gatk-4.6*/01_bam/"$ID".rg.merged.dedup.recal.bam
+    for f in ../../cbicall_bash_wes_single_gatk-4.6*/01_bam/$id.rg.merged.dedup.recal.bam
     do
         if [ -f "$f" ]; then
             bam_raw="$f"
@@ -106,9 +105,9 @@ fi
 
 # If still nothing found, bail out
 if [ -z "$bam_raw" ]; then
-    echo "ERROR: Could not find BAM for ID '${ID:-$id}' in either:" >&2
+    echo "ERROR: Could not find BAM for ID '$id' in either:" >&2
     echo "  ../../cbicall_bash_wes_single_gatk-3.5*/01_bam/input.merged.filtered.realigned.fixed.bam" >&2
-    echo "  ../../cbicall_bash_wes_single_gatk-4.6*/01_bam/\$ID.rg.merged.dedup.recal.bam" >&2
+    echo "  ../../cbicall_bash_wes_single_gatk-4.6*/01_bam/$id.rg.merged.dedup.recal.bam" >&2
     exit 1
 fi
 
@@ -165,14 +164,14 @@ rm $out_file
 
 # HMTL creation
 echo "Creating Browser HTML..."
-HTMLDIR=../02_browser
-mkdir $HTMLDIR
 mit_json=mit.json
-$BROWSERDIR/mtb2json.py  -i $final_file -f json4html > $HTMLDIR/$mit_json
-$BROWSERDIR/mtb2html.py --id $id --json $mit_json --out $HTMLDIR/$job_id.html --job-id $job_id
-ln -s $ASSETS $HTMLDIR/assets
+mit_raw_json=mit.raw.json
+$PYBINDIR/mtb2json.py  -i $final_file -f json > $mit_raw_json
+$PYBINDIR/mtb2json.py  -i $final_file -f json4html > $BROWSERDIR/$mit_json
+$PYBINDIR/mtb2html.py --id $id --json $mit_json --out $BROWSERDIR/$job_id.html --job-id $job_id
+ln -s $ASSETS $BROWSERDIR/assets
 
-cat<<EOF>$HTMLDIR/README.txt
+cat<<EOF>$BROWSERDIR/README.txt
 # To visualize <$job_id.html>:
 
 # Option 1: Open <176099009134887.html> directly in Chromium
@@ -181,7 +180,6 @@ chromium --allow-file-access-from-files --disable-web-security $job_id.html
 # Option 2: Use an HTTP server. Example using Python 3:
 python3 -m http.server
 EOF
-
 
 # Fin
 echo "All done!!!"

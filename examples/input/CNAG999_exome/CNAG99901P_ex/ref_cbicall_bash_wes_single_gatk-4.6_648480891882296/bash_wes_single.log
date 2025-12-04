@@ -1,0 +1,48 @@
+WES mode: restricting to /media/mrueda/2TBS/Databases/GATK_bundle/b37/b37_Broad.human.exome.b37.interval_list
+>>> STEP 1: Align & add read groups
+Aligning CNAG99901P_ex_S2_L001_R1_001 -> CNAG99901P_ex_S2_L001.rg.bam
+[M::bwa_idx_load_from_disk] read 0 ALT contigs
+[M::process] read 110106 sequences (16020706 bp)...
+[M::mem_pestat] # candidate unique pairs for (FF, FR, RF, RR): (0, 46042, 0, 0)
+[M::mem_pestat] skip orientation FF as there are not enough pairs
+[M::mem_pestat] analyzing insert size distribution for orientation FR...
+[M::mem_pestat] (25, 50, 75) percentile: (460, 497, 531)
+[M::mem_pestat] low and high boundaries for computing mean and std.dev: (318, 673)
+[M::mem_pestat] mean and std.dev: (498.87, 50.22)
+[M::mem_pestat] low and high boundaries for proper pairs: (247, 744)
+[M::mem_pestat] skip orientation RF as there are not enough pairs
+[M::mem_pestat] skip orientation RR as there are not enough pairs
+[M::mem_process_seqs] Processed 110106 reads in 60.373 CPU sec, 5.080 real sec
+[main] Version: 0.7.18-r1243-dirty
+[main] CMD: /media/mrueda/2TBS/NGSutils/bwa-0.7.18/bwa mem -M -t 12 /media/mrueda/2TBS/Databases/GATK_bundle/b37/references_b37_Homo_sapiens_assembly19.fasta.gz ../CNAG99901P_ex_S2_L001_R1_001.fastq.gz ../CNAG99901P_ex_S2_L001_R2_001.fastq.gz
+[main] Real time: 12.269 sec; CPU: 63.542 sec
+Tool returned:
+0
+>>> STEP 2: Merge lane-level BAMs
++ /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk --java-options -Xmx8G MergeSamFiles -I /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P_ex_S2_L001.rg.bam -O /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.bam --CREATE_INDEX true --VALIDATION_STRINGENCY SILENT --TMP_DIR /media/mrueda/2TBS/tmp
+Tool returned:
+0
++ set +x
+>>> STEP 3: Mark duplicates
++ /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk --java-options -Xmx8G MarkDuplicates -I /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.bam -O /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.bam --METRICS_FILE /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.metrics.txt --CREATE_INDEX true --TMP_DIR /media/mrueda/2TBS/tmp
+Tool returned:
+0
++ set +x
+>>> STEP 4: Base recalibration
++ /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk --java-options -Xmx8G BaseRecalibrator -R /media/mrueda/2TBS/Databases/GATK_bundle/b37/references_b37_Homo_sapiens_assembly19.fasta -I /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.bam --known-sites /media/mrueda/2TBS/Databases/dbSNP/human_9606_b144_GRCh37p13/All_20160408.vcf.gz --known-sites /media/mrueda/2TBS/Databases/GATK_bundle/b37/b37_Mills_and_1000G_gold_standard.indels.b37.vcf.gz --known-sites /media/mrueda/2TBS/Databases/GATK_bundle/b37/b37_1000G_phase1.indels.b37.vcf.gz -O /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.recal.table --tmp-dir /media/mrueda/2TBS/tmp
+Tool returned:
+SUCCESS
++ /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk --java-options -Xmx8G ApplyBQSR -R /media/mrueda/2TBS/Databases/GATK_bundle/b37/references_b37_Homo_sapiens_assembly19.fasta -I /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.bam --bqsr-recal-file /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.recal.table -O /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.recal.bam --tmp-dir /media/mrueda/2TBS/tmp
++ /media/mrueda/2TBS/NGSutils/samtools-0.1.19/samtools index /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.recal.bam
++ set +x
+>>> STEP 5: HaplotypeCaller -> gVCF
++ /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk --java-options -Xmx8G HaplotypeCaller -R /media/mrueda/2TBS/Databases/GATK_bundle/b37/references_b37_Homo_sapiens_assembly19.fasta -I /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/01_bam/CNAG99901P.rg.merged.dedup.recal.bam -O /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.g.vcf.gz -L /media/mrueda/2TBS/Databases/GATK_bundle/b37/b37_Broad.human.exome.b37.interval_list --native-pair-hmm-threads 12 -ERC GVCF
++ set +x
+>>> STEP 6: GenotypeGVCFs -> raw VCF
++ /media/mrueda/2TBS/NGSutils/gatk/gatk-4.6.2.0/gatk --java-options -Xmx8G GenotypeGVCFs -R /media/mrueda/2TBS/Databases/GATK_bundle/b37/references_b37_Homo_sapiens_assembly19.fasta -V /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.g.vcf.gz -O /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.raw.vcf.gz --stand-call-conf 10
++ set +x
+>>> STEP 7: Optional VQSR if enough variants
+>>> STEP 8: Apply VQSR or fallback
+>>> STEP 9: Hard-filter & write QC.vcf
+>>> STEP 10: Coverage & Sex Determination
+All done! QC VCF: /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.QC.vcf.gz

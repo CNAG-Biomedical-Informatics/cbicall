@@ -110,7 +110,7 @@ if [ "$RUN_WES" -eq 1 ]; then
   echo "TEST: WES"
   echo "========================================"
 
-  REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_wes_single_gatk-4.6_647692801509860/02_varcall/CNAG99901P.hc.QC.vcf.gz'
+  REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.QC.vcf.gz'
   PARAM_WES='param.yaml'
 
   echo "Running WES unit test..."
@@ -140,7 +140,7 @@ if [ "$RUN_MIT" -eq 1 ]; then
   echo "TEST: MIT"
   echo "========================================"
 
-  REF_MIT='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_mit_single_gatk-3.5_647711741572483/01_mtoolbox/mit_prioritized_variants.txt'
+  REF_MIT='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_mit_single_gatk-3.5_648496901937882/01_mtoolbox/mit_prioritized_variants.txt'
   PARAM_MIT='mit_single.yaml'
 
   echo "Running MIT unit test..."
