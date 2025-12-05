@@ -90,7 +90,7 @@ cd $VARCALLDIR
 # Using Samtools to extract chrM
 # NB: BAMs may include duplicated entries at this stage
 echo "Extracting Mitochondrial DNA from exome BAM file..."
-for BAMDIR in ../../??????????_ex/cbicall_bash_wes_single*/01_bam
+for BAMDIR in ../../??????????_ex/*cbicall_bash_wes_single*/01_bam
 do
  id=$( echo $BAMDIR | awk -F'/' '{print $3}' | awk -F'_' '{print $1}' | sed 's/$/-DNA_MIT/')
  bam_raw=$BAMDIR/input.merged.filtered.realigned.fixed.bam

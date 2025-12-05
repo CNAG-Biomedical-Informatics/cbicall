@@ -22,7 +22,13 @@
 
 ## General 
 
-??? question "What would be a typical configuration file for a HPC?"
+??? question "How do I set up `cbicall` to work on an HPC system?"
+
+    To adapt `cbicall` for your HPC environment, update the file  
+    `workflows/bash/gatk_3.5/parameters.sh` so that it reflects your local module
+    system, paths, and resource settings.
+
+    Below is the configuration used at **CNAG-HPC**, which you can use as a template:
 
     ```bash
     --8<-- "https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/refs/heads/main/workflows/bash/gatk-3.5/cnag-hpc-parameters.sh"
@@ -33,6 +39,8 @@
     ```bash
     --8<-- "https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/refs/heads/main/examples/scripts/run_cbicall_slurm.sh"
     ```
+
+    ##### last change 2025-10-15 by Manuel Rueda [:fontawesome-brands-github:](https://github.com/mrueda)
 
 ??? question "How do I cite **CBICall**?"
 

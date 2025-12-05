@@ -21,11 +21,14 @@ if [ "$ARCH" == "aarch64" ]; then
     BWA=$NGSUTILS/bwa-0.7.18_arm64/bwa
     SAM=$NGSUTILS/samtools-0.1.19_arm64/samtools
     BED=$NGSUTILS/bedtools2_arm64/bin/bedtools
+    # Mtoolbox bundled binaries do not work with aarch64
+    # PY27_PREFIX=$NGSUTILS/python_2.7/linux-aarch64/Python-2.7.18
 else
     JAVA=/software/crgadm/software/Java/17.0.2/bin/java
     BWA=/software/crgadm/software/BWA/0.7.17-foss-2018b/bin/bwa
     SAM=$NGSUTILS/samtools-0.1.19/samtools
     BED=$NGSUTILS/bedtools2/bin/bedtools
+    PY27_PREFIX=$NGSUTILS/python_2.7/linux-x86_64/Python-2.7.18
 fi
 
 # CNAG HPC Cluster                                                                                 
