@@ -132,8 +132,8 @@ export PATH="$MTOOLBOXDIR:$PATH"
 export PATH="$PY27_PREFIX:$PATH"
 export PYTHONPATH="$PY27_PREFIX/Lib/site-packages:${PYTHONPATH:-}"
 
-cp $BINDIRMTB/MToolBox_config.sh .
-MToolBox.sh -i MToolBox_config.sh -m "-t $THREADS"
+# Execute Mtoolbox
+MToolBox.sh -i $BINDIRMTB/MToolBox_config.sh -m "-t $THREADS"
 
 # We will be using the file 'prioritized_variants.txt'
 # Getting GT/ DP and HF information rom VCF_file.vcf

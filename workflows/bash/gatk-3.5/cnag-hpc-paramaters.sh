@@ -17,14 +17,14 @@ ARCH=$(uname -m)
 
 # Java & tool binaries per architecture
 if [ "$ARCH" == "aarch64" ]; then
-    JAVA=/usr/lib/jvm/java-8-openjdk-arm64/bin/java
+    export JAVA=/usr/lib/jvm/java-8-openjdk-arm64/bin/java
     BWA=$NGSUTILS/bwa-0.7.18_arm64/bwa
     SAM=$NGSUTILS/samtools-0.1.19_arm64/samtools
     BED=$NGSUTILS/bedtools2_arm64/bin/bedtools
     # Mtoolbox bundled binaries do not work with aarch64
     # PY27_PREFIX=$NGSUTILS/python_2.7/linux-aarch64/Python-2.7.18
 else
-    JAVA=/software/crgadm/software/Java/17.0.2/bin/java
+    export JAVA=/software/crgadm/software/Java/17.0.2/bin/java
     BWA=/software/crgadm/software/BWA/0.7.17-foss-2018b/bin/bwa
     SAM=$NGSUTILS/samtools-0.1.19/samtools
     BED=$NGSUTILS/bedtools2/bin/bedtools
@@ -46,8 +46,9 @@ GATK4_BIN="$NGSUTILS/gatk/gatk-4.6.2.0/gatk"
 GATK4_JAVA_OPTS="--java-options -Xmx${MEM}"
 GATK4_JAVA_OPTS_64G="--java-options -Xmx${MEM_GENOTYPE}"
 
-# MToolBox directory
+# MToolBox directory and DB
 MTOOLBOXDIR=$NGSUTILS/MToolBox-master/MToolBox
+MTOOLBOXDB=$DBDIR/mtDNA
 
 # GATK bundle & reference (b37)
 BUNDLE=$DBDIR/GATK_bundle/b37

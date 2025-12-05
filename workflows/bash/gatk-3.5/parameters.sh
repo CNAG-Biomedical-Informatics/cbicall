@@ -44,8 +44,9 @@ GATK4_BIN="$NGSUTILS/gatk/gatk-4.6.2.0/gatk"
 GATK4_JAVA_OPTS="--java-options -Xmx${MEM}"
 GATK4_JAVA_OPTS_64G="--java-options -Xmx${MEM_GENOTYPE}"
 
-# MToolBox directory
+# MToolBox directory and DB
 MTOOLBOXDIR=$NGSUTILS/MToolBox-master/MToolBox
+MTOOLBOXDB=$DBDIR/mtDNA
 
 # GATK bundle & reference (b37)
 BUNDLE=$DBDIR/GATK_bundle/b37

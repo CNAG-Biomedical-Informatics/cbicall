@@ -6,8 +6,12 @@
 # MToolBox relies on pre-compiled binaries available only for x86_64.
 # Consequently, Linux/aarch64 and Apple Silicon (ARM) systems are not supported.
 
-BINDIR=/media/mrueda/2TBS/NGSutils
-DBDIR=/media/mrueda/2TBS/Databases/mtDNA
+# Determine the directory where the script resides
+BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PARAMDIR="$BINDIR/../workflows/bash/gatk-3.5"
+
+# Source parameters.sh from the same directory
+source "$PARAMDIR/parameters.sh"
 
 ######################MTOOLBOX CONFIG FILE###################################################################
 ##If the default installation of MToolBox was used (install.sh), the user should specify 
@@ -22,7 +26,7 @@ DBDIR=/media/mrueda/2TBS/Databases/mtDNA
 ##
 ##OPTIONAL. If MToolBox default installation (install.sh) was used, samtoolsexe path is $MTOOLBOX_BIN/samtools-{samtools_version}/samtools. Otherwise please specify the FULL PATH to samtools executables.
 ##
-samtoolsexe=$BINDIR/samtools-1.3/samtools
+samtoolsexe=$NGSUTILS/samtools-1.3/samtools
 ##
 ##OPTIONAL. If MToolBox default installation (install.sh) was used, samtools_version is 1.3
 ##
@@ -30,21 +34,21 @@ samtoolsexe=$BINDIR/samtools-1.3/samtools
 ##
 ##OPTIONAL. If MToolBox default installation (install.sh) was used, musclexe path is $MTOOLBOX_BIN/muscle3.8.31_i86linux64. Otherwise, please specify the FULL PATH to muscle executables.
 ##
-muscleexe=$BINDIR/MToolBox-master/bin/muscle3.8.31_i86linux64
+muscleexe=$NGSUTILS/MToolBox-master/bin/muscle3.8.31_i86linux64
 ##
 #OPTIONAL. If MToolBox default installation (install.sh) was used, gsnapexe path is $MTOOLBOX_BIN/gmap/bin/gsnap. Otherwise, please specify the FULL PATH to gsnap executables.
 ##
-gsnapexe=$BINDIR/MToolBox-master/bin/gmap/bin/gsnap
+gsnapexe=$NGSUTILS/MToolBox-master/bin/gmap/bin/gsnap
 ##
 #####################SET FILE NAMES OF REFERENCE SEQUENCE AND DATABASE TO BE USED FOR THE MAPPING STEP#######
 ##
 #OPTIONAL. If MToolBox default installation (install.sh) was used, fasta_path is $MTOOLBOX_DIR/genome_fasta/. Otherwise, please specify the FULL PATH to fasta and fasta.fai reference sequences to be used in the mapping step.
 ##
-fasta_path=$DBDIR/genome_fasta/
+fasta_path=$MTOOLBOXDB/genome_fasta/
 ##
 #OPTIONAL. If MToolBox default installation (install.sh) was used, gsnapdb is $MTOOLBOX_DIR/gmapdb/. Otherwise, please specify the FULL PATH to gsnap/gmap database executables
 ##
-gsnapdb=$DBDIR/gmapdb
+gsnapdb=$MTOOLBOXDB/gmapdb
 ##
 ##OPTIONAL. If MToolBox default installation (install.sh) was used, mtdb_fasta is chrRSRS.fa (RSRS). To use rCRS sequence as reference, please set mtdb_fasta=MT.fa Otherwise, please specify the file name of the mitochondrial reference fasta sequence you want to use.
 ##
