@@ -1,4 +1,4 @@
-#   $VERSION taken from CBICall
+# $VERSION taken from CBICall
 
 # Paths
 DATADIR=/software/biomed/cbicall-data
@@ -12,6 +12,7 @@ export GATK_DISABLE_AUTO_S3_UPLOAD=true   # disable unintended S3 uploads
 
 # Memory & architecture
 MEM=16G
+MEM_GENOTYPE=64G
 ARCH=$(uname -m)
 
 # Java & tool binaries per architecture
@@ -21,16 +22,14 @@ if [ "$ARCH" == "aarch64" ]; then
     SAM=$NGSUTILS/samtools-0.1.19_arm64/samtools
     BED=$NGSUTILS/bedtools2_arm64/bin/bedtools
 else
-    #JAVA=/usr/lib/jvm/java-8-openjdk-amd64/bin/java
-    #BWA=$NGSUTILS/bwa-0.7.18/bwa
     JAVA=/software/crgadm/software/Java/17.0.2/bin/java
     BWA=/software/crgadm/software/BWA/0.7.17-foss-2018b/bin/bwa
     SAM=$NGSUTILS/samtools-0.1.19/samtools
     BED=$NGSUTILS/bedtools2/bin/bedtools
 fi
 
-# CNAG HPC Cluster
-export PATH=/software/crgadm/software/Java/17.0.2/bin:$PATH
+# CNAG HPC Cluster                                                                                 
+export PATH=/software/crgadm/software/Java/17.0.2/bin:$PATH  
 
 # Picard (shared by GATK3 & bed conversion)
 PIC="$JAVA -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/picard-2.25/build/libs/picard.jar"
@@ -39,7 +38,10 @@ PIC="$JAVA -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/picard-2.25/build/li
 GATK="$JAVA -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/gatk/gatk-3.5/GenomeAnalysisTK.jar"
 
 # GATK 4+ launcher (recommended)
-GATK4_CMD="$NGSUTILS/gatk/gatk-4.6.2.0/gatk --java-options -Xmx${MEM}"
+# with two variables:
+GATK4_BIN="$NGSUTILS/gatk/gatk-4.6.2.0/gatk"
+GATK4_JAVA_OPTS="--java-options -Xmx${MEM}"
+GATK4_JAVA_OPTS_64G="--java-options -Xmx${MEM_GENOTYPE}"
 
 # MToolBox directory
 MTOOLBOXDIR=$NGSUTILS/MToolBox-master/MToolBox
@@ -69,6 +71,11 @@ INTERVAL_LIST=$BUNDLE/b37_Broad.human.exome.b37.interval_list
 
 # Agilent SureSelect Whole Exome
 EXOM=$DBDIR/Agilent_SureSelect/hg19/bed
+
+# Joint variant calling
+BATCH_SIZE=50
+MIN_SNP_FOR_VQSR=1000
+MIN_INDEL_FOR_VQSR=8000
 
 # UnifiedGenotyper parameters (legacy)
 DCOV=1000
