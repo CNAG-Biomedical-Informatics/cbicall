@@ -113,9 +113,9 @@ do
  
  echo "Creating string with multiple BAMs from cohort"
  # We append all inputs over the string tmp_in
- # NB: they MUST be  ../*_ex/cbicall_bash_wes_single*/
+ # NB: they MUST be  ../*_ex/*cbicall_bash_wes_single*/
  tmp_in=''
- for tmp_bam in ../../??????????_ex/cbicall_bash_wes_single_*/01_bam/input.merged.filtered.realigned.fixed.dedup.$chrN.recal.bam
+ for tmp_bam in ../../??????????_ex/*cbicall_bash_wes_single_*/01_bam/input.merged.filtered.realigned.fixed.dedup.$chrN.recal.bam
  do
   tmp_in="${tmp_in} -I $tmp_bam "
  done

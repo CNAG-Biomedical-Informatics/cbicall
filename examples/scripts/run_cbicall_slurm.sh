@@ -73,7 +73,7 @@ workflow_engine: bash
 gatk_version: gatk-4.6
 sample: ${WORKDIR}
 projectdir: ${SAMPLE_ID}_cbicall
-cleanup_bam: true
+cleanup_bam: false
 YAML
 
 srun "\$CBICALL" \\

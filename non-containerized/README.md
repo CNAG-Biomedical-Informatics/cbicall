@@ -23,6 +23,14 @@ Install dependencies for Python 3:
 pip3 install -r requirements.txt
 ```
 
+> **Note:** If you are installing `cbicall` in an HPC environment for shared use, we recommend installing the required Python 3 modules in a central location. This allows users to simply do:
+
+```bash
+# Load Python + modules
+module load Python/3.10.8-GCCcore-12.2.0
+export PYTHONPATH="/software/biomed/cbi_py3/lib/python3.10/site-packages:${PYTHONPATH}"
+``` 
+
 Testing the deployment:
 
 ```bash

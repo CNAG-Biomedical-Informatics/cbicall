@@ -22,6 +22,18 @@
 
 ## General 
 
+??? question "What would be a typical configuration file for a HPC?"
+
+    ```bash
+    --8<-- "https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/refs/heads/main/workflows/bash/gatk-3.5/cnag-hpc-parameters.sh"
+    ```
+
+??? question "Do you have an example in how to run `cbicall` in **Slurm** HPC?"
+
+    ```bash
+    --8<-- "https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/refs/heads/main/examples/scripts/run_cbicall_slurm.sh"
+    ```
+
 ??? question "How do I cite **CBICall**?"
 
     You can cite the **CBICall** paper. Thx!
