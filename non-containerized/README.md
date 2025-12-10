@@ -85,9 +85,20 @@ sudo apt install openjdk-8-jdk # In some systems you might need Java 17 -> openj
 
 Once you are in the root directory of the repo:
 
+**WES**:
+
 ```bash
 cd examples/input
-./run_tests.sh --wes --mit
+./run_tests.sh --wes
+```
+
+**mtDNA**:
+
+> **Note:** Since the mtDNA reference data was generated with Python 3.8.10, running MToolbox with another Python version can result in minor output differences and a failing `--mit` test. When that occurs, simply review the generated files under `01_mtoolbox/mit_*` to confirm everything looks correct.
+
+```bash
+cd examples/input
+./run_tests.sh --mit
 ```
 
 ## System requirements
