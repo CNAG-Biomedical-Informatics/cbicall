@@ -68,6 +68,28 @@ if [ "$RUN_WES" -eq 0 ] && [ "$RUN_MIT" -eq 0 ]; then
 fi
 
 ############################################
+# Helper: check reference directory        #
+############################################
+# Args:
+#   1: path to reference file
+#
+# This checks that the directory containing the reference
+# file exists before we try to run or compare anything.
+
+check_ref_dir() {
+  local ref_path="$1"
+  local ref_dir
+
+  ref_dir=$(dirname "$ref_path")
+
+  if [ ! -d "$ref_dir" ]; then
+    echo "ERROR: Reference directory does not exist: $ref_dir" >&2
+    echo "       (from reference path: $ref_path)" >&2
+    exit 1
+  fi
+}
+
+############################################
 # Helper: compare files                    #
 ############################################
 # Args:
@@ -113,6 +135,9 @@ if [ "$RUN_WES" -eq 1 ]; then
   REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.QC.vcf.gz'
   PARAM_WES='param.yaml'
 
+  # Ensure reference directory exists
+  check_ref_dir "$REF_VCF"
+
   echo "Running WES unit test..."
   "$CBICALL" -p "$PARAM_WES" -t "$THREADS" > /dev/null 2>&1
 
@@ -140,8 +165,11 @@ if [ "$RUN_MIT" -eq 1 ]; then
   echo "TEST: MIT"
   echo "========================================"
 
-  REF_MIT='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_mit_single_gatk-3.5_648496901937882/01_mtoolbox/mit_prioritized_variants.txt'
+  REF_MIT='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_mit_single_gatk-3.5_649547582283533/01_mtoolbox/mit_prioritized_variants.txt'
   PARAM_MIT='mit_single.yaml'
+
+  # Ensure reference directory exists
+  check_ref_dir "$REF_MIT"
 
   echo "Running MIT unit test..."
   "$CBICALL" -p "$PARAM_MIT" -t "$THREADS" > /dev/null 2>&1
@@ -168,4 +196,3 @@ echo "Exit code: $overall_status"
 echo "========================================"
 
 exit "$overall_status"
-
