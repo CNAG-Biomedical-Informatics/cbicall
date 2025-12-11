@@ -46,12 +46,18 @@ case $key in
     THREADS="$2"
 esac
 
-
 # Determine the directory where the script resides
 BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source parameters.sh from the same directory
 source "$BINDIR/parameters.sh"
+
+# Check ARCH
+if [ "$ARCH" == "aarch64" ]
+ then
+  echo "mit_single cannot be performed with: $ARCH"
+  exit 1
+fi
 
 # Set up variables and Defining directories
 DIR=$( pwd )

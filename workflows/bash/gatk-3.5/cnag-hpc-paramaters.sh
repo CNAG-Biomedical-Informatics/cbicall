@@ -36,10 +36,10 @@ fi
 export PATH=/software/crgadm/software/Java/17.0.2/bin:$PATH  
 
 # Picard (shared by GATK3 & bed conversion)
-PIC="$JAVA -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/picard-2.25/build/libs/picard.jar"
+PIC="$JAVA8 -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/picard-2.25/build/libs/picard.jar"
 
 # GATK 3.5 (legacy)
-GATK="$JAVA -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/gatk/gatk-3.5/GenomeAnalysisTK.jar"
+GATK="$JAVA8 -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/gatk/gatk-3.5/GenomeAnalysisTK.jar"
 
 # GATK 4+ launcher (recommended)
 # with two variables:
