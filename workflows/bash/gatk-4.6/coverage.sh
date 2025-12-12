@@ -33,8 +33,12 @@ DEDUPBAM=$3
 mode="${4:-WES}"
 mode_upper="${mode^^}"
 
-# We're focusing on chromosome 1 (b37 contig '1')
-chrN="1"
+# Auto-detect chromosome naming style from the reference index (chr1 vs 1)
+if awk 'BEGIN{ok=0} $1=="chr1"{ok=1} END{exit !ok}' "${FASTA}.fai"; then
+  chrN="chr1"
+else
+  chrN="1"
+fi
 
 # Create a temp file to hold a 0-based BED region for chr1
 TMPREG=$(mktemp)
@@ -42,8 +46,26 @@ case "$mode_upper" in
   WES)
     # WES: filter Picard IntervalList (1-based inclusive) for chr1,
     # then convert to 0-based, half-open BED by subtracting 1 from the start.
+    # Normalize contig naming in output to match $chrN.
+    if [ -z "${INTERVAL_LIST:-}" ] || [ ! -f "$INTERVAL_LIST" ]; then
+      echo "Error: INTERVAL_LIST is not set or not found (mode=WES)" >&2
+      rm -f "$TMPREG"
+      exit 1
+    fi
+
     grep -v '^@' "$INTERVAL_LIST" \
-      | awk -v chr="$chrN" '$1==chr { printf "%s\t%d\t%d\n", $1, $2-1, $3 }' \
+      | awk -v chr="$chrN" '
+          function norm(c) {
+            if (c ~ /^chr/) return c;
+            return "chr" c;
+          }
+          {
+            in_chr = ($1==chr || $1==substr(chr,4) || "chr"$1==chr);
+            if (in_chr) {
+              s=$2-1; if (s<0) s=0;
+              printf "%s\t%d\t%d\n", chr, s, $3
+            }
+          }' \
       > "$TMPREG"
     ;;
   WGS)
@@ -92,14 +114,16 @@ ins_size=$("${SAM}" view "$RAWBAM" | awk '$9>0 && $9<600 {sum+=$9; cnt++} END {i
 "${SAM}" depth -b "$REGION" "$DEDUPBAM" | awk \
   -v sid="$sid" -v mode="$mode_upper" -v chr="$chrN" \
   -v span="$span" -v dup_sum="$dup_sum" -v ins="$ins_size" \
-  -v r_in="$region_reads" -v tot="$total_reads" -v r_out="$out_region" '{ sum += $3 }
+  -v r_in="$region_reads" -v tot="$total_reads" -v r_out="$out_region" '{
+    sum += $3
+  }
   $3 >= 10 { c10++ }
   END {
-    mean   = (span>0    ? sum/span       : 0)
-    p10    = (span>0    ? 100 * c10/span : 0)
-    nondup = (dup_sum>0 ? 100 * sum/dup_sum : 0)
-    in_pct = (tot>0     ? 100 * r_in/tot   : 0)
-    out_pct= (tot>0     ? 100 * r_out/tot  : 0)
+    mean    = (span>0     ? sum/span          : 0)
+    p10     = (span>0     ? 100 * c10/span    : 0)
+    nondup  = (dup_sum>0  ? 100 * sum/dup_sum : 0)
+    in_pct  = (tot>0      ? 100 * r_in/tot    : 0)
+    out_pct = (tot>0      ? 100 * r_out/tot   : 0)
 
     # print header with added total_reads column
     printf "%s\n", chr
