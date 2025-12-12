@@ -99,7 +99,7 @@ done
 
 # If no GATK 3.5 BAM, fall back to GATK 4.6 naming: ${ID}.rg.merged.dedup.recal.bam
 if [ -z "$bam_raw" ]; then
-    for f in ../../*cbicall_bash_w?s_single_gatk-4.6*/01_bam/$id.rg.merged.dedup.recal.bam
+    for f in ../../*cbicall_bash_w[ge]?s_single_gatk-4.6*/01_bam/$id.rg.merged.dedup.recal.bam
     do
         if [ -f "$f" ]; then
             bam_raw="$f"
@@ -113,7 +113,7 @@ fi
 if [ -z "$bam_raw" ]; then
     echo "ERROR: Could not find BAM for ID '$id' in either:" >&2
     echo "  ../../*cbicall_bash_wes_single_gatk-3.5*/01_bam/input.merged.filtered.realigned.fixed.bam" >&2
-    echo "  ../../*cbicall_bash_wes_single_gatk-4.6*/01_bam/$id.rg.merged.dedup.recal.bam" >&2
+    echo "  ../../*cbicall_bash_w[ge]_single_gatk-4.6*/01_bam/$id.rg.merged.dedup.recal.bam" >&2
     exit 1
 fi
 
@@ -189,4 +189,4 @@ EOF
 
 # Fin
 echo "All done!!!"
-exit 
+exit
