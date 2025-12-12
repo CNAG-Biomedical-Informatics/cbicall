@@ -18,14 +18,13 @@ MEM_GENOTYPE=64G
 
 # Java & tool binaries per architecture
 if [ "$ARCH" == "aarch64" ]; then
-    export JAVA=/usr/lib/jvm/java-8-openjdk-arm64/bin/java
+    export JAVA8=/usr/lib/jvm/java-8-openjdk-arm64/bin/java
     BWA=$NGSUTILS/bwa-0.7.18_arm64/bwa
     SAM=$NGSUTILS/samtools-0.1.19_arm64/samtools
     BED=$NGSUTILS/bedtools2_arm64/bin/bedtools
     # Mtoolbox bundled binaries do not work with aarch64
     # PY27_PREFIX=$NGSUTILS/python_2.7/linux-aarch64/Python-2.7.18
 else
-    export JAVA=/usr/lib/jvm/java-8-openjdk-amd64/bin/java
     export JAVA8=$NGSUTILS/java8/amazon-corretto-8.472.08.1-linux-x64/bin/java 
     BWA=$NGSUTILS/bwa-0.7.18/bwa
     SAM=$NGSUTILS/samtools-0.1.19/samtools
@@ -34,10 +33,10 @@ else
 fi
 
 # Picard (shared by GATK3 & bed conversion)
-PIC="$JAVA -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/picard-2.25/build/libs/picard.jar"
+PIC="$JAVA8 -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/picard-2.25/build/libs/picard.jar"
 
 # GATK 3.5 (legacy)
-GATK="$JAVA -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/gatk/gatk-3.5/GenomeAnalysisTK.jar"
+GATK="$JAVA8 -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/gatk/gatk-3.5/GenomeAnalysisTK.jar"
 
 # GATK 4+ launcher (recommended)
 # with two variables:

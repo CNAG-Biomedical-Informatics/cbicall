@@ -17,14 +17,13 @@ ARCH=$(uname -m)
 
 # Java & tool binaries per architecture
 if [ "$ARCH" == "aarch64" ]; then
-    export JAVA=/usr/lib/jvm/java-8-openjdk-arm64/bin/java
+    export JAVA8=/usr/lib/jvm/java-8-openjdk-arm64/bin/java
     BWA=$NGSUTILS/bwa-0.7.18_arm64/bwa
     SAM=$NGSUTILS/samtools-0.1.19_arm64/samtools
     BED=$NGSUTILS/bedtools2_arm64/bin/bedtools
     # Mtoolbox bundled binaries do not work with aarch64
     # PY27_PREFIX=$NGSUTILS/python_2.7/linux-aarch64/Python-2.7.18
 else
-    export JAVA=/software/crgadm/software/Java/17.0.2/bin/java
     export JAVA8=$NGSUTILS/java8/amazon-corretto-8.472.08.1-linux-x64/bin/java
     BWA=/software/crgadm/software/BWA/0.7.17-foss-2018b/bin/bwa
     SAM=$NGSUTILS/samtools-0.1.19/samtools
@@ -33,7 +32,7 @@ else
 fi
 
 # CNAG HPC Cluster                                                                                 
-export PATH=/software/crgadm/software/Java/17.0.2/bin:$PATH  
+export PATH=$NGSUTILS/java8/amazon-corretto-8.472.08.1-linux-x64/bin:$PATH  
 
 # Picard (shared by GATK3 & bed conversion)
 PIC="$JAVA8 -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/picard-2.25/build/libs/picard.jar"
