@@ -117,12 +117,24 @@ def run_with_spinner(func, *args, no_spinner: bool = False, no_emoji: bool = Fal
 
 
 def _print_config(cfg: dict, no_emoji: bool) -> None:
-    print(BOLD + BLUE + f"{PROMPT}{'' if no_emoji else ' ⚙️ '} CONFIGURATION VALUES:" + RESET)
+    print(BOLD + BLUE + f"{PROMPT} CONFIGURATION VALUES:" + RESET)
     print(WHITE + PROMPT + RESET)
 
-    # Simple aligned output (not exactly Perl 'format', but similar spirit)
-    max_key = max(len(k) for k in cfg.keys())
-    for key in sorted(cfg.keys()):
+    engine = cfg.get("workflow_engine")
+
+    def _keep_key(k: str) -> bool:
+        # If snakemake is selected, hide bash workflow script paths from STDOUT
+        if engine == "snakemake":
+            if k.startswith("bash_"):
+                return False
+        return True
+
+    keys = [k for k in cfg.keys() if _keep_key(k)]
+    if not keys:
+        return
+
+    max_key = max(len(k) for k in keys)
+    for key in sorted(keys):
         val = cfg.get(key)
         val_disp = str(val) if val is not None and str(val) != "" else "(undef)"
         line = f"{PROMPT:>5} {key:<{max_key}} {ARROW} {val_disp}"
@@ -199,6 +211,7 @@ def main() -> int:
         "threads": arg["threads"],
         "id": cfg["id"],
         "debug": arg["debug"],
+        "genome": cfg.get("genome", "b37"),
         "bash_mit_cohort": cfg.get("bash_mit_cohort"),
         "bash_mit_single": cfg.get("bash_mit_single"),
         "bash_wes_cohort": cfg.get("bash_wes_cohort"),

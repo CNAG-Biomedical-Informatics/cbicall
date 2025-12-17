@@ -10,7 +10,6 @@
 [![Build](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/build-and-test.yml)
 ![version](https://img.shields.io/badge/version-0.0.1-28a745)
 [![Coverage Status](https://coveralls.io/repos/github/CNAG-Biomedical-Informatics/cbicall/badge.svg?branch=main)](https://coveralls.io/github/CNAG-Biomedical-Informatics/cbicall?branch=main)
-[![Docker Build](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/docker-build-multi-arch.yml/badge.svg)](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/docker-build-multi-arch.yml)
 [![Docker Build](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/docker-build-multi-arch.yml/badge.svg?branch=main)](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/docker-build-multi-arch.yml)
 [![Docker Image Size](https://img.shields.io/docker/image-size/manuelrueda/cbicall/latest?logo=docker&label=image%20size)](https://hub.docker.com/r/manuelrueda/cbicall/)
 [![Docker Pulls](https://img.shields.io/docker/pulls/manuelrueda/cbicall.svg?logo=docker&label=pulls)](https://hub.docker.com/r/manuelrueda/cbicall/)
@@ -88,6 +87,7 @@ Below are the parameters that can be customized, along with their default values
     sample_map:      undef
     workflow_engine:   bash
     gatk_version:      gatk3.5
+    genome:            b37
     cleanup_bam:       false
 
 ## Optional Parameters (Currently Unused)
@@ -106,6 +106,10 @@ Below is a detailed description of key parameters:
 - **gatk\_version**
 
     Supported values: `gatk3.5` or `gatk4.6`.
+
+- **genome**
+
+    Supported values: `b37` (default) or `hg38`.
 
 - **mode**
 
@@ -131,7 +135,7 @@ Below is a detailed description of key parameters:
 
 - **sample\_map** (cohort-mode only)
 
-    Path (relative or absolute) to the file containing the sample ids and teh paths for the GVCF files
+    Path (relative or absolute) to the file containing the sample ids and the paths for the GVCF files
 
     See example [here](https://github.com/CNAG-Biomedical-Informatics/cbicall/tree/main/examples/input/sample_map.tsv)
 

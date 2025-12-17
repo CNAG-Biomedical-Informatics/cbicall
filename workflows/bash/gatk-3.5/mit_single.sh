@@ -84,37 +84,41 @@ echo "Extracting Mitochondrial DNA from exome BAM file..."
 
 out_raw=$mtb_id.bam
 
-# Prefer GATK 3.5 BAM if available
 bam_raw=""
 
-for f in ../../*cbicall_bash_wes_single_gatk-3.5*/01_bam/input.merged.filtered.realigned.fixed.bam
-do
-    echo $f
-    if [ -f "$f" ]; then
-        bam_raw="$f"
-        echo "Using GATK 3.5 BAM: $bam_raw"
-        break
-    fi
-done
+p35='../../*cbicall_bash_wes_single_*gatk-3.5*/01_bam/input.merged.filtered.realigned.fixed.bam'
+list35=$(ls -1 $p35 2>/dev/null | grep -v 'ref_cbicall' || true)
+n35=$(printf "%s\n" "$list35" | sed '/^$/d' | wc -l)
 
-# If no GATK 3.5 BAM, fall back to GATK 4.6 naming: ${ID}.rg.merged.dedup.recal.bam
-if [ -z "$bam_raw" ]; then
-    for f in ../../*cbicall_bash_w[ge]?s_single_gatk-4.6*/01_bam/$id.rg.merged.dedup.recal.bam
-    do
-        if [ -f "$f" ]; then
-            bam_raw="$f"
-            echo "Using GATK 4.6 BAM: $bam_raw"
-            break
-        fi
-    done
+if [ "$n35" -gt 1 ]; then
+  echo "ERROR: More than one GATK 3.5 BAM found (excluding ref_cbicall):" >&2
+  printf "%s\n" "$list35" >&2
+  exit 1
+elif [ "$n35" -eq 1 ]; then
+  bam_raw=$(printf "%s\n" "$list35" | head -n 1)
+  echo "Using GATK 3.5 BAM: $bam_raw"
 fi
 
-# If still nothing found, bail out
 if [ -z "$bam_raw" ]; then
-    echo "ERROR: Could not find BAM for ID '$id' in either:" >&2
-    echo "  ../../*cbicall_bash_wes_single_gatk-3.5*/01_bam/input.merged.filtered.realigned.fixed.bam" >&2
-    echo "  ../../*cbicall_bash_w[ge]_single_gatk-4.6*/01_bam/$id.rg.merged.dedup.recal.bam" >&2
+  p46="../../*cbicall_bash_w[ge]s_single_*gatk-4.6*/01_bam/${id}.rg.merged.dedup.recal.bam"
+  list46=$(ls -1 $p46 2>/dev/null | grep -v 'ref_cbicall' || true)
+  n46=$(printf "%s\n" "$list46" | sed '/^$/d' | wc -l)
+
+  if [ "$n46" -gt 1 ]; then
+    echo "ERROR: More than one GATK 4.6 BAM found (excluding ref_cbicall):" >&2
+    printf "%s\n" "$list46" >&2
     exit 1
+  elif [ "$n46" -eq 1 ]; then
+    bam_raw=$(printf "%s\n" "$list46" | head -n 1)
+    echo "Using GATK 4.6 BAM: $bam_raw"
+  fi
+fi
+
+if [ -z "$bam_raw" ]; then
+  echo "ERROR: Could not find BAM for ID '$id' (excluding ref_cbicall) in either:" >&2
+  echo "  $p35" >&2
+  echo "  $p46" >&2
+  exit 1
 fi
 
 BAMDIR=$(dirname "$bam_raw")

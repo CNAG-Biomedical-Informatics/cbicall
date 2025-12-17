@@ -16,6 +16,8 @@ ORGANISM_VALUES = {"Homo Sapiens", "Mus musculus"}
 TECHNOLOGY_VALUES = {"Illumina HiSeq", "NovaSeq"}
 WORKFLOW_ENGINE_VALUES = {"bash", "nextflow", "snakemake"}
 GATK_VALUES = {"gatk-3.5", "gatk-4.6"}
+GENOME_VALUES = {"b37", "hg38", "rsrs"}
+
 
 # Defaults
 _DEFAULTS = {
@@ -30,7 +32,9 @@ _DEFAULTS = {
     "gatk_version": "gatk-3.5",
     "projectdir": "cbicall",
     "cleanup_bam": False,
+    "genome": "b37",  # default
 }
+
 
 # Allowed pipeline-mode combinations per GATK version
 _ALLOWED_COMBOS = {
@@ -49,14 +53,14 @@ def _validate_enum(name, value, allowed):
     if value is None:
         return
     if value not in allowed:
-        raise ValueError(f"Invalid value for '{name}': {value!r}. "
-                         f"Allowed: {sorted(allowed)}")
+        raise ValueError(
+            f"Invalid value for '{name}': {value!r}. Allowed: {sorted(allowed)}"
+        )
 
 
 def read_param_file(yaml_file: str) -> dict:
     """
     Load YAML parameters, merge with defaults and validate.
-    Mirrors Config::read_param_file.
     """
     yaml_path = Path(yaml_file)
     if not yaml_path.is_file():
@@ -81,10 +85,36 @@ def read_param_file(yaml_file: str) -> dict:
     _validate_enum("technology", cfg["technology"], TECHNOLOGY_VALUES)
     _validate_enum("workflow_engine", cfg["workflow_engine"], WORKFLOW_ENGINE_VALUES)
     _validate_enum("gatk_version", cfg["gatk_version"], GATK_VALUES)
+    _validate_enum("genome", cfg["genome"], GENOME_VALUES)
 
-    # Add full path to 'sample_map'
+    # Block unsupported union: mit + snakemake
+    if cfg["pipeline"] == "mit" and cfg["workflow_engine"] == "snakemake":
+        raise ValueError(
+            "The combination pipeline='mit' with workflow_engine='snakemake' is not supported."
+        )
+
+    # MIT pipeline forces genome to rsrs
+    # - If user omits genome -> set it automatically
+    # - If user sets genome to something else -> error
+    if cfg.get("pipeline") == "mit":
+        user_provided_genome = "genome" in param
+        if user_provided_genome and cfg.get("genome") != "rsrs":
+            raise ValueError(
+                "For pipeline='mit', genome is fixed to 'rsrs'. "
+                "Remove 'genome' from the YAML or set genome='rsrs'."
+            )
+        cfg["genome"] = "rsrs"
+
+    # hg38 is supported only for WGS
+    if cfg["genome"] == "hg38" and cfg["pipeline"] != "wgs":
+        raise ValueError("genome='hg38' is only supported for pipeline='wgs'.")
+
+    # Make sample_map absolute (resolve relative to YAML location)
     if cfg.get("sample_map") is not None:
-        cfg["sample_map"] = str(Path(cfg["sample_map"]).resolve())
+        sm = Path(cfg["sample_map"])
+        if not sm.is_absolute():
+            sm = yaml_path.parent / sm
+        cfg["sample_map"] = str(sm.resolve())
 
     # Validate pipeline-mode combination for selected GATK version
     version = cfg["gatk_version"]
@@ -96,8 +126,7 @@ def read_param_file(yaml_file: str) -> dict:
 
     if mode not in modes_for_pipeline:
         raise ValueError(
-            f"Pipeline-mode '{pipeline}_{mode}' is not supported for "
-            f"GATK version {version}"
+            f"Pipeline-mode '{pipeline}_{mode}' is not supported for GATK version {version}"
         )
 
     return cfg
@@ -106,23 +135,17 @@ def read_param_file(yaml_file: str) -> dict:
 def set_config_values(param: dict) -> dict:
     """
     Build internal config structure from parameters.
-    Mirrors Config::set_config_values.
     """
     try:
         fallback_user = getpass.getuser()
     except Exception:
         fallback_user = "unknown"
 
-    # User
-    user = (
-        os.environ.get("LOGNAME")
-        or os.environ.get("USER")
-        or fallback_user
-    )
+    user = os.environ.get("LOGNAME") or os.environ.get("USER") or fallback_user
 
     # Base directories for workflows (using this file as anchor)
     here = Path(__file__).resolve()
-    # Go up from src/cbicall/config.py -> src/cbicall -> src -> cbicall
+    # src/cbicall/config.py -> src/cbicall -> src -> project root
     project_root = here.parents[2]
     workflows_bash_dir = (project_root / "workflows" / "bash").resolve()
     workflows_snakemake_dir = (project_root / "workflows" / "snakemake").resolve()
@@ -132,6 +155,8 @@ def set_config_values(param: dict) -> dict:
     snakemake_version_dir = workflows_snakemake_dir / param["gatk_version"]
 
     config = {"user": user}
+    config["workflow_engine"] = param["workflow_engine"]
+    config["genome"] = param["genome"]
 
     # Common bash scripts
     config["bash_parameters"] = str(bash_version_dir / "parameters.sh")
@@ -139,8 +164,10 @@ def set_config_values(param: dict) -> dict:
     config["bash_jaccard"] = str(bash_version_dir / "jaccard.sh")
     config["bash_vcf2sex"] = str(bash_version_dir / "vcf2sex.sh")
 
-    # Selected bash workflow (one per pipeline-mode)
+    # Selected workflow name
     suffix = f"{param['pipeline']}_{param['mode']}"
+
+    # Selected bash workflow (one per pipeline-mode)
     bash_script = f"{suffix}.sh"
     bash_key = f"bash_{suffix}"
     config[bash_key] = str(bash_version_dir / bash_script)
@@ -153,7 +180,6 @@ def set_config_values(param: dict) -> dict:
         config["smk_config"] = str(snakemake_version_dir / "config.yaml")
 
     # Internal settings
-    # Perl: time . substr("00000$$",-5)
     now = int(time.time())
     pid = os.getpid()
     config_id = f"{now}{pid:05d}"[-(len(str(now)) + 5):]
@@ -166,6 +192,7 @@ def set_config_values(param: dict) -> dict:
             param["workflow_engine"],
             param["pipeline"],
             param["mode"],
+            param["genome"],
             param["gatk_version"],
             config_id,
         ]
@@ -203,13 +230,11 @@ def set_config_values(param: dict) -> dict:
     else:
         config["zip"] = "/bin/gunzip"
 
-    # Genome and capture
-    if param["gatk_version"] == "gatk-4.6":
-        config["genome"] = "b37"
-        config["capture"] = "GATK_bundle_b37"
-    else:
-        config["genome"] = "hg19"
+    # Capture label (optional; keep only if used elsewhere)
+    if param["pipeline"] == "wes":
         config["capture"] = "Agilent SureSelect"
+    else:
+        config["capture"] = f"GATK_bundle_{config['genome']}"
 
     # Architecture
     uname = platform.machine()
@@ -221,15 +246,17 @@ def set_config_values(param: dict) -> dict:
         arch = uname
     config["arch"] = arch
 
-    # Validate executable permissions
+    # Validate executable permissions:
     exe_keys = [
         "bash_parameters",
         "bash_coverage",
         "bash_jaccard",
         "bash_vcf2sex",
-        bash_key,
     ]
-    missing = [k for k in exe_keys if not os.access(config[k], os.X_OK)]
+    if param["workflow_engine"] == "bash":
+        exe_keys.append(bash_key)
+
+    missing = [k for k in exe_keys if k in config and not os.access(config[k], os.X_OK)]
     if missing:
         raise RuntimeError(
             "Missing +x on one or more workflow scripts: "
@@ -237,3 +264,4 @@ def set_config_values(param: dict) -> dict:
         )
 
     return config
+

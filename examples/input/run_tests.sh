@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+LC_ALL=C
 
 ############################################
 # Config (can be overridden via env vars)  #
@@ -107,8 +108,8 @@ compare_files() {
   echo "  TEST: $tst"
 
   if diff -u \
-      <("$filter_tool" -v -E "$PATTERN" "$ref" | LC_ALL=C sort) \
-      <("$filter_tool" -v -E "$PATTERN" "$tst" | LC_ALL=C sort); then
+      <("$filter_tool" -v -E "$PATTERN" "$ref" | sort) \
+      <("$filter_tool" -v -E "$PATTERN" "$tst" | sort); then
     echo "SUCCESS: Files match."
     return 0
   else
@@ -132,7 +133,7 @@ if [ "$RUN_WES" -eq 1 ]; then
   echo "TEST: WES"
   echo "========================================"
 
-  REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_wes_single_gatk-4.6_648480891882296/02_varcall/CNAG99901P.hc.QC.vcf.gz'
+  REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_wes_single_b37_gatk-4.6_765963065360466/02_varcall/CNAG99901P.hc.QC.vcf.gz'
   PARAM_WES='param.yaml'
 
   # Ensure reference directory exists
@@ -142,7 +143,7 @@ if [ "$RUN_WES" -eq 1 ]; then
   "$CBICALL" -p "$PARAM_WES" -t "$THREADS" > /dev/null 2>&1
 
   # Find latest WES result
-  TEST_RESULT_WES=$(ls -t -- CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6*/02_varcall/CNAG99901P.hc.QC.vcf.gz 2>/dev/null | head -n 1 || true)
+  TEST_RESULT_WES=$(ls -t -- CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6*/02_varcall/CNAG99901P.hc.QC.vcf.gz 2>/dev/null | head -n 1 || true)
 
   if [ -z "${TEST_RESULT_WES:-}" ]; then
     echo "ERROR: No WES result file found."
@@ -165,7 +166,7 @@ if [ "$RUN_MIT" -eq 1 ]; then
   echo "TEST: MIT"
   echo "========================================"
 
-  REF_MIT='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_mit_single_gatk-3.5_649547582283533/01_mtoolbox/mit_prioritized_variants.txt'
+  REF_MIT='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_mit_single_b37_gatk-3.5_649547582283533/01_mtoolbox/mit_prioritized_variants.txt'
   PARAM_MIT='mit_single.yaml'
 
   # Ensure reference directory exists
@@ -175,7 +176,7 @@ if [ "$RUN_MIT" -eq 1 ]; then
   "$CBICALL" -p "$PARAM_MIT" -t "$THREADS" > /dev/null 2>&1
 
   # Find latest MIT result
-  TEST_RESULT_MIT=$(ls -t -- CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_gatk-3.5*/01_mtoolbox/mit_prioritized_variants.txt 2>/dev/null | head -n 1 || true)
+  TEST_RESULT_MIT=$(ls -t -- CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_b37_gatk-3.5*/01_mtoolbox/mit_prioritized_variants.txt 2>/dev/null | head -n 1 || true)
 
   if [ -z "${TEST_RESULT_MIT:-}" ]; then
     echo "ERROR: No MIT result file found."
