@@ -211,7 +211,7 @@ def main() -> int:
         "threads": arg["threads"],
         "id": cfg["id"],
         "debug": arg["debug"],
-        "genome": cfg.get("genome", "b37"),
+        "genome": cfg.get("genome"),
         "bash_mit_cohort": cfg.get("bash_mit_cohort"),
         "bash_mit_single": cfg.get("bash_mit_single"),
         "bash_wes_cohort": cfg.get("bash_wes_cohort"),

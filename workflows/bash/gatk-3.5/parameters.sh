@@ -62,7 +62,7 @@ if [ "$GENOME" = "hg38" ]; then
     REF_DICT=$BUNDLE/resources_broad_hg38_v0_Homo_sapiens_assembly38.dict
 
     # Known-sites / resources (hg38)
-    dbSNP="$DBDIR/dbSNP/human_9606_b146_GRCh38p2/All_20160407.vcf.gz"
+    dbSNP="$DBDIR/dbSNP/human_9606_b146_GRCh38p2/All_20160407.renamed.vcf.gz"
     MILLS_INDELS=$BUNDLE/resources_broad_hg38_v0_Mills_and_1000G_gold_standard.indels.hg38.vcf.gz
     KG_INDELS=$BUNDLE/resources_broad_hg38_v0_Homo_sapiens_assembly38.known_indels.vcf.gz
     HAPMAP=$BUNDLE/resources_broad_hg38_v0_hapmap_3.3.hg38.vcf.gz

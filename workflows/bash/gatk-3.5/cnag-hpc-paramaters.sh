@@ -50,31 +50,56 @@ GATK4_JAVA_OPTS_64G="--java-options -Xmx${MEM_GENOTYPE}"
 MTOOLBOXDIR=$NGSUTILS/MToolBox-master/MToolBox
 MTOOLBOXDB=$DBDIR/mtDNA
 
-# GATK bundle & reference (b37)
-BUNDLE=$DBDIR/GATK_bundle/b37
-REF=$BUNDLE/references_b37_Homo_sapiens_assembly19.fasta
-REFGZ=$BUNDLE/references_b37_Homo_sapiens_assembly19.fasta.gz
-REF_DICT=$BUNDLE/references_b37_Homo_sapiens_assembly19.dict
+############################################
+# Reference bundle & resources by GENOME
+############################################
+if [ "$GENOME" = "hg38" ]; then
+    # GATK bundle & reference (hg38) - WGS only
+    BUNDLE=$DBDIR/GATK_bundle/hg38
 
-# Variant resources
-dbSNP=$DBDIR/dbSNP/human_9606_b144_GRCh37p13/All_20160408.vcf.gz
-MILLS_INDELS=$BUNDLE/b37_Mills_and_1000G_gold_standard.indels.b37.vcf.gz
-KG_INDELS=$BUNDLE/b37_1000G_phase1.indels.b37.vcf.gz
-HAPMAP=$BUNDLE/b37_hapmap_3.3.b37.vcf.gz
-OMNI=$BUNDLE/b37_1000G_omni2.5.b37.vcf.gz
+    REF=$BUNDLE/resources_broad_hg38_v0_Homo_sapiens_assembly38.fasta
+    REFGZ=$REF   # not gz in this bundle; keep var for compatibility
+    REF_DICT=$BUNDLE/resources_broad_hg38_v0_Homo_sapiens_assembly38.dict
+
+    # Known-sites / resources (hg38)
+    dbSNP="$DBDIR/dbSNP/human_9606_b146_GRCh38p2/All_20160407.renamed.vcf.gz"
+    MILLS_INDELS=$BUNDLE/resources_broad_hg38_v0_Mills_and_1000G_gold_standard.indels.hg38.vcf.gz
+    KG_INDELS=$BUNDLE/resources_broad_hg38_v0_Homo_sapiens_assembly38.known_indels.vcf.gz
+    HAPMAP=$BUNDLE/resources_broad_hg38_v0_hapmap_3.3.hg38.vcf.gz
+    OMNI=$BUNDLE/resources_broad_hg38_v0_1000G_omni2.5.hg38.vcf.gz
+
+    # No WES intervals/capture on hg38 (WGS only)
+    EXOME_BED=""
+    INTERVAL_LIST=""
+    EXOM=""
+
+else
+    # Default b37
+    BUNDLE=$DBDIR/GATK_bundle/b37
+    REF=$BUNDLE/references_b37_Homo_sapiens_assembly19.fasta
+    REFGZ=$BUNDLE/references_b37_Homo_sapiens_assembly19.fasta.gz
+    REF_DICT=$BUNDLE/references_b37_Homo_sapiens_assembly19.dict
+
+    # Variant resources
+    dbSNP=$DBDIR/dbSNP/human_9606_b144_GRCh37p13/All_20160408.vcf.gz
+    MILLS_INDELS=$BUNDLE/b37_Mills_and_1000G_gold_standard.indels.b37.vcf.gz
+    KG_INDELS=$BUNDLE/b37_1000G_phase1.indels.b37.vcf.gz
+    HAPMAP=$BUNDLE/b37_hapmap_3.3.b37.vcf.gz
+    OMNI=$BUNDLE/b37_1000G_omni2.5.b37.vcf.gz
+
+    # Exome targets
+    EXOME_BED=$BUNDLE/b37_Broad.human.exome.b37.bed
+    INTERVAL_LIST=$BUNDLE/b37_Broad.human.exome.b37.interval_list
+
+    # Agilent SureSelect Whole Exome (your current setup)
+    EXOM=$DBDIR/Agilent_SureSelect/hg19/bed
+fi
 
 # Training sets for VQSR
 SNP_RES="-resource:hapmap,known=false,training=true,truth=true,prior=15.0 $HAPMAP \
          -resource:omni,known=false,training=true,truth=false,prior=12.0 $OMNI \
          -resource:dbsnp,known=true,training=false,truth=false,prior=6.0 $dbSNP"
 INDEL_RES="-resource:mills,known=true,training=true,truth=true,prior=12.0 $MILLS_INDELS"
-
-# Exome targets
-EXOME_BED=$BUNDLE/b37_Broad.human.exome.b37.bed
-INTERVAL_LIST=$BUNDLE/b37_Broad.human.exome.b37.interval_list
-
-# Agilent SureSelect Whole Exome
-EXOM=$DBDIR/Agilent_SureSelect/hg19/bed
 
 # Joint variant calling
 BATCH_SIZE=50

@@ -109,7 +109,7 @@ Below is a detailed description of key parameters:
 
 - **genome**
 
-    Supported values: `b37` (default) or `hg38`.
+    Supported values: `b37` (default), `hg38` or `rsrs` (mtDNA).
 
 - **mode**
 
