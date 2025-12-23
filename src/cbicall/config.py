@@ -182,8 +182,7 @@ def set_config_values(param: dict) -> dict:
     # Internal settings
     now = int(time.time())
     pid = os.getpid()
-    config_id = f"{now}{pid:05d}"[-(len(str(now)) + 5):]
-    config["id"] = config_id
+    config["id"] = f"{now}{pid % 100000:05d}"
     config["date"] = time.ctime()
 
     tmp_str = "_".join(
@@ -194,7 +193,7 @@ def set_config_values(param: dict) -> dict:
             param["mode"],
             param["genome"],
             param["gatk_version"],
-            config_id,
+            config["id"],
         ]
     )
 

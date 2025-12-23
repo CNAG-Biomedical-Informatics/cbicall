@@ -2,9 +2,11 @@
 
 ## WES / WGS 
 
-??? question "What is the reference genome used?"
+??? question "What are the reference genomes used?"
 
-    GRCh37 (b37/hs37d5) - GATK-compatible reference genome
+    GRCh37 (b37) - GATK-compatible reference genome
+
+    GRCh38 (hg38) - GATK-compatible reference genome
 
     ##### last change 2025-10-15 by Manuel Rueda [:fontawesome-brands-github:](https://github.com/mrueda)
 
@@ -18,7 +20,14 @@
     ##### last change 2025-10-15 by Manuel Rueda [:fontawesome-brands-github:](https://github.com/mrueda)
 
 
-## mtDNA 
+## mtDNA (MToolBox)
+
+??? question "What is the reference genome used?"
+
+    RSRS (rsrs) - Reconstructed Sapiens Reference Sequence
+
+    ##### last change 2025-10-15 by Manuel Rueda [:fontawesome-brands-github:](https://github.com/mrueda)
+
 
 ## General 
 
@@ -31,7 +40,7 @@
     Below is the configuration used at **CNAG-HPC**, which you can use as a template:
 
     ```bash
-    --8<-- "https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/refs/heads/main/workflows/bash/gatk-3.5/cnag-hpc-parameters.sh"
+    --8<-- "https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/refs/heads/main/workflows/bash/gatk-3.5/parameters.sh"
     ```
 
 ??? question "Do you have an example in how to run `cbicall` in **Slurm** HPC?"

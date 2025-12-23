@@ -12,15 +12,15 @@ CBICall itself uses very little memory for orchestration. The Python wrapper typ
 
 ### Parallelization
 
-Parallel execution is supported, but performance does not scale linearly with additional threads. In practice, optimal throughput is usually achieved with **about 4 threads per task**.
+Parallel execution is supported, but performance does not scale linearly with additional threads. In practice, optimal throughput is usually achieved with **4-6 threads per task**.
 
 For example, on a 12-core workstation:
 
-- Running **3 tasks with 4 threads each** is typically faster than
+- Running **3 tasks with 4 threads each** is typically preferred than
 - Running a **single task with all 12 threads**
 
 A runtime example is shown in the figure below.
 
-!!! Example "Performance"
+!!! Example "Performance WES"
 
     ![Time](https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/refs/heads/main/docs/img/run-time.png)
