@@ -56,7 +56,7 @@ def main():
 
     disease_threshold = 0.80  # used only for coloring
 
-    # Use simple placeholders that we will .replace later:
+    # Placeholders we will .replace later:
     # __JSON_FILE__, __PROJECT_ID__, __JOB_ID__, __DOWNLOAD_BUTTONS__, __DISEASE_THRESHOLD__
     html = """<!DOCTYPE html>
 <html lang="en">
@@ -74,6 +74,37 @@ def main():
     <link rel="stylesheet" href="assets/jsD/media/css/dataTables.colVis.css">
     <link rel="stylesheet" href="assets/jsD/media/css/dataTables.tableTools.css">
 
+    <!-- Same vibe as bff2html (style only) -->
+    <style type="text/css">
+      /* Sticky filters bar */
+      .filters-bar {
+        position: sticky;
+        top: 50px; /* below navbar */
+        z-index: 999;
+        padding: 10px 12px;
+        border-radius: 6px;
+        margin-top: 10px;
+      }
+
+      /* Nicer table headers */
+      table.dataTable thead th {
+        background: #f7f7f7;
+        border-bottom: 1px solid #ddd !important;
+      }
+
+      /* Tighter rows */
+      table.dataTable tbody td {
+        padding-top: 4px;
+        padding-bottom: 4px;
+      }
+
+      /* Active tab cue */
+      .nav-tabs > .active > a,
+      .nav-tabs > .active > a:hover {
+        font-weight: bold;
+      }
+    </style>
+
     <script src="assets/js/jquery.min.js"></script>
     <script src="assets/js/bootstrap.min.js"></script>
     <script src="assets/jsD/media/js/jquery.dataTables.min.js"></script>
@@ -86,7 +117,7 @@ def main():
 
       var diseaseThreshold = __DISEASE_THRESHOLD__;
 
-      // FILTER: keep variants with ANY supporting evidence
+      // FILTER: keep variants with ANY supporting evidence (UNCHANGED)
       $.fn.dataTableExt.afnFiltering.push(
         function(oSettings, aData, iDataIndex) {
 
@@ -114,7 +145,7 @@ def main():
         }
       );
 
-      // DATATABLE
+      // DATATABLE (UNCHANGED except __JSON_FILE__ placeholder)
       var table = $('#table-panel-mtdna').dataTable({
         "ajax": {
           "url": "__JSON_FILE__",
@@ -172,7 +203,7 @@ def main():
       });
 
 
-      // PER-COLUMN FILTERS
+      // PER-COLUMN FILTERS (UNCHANGED)
       $('#table-panel-mtdna thead tr:eq(1) th').each(function(i) {
         if (i === 1 || i === 10 || i === 15 || i === 17) {
           $(this).html(
@@ -187,7 +218,15 @@ def main():
         table.fnFilter(this.value, index);
       });
 
+      // Existing toggle (UNCHANGED)
       $('#toggle-candidates').on('change', function() {
+        table.fnDraw();
+      });
+
+      // NEW (style-only UX): clear button resets just the candidate toggle
+      $('#btn-clear-filters').on('click', function(e) {
+        e.preventDefault();
+        $('#toggle-candidates').prop('checked', false);
         table.fnDraw();
       });
 
@@ -209,12 +248,29 @@ def main():
       __DOWNLOAD_BUTTONS__
 
       <h4>Project &#9658; __PROJECT_ID__</h4>
-      <h3>Job ID &#9658; __JOB_ID__ &#9658; mtDNA_prioritized_variants</h3>
+      <h3>Job ID &#9658; __JOB_ID__ &#9658; mtDNA_variants</h3>
 
-      <label class="checkbox">
-        <input type="checkbox" id="toggle-candidates">
-        Show only candidate variants (Mitomap OR ClinVar OR OMIM OR dbSNP)
-      </label>
+      <!-- Clinician-style Quick filters bar (style only) -->
+      <div class="well filters-bar">
+        <div class="row-fluid">
+          <div class="span9">
+            <h4 style="margin:0 0 6px 0;">Quick filters</h4>
+
+            <label class="checkbox" style="margin-bottom:0;">
+              <input type="checkbox" id="toggle-candidates">
+              <strong>Evidence:</strong>
+              show only <span class="label label-info">candidate variants</span>
+              <span class="muted">(Mitomap OR ClinVar OR OMIM OR dbSNP)</span>
+            </label>
+          </div>
+
+          <div class="span3" style="text-align:right;">
+            <button class="btn btn-small" id="btn-clear-filters" style="margin-top:22px;">
+              <i class="icon-remove"></i> Clear filters
+            </button>
+          </div>
+        </div>
+      </div>
 
       <ul class="nav nav-tabs">
         <li class="active"><a href="#tab-panel-mtdna" data-toggle="tab">mtDNA variants</a></li>
@@ -251,7 +307,7 @@ def main():
 </html>
 """
 
-    # Now substitute placeholders safely
+    # Substitute placeholders safely
     html = html.replace("__JSON_FILE__", json_file)
     html = html.replace("__PROJECT_ID__", project_id)
     html = html.replace("__JOB_ID__", job_id)
@@ -265,3 +321,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
