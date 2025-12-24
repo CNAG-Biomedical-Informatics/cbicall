@@ -2,12 +2,13 @@ import os, gdown
 
 # Dictionary mapping the desired output filenames to their Google Drive file IDs
 files = {
-    'data.tar.gz.md5': '1gCnKxcM1NIJk2LnUdHqYQ1zRChpUVoaY',
-    'data.tar.gz.part-00': '1TznaIvxCrcvuh3Zfce4HYv2E_hlhNAZE',
-    'data.tar.gz.part-01': '16ufn1qhTkBVXMJe66S4WTXAms61i2xBy',
-    'data.tar.gz.part-02': '1WWxX72m-1vOKe8DUVkUYhKnyMUZ7IaUy',
-    'data.tar.gz.part-03': '1BpFuiNqygOi8Ir2CqVDxDIXWXnq11-ln',
-    'data.tar.gz.part-04': '1tAuti2nLUM6QPEkP_UfDuVXyZOrLjE33'
+    "data.tar.gz.md5":      "1KPQdljTv-jDk8kodRgNGcajby97chva_",
+    "data.tar.gz.part-00":  "1xNX0vH5Ya4XqhQEylk_ZZNVtpEeCsZD9",
+    "data.tar.gz.part-01":  "11sJTFojJkgUyrKMROAQihP4K9z8515Kt",
+    "data.tar.gz.part-02":  "1jkUMU0iyDMeZ_jkad_24yk1YcTcYghM2",
+    "data.tar.gz.part-03":  "1U2iZ1kzQ5vwbj3FuTcMJ2Vl2Oxegg0C3",
+    "data.tar.gz.part-04":  "1zgCjShM0T6fOAMEirbQdoLT03V7-1RxR",
+    "data.tar.gz.part-05":  "1faW5N8NECugJddJyoTfpn5rtkb1tNygl",
 }
 
 def download_if_missing(filename, file_id):
