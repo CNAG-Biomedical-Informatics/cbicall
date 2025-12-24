@@ -9,7 +9,7 @@
 ## What is CBICall?
 
 **CBICall** (**C**NAG **B**iomedical **I**nformatics framework for variant **Call**ing) is a lightweight, reproducible germline variant-calling framework developed at CNAG.  
-It wraps established best practices (BWA → GATK → VQSR or hard filters) into easy-to-run **Bash** and **Snakemake** workflows, enabling labs to produce high-quality single-sample and cohort VCFs with minimal effort. 🧬
+It wraps established best practices (BWA → GATK → VQSR or hard filters) into easy-to-run **Bash** and **Snakemake** workflows, enabling labs to produce high-quality single-sample and cohort VCFs with minimal effort.
 
 ---
 
