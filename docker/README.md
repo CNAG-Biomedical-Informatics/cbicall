@@ -75,20 +75,23 @@ Then build the container:
 - **For Docker version 19.03 and above (supports buildx):**
 
   ```bash
-  docker buildx build -t cnag/cbicall:latest .
+  docker buildx build --no-cache -t cnag/cbicall:latest .
   ```
 
 - **For Docker versions older than 19.03 (no buildx support):**
 
   ```bash
-  docker build -t cnag/cbicall:latest .
+  docker build --no-cache -t cnag/cbicall:latest .
   ```
 
 ## Running and Interacting with the Container
 
 ```bash
 # Please update '/absolute/path/to/cbicall-data' with your actual local data path
-docker run -tid --volume /absolute/path/to/cbicall-data:/cbicall-data -e USERNAME=root --name cbicall cnag/cbicall:latest
+#docker run -tid --volume /absolute/path/to/cbicall-data:/cbicall-data -e USERNAME=root --name cbicall cnag/cbicall:latest
+
+# Real example
+#docker run -tid --volume /media/mrueda/4TBB/cbicall-data:/cbicall-data -e USERNAME=root --name cbicall cnag/cbicall:latest
 ```
 
 To connect to the container:
@@ -99,11 +102,20 @@ docker exec -ti cbicall bash
 
 Finally, inside the `cbicall` repo:
 
-Change `DATADIR` variable in `workflows/bash/parameters.sh` and `workflows/snakemake/config.yaml` to `/cbicall-data`.
+Change `DATADIR` variable in `workflows/bash/gatk-4.6/parameters.sh` and `workflows/snakemake/gatk-4.6/config.yaml` to `/cbicall-data`.
 
 ## Performing unit tests
 
 Inside the container:
+
+**WES**
+
+```bash
+cd examples/input
+./run_tests.sh --wes
+```
+
+**mtDNA**
 
 ```bash
 cd examples/input
