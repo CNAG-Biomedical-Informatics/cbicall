@@ -2,6 +2,8 @@
 
 ## Downloading Required Databases and Software
 
+> Note: this process can be lenghty.
+
 Begin by downloading the required databases and software. Save the data outside the container; this preserves it across container restarts and lets you update the software without downloading the data again.
 
 Install dependencies for Python 3:
@@ -18,6 +20,9 @@ python3 ./01_download_external_data.py
 ```
 
 Note: Google Drive can be a tad restrictive with the download. If you get an error, please use the error URL link in a browser and you should be able to retrieve it there.
+
+
+> The files are located at: [GDrive Link](https://drive.google.com/drive/folders/13MqZk0MHN_MQdNyXwjz_QTjbl2Najkeg?dmr=1&ec=wgc-drive-globalnav-goto)
 
 Once downloaded, perform a checksum to make sure the files were not corrupted:
 

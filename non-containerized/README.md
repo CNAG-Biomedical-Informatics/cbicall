@@ -37,7 +37,9 @@ Testing the deployment:
 pytest
 ```
 
-### Install required external software
+### Downloading Required Databases and Software
+
+> Note: this process can be lenghty.
 
 Navigate to a directory where you want the databases stored and execute:
 
@@ -46,6 +48,8 @@ python3 $path_to_cbicall/scripts/01_download_external_data.py  # Replace $path_t
 ```
 
 Note: Google Drive can be a tad restrictive with the download. If you get an error, please use the error URL link in a browser and you should be able to retrieve it there.
+
+> The files are located at: [GDrive Link](https://drive.google.com/drive/folders/13MqZk0MHN_MQdNyXwjz_QTjbl2Najkeg?dmr=1&ec=wgc-drive-globalnav-goto)
 
 Once downloaded, perform a checksum to make sure the files were not corrupted:
 

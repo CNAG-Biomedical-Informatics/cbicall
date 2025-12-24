@@ -166,7 +166,7 @@ if [ "$RUN_MIT" -eq 1 ]; then
   echo "TEST: MIT"
   echo "========================================"
 
-  REF_MIT='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_mit_single_b37_gatk-3.5_649547582283533/01_mtoolbox/mit_prioritized_variants.txt'
+  REF_MIT='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_mit_single_rsrs_gatk-3.5_649547582283533/01_mtoolbox/mit_prioritized_variants.txt'
   PARAM_MIT='mit_single.yaml'
 
   # Ensure reference directory exists
@@ -176,7 +176,7 @@ if [ "$RUN_MIT" -eq 1 ]; then
   "$CBICALL" -p "$PARAM_MIT" -t "$THREADS" > /dev/null 2>&1
 
   # Find latest MIT result
-  TEST_RESULT_MIT=$(ls -t -- CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_b37_gatk-3.5*/01_mtoolbox/mit_prioritized_variants.txt 2>/dev/null | head -n 1 || true)
+  TEST_RESULT_MIT=$(ls -t -- CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_rsrs_gatk-3.5*/01_mtoolbox/mit_prioritized_variants.txt 2>/dev/null | head -n 1 || true)
 
   if [ -z "${TEST_RESULT_MIT:-}" ]; then
     echo "ERROR: No MIT result file found."
