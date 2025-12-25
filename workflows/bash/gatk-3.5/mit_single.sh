@@ -136,23 +136,40 @@ $SAM index $out_raw
 
 # Performing Variant calling and annotation with MToolBox
 echo "Analyzing mitochondrial DNA with MToolBox..."
-export PATH="$MTOOLBOXDIR:$PATH"
 
 (
-  # ---- Python 2 env only inside this block ----
-  export PATH="$PY27_PREFIX/bin:$PATH"
+  export PATH="$MTOOLBOXDIR:$PATH"
   export PYTHONNOUSERSITE=1
+
+  echo "Using numpy and pandas versions:"
+
+  # --- First choice: portable prefix python2 (non-cluster) ---
+  export PATH="$PY27_PREFIX/bin:$PATH"
   export PYTHONHOME="$PY27_PREFIX"
   export PYTHONPATH="$PY27_PREFIX/lib/python2.7/site-packages"
 
-  echo "Using numpy and pandas versions:"
-  python2 -c "import numpy, pandas; print(numpy.__version__, pandas.__version__)"
+  if python2 -c "import numpy, pandas" >/dev/null 2>&1; then
+    python2 -c "import numpy, pandas; print(numpy.__version__, pandas.__version__)"
+  else
+    echo "Portable python2/numpy failed; trying cluster module Python2..."
+
+    # --- Fallback: cluster module python2 ---
+    unset PYTHONHOME
+    module purge
+    module load "${PY27_MODULE:-Python/2.7.18-GCCcore-11.2.0}"
+
+    # Use the shipped site-packages path (same one you copy around)
+    export PYTHONPATH="$PY27_PREFIX/lib/python2.7/site-packages${PYTHONPATH:+:$PYTHONPATH}"
+
+    python2 -c "import numpy, pandas; print(numpy.__version__, pandas.__version__)" || {
+      echo "ERROR: numpy/pandas not importable with either portable prefix or module python2" >&2
+      python2 -c "import sys; print(sys.executable); print('\n'.join(sys.path))" >&2 || true
+      exit 1
+    }
+  fi
 
   MToolBox.sh -i "$BINDIRMTB/MToolBox_config.sh" -m "-t $THREADS"
 )
-
-# Execute Mtoolbox
-MToolBox.sh -i $BINDIRMTB/MToolBox_config.sh -m "-t $THREADS"
 
 # We will be using the file 'prioritized_variants.txt'
 # Getting GT/ DP and HF information rom VCF_file.vcf

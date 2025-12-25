@@ -29,6 +29,8 @@ else
     SAM=$NGSUTILS/samtools-0.1.19/samtools
     BED=$NGSUTILS/bedtools2/bin/bedtools
     PY27_PREFIX=$NGSUTILS/python_2.7/linux-x86_64/python27_portable
+    # Python 2 module to use on HPC (fallback)
+    PY27_MODULE="Python/2.7.18-GCCcore-11.2.0"
 fi
 
 # CNAG HPC Cluster (Java/17.0.2) <---required                                                                                
