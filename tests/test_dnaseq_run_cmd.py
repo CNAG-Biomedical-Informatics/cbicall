@@ -60,7 +60,7 @@ def test_dnaseq_builds_bash_command_with_flags(tmp_path, monkeypatch):
     assert recorded["env"]["GENOME"] == "b37"
 
     assert recorded["cwd"] == projectdir
-    assert recorded["log_path"] == projectdir / "bash_wes_single.log"
+    assert recorded["log_path"] == projectdir / f"bash_wes_single_{settings['genome']}_{settings['gatk_version']}.log"
 
 
 def test_dnaseq_builds_bash_command_gatk35_has_no_extra_flags(tmp_path, monkeypatch):
@@ -102,7 +102,7 @@ def test_dnaseq_builds_bash_command_gatk35_has_no_extra_flags(tmp_path, monkeypa
     assert recorded["env"] is not None
     assert recorded["env"]["GENOME"] == "b37"
 
-    assert recorded["log_path"] == projectdir / "bash_wes_single.log"
+    assert recorded["log_path"] == projectdir / f"bash_wes_single_{settings['genome']}_{settings['gatk_version']}.log"
 
 
 def test_dnaseq_builds_snakemake_command_and_config(tmp_path, monkeypatch):
@@ -151,8 +151,7 @@ def test_dnaseq_builds_snakemake_command_and_config(tmp_path, monkeypatch):
     assert recorded["env"] is not None
     assert recorded["env"].get("GENOME") is None
 
-    assert recorded["log_path"] == projectdir / "snakemake_wes_single.log"
-
+    assert recorded["log_path"] == projectdir / f"snakemake_wes_single_{settings['genome']}_{settings['gatk_version']}.log"
 
 def test_dnaseq_raises_if_projectdir_missing(tmp_path):
     settings = {
