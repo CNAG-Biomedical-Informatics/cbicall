@@ -4,6 +4,12 @@ mtb2json.py - Parse MToolBox prioritized variants output
 
 Usage:
   mtb2json.py -i mit_prioritized_variants.txt -f json4html > mtDNA.json
+  mtb2json.py -i mit_prioritized_variants.txt -f json > mit.raw.json
+
+Notes:
+  - By default, HF filtering (if enabled) is applied using the maximum HF found
+    in ANY sample present in the HF field. This works for single-sample and
+    multi-sample/cohort inputs.
 """
 
 import argparse
@@ -87,14 +93,14 @@ def parse_args():
     p.add_argument(
         "--HF",
         type=float,
-        default=0.30,  # default HF cutoff
-        help="Heteroplasmic Fraction cutoff for 01P [0.30]",
+        default=0.30,  # existing default behavior
+        help="Heteroplasmic Fraction cutoff [0.30]. Set to 0 to disable.",
     )
     p.add_argument(
         "--MAF",
         type=float,
-        default=0.01,  # default MAF cutoff
-        help="MAF filter [0.01]; keep variant if 1000G MAF < MAF",
+        default=0.01,  # existing default behavior
+        help="MAF filter [0.01]; keep variant if 1000G MAF < MAF. Set to 0 to disable.",
     )
     p.add_argument(
         "--denovo",
@@ -110,9 +116,7 @@ def parse_args():
 
 
 def normalize_header(header_fields):
-    """
-    Convert header names like 'Variant Allele' to 'Variant_Allele'.
-    """
+    """Convert header names like 'Variant Allele' to 'Variant_Allele'."""
     normalized = []
     for h in header_fields:
         h = h.strip().replace(" ", "_")
@@ -145,32 +149,41 @@ def passes_maf_filter(row, col_idx, maf_cutoff):
     return True
 
 
-def max_hf_for_proband(hf_str):
+def max_hf_any_sample(hf_str):
     """
     HF patterns:
       single mode => "0.02,0.08"
-      cohort mode => "01P:0.02,0.8|02M:N/A|03F:1.0"
-    Only consider the first block (01P), turn N/A to 0, take max.
+      cohort mode => "01F:0.02|01M:N/A|01P:1.0"  (order may vary)
+      cohort multiallelic => "01P:0.161,0.387|01M:0.161,0.387|01F:0.161,0.387"
+    Consider ANY sample. Turn N/A to 0. Take maximum numeric HF found anywhere.
     """
     if not hf_str:
         return 0.0
 
-    first_block = hf_str.split("|", 1)[0]
-    first_block = first_block.replace("01P:", "")
-    first_block = first_block.replace("N/A", "0")
+    s = hf_str.strip().replace("N/A", "0")
 
-    parts = [x.strip() for x in first_block.split(",") if x.strip()]
-    if not parts:
-        return 0.0
+    # Single-sample case (no per-sample blocks)
+    if "|" not in s and ":" not in s:
+        vals = []
+        for x in [p.strip() for p in s.split(",") if p.strip()]:
+            try:
+                vals.append(float(x))
+            except ValueError:
+                continue
+        return max(vals) if vals else 0.0
 
-    vals = []
-    for x in parts:
-        try:
-            vals.append(float(x))
-        except ValueError:
-            continue
-
-    return max(vals) if vals else 0.0
+    # Cohort case: parse each block after "SAMPLE:"
+    max_val = 0.0
+    for block in [b.strip() for b in s.split("|") if b.strip()]:
+        rhs = block.split(":", 1)[1] if ":" in block else block
+        for x in [p.strip() for p in rhs.split(",") if p.strip()]:
+            try:
+                v = float(x)
+            except ValueError:
+                continue
+            if v > max_val:
+                max_val = v
+    return max_val
 
 
 def passes_hf_filter(row, col_idx, hf_cutoff):
@@ -180,7 +193,7 @@ def passes_hf_filter(row, col_idx, hf_cutoff):
     if idx is None:
         return True
     hf_str = row[idx].strip()
-    m = max_hf_for_proband(hf_str)
+    m = max_hf_any_sample(hf_str)
     return m > hf_cutoff
 
 
@@ -205,7 +218,7 @@ def build_hash_out(rows, header, hf_cutoff, maf_cutoff, debug=False):
         if not passes_hf_filter(row, col_idx, hf_cutoff):
             continue
 
-        # Normalize sample
+        # Normalize sample (cosmetic ordering)
         sample_idx = col_idx.get("Sample")
         if sample_idx is not None:
             row[sample_idx] = sort_sample_alphabetically(row[sample_idx])
@@ -248,7 +261,7 @@ def hash2array(hash_out):
         for key2 in KEYS4HTML:
             tmp = record.get(key2, "")
 
-            # LINKS (restore previous behavior)
+            # LINKS
             if key2 == "Locus" and tmp:
                 tmp = (
                     '<a target="_blank" href="https://ghr.nlm.nih.gov/gene/'

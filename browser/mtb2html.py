@@ -4,7 +4,7 @@ mtb2html.py - Generate mtDNA HTML viewer (BFF-like) for MToolBox output
 
 Usage:
   mtb2json.py -i mit_prioritized_variants.txt -f json4html > mtDNA.json
-  mtb2html.py --id peter --job-id 1234 --json mtDNA.json --out mtDNA.html
+  mtb2html.py --id peter --job-id 1234 --json mtDNA.json --out mtdna.html
 """
 
 import argparse
@@ -21,7 +21,7 @@ def parse_args():
                    help="Job ID to display in the HTML header")
     p.add_argument("--json", default="mtDNA.json",
                    help="JSON file from mtb2json.py -f json4html")
-    p.add_argument("--out", "-o", default="mtDNA.html",
+    p.add_argument("--out", "-o", default="mtdna.html",
                    help="Output HTML file name")
     return p.parse_args()
 
