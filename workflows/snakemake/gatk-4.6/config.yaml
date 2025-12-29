@@ -5,6 +5,7 @@
 # Base directories
 # -----------------------
 datadir: "/media/mrueda/2TBS"
+#datadir: "/cbicall-data"
 dbdir: "{datadir}/Databases"
 ngsutils: "{datadir}/NGSutils"
 tmpdir: "{datadir}/tmp"
