@@ -328,7 +328,7 @@ def test_set_config_values_capture_else_branch_and_arch_else(monkeypatch, tmp_pa
     }
 
     cfg = config_mod.set_config_values(param)
-    assert cfg["capture"] == "GATK_bundle_rsrs"
+    assert cfg["capture"] == "MToolBox_rsrs"
     assert cfg["arch"] == "weirdarch"
 
 

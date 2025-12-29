@@ -78,8 +78,15 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
     Apply genome rules shared by YAML and CLI config building.
     Mutates cfg.
     """
+    # Block unsupported union: snakemake + gatk-3.5
+    if cfg.get("workflow_engine") == "snakemake" and cfg.get("gatk_version") == "gatk-3.5":
+        raise ValueError(
+            "workflow_engine='snakemake' is not supported for gatk_version='gatk-3.5'. "
+            "Use workflow_engine='bash' or select gatk_version='gatk-4.6'."
+        )
+
     # Block unsupported union: mit + snakemake
-    if cfg["pipeline"] == "mit" and cfg["workflow_engine"] == "snakemake":
+    if cfg.get("pipeline") == "mit" and cfg.get("workflow_engine") == "snakemake":
         raise ValueError(
             "The combination pipeline='mit' with workflow_engine='snakemake' is not supported."
         )
@@ -261,6 +268,9 @@ def set_config_values(param: dict) -> dict:
     # Capture label (optional; keep only if used elsewhere)
     if cfg_in["pipeline"] == "wes":
         config["capture"] = "Agilent SureSelect"
+    elif cfg_in["pipeline"] == "mit":
+        # MIT uses MToolBox reference naming
+        config["capture"] = "MToolBox_rsrs"
     else:
         config["capture"] = f"GATK_bundle_{config['genome']}"
 
@@ -292,3 +302,4 @@ def set_config_values(param: dict) -> dict:
         )
 
     return config
+
