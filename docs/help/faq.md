@@ -29,6 +29,44 @@
     ##### last change 2025-10-15 by Manuel Rueda [:fontawesome-brands-github:](https://github.com/mrueda)
 
 
+??? question "What does GT=1 mean in results?"
+
+    In variant reports, the **Genotype (GT)** field shows the observed
+    allele using **VCF allele indices**:
+    
+    -   `0` = reference allele
+    -   `1` = first alternate (ALT) allele
+    -   `2`, `3`, ... = additional ALT alleles (multiallelic)
+    
+    For **chrM/MT (mtDNA)**, callers typically encode genotypes as
+    **haploid** (not allele pairs).
+    
+    ## Meaning
+    
+    -   **`GT = 1` → ALT allele detected in that sample**
+    -   No `/` or `|` separator because only one allele index is stored
+    -   Biological interpretation relies on:
+        -   **`HF`** → heteroplasmy fraction (molecules supporting ALT)
+        -   **`DP`** → read depth (total support)
+    
+    ## Examples
+    
+    | GT | Interpretation (mtDNA) |
+    |---|---|
+    | `0` | Only reference allele observed |
+    | `1` | ALT allele present (homoplasmic or heteroplasmic, check `HF` + `DP`) |
+    | `0/1`, `1/2` *(rare)* | Multiallelic call, still haploid encoding — not diploid zygosity |
+
+    > **TL;DR:** `GT = 1` = ALT detected. Check `HF` and `DP` for biology.
+    
+    !!! info "Tip" 
+
+        For mtDNA, **`GT` tells you *which allele*, not *how much***.
+
+        Use **`HF` + `DP`** to interpret heteroplasmy or homoplasmy.
+
+    ##### last change 2025-10-15 by Manuel Rueda [:fontawesome-brands-github:](https://github.com/mrueda)
+
 ## General 
 
 ??? question "How do I set up `cbicall` to work on an HPC system?"
