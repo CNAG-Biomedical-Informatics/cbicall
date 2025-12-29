@@ -1,169 +1,180 @@
-# Snakefile for GATK4.6 WES/WGS pipeline (wes_single.smk)
-import os, glob, platform
+# wes_single.smk - bash-replica of wes_single.sh (GATK4.6) with per-rule logs
+import os
+import glob
+import platform
+import shlex
 from pathlib import Path
 
-# ----------------------------------------
-# Load configuration and set environment
-# ----------------------------------------
 snakefile_dir = Path(workflow.snakefile).parent
-configfile: snakefile_dir / "config.yaml"
+configfile: str(snakefile_dir / "config.yaml")
 
-# Export environment variables
+# -----------------------------
+# Environment (match bash)
+# -----------------------------
 os.environ["TMPDIR"] = config["tmpdir"]
 os.environ["LC_ALL"] = "C"
 os.environ["GATK_DISABLE_AUTO_S3_UPLOAD"] = "true"
 
-# ----------------------------------------
-# Define directories, resources, and tools
-# ----------------------------------------
+# -----------------------------
+# Config / tools
+# -----------------------------
 DATADIR  = config["datadir"]
 DBDIR    = config["dbdir"].format(datadir=DATADIR)
 NGSUTILS = config["ngsutils"].format(datadir=DATADIR)
 TMPDIR   = config["tmpdir"].format(datadir=DATADIR)
-MEM      = config["mem"]
+MEM      = config.get("mem", "8G")
 
-# read from either pipeline (if set) or fall back to mode
-PIPELINE = config.get("pipeline", config.get("mode", "wes")).lower()
+PIPELINE = config.get("pipeline", "wes").lower()
+if PIPELINE not in ("wes", "wgs"):
+    raise ValueError("config[pipeline] must be 'wes' or 'wgs'")
 
-# Threads
-THREADS = workflow.cores or 4
+CLEANUP_BAM = bool(config.get("cleanup_bam", False))
 
-# Choose binaries by architecture
+THREADS = workflow.cores or int(config.get("threads", 4))
+
 ARCH = platform.machine()
 if ARCH == "aarch64":
     JAVA = config["java"]["aarch64"]
     BWA  = config["tools"]["aarch64"]["bwa"].format(ngsutils=NGSUTILS)
     SAM  = config["tools"]["aarch64"]["samtools"].format(ngsutils=NGSUTILS)
-    BED  = config["tools"]["aarch64"]["bedtools"].format(ngsutils=NGSUTILS)
 else:
     JAVA = config["java"]["amd64"]
     BWA  = config["tools"]["amd64"]["bwa"].format(ngsutils=NGSUTILS)
     SAM  = config["tools"]["amd64"]["samtools"].format(ngsutils=NGSUTILS)
-    BED  = config["tools"]["amd64"]["bedtools"].format(ngsutils=NGSUTILS)
 
-# Picard & GATK4 commands
-PIC   = config["picard"].format(java=JAVA, mem=MEM, tmpdir=TMPDIR, ngsutils=NGSUTILS)
 GATK4 = config["gatk4_cmd"].format(ngsutils=NGSUTILS, mem=MEM)
 
-# Path to helper scripts
-COV     = os.path.join(snakefile_dir, "coverage.sh")
-VCF2SEX = os.path.join(snakefile_dir, "vcf2sex.sh")
+COV     = str(snakefile_dir / "coverage.sh")
+VCF2SEX = str(snakefile_dir / "vcf2sex.sh")
 
-# Reference & resource files
 bundle       = config["bundle"].format(dbdir=DBDIR)
 REF          = config["ref"].format(bundle=bundle)
 REFGZ        = config["refgz"].format(bundle=bundle)
-REF_DICT     = config["ref_dict"].format(bundle=bundle)
 dbSNP        = config["dbsnp"].format(dbdir=DBDIR)
 MILLS_INDELS = config["mills_indels"].format(bundle=bundle)
 KG_INDELS    = config["kg_indels"].format(bundle=bundle)
 HAPMAP       = config["hapmap"].format(bundle=bundle)
 OMNI         = config["omni"].format(bundle=bundle)
 
-# VQSR resource strings
-snp_res   = config["snp_res"].format(hapmap=HAPMAP, omni=OMNI, dbsnp=dbSNP)
-indel_res = config["indel_res"].format(mills_indels=MILLS_INDELS)
+SNP_RES   = config["snp_res"].format(hapmap=HAPMAP, omni=OMNI, dbsnp=dbSNP)
+INDEL_RES = config["indel_res"].format(mills_indels=MILLS_INDELS)
 
-# Interval argument for WES vs WGS
 INTERVAL_LIST = config["interval_list"].format(bundle=bundle)
-INTERVAL_ARG  = ["-L", INTERVAL_LIST] if PIPELINE == "wes" else []
+INTERVAL_ARG  = f"-L {shlex.quote(INTERVAL_LIST)}" if PIPELINE == "wes" else ""
 
-# Create output directories
+MIN_SNP_FOR_VQSR   = int(config.get("min_snp_for_vqsr", 1000))
+MIN_INDEL_FOR_VQSR = int(config.get("min_indel_for_vqsr", 8000))
+
+# Output dirs
 BAMDIR     = "01_bam"
 VARCALLDIR = "02_varcall"
 STATSDIR   = "03_stats"
 LOGDIR     = "logs"
-for d in [BAMDIR, VARCALLDIR, STATSDIR, LOGDIR]:
+for d in (BAMDIR, VARCALLDIR, STATSDIR, LOGDIR):
     os.makedirs(d, exist_ok=True)
 
-# ----------------------------------------
-# Build FASTQ pairs and sample ID
-#-----------------------------------------
-FASTQ_DIR   = "../"
-FASTQ_R1    = sorted(glob.glob(os.path.join(FASTQ_DIR, "*_R1_*fastq.gz")))
-FASTQ_PAIRS = []
+# -----------------------------
+# Sample ID (match bash)
+# -----------------------------
+rawid = Path.cwd().parent.name
+ID = rawid.split("_", 1)[0]
+
+# -----------------------------
+# FASTQ pairs (match bash glob)
+# -----------------------------
+FASTQ_DIR = "../"
+FASTQ_R1 = sorted(glob.glob(os.path.join(FASTQ_DIR, "*_R1_*fastq.gz")))
+if not FASTQ_R1:
+    raise ValueError("No FASTQs found matching ../*_R1_*fastq.gz")
+
+FASTQ_BASES = []
+FASTQ_DICT = {}
 for r1 in FASTQ_R1:
-    r2   = r1.replace("_R1_", "_R2_")
-    base = os.path.basename(r1).replace(".fastq.gz", "").split("_R1_",1)[0]
-    FASTQ_PAIRS.append({"r1": r1, "r2": r2, "base": base})
+    r2 = r1.replace("_R1_", "_R2_")
+    base = os.path.basename(r1).replace(".fastq.gz", "")
+    base = base.split("_R1_", 1)[0]
+    FASTQ_BASES.append(base)
+    FASTQ_DICT[base] = {"r1": r1, "r2": r2}
 
-# Sample ID: first two fields, drop trailing _ex
-fields    = FASTQ_PAIRS[0]["base"].split("_")
-sample_id = fields[0] + "_" + fields[1]
-if sample_id.endswith("_ex"):
-    sample_id = sample_id[:-3]
-ID = sample_id
+RG_BAMS = [os.path.join(BAMDIR, f"{b}.rg.bam") for b in FASTQ_BASES]
 
-# Build lookup for FASTQ pairs
-FASTQ_DICT = {p["base"]: p for p in FASTQ_PAIRS}
+CHR1 = "1" if "b37" in str(REF) else "chr1"
 
-# ----------------------------------------
-# Rule: all
-# Final targets: QC VCF, coverage & sex stats
-#-----------------------------------------
+# -----------------------------
+# Targets
+# -----------------------------
+FINAL_INPUTS = [
+    os.path.join(VARCALLDIR, f"{ID}.hc.QC.vcf.gz"),
+    os.path.join(STATSDIR,   f"{ID}.coverage.txt"),
+    os.path.join(STATSDIR,   f"{ID}.sex.txt"),
+]
+if CLEANUP_BAM:
+    FINAL_INPUTS.append(os.path.join(LOGDIR, f"{ID}.cleanup.done"))
+
 rule all:
     input:
-        os.path.join(VARCALLDIR, f"{ID}.hc.QC.vcf.gz"),
-        os.path.join(STATSDIR,   f"{ID}.coverage.txt"),
-        os.path.join(STATSDIR,   f"{ID}.sex.txt")
+        FINAL_INPUTS
 
-# ----------------------------------------
-# Rule: align_rg
-# Align FASTQ pairs and add read-groups
-#-----------------------------------------
+# -----------------------------
+# STEP 1: Align & AddReadGroups
+# -----------------------------
 rule align_rg:
     input:
         r1=lambda wc: FASTQ_DICT[wc.base]["r1"],
-        r2=lambda wc: FASTQ_DICT[wc.base]["r2"]
+        r2=lambda wc: FASTQ_DICT[wc.base]["r2"],
     output:
-        bam=os.path.join(BAMDIR, "{base}.rg.bam")
-    params:
-        base=lambda wc: wc.base
+        bam=os.path.join(BAMDIR, "{base}.rg.bam"),
     threads: THREADS
     log:
-        os.path.join(LOGDIR, "{base}.align.log")
+        os.path.join(LOGDIR, f"{ID}.01_align_rg.{{base}}.log")
     shell:
         r"""
-        # RGSM: sample, RGPU: lane, RGID: read-group ID
-        SAMPLE=$(echo {params.base} | cut -d'_' -f1-2)
-        RGPU=$(echo {params.base} | cut -d'_' -f3)
-        RGID=$(echo {params.base} | cut -d'_' -f4)
-        {BWA} mem -M -t{threads} {REFGZ} {input.r1} {input.r2} \
+        set -eu
+        SAMPLE=$(echo {wildcards.base} | cut -d'_' -f1-2)
+        LANE=$(echo   {wildcards.base} | cut -d'_' -f3)
+        RGID="${{SAMPLE}}.${{LANE}}.$(date +%s)"
+        RGPU="${{SAMPLE}}.${{LANE}}.unit1"
+
+        {BWA} mem -M -t {threads} {REFGZ} {input.r1} {input.r2} \
           | {GATK4} AddOrReplaceReadGroups \
               --INPUT /dev/stdin \
               --OUTPUT {output.bam} \
               --TMP_DIR {TMPDIR} \
-              --RGPL ILLUMINA --RGLB sureselect \
-              --RGSM $SAMPLE --RGPU $RGPU --RGID $RGID \
+              --RGPL ILLUMINA \
+              --RGLB sureselect \
+              --RGSM "$SAMPLE" \
+              --RGID "$RGID" \
+              --RGPU "$RGPU" \
           2>> {log}
         """
 
-# ----------------------------------------
-# Rule: merge_bams
-# Merge lane-level BAMs into one per ID
-#-----------------------------------------
-RG_BAMS = expand(os.path.join(BAMDIR, "{base}.rg.bam"), base=list(FASTQ_DICT.keys()))
+# -----------------------------
+# STEP 2: Merge lane BAMs
+# -----------------------------
 rule merge_bams:
     input:
         rg_bams=RG_BAMS
     output:
         merged=os.path.join(BAMDIR, f"{ID}.rg.merged.bam")
-    log:
-        os.path.join(LOGDIR, "merge.log")
     params:
-        merge_inputs=lambda wildcards, input: " ".join(f"-I {b}" for b in input.rg_bams)
+        merge_inputs=lambda wc, input: " ".join([f"-I {b}" for b in input.rg_bams])
+    log:
+        os.path.join(LOGDIR, f"{ID}.02_merge_bams.log")
     shell:
         r"""
-        {GATK4} MergeSamFiles {params.merge_inputs} \
-          --OUTPUT {output.merged} --CREATE_INDEX true \
-          --VALIDATION_STRINGENCY SILENT --TMP_DIR {TMPDIR} \
+        set -eu
+        {GATK4} MergeSamFiles \
+          {params.merge_inputs} \
+          -O {output.merged} \
+          --CREATE_INDEX true \
+          --VALIDATION_STRINGENCY SILENT \
+          --TMP_DIR {TMPDIR} \
           2>> {log}
         """
 
-# ----------------------------------------
-# Rule: mark_duplicates
-# Mark duplicates and generate metrics
-#-----------------------------------------
+# -----------------------------
+# STEP 3: MarkDuplicates (+ samtools index)
+# -----------------------------
 rule mark_duplicates:
     input:
         merged=os.path.join(BAMDIR, f"{ID}.rg.merged.bam")
@@ -171,235 +182,192 @@ rule mark_duplicates:
         dedup=os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.bam"),
         metrics=os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.metrics.txt")
     log:
-        os.path.join(LOGDIR, "markdup.log")
+        os.path.join(LOGDIR, f"{ID}.03_mark_duplicates.log")
     shell:
         r"""
+        set -eu
         {GATK4} MarkDuplicates \
           -I {input.merged} \
           -O {output.dedup} \
           --METRICS_FILE {output.metrics} \
-          --CREATE_INDEX true --TMP_DIR {TMPDIR} \
+          --CREATE_INDEX true \
+          --TMP_DIR {TMPDIR} \
           2>> {log}
+        {SAM} index {output.dedup} 2>> {log}
         """
 
-# ----------------------------------------
-# Rule: base_recalibrator
-# Build BQSR model using known variant sites
-#-----------------------------------------
-rule base_recalibrator:
+# -----------------------------
+# STEP 4: BQSR
+# -----------------------------
+rule bqsr:
     input:
         dedup=os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.bam")
     output:
-        table=os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.recal.table")
+        table=os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.recal.table"),
+        recal=os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.recal.bam")
     log:
-        os.path.join(LOGDIR, "bqsr.log")
+        os.path.join(LOGDIR, f"{ID}.04_bqsr.log")
     shell:
         r"""
+        set -eu
         {GATK4} BaseRecalibrator \
           -R {REF} \
           -I {input.dedup} \
-          --known-sites {dbSNP} --known-sites {MILLS_INDELS} --known-sites {KG_INDELS} \
+          --known-sites {dbSNP} \
+          --known-sites {MILLS_INDELS} \
+          --known-sites {KG_INDELS} \
           -O {output.table} \
           --tmp-dir {TMPDIR} \
           2>> {log}
-        """
 
-# ----------------------------------------
-# Rule: apply_bqsr
-# Apply base quality recalibration and index
-#-----------------------------------------
-rule apply_bqsr:
-    input:
-        dedup=os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.bam"),
-        table=os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.recal.table")
-    output:
-        recal=os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.recal.bam")
-    log:
-        os.path.join(LOGDIR, "apply_bqsr.log")
-    shell:
-        r"""
         {GATK4} ApplyBQSR \
           -R {REF} \
           -I {input.dedup} \
-          --bqsr-recal-file {input.table} \
+          --bqsr-recal-file {output.table} \
           -O {output.recal} \
           --tmp-dir {TMPDIR} \
           2>> {log}
-        {SAM} index {output.recal}
+
+        {SAM} index {output.recal} 2>> {log}
         """
 
-# ----------------------------------------
-# Rule: haplotypecaller
-# Generate per-sample gVCF using GATK HaplotypeCaller
-#-----------------------------------------
+# -----------------------------
+# STEP 5: HaplotypeCaller -> gVCF
+# -----------------------------
 rule haplotypecaller:
     input:
         recal=os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.recal.bam")
     output:
         gvcf=os.path.join(VARCALLDIR, f"{ID}.hc.g.vcf.gz")
     threads: THREADS
-    params:
-        interval_str=lambda wc: " ".join(INTERVAL_ARG)
     log:
-        os.path.join(LOGDIR, "hc.log")
+        os.path.join(LOGDIR, f"{ID}.05_haplotypecaller.log")
     shell:
         r"""
+        set -eu
         {GATK4} HaplotypeCaller \
           -R {REF} \
           -I {input.recal} \
-          {params.interval_str} \
+          -O {output.gvcf} \
+          {INTERVAL_ARG} \
           --native-pair-hmm-threads {threads} \
           -ERC GVCF \
-          -O {output.gvcf} \
           2>> {log}
         """
 
-# ----------------------------------------
-# Rule: genotype_gvcfs
-# Jointly genotype the gVCF to produce raw VCF
-#-----------------------------------------
+# -----------------------------
+# STEP 6: GenotypeGVCFs -> raw VCF
+# -----------------------------
 rule genotype_gvcfs:
     input:
         gvcf=os.path.join(VARCALLDIR, f"{ID}.hc.g.vcf.gz")
     output:
         raw=os.path.join(VARCALLDIR, f"{ID}.hc.raw.vcf.gz")
     log:
-        os.path.join(LOGDIR, "genotype.log")
+        os.path.join(LOGDIR, f"{ID}.06_genotype_gvcfs.log")
     shell:
         r"""
+        set -eu
         {GATK4} GenotypeGVCFs \
           -R {REF} \
           -V {input.gvcf} \
-          --stand-call-conf 10 \
           -O {output.raw} \
+          --stand-call-conf 10 \
           2>> {log}
         """
 
-# ----------------------------------------
-# Rule: snp_recal and indel_recal
-# Build VQSR models if enough variants exist
-#-----------------------------------------
-rule snp_recal:
+# -----------------------------
+# STEPS 7-9: Conditional VQSR + always QC VariantFiltration
+# -----------------------------
+rule vqsr_and_qc:
     input:
         raw=os.path.join(VARCALLDIR, f"{ID}.hc.raw.vcf.gz")
-    output:
-        recal=os.path.join(VARCALLDIR, f"{ID}.snp.recal.vcf.gz"),
-        tranches=os.path.join(VARCALLDIR, f"{ID}.snp.tranches.txt")
-    log:
-        os.path.join(LOGDIR, "snp_recal.log")
-    shell:
-        r"""
-        nSNP=$(zgrep -v '^#' {input.raw} | awk 'length($5)==1' | wc -l)
-        if [ $nSNP -ge 1000 ]; then
-          {GATK4} VariantRecalibrator \
-            -R {REF} -V {input.raw} {snp_res} \
-            -an QD -an MQRankSum -an ReadPosRankSum -an FS -an MQ \
-            --mode SNP \
-            -O {output.recal} --tranches-file {output.tranches} \
-            --max-gaussians 6 2>> {log}
-            #--rscript-file {VARCALLDIR}/{ID}.snp.plots.R
-        else
-          cp {input.raw} {output.recal}
-          echo "SKIP" > {output.tranches}
-        fi
-        """
-
-rule indel_recal:
-    input:
-        raw=os.path.join(VARCALLDIR, f"{ID}.hc.raw.vcf.gz")
-    output:
-        recal=os.path.join(VARCALLDIR, f"{ID}.indel.recal.vcf.gz"),
-        tranches=os.path.join(VARCALLDIR, f"{ID}.indel.tranches.txt")
-    log:
-        os.path.join(LOGDIR, "indel_recal.log")
-    shell:
-        r"""
-        nINDEL=$(zgrep -v '^#' {input.raw} | awk 'length($5)!=1' | wc -l)
-        if [ $nINDEL -ge 8000 ]; then
-          {GATK4} VariantRecalibrator \
-            -R {REF} -V {input.raw} {indel_res} \
-            -an QD -an FS -an ReadPosRankSum --mode INDEL \
-            -O {output.recal} --tranches-file {output.tranches} \
-            --max-gaussians 4 2>> {log}
-            #--rscript-file {VARCALLDIR}/{ID}.indel.plots.R
-        else
-          cp {input.raw} {output.recal}
-          echo "SKIP" > {output.tranches}
-        fi
-        """
-
-# ----------------------------------------
-# Rule: apply_vqsr
-# Apply recalibration or fallback to hard-filtering
-# ----------------------------------------
-rule apply_vqsr:
-    input:
-        raw=os.path.join(VARCALLDIR, f"{ID}.hc.raw.vcf.gz"),
-        snp_recal=os.path.join(VARCALLDIR, f"{ID}.snp.recal.vcf.gz"),
-        snp_tranches=os.path.join(VARCALLDIR, f"{ID}.snp.tranches.txt"),
-        indel_recal=os.path.join(VARCALLDIR, f"{ID}.indel.recal.vcf.gz"),
-        indel_tranches=os.path.join(VARCALLDIR, f"{ID}.indel.tranches.txt")
-    output:
-        vqsr=os.path.join(VARCALLDIR, f"{ID}.hc.vqsr.vcf.gz"),
-        vqsr_idx=os.path.join(VARCALLDIR, f"{ID}.hc.vqsr.vcf.gz.tbi")
-    log:
-        os.path.join(LOGDIR, "apply_vqsr.log")
-    shell:
-        r"""
-        tmp={input.raw}
-        # Apply SNP VQSR if not skipped
-        if ! zgrep -q SKIP {input.snp_tranches}; then
-            {GATK4} ApplyVQSR -R {REF} -V $tmp --recal-file {input.snp_recal} \
-                --tranches-file {input.snp_tranches} --mode SNP \
-                --truth-sensitivity-filter-level 99.0 \
-                -O {VARCALLDIR}/{ID}.hc.post_snp.vcf.gz 2>> {log}
-            tmp={VARCALLDIR}/{ID}.hc.post_snp.vcf.gz
-        fi
-        # Apply INDEL VQSR or copy forward & index if skipped
-        if ! zgrep -q SKIP {input.indel_tranches}; then
-            {GATK4} ApplyVQSR -R {REF} -V $tmp --recal-file {input.indel_recal} \
-                --tranches-file {input.indel_tranches} --mode INDEL \
-                --truth-sensitivity-filter-level 95.0 \
-                -O {output.vqsr} 2>> {log}
-        else
-            cp $tmp {output.vqsr}
-            cp $tmp.tbi {output.vqsr_idx}
-        fi
-        """
-
-# ----------------------------------------
-# Rule: variant_filtration
-# Hard-filter remaining variants for QC VCF
-# ----------------------------------------
-rule variant_filtration:
-    input:
-        vqsr=os.path.join(VARCALLDIR, f"{ID}.hc.vqsr.vcf.gz"),
-        vqsr_idx=os.path.join(VARCALLDIR, f"{ID}.hc.vqsr.vcf.gz.tbi")
     output:
         qc=os.path.join(VARCALLDIR, f"{ID}.hc.QC.vcf.gz")
     log:
-        os.path.join(LOGDIR, "filter.log")
+        os.path.join(LOGDIR, f"{ID}.07_vqsr_and_qc.log")
     shell:
         r"""
+        set -eu
+
+        rawvcf={input.raw}
+        tmp_vcf="$rawvcf"
+
+        nSNP=$(zgrep -v '^#' "$rawvcf" | awk 'length($5)==1' | wc -l | tr -d ' ')
+        nINDEL=$(zgrep -v '^#' "$rawvcf" | awk 'length($5)!=1' | wc -l | tr -d ' ')
+
+        apply_snp=false
+        apply_indel=false
+
+        if [ "$nSNP" -ge "{MIN_SNP_FOR_VQSR}" ]; then
+          {GATK4} VariantRecalibrator \
+            -R {REF} \
+            -V "$rawvcf" \
+            {SNP_RES} \
+            -an QD -an MQRankSum -an ReadPosRankSum -an FS -an MQ \
+            --mode SNP \
+            -O {VARCALLDIR}/{ID}.hc.snp.recal.vcf.gz \
+            --tranches-file {VARCALLDIR}/{ID}.hc.snp.tranches.txt \
+            --max-gaussians 6 \
+            2>> {log}
+          apply_snp=true
+        fi
+
+        if [ "$nINDEL" -ge "{MIN_INDEL_FOR_VQSR}" ]; then
+          {GATK4} VariantRecalibrator \
+            -R {REF} \
+            -V "$rawvcf" \
+            {INDEL_RES} \
+            -an QD -an FS -an ReadPosRankSum \
+            --mode INDEL \
+            -O {VARCALLDIR}/{ID}.hc.indel.recal.vcf.gz \
+            --tranches-file {VARCALLDIR}/{ID}.hc.indel.tranches.txt \
+            --max-gaussians 4 \
+            2>> {log}
+          apply_indel=true
+        fi
+
+        if [ "$apply_snp" = true ]; then
+          {GATK4} ApplyVQSR \
+            -R {REF} -V "$tmp_vcf" \
+            --recal-file {VARCALLDIR}/{ID}.hc.snp.recal.vcf.gz \
+            --tranches-file {VARCALLDIR}/{ID}.hc.snp.tranches.txt \
+            --mode SNP --truth-sensitivity-filter-level 99.0 \
+            -O {VARCALLDIR}/{ID}.hc.post_snp.vcf.gz \
+            2>> {log}
+          tmp_vcf="{VARCALLDIR}/{ID}.hc.post_snp.vcf.gz"
+        fi
+
+        if [ "$apply_indel" = true ]; then
+          {GATK4} ApplyVQSR \
+            -R {REF} -V "$tmp_vcf" \
+            --recal-file {VARCALLDIR}/{ID}.hc.indel.recal.vcf.gz \
+            --tranches-file {VARCALLDIR}/{ID}.hc.indel.tranches.txt \
+            --mode INDEL --truth-sensitivity-filter-level 95.0 \
+            -O {VARCALLDIR}/{ID}.hc.vqsr.vcf.gz \
+            2>> {log}
+          tmp_vcf="{VARCALLDIR}/{ID}.hc.vqsr.vcf.gz"
+        fi
+
         {GATK4} VariantFiltration \
-          -R {REF} -V {input.vqsr} \
-          --filter-name LowQUAL    --filter-expression "QUAL < 30.0" \
-          --filter-name QD2        --filter-expression "QD < 2.0" \
-          --filter-name FS60       --filter-expression "FS > 60.0" \
-          --filter-name MQ40       --filter-expression "MQ < 40.0" \
-          --filter-name MQRS-12.5  --filter-expression "MQRankSum < -12.5" \
-          --filter-name RPRS-8     --filter-expression "ReadPosRankSum < -8.0" \
-          --filter-name QD2_INDEL  --filter-expression "QD < 2.0" \
-          --filter-name FS200      --filter-expression "FS > 200.0" \
-          --filter-name RPRS-20    --filter-expression "ReadPosRankSum < -20.0" \
-          -O {output.qc} 2>> {log}
+          -R {REF} \
+          -V "$tmp_vcf" \
+          --filter-name "LowQUAL" --filter-expression "QUAL < 30.0" \
+          --filter-name "QD2"        --filter-expression "QD < 2.0" \
+          --filter-name "FS60"       --filter-expression "FS > 60.0" \
+          --filter-name "MQ40"       --filter-expression "MQ < 40.0" \
+          --filter-name "MQRS-12.5"  --filter-expression "MQRankSum < -12.5" \
+          --filter-name "RPRS-8"     --filter-expression "ReadPosRankSum < -8.0" \
+          --filter-name "QD2_indel"  --filter-expression "QD < 2.0" \
+          --filter-name "FS200"      --filter-expression "FS > 200.0" \
+          --filter-name "RPRS-20"    --filter-expression "ReadPosRankSum < -20.0" \
+          -O {output.qc} \
+          2>> {log}
         """
 
-# ----------------------------------------
-# Rule: coverage_stats
-# Compute coverage stats for chr1 (or 1) before/after recal
-# Temporary BAMs and their index files are cleaned up after use
-#-----------------------------------------
+# -----------------------------
+# STEP 10: Coverage
+# -----------------------------
 rule coverage_stats:
     input:
         raw   = os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.bam"),
@@ -407,50 +375,68 @@ rule coverage_stats:
     output:
         cov   = os.path.join(STATSDIR, f"{ID}.coverage.txt")
     log:
-        os.path.join(LOGDIR, "coverage.log")
-    params:
-        chrN = "1" if "b37" in str(REF) else "chr1"
+        os.path.join(LOGDIR, f"{ID}.08_coverage_stats.log")
     shell:
         r"""
-        # ensure indexes exist
-        {SAM} index {input.raw}   2>> {log} || true
-        {SAM} index {input.recal} 2>> {log} || true
+        set -eu
 
-        # define scratch paths inside STATSDIR
-        RAW_TMP={STATSDIR}/{params.chrN}.tmp_raw.bam
-        RECAL_TMP={STATSDIR}/{params.chrN}.tmp_recal.bam
+        chrN="{CHR1}"
+        bam_raw="{input.raw}"
+        bam_recal="{input.recal}"
 
-        # slice out chr, index them
-        {SAM} view -b {input.raw}   {params.chrN} > $RAW_TMP
-        {SAM} view -b {input.recal} {params.chrN} > $RECAL_TMP
-        {SAM} index $RAW_TMP
-        {SAM} index $RECAL_TMP
+        out_raw="{STATSDIR}/{CHR1}.raw.bam"
+        out_dedup="{STATSDIR}/{CHR1}.dedup.bam"
 
-        # run coverage
-        bash {COV} {ID} $RAW_TMP $RECAL_TMP {PIPELINE} \
+        {SAM} view -b "$bam_raw"   "$chrN" > "$out_raw"   2>> {log}
+        {SAM} view -b "$bam_recal" "$chrN" > "$out_dedup" 2>> {log}
+
+        {SAM} index "$out_raw"   2>> {log}
+        {SAM} index "$out_dedup" 2>> {log}
+
+        bash {COV} {ID} "$out_raw" "$out_dedup" {PIPELINE} \
           > {output.cov} 2>> {log}
 
-        # clean up both BAM + BAI in STATSDIR
-        rm \
-          {STATSDIR}/{params.chrN}.tmp_raw.bam \
-          {STATSDIR}/{params.chrN}.tmp_raw.bam.bai \
-          {STATSDIR}/{params.chrN}.tmp_recal.bam \
-          {STATSDIR}/{params.chrN}.tmp_recal.bam.bai
+        rm -f "$out_raw" "$out_dedup" "$out_raw.bai" "$out_dedup.bai"
         """
 
-# ----------------------------------------
-# Rule: sex_determination
-# Determine sample sex from final QC VCF
-#-----------------------------------------
+# -----------------------------
+# STEP 10 cont: Sex
+# -----------------------------
 rule sex_determination:
     input:
         qc=os.path.join(VARCALLDIR, f"{ID}.hc.QC.vcf.gz")
     output:
         sex=os.path.join(STATSDIR, f"{ID}.sex.txt")
     log:
-        os.path.join(LOGDIR, "sex.log")
+        os.path.join(LOGDIR, f"{ID}.09_sex_determination.log")
     shell:
         r"""
+        set -eu
         bash {VCF2SEX} {input.qc} > {output.sex} 2>> {log}
         """
+
+# -----------------------------
+# STEP 11: Optional cleanup
+# -----------------------------
+rule cleanup_bams:
+    input:
+        os.path.join(VARCALLDIR, f"{ID}.hc.QC.vcf.gz")
+    output:
+        done=os.path.join(LOGDIR, f"{ID}.cleanup.done")
+    log:
+        os.path.join(LOGDIR, f"{ID}.10_cleanup_bams.log")
+    run:
+        # write any python errors to the log file
+        try:
+            if CLEANUP_BAM:
+                for pat in ("01_bam/*.bam", "01_bam/*.bai"):
+                    for fp in glob.glob(pat):
+                        try:
+                            os.remove(fp)
+                        except FileNotFoundError:
+                            pass
+            Path(output.done).write_text("ok\n")
+        except Exception as e:
+            Path(log[0]).write_text(str(e) + "\n")
+            raise
 

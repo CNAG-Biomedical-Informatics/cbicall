@@ -46,11 +46,12 @@ source "$BINDIR/parameters.sh"
 # Prepare output directories and logging
 dir=$(pwd)
 VARCALLDIR=$dir/02_varcall
+LOGDIR=$dir/logs
 mkdir -p "$VARCALLDIR"
+mkdir -p "$LOGDIR"
+
 cd $VARCALLDIR
 
-LOGDIR="logs"
-mkdir -p "$LOGDIR"
 LOG="$LOGDIR/cohort_joint_genotyping.log"
 
 # pipeline mode
