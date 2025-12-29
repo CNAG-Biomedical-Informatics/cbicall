@@ -1,1 +1,0 @@
-../../bash/gatk-3.5/vcf2sex.sh

@@ -1,0 +1,6 @@
+mode: single
+pipeline: wgs
+workflow_engine: bash
+gatk_version: gatk-4.6
+sample: CNAG999_exome/CNAG99901P_ex
+genome: hg38

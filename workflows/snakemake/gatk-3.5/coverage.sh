@@ -1,1 +1,0 @@
-../../bash/gatk-3.5/coverage.sh

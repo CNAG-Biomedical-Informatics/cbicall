@@ -98,8 +98,6 @@ cd examples/input
 
 **mtDNA**:
 
-> **Note:** Since the mtDNA reference data was generated with Python 3.8.10, running MToolbox with another Python version can result in minor output differences and a failing `--mit` test. When that occurs, simply review the generated files under `01_mtoolbox/mit_*` to confirm everything looks correct.
-
 ```bash
 cd examples/input
 ./run_tests.sh --mit
