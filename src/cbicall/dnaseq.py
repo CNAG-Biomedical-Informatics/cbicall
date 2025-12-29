@@ -64,7 +64,7 @@ class DNAseq:
         else:
             raise ValueError(f"Invalid workflow_engine: {engine!r}")
 
-        log_name = f"{engine}_{suffix}.log"
+        log_name = f"{engine}_{suffix}_{genome}_{gatk_version}.log"
         log_path = workdir / log_name
 
         if debug:
@@ -114,9 +114,6 @@ class DNAseq:
         gatk_version: str,
         genome: str,
     ) -> List[str]:
-        """
-        Build the snakemake command as an argv list (no shell).
-        """
         cmd: List[str] = [
             "snakemake",
             "--forceall",
@@ -126,14 +123,20 @@ class DNAseq:
             "--cores",
             str(threads),
         ]
-
+    
         # Always pass genome
         snk_config_kvs: List[str] = [f"genome={genome}"]
-
-        # Keep your old behavior for non-gatk-3.5
+    
         if gatk_version != "gatk-3.5":
             snk_config_kvs.append(f"pipeline={pipeline}")
-
+    
+            # Mirror bash behavior: pass sample_map + workspace if provided
+            sample_map: Optional[str] = getattr(self, "sample_map", None)
+            if sample_map:
+                run_id: str = str(getattr(self, "id"))
+                snk_config_kvs.append(f"sample_map={sample_map}")
+                snk_config_kvs.append(f"workspace=cohort.genomicsdb.{run_id}")
+    
         cmd += ["--config"] + snk_config_kvs
         return cmd
 

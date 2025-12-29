@@ -53,7 +53,6 @@ if not SAMPLE_MAP:
 # Output dirs match bash: 02_varcall; logs
 LOGDIR = "logs"
 VARCALLDIR = "02_varcall"
-LOGDIR = "logs"
 os.makedirs(LOGDIR, exist_ok=True)
 os.makedirs(VARCALLDIR, exist_ok=True)
 
@@ -65,10 +64,15 @@ def count_samples(path):
 
 SAMPLE_COUNT = count_samples(SAMPLE_MAP)
 
-# workspace: if not provided, choose a sane default under 02_varcall
+# workspace: accept from wrapper; if relative, anchor under 02_varcall (bash does: cd 02_varcall)
 WORKSPACE = config.get("workspace", "").strip()
+
+# If not provided, pick a default name
 if not WORKSPACE:
-    WORKSPACE = os.path.join(VARCALLDIR, f"cohort.genomicsdb.{SAMPLE_COUNT}")
+    WORKSPACE = f"cohort.genomicsdb.{SAMPLE_COUNT}"
+
+# Wrapper always sends relative -> keep everything under 02_varcall
+WORKSPACE = os.path.join(VARCALLDIR, WORKSPACE)
 
 # Outputs (match bash filenames inside 02_varcall)
 COHORT_RAW_VCF = os.path.join(VARCALLDIR, "cohort.gv.raw.vcf.gz")
