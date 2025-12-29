@@ -84,7 +84,7 @@ for ( my $i = 1 ; $i < $nrow ; $i++ ) {
 
 =head1 NAME
 
-parse_prioritized: cript to aggregate values in columns from samples of MToolBox => VCF_file.vcf
+parse_prioritized: Script to aggregate values in columns from samples of MToolBox => VCF_file.vcf
 
 =head1 SYNOPSIS
 
