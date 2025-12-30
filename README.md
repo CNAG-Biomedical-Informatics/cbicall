@@ -1,9 +1,9 @@
 <div align="center">
   <a href="https://github.com/mrueda/cbicall">
     <img src="https://raw.githubusercontent.com/mrueda/cbicall/main/docs/img/cbicall-logo.png"
-         width="350" alt="CBICall">
+         width="350" alt="CBIcall">
   </a>
-  <p><em>CNAG Biomedical Informatics framework for variant Calling</em></p>
+  <p><em>CNAG Biomedical Informatics framework for variant calling</em></p>
 </div>
 
 
@@ -40,7 +40,7 @@
 
 # Name
 
-CBICall: CNAG Biomedical Informatics Framework for Variant Calling on Illumina DNA-seq (germline) NGS Data.
+CBIcall: CNAG Biomedical Informatics Framework for Variant Calling on Illumina DNA-seq (germline) NGS Data.
 
 # Synopsis
 
@@ -61,11 +61,11 @@ CBICall: CNAG Biomedical Informatics Framework for Variant Calling on Illumina D
 
 # Summary
 
-CBICall (**C**NAG **B**iomedical **I**nformatics framework for variant **Call**ing) is a computational framework designed for variant calling analysis using Illumina Next-Generation Sequencing (NGS) data.
+CBIcall (**C**NAG **B**iomedical **I**nformatics framework for variant **call**ing) is a computational framework designed for variant calling analysis using Illumina Next-Generation Sequencing (NGS) data.
 
-# How to run CBICall
+# How to run CBIcall
 
-CBICall execution requires:
+CBIcall execution requires:
 
 - Input Files
 
@@ -95,7 +95,7 @@ Below are the parameters that can be customized, along with their default values
     organism:        Homo Sapiens        
     technology:      Illumina HiSeq      
 
-CBICall will create a dedicated project directory (`cbicall_*`) to store analysis outputs. This design allows multiple independent runs concurrently without modifying original input files.
+CBIcall will create a dedicated project directory (`cbicall_*`) to store analysis outputs. This design allows multiple independent runs concurrently without modifying original input files.
 
 Below is a detailed description of key parameters:
 
@@ -153,7 +153,7 @@ Below is a detailed description of key parameters:
 
 # Recommended specifications:
 
-CBICall is optimized for multi-core Linux desktop, workstation, or server environments.
+CBIcall is optimized for multi-core Linux desktop, workstation, or server environments.
 
     * Works in amd64 and arm64 archs (M-based Macs).
     * Ideally a Debian-based distribution (Ubuntu or Mint), but any other (e.g., CentOS, OpenSUSE) should do as well (untested).
@@ -166,7 +166,7 @@ CBICall is optimized for multi-core Linux desktop, workstation, or server enviro
 
 # Citation
 
-CBICall: a configuration-driven framework for variant calling in large DNA-seq cohorts. _Manuscript In preparation._
+CBIcall: a configuration-driven framework for variant calling in large DNA-seq cohorts. _Manuscript In preparation._
 
 # Author
 

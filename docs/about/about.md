@@ -1,4 +1,4 @@
-**CBICall** has been developed at [CNAG](https://cnag.eu), Barcelona, Spain.
+**CBIcall** has been developed at [CNAG](https://cnag.eu), Barcelona, Spain.
 
 ## Developers
 

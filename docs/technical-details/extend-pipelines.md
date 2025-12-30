@@ -1,11 +1,11 @@
-CBICall is designed to be extensible, allowing developers to integrate new analysis pipelines with minimal changes to the core framework.  
+CBIcall is designed to be extensible, allowing developers to integrate new analysis pipelines with minimal changes to the core framework.  
 This guide explains the recommended structure, required components, and best practices for adding a custom pipeline.
 
 ---
 
 ## 1. Overview
 
-A CBICall pipeline (or workflow) consists of:
+A CBIcall pipeline (or workflow) consists of:
 
 - One workflow scripts (Bash or Snakemake) under `workflows/{bash,snakemake}/gatk_{3.5,4.6}/`
 - Registration inside the Python wrapper
@@ -78,9 +78,9 @@ If your pipeline requires extra options (e.g., target BED, annotation files, spe
 
 ---
 
-## 5. Follow CBICall Directory Conventions
+## 5. Follow CBIcall Directory Conventions
 
-CBICall generates a standardized output structure:
+CBIcall generates a standardized output structure:
 
 ```
 cbicall_run_<pipeline_name>/
@@ -105,7 +105,7 @@ If not applicable, document the limitation:
 mode: single   # cohort not supported
 ```
 
-CBICall will raise an informative error if a user selects an unsupported mode.
+CBIcall will raise an informative error if a user selects an unsupported mode.
 
 ---
 

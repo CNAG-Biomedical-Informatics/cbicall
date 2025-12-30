@@ -1,19 +1,19 @@
-# CBICall
+# CBIcall
 
 <div align="center">
-  <img src="img/cbicall-logo.png" width="300" alt="CBICall">
+  <img src="img/cbicall-logo.png" width="300" alt="CBIcall">
   <br>
   <em>Reproducible germline variant calling for WES, WGS, and mtDNA</em>
 </div>
 
-## What is CBICall?
+## What is CBIcall?
 
-**CBICall** (**C**NAG **B**iomedical **I**nformatics framework for variant **Call**ing) is a lightweight, reproducible germline variant-calling framework developed at CNAG.  
-It wraps established best practices (BWA → GATK → VQSR or hard filters) into easy-to-run **Bash** and **Snakemake** workflows, enabling labs to produce high-quality single-sample and cohort VCFs with minimal effort.
+**CBIcall** (**C**NAG **B**iomedical **I**nformatics framework for variant **call**ing) is a lightweight, reproducible germline variant-calling framework developed at CNAG.  
+It wraps established best practices (BWA → GATK → VQSR or hard filters) into easy-to-run **Bash** and **Snakemake** workflows, enabling labs to produce high-quality single-sample and cohort VCFs with minimal effort. 🧬
 
 ---
 
-## Why CBICall?
+## Why CBIcall?
 
 - Implements GATK best practices (GATK 4.6 and GATK 3.5 legacy modes), tuned for real project needs.
 - Supports both single-sample and cohort pipelines (WES and WGS), using GenomicsDBImport or per-chromosome sharding.

@@ -1,6 +1,6 @@
 ### Runtime behavior
 
-CBICall itself uses very little memory for orchestration. The Python wrapper typically remains below **2% of a 16 GB system**. Most memory and CPU usage comes from external tools:
+CBIcall itself uses very little memory for orchestration. The Python wrapper typically remains below **2% of a 16 GB system**. Most memory and CPU usage comes from external tools:
 
 - **BWA-MEM**
   Memory usage increases with thread count and reference size.
@@ -8,7 +8,7 @@ CBICall itself uses very little memory for orchestration. The Python wrapper typ
 
 - **GATK and Picard**
   These tools default to using **8 GB** of memory.
-  This value can be adjusted through the CBICall configuration file.
+  This value can be adjusted through the CBIcall configuration file.
 
 ### Parallelization
 

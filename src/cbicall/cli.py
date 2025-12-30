@@ -168,11 +168,11 @@ def main() -> int:
     cfg = config_mod.set_config_values(param)
     cfg["version"] = VERSION
 
-    # Start CBICall banners
+    # Start CBIcall banners
     print(
-        BOLD + CYAN + f"{PROMPT}{'' if no_emoji else ' 🚀'} CBICall {VERSION}" + RESET
+        BOLD + CYAN + f"{PROMPT}{'' if no_emoji else ' 🚀'} CBIcall {VERSION}" + RESET
     )
-    print(f"{PROMPT}{'' if no_emoji else ' 🖥️ '} CBICall exe: {cbicall_path}")
+    print(f"{PROMPT}{'' if no_emoji else ' 🖥️ '} CBIcall exe: {cbicall_path}")
     print(f"{PROMPT}{'' if no_emoji else ' ✍️ '} {AUTHOR}")
     print(f"{PROMPT}{'' if no_emoji else ' 📜'} {LICENSE}\n{PROMPT}")
 
@@ -189,7 +189,7 @@ def main() -> int:
     _print_config(cfg, no_emoji)
     _print_params(param, no_emoji)
 
-    # Start CBICall
+    # Start CBIcall
     print(PROMPT)
     print(BOLD + CYAN + f"{PROMPT}{'' if no_emoji else ' 🚦'} STARTING CBICALL FUN" + RESET)
     print(f"{PROMPT} {SPACER}")

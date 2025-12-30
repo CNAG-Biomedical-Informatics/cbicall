@@ -104,7 +104,7 @@ def test_usage_help_exits(monkeypatch, capsys):
     assert excinfo.value.code == 0
     out = capsys.readouterr().out
     # Help text should contain the program name / description
-    assert "CBICall" in out
+    assert "CBIcall" in out
 
 
 def test_usage_man_exits(monkeypatch, capsys):
@@ -116,5 +116,5 @@ def test_usage_man_exits(monkeypatch, capsys):
 
     assert excinfo.value.code == 0
     out = capsys.readouterr().out
-    assert "CBICall" in out
+    assert "CBIcall" in out
 

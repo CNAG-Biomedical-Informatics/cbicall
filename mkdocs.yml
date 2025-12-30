@@ -1,8 +1,8 @@
-site_name: 'CBICall Documentation'
-site_description: 'CBICall: CNAG Biomedical Informatics framework for variant Calling' 
+site_name: 'CBIcall Documentation'
+site_description: 'CBIcall: CNAG Biomedical Informatics framework for variant Calling' 
 site_author: 'Manuel Rueda, PhD'
 copyright: '&copy; Copyright 2024-2025, Manuel Rueda, CNAG'
-repo_name: 'CBICall'
+repo_name: 'CBIcall'
 repo_url: https://github.com/CNAG-Biomedical-Informatics/cbicall
 edit_uri: edit/main/docs/
 extra_css:

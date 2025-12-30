@@ -11,7 +11,7 @@ def _build_parser(version: str) -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=textwrap.dedent(
             f"""\
-            CBICall {version}
+            CBIcall {version}
             CNAG Biomedical Informatics Framework for variant calling on Illumina DNA-seq.
             """
         ),

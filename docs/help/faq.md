@@ -89,12 +89,12 @@
 
     ##### last change 2025-10-15 by Manuel Rueda [:fontawesome-brands-github:](https://github.com/mrueda)
 
-??? question "How do I cite **CBICall**?"
+??? question "How do I cite **CBIcall**?"
 
-    You can cite the **CBICall** paper. Thx!
+    You can cite the **CBIcall** paper. Thx!
 
     !!! Note "Citation"
 
-        CBICall: a configuration-driven framework for variant calling in large DNA-seq cohorts. _Manuscript In preparation._
+        CBIcall: a configuration-driven framework for variant calling in large DNA-seq cohorts. _Manuscript In preparation._
 
     ##### last change 2025-10-15 by Manuel Rueda [:fontawesome-brands-github:](https://github.com/mrueda)

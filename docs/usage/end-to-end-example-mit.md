@@ -15,7 +15,7 @@
     ## 1. Before running mtDNA calling you must have a `bam` file coming from wes/wgs
     
     !!! example "Does it matter if I ran WES/WGS with GATK 3.5 or GATK 4.6?"
-        No. CBICall will detect and use the `bam` files produced by either version.  
+        No. CBIcall will detect and use the `bam` files produced by either version.  
         Just make sure that `bam` files are available — **FASTQ input is not supported**.
     
     CBIcall expects BAM file infrom a previous run:
@@ -111,7 +111,7 @@
     ## 1. Before running mtDNA calling you must have `bam` files coming from wes/wgs
     
     !!! example "Does it matter if I ran WES/WGS with GATK 3.5 or GATK 4.6?"
-        No. CBICall will detect and use the `bam` files produced by either version.  
+        No. CBIcall will detect and use the `bam` files produced by either version.  
         Just make sure that `bam` files are available — **FASTQ input is not supported**.
     
     CBIcall expects BAM file from previous runs:
