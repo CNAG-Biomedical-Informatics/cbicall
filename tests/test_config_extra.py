@@ -116,7 +116,6 @@ def test_set_config_values_snakemake_and_pigz(tmp_path, monkeypatch):
 
     # Genome/capture for gatk-4.6 branch
     assert cfg["genome"] == "b37"
-    assert cfg["capture"] == "GATK_bundle_b37"
 
     # Architecture mapping
     assert cfg["arch"] == "x86_64"

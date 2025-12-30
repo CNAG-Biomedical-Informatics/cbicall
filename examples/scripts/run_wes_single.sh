@@ -1,27 +1,31 @@
 #!/bin/bash
-set -eu 
+set -euo pipefail
 
-dir=/media/mrueda/2TBS/CNAG/Project_CBI_Call
-cbicall=/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/bin/cbicall
-ncpu=8
+DIR=/media/mrueda/2TBS/CNAG/Project_CBI_Call
+CBICALL=/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/bin/cbicall
+NCPU=8
 
-for dirname in MA99999_exome
+for DIRNAME in MA99999_exome
 do
- cd $dir/$dirname
- echo $dirname
- for sample in MA*P*ex
- do
-  echo "...$sample"
-  cd $sample
-  cat<<EOF>$sample.smk_wes_single.yaml
+  cd "$DIR/$DIRNAME"
+  echo "$DIRNAME"
+
+  for SAMPLE in MA*P*ex
+  do
+    echo "...$SAMPLE"
+    cd "$SAMPLE"
+
+    cat <<EOF > "$SAMPLE.smk_wes_single.yaml"
 mode: single
 pipeline: wes
 workflow_engine: snakemake
 gatk_version: gatk-4.6
-sample: $dir/$dirname/$sample
+sample: $DIR/$DIRNAME/$SAMPLE
 EOF
-time $cbicall -t $ncpu -p $sample.smk_wes_single.yaml > $sample.smk_wes_single.log 2>&1
-  cd ..
- done
-cd ..
+
+    time "$CBICALL" -t "$NCPU" -p "$SAMPLE.smk_wes_single.yaml" > "$SAMPLE.smk_wes_single.log" 2>&1
+    cd ".."
+  done
+
+  cd ".."
 done

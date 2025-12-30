@@ -1,25 +1,28 @@
 #!/bin/bash
-set -eu 
+set -euo pipefail
 
-dir=/media/mrueda/2TBS/CNAG/Project_CBI_Call
-cbicall=/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/bin/cbicall
-ncpu=4
+DIR=/media/mrueda/2TBS/CNAG/Project_CBI_Call
+CBICALL=/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/bin/cbicall
+NCPU=4
 
-for dirname in MA99999_exome
+for DIRNAME in MA99999_exome
 do
- cd $dir/$dirname
- echo $dirname
- for sample in MA*ex
- do
-  echo "...$sample"
-  cd $sample
-  cat<<EOF>$sample.mit_single.yaml
+  cd "$DIR/$DIRNAME"
+  echo "$DIRNAME"
+
+  for SAMPLE in MA*ex; do
+    echo "...$SAMPLE"
+    cd "$SAMPLE"
+
+    cat <<EOF > "$SAMPLE.mit_single.yaml"
 mode: single
 pipeline: mit
-sample: $dir/$dirname/$sample
+sample: $DIR/$DIRNAME/$SAMPLE
 EOF
-$cbicall -t $ncpu -p $sample.mit_single.yaml > $sample.mit_single.log 2>&1
-  cd ..
- done
-cd ..
+
+    "$CBICALL" -t "$NCPU" -p "$SAMPLE.mit_single.yaml" > "$SAMPLE.mit_single.log" 2>&1
+    cd ".."
+  done
+
+  cd ".."
 done

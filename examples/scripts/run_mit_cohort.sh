@@ -1,21 +1,22 @@
 #!/bin/bash
-set -eu 
+set -euo pipefail
 
-dir=/media/mrueda/2TBS/CNAG/Project_CBI_Call
-cbicall=/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/bin/cbicall
-ncpu=4
+DIR=/media/mrueda/2TBS/CNAG/Project_CBI_Call
+CBICALL=/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/bin/cbicall
+NCPU=4
 
-for dirname in MA99999_exome
+for DIRNAME in MA99999_exome
 do
- cd $dir/$dirname
- echo $dirname
-  echo "...$dirname"
-  cat<<EOF> $dirname.mit_cohort.yaml
+  cd "$DIR/$DIRNAME"
+  echo "$DIRNAME"
+  echo "...$DIRNAME"
+
+  cat <<EOF > "$DIRNAME.mit_cohort.yaml"
 mode: cohort
 pipeline: mit
-sample: $dir/$dirname
+sample: $DIR/$DIRNAME
 EOF
 
-$cbicall -t $ncpu -p $dirname.mit_cohort.yaml 
-cd ..
+  "$CBICALL" -t "$NCPU" -p "$DIRNAME.mit_cohort.yaml"
+  cd ..
 done

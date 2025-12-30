@@ -105,7 +105,7 @@ Below is a detailed description of key parameters:
 
 - **gatk\_version**
 
-    Supported values: `gatk3.5` or `gatk4.6`.
+    Supported values: `gatk-3.5` or `gatk-4.6`.
 
 - **genome**
 

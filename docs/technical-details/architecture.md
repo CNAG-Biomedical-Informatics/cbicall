@@ -113,10 +113,10 @@ The workflow engine is selected in the YAML:
 
 The following table shows valid pipeline and mode combinations for each GATK version:
 
-| GATK Version | wes\_single | wes\_cohort | wgs\_single | wgs\_cohort | mit\_single | mit\_cohort |
-|--------------|------------|------------|------------|------------|------------| -----------|
-| gatk3.5      | +          | +          | -          | -          |   +        | +          |
-| gatk4.6      | +          | +          | +          | +          |   -        | -          |
+| GATK Version  | wes\_single | wes\_cohort | wgs\_single | wgs\_cohort | mit\_single | mit\_cohort |
+|-------------- |------------|------------|------------|------------|------------| -----------|
+| gatk-3.5      | +          | +          | -          | -          |   +        | +          |
+| gatk-4.6      | +          | +          | +          | +          |   -        | -          |
 
 Date: Oct-2025
 

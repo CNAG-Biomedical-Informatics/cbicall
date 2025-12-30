@@ -32,7 +32,7 @@ _DEFAULTS = {
     "gatk_version": "gatk-3.5",
     "projectdir": "cbicall",
     "cleanup_bam": False,
-    "genome": "b37",  # default
+    "genome": None,  # Option 1: effective default assigned in _apply_genome_rules
 }
 
 
@@ -79,7 +79,10 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
     Mutates cfg.
     """
     # Block unsupported union: snakemake + gatk-3.5
-    if cfg.get("workflow_engine") == "snakemake" and cfg.get("gatk_version") == "gatk-3.5":
+    if (
+        cfg.get("workflow_engine") == "snakemake"
+        and cfg.get("gatk_version") == "gatk-3.5"
+    ):
         raise ValueError(
             "workflow_engine='snakemake' is not supported for gatk_version='gatk-3.5'. "
             "Use workflow_engine='bash' or select gatk_version='gatk-4.6'."
@@ -91,8 +94,14 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
             "The combination pipeline='mit' with workflow_engine='snakemake' is not supported."
         )
 
+    # Option 1: if genome omitted, assign effective defaults
+    # - MIT defaults to rsrs
+    # - everything else defaults to b37
+    if cfg.get("genome") is None:
+        cfg["genome"] = "rsrs" if cfg.get("pipeline") == "mit" else "b37"
+
     # MIT pipeline forces genome to rsrs
-    # - If user omits genome -> set it automatically
+    # - If user omits genome -> already set above
     # - If user sets genome to something else -> error
     if cfg.get("pipeline") == "mit":
         if user_provided_genome and cfg.get("genome") != "rsrs":
@@ -107,14 +116,13 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
         raise ValueError("genome='hg38' is only supported for pipeline='wgs'.")
 
 
-def _validate_enums(cfg: dict) -> None:
+def _validate_enums_except_genome(cfg: dict) -> None:
     _validate_enum("mode", cfg["mode"], MODE_VALUES)
     _validate_enum("pipeline", cfg["pipeline"], PIPELINE_VALUES)
     _validate_enum("organism", cfg["organism"], ORGANISM_VALUES)
     _validate_enum("technology", cfg["technology"], TECHNOLOGY_VALUES)
     _validate_enum("workflow_engine", cfg["workflow_engine"], WORKFLOW_ENGINE_VALUES)
     _validate_enum("gatk_version", cfg["gatk_version"], GATK_VALUES)
-    _validate_enum("genome", cfg["genome"], GENOME_VALUES)
 
 
 def read_param_file(yaml_file: str) -> dict:
@@ -137,12 +145,15 @@ def read_param_file(yaml_file: str) -> dict:
             raise ValueError(f"Parameter '{key}' does not exist (typo?)")
         cfg[key] = value
 
-    # Enum-style validations
-    _validate_enums(cfg)
+    # Validate enums (except genome; it may be None until rules apply)
+    _validate_enums_except_genome(cfg)
 
     # Apply shared genome rules
     user_provided_genome = "genome" in param
     _apply_genome_rules(cfg, user_provided_genome=user_provided_genome)
+
+    # Now validate genome
+    _validate_enum("genome", cfg["genome"], GENOME_VALUES)
 
     # Make sample_map absolute (resolve relative to YAML location)
     if cfg.get("sample_map") is not None:
@@ -163,13 +174,16 @@ def set_config_values(param: dict) -> dict:
 
     Important: this function merges defaults so callers may pass only overrides.
     """
-    # Merge defaults so missing keys (like genome) never raise KeyError
+    # Merge defaults so missing keys never raise KeyError
     cfg_in = dict(_DEFAULTS)
     cfg_in.update(param)
 
-    # Validate enums / combos consistently (same behavior as YAML path)
-    _validate_enums(cfg_in)
+    # Validate enums (except genome), then apply genome rules, then validate genome
+    _validate_enums_except_genome(cfg_in)
     _apply_genome_rules(cfg_in, user_provided_genome=("genome" in param))
+    _validate_enum("genome", cfg_in["genome"], GENOME_VALUES)
+
+    # Validate pipeline/mode combo for selected GATK version
     _validate_combos(cfg_in)
 
     try:
@@ -265,14 +279,14 @@ def set_config_values(param: dict) -> dict:
     else:
         config["zip"] = "/bin/gunzip"
 
-    # Capture label (optional; keep only if used elsewhere)
-    if cfg_in["pipeline"] == "wes":
-        config["capture"] = "Agilent SureSelect"
-    elif cfg_in["pipeline"] == "mit":
-        # MIT uses MToolBox reference naming
-        config["capture"] = "MToolBox_rsrs"
-    else:
-        config["capture"] = f"GATK_bundle_{config['genome']}"
+    # Capture label
+    if cfg_in["pipeline"] != "wgs":
+        if cfg_in["pipeline"] == "mit":
+            config["capture"] = f"MToolBox_{config['genome']}"
+        elif cfg_in["gatk_version"] == "gatk-3.5":
+            config["capture"] = "Agilent SureSelect"
+        else:
+            config["capture"] = f"GATK_bundle_{config['genome']}"
 
     # Architecture
     uname = platform.machine()
@@ -283,6 +297,10 @@ def set_config_values(param: dict) -> dict:
     else:
         arch = uname
     config["arch"] = arch
+
+    # FAIL FAST: MIT not supported on arm64/aarch64 (matches your bash log)
+    if cfg_in["pipeline"] == "mit" and uname in {"aarch64", "arm64"}:
+        raise RuntimeError(f"mit_{cfg_in['mode']} cannot be performed with: {uname}")
 
     # Validate executable permissions:
     exe_keys = [
@@ -302,4 +320,3 @@ def set_config_values(param: dict) -> dict:
         )
 
     return config
-

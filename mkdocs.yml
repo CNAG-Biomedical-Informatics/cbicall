@@ -76,8 +76,8 @@ nav:
 
   - "🚀 Getting Started":
     - "⚡ Quickstart": usage/quickstart.md
-    - "🧪 End-to-end Example (WES)": usage/end-to-end-example-wes-single.md
-    - "🧬 End-to-end Example (mtDNA)": usage/end-to-end-example-mit-single.md
+    - "🧪 End-to-end Example (WES)": usage/end-to-end-example-wes.md
+    - "🧬 End-to-end Example (mtDNA)": usage/end-to-end-example-mit.md
     - "📘 General Usage": usage/usage.md
 
   - "🧪 Pipelines":
