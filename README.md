@@ -86,7 +86,7 @@ Below are the parameters that can be customized, along with their default values
     sample:          undef        
     sample_map:      undef
     workflow_engine:   bash
-    gatk_version:      gatk3.5
+    gatk_version:      gatk-4.6
     genome:            b37
     cleanup_bam:       false
 
@@ -117,7 +117,7 @@ Below is a detailed description of key parameters:
 
 - **pipeline**
 
-    Specifies the analysis pipeline. Currently available options: `wes` (whole-exome sequencing) and `mit` (mitochondrial DNA analysis). Note: to run `cohort` analysis, first complete a `single` analysis for each sample.
+    Specifies the analysis pipeline. Currently available options: `wes` (whole-exome sequencing), `wgs` (whole-genome sequencing) and `mit` (mitochondrial DNA analysis). Note: to run `cohort` analysis, first complete a `single` analysis for each sample.
 
 - **projectdir**
 
@@ -148,7 +148,8 @@ Below is a detailed description of key parameters:
     $ bin/cbicall -p param_file.yaml -t 8
     $ bin/cbicall -p param_file.yaml -t 4 -verbose
     $ bin/cbicall -p param_file.yaml -t 16 > log 2>&1
-    $ /bin/cbicall -p param_file.yaml -t 8 -debug 5
+    $ $path_to_cbicall/bin/cbicall -p param_file.yaml -t 8 -debug 5
+    $ nohup bin/cbicall -p param_file.yaml -t 4 &
 
 # Recommended specifications:
 
