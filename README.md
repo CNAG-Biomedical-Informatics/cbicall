@@ -1,7 +1,7 @@
 <div align="center">
   <a href="https://github.com/mrueda/cbicall">
     <img src="https://raw.githubusercontent.com/mrueda/cbicall/main/docs/img/cbicall-logo.png"
-         width="350" alt="CBIcall">
+         width="300" alt="CBIcall">
   </a>
   <p><em>CNAG Biomedical Informatics framework for variant calling</em></p>
 </div>
