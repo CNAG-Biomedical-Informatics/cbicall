@@ -166,7 +166,7 @@ CBICall is optimized for multi-core Linux desktop, workstation, or server enviro
 
 # Citation
 
-CBICall: a pipeline-agnostic framework for variant calling in large DNA-seq cohorts. _Manuscript In preparation._
+CBICall: a configuration-driven framework for variant calling in large DNA-seq cohorts. _Manuscript In preparation._
 
 # Author
 
