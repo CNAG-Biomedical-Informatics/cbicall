@@ -87,7 +87,7 @@ nav:
 
   - "🔧 Technical Details":
       - "🏗️ Architecture": technical-details/architecture.md
-      - "🧱 Extend Pipelines": technical-details/extend-pipelines.md
+      - "🧱 Adding a Pipeline": technical-details/adding-a-pipeline.md
 
   - "❓ Help & Reference":
       - "🏷️ Naming Conventions": help/naming-conventions.md
