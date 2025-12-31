@@ -5,6 +5,7 @@ import socket
 import platform
 import getpass
 import json
+from typing import Tuple
 from pathlib import Path
 
 import yaml
@@ -173,10 +174,11 @@ def _get_project_root() -> Path:
     return here.parents[2]
 
 
-def _registry_paths(project_root: Path) -> tuple[Path, Path]:
+def _registry_paths(project_root: Path) -> Tuple[Path, Path]:
     registry_yaml = (project_root / "workflows" / "config" / "cbicall.workflows.yaml").resolve()
     schema_json = (project_root / "workflows" / "schema" / "workflows.schema.json").resolve()
     return registry_yaml, schema_json
+
 
 def read_param_file(yaml_file: str) -> dict:
     """
