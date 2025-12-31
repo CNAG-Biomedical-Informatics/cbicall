@@ -2,6 +2,7 @@
 import json
 import stat
 from pathlib import Path
+from typing import Optional, Dict, Any
 
 from cbicall import config as config_mod
 
@@ -86,8 +87,8 @@ def write_registry(
     gatk_ver: str,
     include_bash: bool = True,
     include_snakemake: bool = False,
-    bash_pipelines: dict | None = None,
-    snakemake_pipelines: dict | None = None,
+    bash_pipelines: Optional[Dict[str, Dict[str, str]]] = None,
+    snakemake_pipelines: Optional[Dict[str, Dict[str, str]]] = None,
 ) -> None:
     bash_pipelines = bash_pipelines or {"wes": {"single": "wes_single.sh"}}
     snakemake_pipelines = snakemake_pipelines or {}
@@ -135,7 +136,7 @@ def fake_project(
     tmp_path: Path,
     *,
     gatk_ver: str,
-    registry_kwargs: dict,
+    registry_kwargs: Dict[str, Any],
 ) -> Path:
     """
     Create the fake project structure expected by config.py and monkeypatch
