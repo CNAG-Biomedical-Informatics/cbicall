@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cbicall:workflows.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["workflows"],
+  "properties": {
+    "workflows": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bash"],
+      "properties": {
+        "bash": { "$ref": "#/$defs/engine" },
+        "snakemake": { "$ref": "#/$defs/engine" },
+        "nextflow": { "$ref": "#/$defs/engine" }
+      }
+    }
+  },
+  "$defs": {
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base_dir", "versions"],
+      "properties": {
+        "base_dir": { "type": "string", "minLength": 1 },
+        "versions": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/version" }
+        }
+      }
+    },
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pipelines"],
+      "properties": {
+        "common": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "minLength": 1 }
+        },
+        "pipelines": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/pipelineModes" }
+        }
+      }
+    },
+    "pipelineModes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "single": { "type": "string", "minLength": 1 },
+        "cohort": { "type": "string", "minLength": 1 }
+      },
+      "required": ["single"]
+    }
+  }
+}

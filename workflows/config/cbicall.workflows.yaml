@@ -1,0 +1,45 @@
+workflows:
+  bash:
+    base_dir: "workflows/bash"
+    versions:
+      gatk-3.5:
+        common:
+          parameters: "parameters.sh"
+          coverage: "coverage.sh"
+          jaccard: "jaccard.sh"
+          vcf2sex: "vcf2sex.sh"
+        pipelines:
+          wes:
+            single: "wes_single.sh"
+            cohort: "wes_cohort.sh"
+          mit:
+            single: "mit_single.sh"
+            cohort: "mit_cohort.sh"
+
+      gatk-4.6:
+        common:
+          parameters: "parameters.sh"
+          coverage: "coverage.sh"
+          jaccard: "jaccard.sh"
+          vcf2sex: "vcf2sex.sh"
+        pipelines:
+          wes:
+            single: "wes_single.sh"
+            cohort: "wes_cohort.sh"
+          wgs:
+            single: "wgs_single.sh"
+            cohort: "wgs_cohort.sh"
+
+  snakemake:
+    base_dir: "workflows/snakemake"
+    versions:
+      gatk-4.6:
+        common:
+          config: "config.yaml"
+        pipelines:
+          wes:
+            single: "wes_single.smk"
+            cohort: "wes_cohort.smk"
+          wgs:
+            single: "wgs_single.smk"
+            cohort: "wgs_cohort.smk"

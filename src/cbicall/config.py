@@ -4,9 +4,26 @@ import shutil
 import socket
 import platform
 import getpass
+import json
 from pathlib import Path
 
 import yaml
+from jsonschema import Draft202012Validator
+
+
+###########################################################################
+# Note:
+# Pipeline policy and semantic validation are intentionally kept in code
+# (enums, defaults, genome/tool compatibility rules) to provide a stable,
+# fail-fast contract with good error messages.
+#
+# Workflow *wiring* (script paths, tool versions, pipeline/mode mappings)
+# is loaded from an external YAML registry and validated with JSON Schema,
+# so new pipelines can be added without modifying code.
+#
+# Code guarantees: loaded config is syntactically valid, semantically sane,
+# and only dispatches to declared + executable workflow scripts.
+###########################################################################
 
 
 # Allowed values
@@ -94,15 +111,13 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
             "The combination pipeline='mit' with workflow_engine='snakemake' is not supported."
         )
 
-    # Option 1: if genome omitted, assign effective defaults
+    # If genome omitted, assign effective defaults
     # - MIT defaults to rsrs
     # - everything else defaults to b37
     if cfg.get("genome") is None:
         cfg["genome"] = "rsrs" if cfg.get("pipeline") == "mit" else "b37"
 
     # MIT pipeline forces genome to rsrs
-    # - If user omits genome -> already set above
-    # - If user sets genome to something else -> error
     if cfg.get("pipeline") == "mit":
         if user_provided_genome and cfg.get("genome") != "rsrs":
             raise ValueError(
@@ -124,6 +139,44 @@ def _validate_enums_except_genome(cfg: dict) -> None:
     _validate_enum("workflow_engine", cfg["workflow_engine"], WORKFLOW_ENGINE_VALUES)
     _validate_enum("gatk_version", cfg["gatk_version"], GATK_VALUES)
 
+
+def _load_json(path: Path) -> dict:
+    with path.open("r") as fh:
+        return json.load(fh)
+
+
+def _validate_with_schema(data: dict, schema: dict, label: str) -> None:
+    v = Draft202012Validator(schema)
+    errors = sorted(v.iter_errors(data), key=lambda e: list(e.path))
+    if errors:
+        lines = [f"{label} failed schema validation:"]
+        for e in errors[:25]:
+            loc = ".".join(str(x) for x in e.path) or "(root)"
+            lines.append(f"- {loc}: {e.message}")
+        raise ValueError("\n".join(lines))
+
+
+def load_workflow_registry(
+    registry_yaml: Path,
+    schema_json: Path,
+) -> dict:
+    with registry_yaml.open("r") as fh:
+        data = yaml.safe_load(fh) or {}
+    schema = _load_json(schema_json)
+    _validate_with_schema(data, schema, label=str(registry_yaml))
+    return data
+
+
+def _get_project_root() -> Path:
+    here = Path(__file__).resolve()
+    # src/cbicall/config.py -> src/cbicall -> src -> project root
+    return here.parents[2]
+
+
+def _registry_paths(project_root: Path) -> tuple[Path, Path]:
+    registry_yaml = (project_root / "workflows" / "config" / "cbicall.workflows.yaml").resolve()
+    schema_json = (project_root / "workflows" / "schema" / "workflows.schema.json").resolve()
+    return registry_yaml, schema_json
 
 def read_param_file(yaml_file: str) -> dict:
     """
@@ -193,41 +246,86 @@ def set_config_values(param: dict) -> dict:
 
     user = os.environ.get("LOGNAME") or os.environ.get("USER") or fallback_user
 
-    # Base directories for workflows (using this file as anchor)
-    here = Path(__file__).resolve()
-    # src/cbicall/config.py -> src/cbicall -> src -> project root
-    project_root = here.parents[2]
-    workflows_bash_dir = (project_root / "workflows" / "bash").resolve()
-    workflows_snakemake_dir = (project_root / "workflows" / "snakemake").resolve()
+    # Project root
+    project_root = _get_project_root()
 
-    # Versioned subdirs
-    bash_version_dir = workflows_bash_dir / cfg_in["gatk_version"]
-    snakemake_version_dir = workflows_snakemake_dir / cfg_in["gatk_version"]
+    # Load workflow registry + schema validate
+    registry_yaml, schema_json = _registry_paths(project_root)
+    if not registry_yaml.is_file():
+        raise FileNotFoundError(f"Workflow registry not found: {registry_yaml}")
+    if not schema_json.is_file():
+        raise FileNotFoundError(f"Workflow schema not found: {schema_json}")
 
-    config = {"user": user}
+    registry = load_workflow_registry(registry_yaml, schema_json)
+
+    config: dict = {"user": user}
     config["workflow_engine"] = cfg_in["workflow_engine"]
     config["genome"] = cfg_in["genome"]
 
-    # Common bash scripts
-    config["bash_parameters"] = str(bash_version_dir / "parameters.sh")
-    config["bash_coverage"] = str(bash_version_dir / "coverage.sh")
-    config["bash_jaccard"] = str(bash_version_dir / "jaccard.sh")
-    config["bash_vcf2sex"] = str(bash_version_dir / "vcf2sex.sh")
+    # Resolve workflow scripts from registry
+    engine = cfg_in["workflow_engine"]
+    version = cfg_in["gatk_version"]
+    pipeline = cfg_in["pipeline"]
+    mode = cfg_in["mode"]
+    suffix = f"{pipeline}_{mode}"
 
-    # Selected workflow name
-    suffix = f"{cfg_in['pipeline']}_{cfg_in['mode']}"
+    workflows = registry["workflows"]
+    if engine not in workflows:
+        raise ValueError(f"Engine not defined in workflow registry: {engine}")
 
-    # Selected bash workflow (one per pipeline-mode)
-    bash_script = f"{suffix}.sh"
-    bash_key = f"bash_{suffix}"
-    config[bash_key] = str(bash_version_dir / bash_script)
+    eng_cfg = workflows[engine]
+    versions_cfg = eng_cfg["versions"]
+    if version not in versions_cfg:
+        raise ValueError(f"Version not defined for engine '{engine}': {version}")
 
-    # Snakemake workflows (only if chosen engine)
-    if cfg_in["workflow_engine"] == "snakemake":
-        smk_script = f"{suffix}.smk"
-        smk_key = f"smk_{suffix}"
-        config[smk_key] = str(snakemake_version_dir / smk_script)
-        config["smk_config"] = str(snakemake_version_dir / "config.yaml")
+    ver_cfg = versions_cfg[version]
+    common = ver_cfg.get("common", {})
+    pipelines_cfg = ver_cfg["pipelines"]
+
+    if pipeline not in pipelines_cfg:
+        raise ValueError(f"Pipeline not defined for {engine}/{version}: {pipeline}")
+    if mode not in pipelines_cfg[pipeline]:
+        raise ValueError(
+            f"Mode not defined for pipeline '{pipeline}' in {engine}/{version}: {mode}"
+        )
+
+    base_dir = (project_root / eng_cfg["base_dir"] / version).resolve()
+
+    # Keep existing key names so the rest of the code stays unchanged
+    if engine == "bash":
+        # Required common keys for bash
+        needed_common = ["parameters", "coverage", "jaccard", "vcf2sex"]
+        missing_common = [k for k in needed_common if k not in common]
+        if missing_common:
+            raise ValueError(
+                f"Workflow registry is missing common keys for bash/{version}: {missing_common}"
+            )
+
+        config["bash_parameters"] = str(base_dir / common["parameters"])
+        config["bash_coverage"] = str(base_dir / common["coverage"])
+        config["bash_jaccard"] = str(base_dir / common["jaccard"])
+        config["bash_vcf2sex"] = str(base_dir / common["vcf2sex"])
+
+        script_name = pipelines_cfg[pipeline][mode]
+        config[f"bash_{suffix}"] = str(base_dir / script_name)
+
+    elif engine == "snakemake":
+        # Required common keys for snakemake
+        if "config" not in common:
+            raise ValueError(
+                f"Workflow registry is missing common key 'config' for snakemake/{version}"
+            )
+
+        script_name = pipelines_cfg[pipeline][mode]
+        config[f"smk_{suffix}"] = str(base_dir / script_name)
+        config["smk_config"] = str(base_dir / common["config"])
+
+    elif engine == "nextflow":
+        # You can extend this later; keep explicit for now
+        raise ValueError("workflow_engine='nextflow' is declared but not implemented.")
+
+    else:
+        raise ValueError(f"Unsupported workflow_engine: {engine}")
 
     # Internal settings
     now = int(time.time())
@@ -298,25 +396,44 @@ def set_config_values(param: dict) -> dict:
         arch = uname
     config["arch"] = arch
 
-    # FAIL FAST: MIT not supported on arm64/aarch64 (matches your bash log)
+    # FAIL FAST: MIT not supported on arm64/aarch64
     if cfg_in["pipeline"] == "mit" and uname in {"aarch64", "arm64"}:
         raise RuntimeError(f"mit_{cfg_in['mode']} cannot be performed with: {uname}")
 
-    # Validate executable permissions:
-    exe_keys = [
-        "bash_parameters",
-        "bash_coverage",
-        "bash_jaccard",
-        "bash_vcf2sex",
-    ]
-    if cfg_in["workflow_engine"] == "bash":
-        exe_keys.append(bash_key)
+    # Extra guardrail: referenced files must exist
+    must_exist = []
+    if engine == "bash":
+        must_exist += [
+            "bash_parameters",
+            "bash_coverage",
+            "bash_jaccard",
+            "bash_vcf2sex",
+            f"bash_{suffix}",
+        ]
+    elif engine == "snakemake":
+        must_exist += [f"smk_{suffix}", "smk_config"]
 
-    missing = [k for k in exe_keys if k in config and not os.access(config[k], os.X_OK)]
-    if missing:
+    missing_files = [k for k in must_exist if k in config and not Path(config[k]).exists()]
+    if missing_files:
         raise RuntimeError(
-            "Missing +x on one or more workflow scripts: "
-            + ", ".join(f"{k} -> {config[k]}" for k in missing)
+            "One or more workflow files referenced in the registry do not exist: "
+            + ", ".join(f"{k} -> {config[k]}" for k in missing_files)
         )
+
+    # Validate executable permissions (+x) for bash scripts (your original behavior)
+    if engine == "bash":
+        exe_keys = [
+            "bash_parameters",
+            "bash_coverage",
+            "bash_jaccard",
+            "bash_vcf2sex",
+            f"bash_{suffix}",
+        ]
+        not_exe = [k for k in exe_keys if k in config and not os.access(config[k], os.X_OK)]
+        if not_exe:
+            raise RuntimeError(
+                "Missing +x on one or more workflow scripts: "
+                + ", ".join(f"{k} -> {config[k]}" for k in not_exe)
+            )
 
     return config
