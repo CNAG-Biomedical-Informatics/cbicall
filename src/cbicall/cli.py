@@ -10,7 +10,7 @@ from .dnaseq import DNAseq
 from .helpmod import usage, parse_args as _parse_args
 from .goodbye import GoodBye
 
-VERSION = "0.0.1"
+VERSION = "1.0.0"
 PROMPT = "Info:"
 SPACER = "*" * 41
 ARROW = "=>"
