@@ -1,0 +1,7 @@
+GSNAP version 2015-12-31 called with args: /media/mrueda/2TBS/NGSutils/MToolBox-master/bin/gmap/bin/gsnap -D /media/mrueda/2TBS/Databases/mtDNA/gmapdb -d hg19RSRS -A sam --nofails --query-unk-mismatch=1 -O -t 4 OUT_CNAG99901P-DNA_MIT/outmt1.fastq OUT_CNAG99901P-DNA_MIT/outmt2.fastq
+Neither novel splicing (-N) nor known splicing (-s) turned on => assume reads are DNA-Seq (genomic)
+Checking compiler assumptions for popcnt: 6B8B4567 __builtin_clz=1 __builtin_ctz=0 _mm_popcnt_u32=17 __builtin_popcount=17 
+Checking compiler assumptions for SSE2: 6B8B4567 327B23C6 xor=59F066A1
+Checking compiler assumptions for SSE4.1: -103 -58 max=198 => compiler zero extends
+Finished checking compiler assumptions
+Unable to find file ending with .version in directory /media/mrueda/2TBS/Databases/mtDNA/gmapdb/hg19RSRS

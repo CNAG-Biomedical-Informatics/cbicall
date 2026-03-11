@@ -1,0 +1,37 @@
+GSNAP version 2015-12-31 called with args: /media/mrueda/2TBS/NGSutils/MToolBox-master/bin/gmap/bin/gsnap -D /media/mrueda/2TBS/Databases/mtDNA/gmapdb -d chrRSRS -A sam --nofails --pairmax-dna=500 --query-unk-mismatch=1 --read-group-id=sample --read-group-name=sample --read-group-library=sample --read-group-platform=sample -n 1 -Q -O -t 4 CNAG99901P-DNA_MIT.R1.fastq CNAG99901P-DNA_MIT.R2.fastq
+Neither novel splicing (-N) nor known splicing (-s) turned on => assume reads are DNA-Seq (genomic)
+Checking compiler assumptions for popcnt: 6B8B4567 __builtin_clz=1 __builtin_ctz=0 _mm_popcnt_u32=17 __builtin_popcount=17 
+Checking compiler assumptions for SSE2: 6B8B4567 327B23C6 xor=59F066A1
+Checking compiler assumptions for SSE4.1: -103 -58 max=198 => compiler zero extends
+Finished checking compiler assumptions
+Allocating memory for compressed genome (oligos)...Attached new memory for /media/mrueda/2TBS/Databases/mtDNA/gmapdb/chrRSRS/chrRSRS.genomecomp...done (6,216 bytes, 0.00 sec)
+Allocating memory for compressed genome (bits)...Attached new memory for /media/mrueda/2TBS/Databases/mtDNA/gmapdb/chrRSRS/chrRSRS.genomebits128...done (6,240 bytes, 0.00 sec)
+Pre-loading suffix array....done (66,280 bytes, 0.00 sec)
+Allocating memory for indexij ptrs...Attached new memory for /media/mrueda/2TBS/Databases/mtDNA/gmapdb/chrRSRS/chrRSRS.saindex64meta...done (4,194,312 bytes, 0.00 sec)
+Allocating memory for indexij comp...Attached new memory for /media/mrueda/2TBS/Databases/mtDNA/gmapdb/chrRSRS/chrRSRS.saindex64strm...done (252,112 bytes, 0.00 sec)
+Pre-loading LCP/child/DC arrays...,.done (41,425 bytes, 0.00 sec)
+Allocating memory for lcp guide...Attached new memory for /media/mrueda/2TBS/Databases/mtDNA/gmapdb/chrRSRS/chrRSRS.salcpguide1024...done (4 bytes, 0.00 sec)
+Allocating memory for lcp exceptions...done (0 bytes, 0.00 sec)
+Allocating memory for child guide...Attached new memory for /media/mrueda/2TBS/Databases/mtDNA/gmapdb/chrRSRS/chrRSRS.sachildguide1024...done (72 bytes, 0.00 sec)
+Allocating memory for child exceptions...Attached new memory for /media/mrueda/2TBS/Databases/mtDNA/gmapdb/chrRSRS/chrRSRS.sachildexc...done (488 bytes, 0.00 sec)
+Looking for index files in directory /media/mrueda/2TBS/Databases/mtDNA/gmapdb/chrRSRS
+  Pointers file is chrRSRS.ref153offsets64meta
+  Offsets file is chrRSRS.ref153offsets64strm
+  Positions file is chrRSRS.ref153positions
+Offsets compression type: bitpack64
+Allocating memory for ref offset pointers, kmer 15, interval 3...Attached new memory for /media/mrueda/2TBS/Databases/mtDNA/gmapdb/chrRSRS/chrRSRS.ref153offsets64meta...done (134,217,744 bytes, 0.05 sec)
+Allocating memory for ref offsets, kmer 15, interval 3...Attached new memory for /media/mrueda/2TBS/Databases/mtDNA/gmapdb/chrRSRS/chrRSRS.ref153offsets64strm...done (88,112 bytes, 0.00 sec)
+Allocating memory for ref positions, kmer 15, interval 3...Attached new memory for /media/mrueda/2TBS/Databases/mtDNA/gmapdb/chrRSRS/chrRSRS.ref153positions...done (22,036 bytes, 0.00 sec)
+GMAP modes: pairsearch, indel_knownsplice, segments, improvement
+Starting alignment
+Processed 4856 queries in 0.08 seconds (60700.00 queries/sec)
+Removed existing memory for shmid 1802261
+Removed existing memory for shmid 1802260
+Removed existing memory for shmid 1802259
+Removed existing memory for shmid 1802247
+Removed existing memory for shmid 1802253
+Removed existing memory for shmid 1802255
+Removed existing memory for shmid 1802258
+Removed existing memory for shmid 1802256
+Removed existing memory for shmid 1802245
+Removed existing memory for shmid 1802244

@@ -1,0 +1,7 @@
+*.bck
+*.old
+*.swp
+*.pyc
+bck/
+old/
+/do_readme.sh

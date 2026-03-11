@@ -1,0 +1,5 @@
+mode: cohort
+pipeline: mit
+workflow_engine: bash
+gatk_version: gatk-3.5
+sample: CNAG999_exome

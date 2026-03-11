@@ -1,0 +1,6 @@
+PyYAML
+pulp==2.6.0
+snakemake
+pytest
+pytest-cov
+jsonschema
