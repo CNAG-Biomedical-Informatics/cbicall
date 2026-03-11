@@ -42,26 +42,12 @@
     -   `1` = first alternate (ALT) allele
     -   `2`, `3`, ... = additional ALT alleles (multiallelic)
     
-    For **chrM/MT (mtDNA)**, callers typically encode genotypes as
-    **haploid** (not allele pairs).
-    
     ## Meaning
     
     -   **`GT = 1` → ALT allele detected in that sample**
-    -   No `/` or `|` separator because only one allele index is stored
     -   Biological interpretation relies on:
         -   **`HF`** → heteroplasmy fraction (molecules supporting ALT)
         -   **`DP`** → read depth (total support)
-    
-    ## Examples
-    
-    | GT | Interpretation (mtDNA) |
-    |---|---|
-    | `0` | Only reference allele observed |
-    | `1` | ALT allele present (homoplasmic or heteroplasmic, check `HF` + `DP`) |
-    | `0/1`, `1/2` *(rare)* | Multiallelic call, still haploid encoding — not diploid zygosity |
-
-    > **TL;DR:** `GT = 1` = ALT detected. Check `HF` and `DP` for biology.
     
     !!! info "Tip" 
 
