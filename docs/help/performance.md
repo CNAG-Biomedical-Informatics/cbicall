@@ -8,7 +8,12 @@ CBIcall itself uses very little memory for orchestration. The Python wrapper typ
 
 - **GATK and Picard**
   These tools default to using **8 GB** of memory.
-  This value can be adjusted through the CBIcall configuration file.
+  This value can be adjusted through the CBIcall [configuration file](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/bash/gatk-3.5/env.sh#L19).
+
+!!! Warning "Cohort mode with GATK4.6 (joint genotyping)"
+
+    Defaults to **64 GB** of [RAM memory](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/bash/gatk-3.5/env.sh#L20).
+ 
 
 ### Parallelization
 
@@ -21,6 +26,6 @@ For example, on a 12-core workstation:
 
 A runtime example is shown in the figure below.
 
-!!! Example "Performance WES"
+!!! Example "Performance WES (single-mode)"
 
     ![Time](https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/refs/heads/main/docs/img/run-time.png)
