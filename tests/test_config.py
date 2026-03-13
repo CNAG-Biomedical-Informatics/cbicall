@@ -135,6 +135,24 @@ def test_read_param_file_hg38_only_allowed_for_wgs(tmp_path):
         config_mod.read_param_file(str(p))
 
 
+def test_read_param_file_resolves_sample_relative_to_yaml(tmp_path):
+    sample_dir = tmp_path / "inputs" / "SAMPLE_001"
+    sample_dir.mkdir(parents=True)
+
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: single\n"
+        "pipeline: wes\n"
+        "workflow_engine: bash\n"
+        "gatk_version: gatk-4.6\n"
+        "sample: inputs/SAMPLE_001\n",
+        encoding="utf-8",
+    )
+
+    cfg = config_mod.read_param_file(str(p))
+    assert cfg["sample"] == str(sample_dir.resolve())
+
+
 # -----------------------------------------
 # set_config_values() missing-registry/schema
 # -----------------------------------------

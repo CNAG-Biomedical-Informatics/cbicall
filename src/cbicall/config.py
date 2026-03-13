@@ -210,6 +210,13 @@ def read_param_file(yaml_file: str) -> dict:
     # Now validate genome
     _validate_enum("genome", cfg["genome"], GENOME_VALUES)
 
+    # Make sample absolute (resolve relative to YAML location)
+    if cfg.get("sample") is not None:
+        sample = Path(cfg["sample"])
+        if not sample.is_absolute():
+            sample = yaml_path.parent / sample
+        cfg["sample"] = str(sample.resolve())
+
     # Make sample_map absolute (resolve relative to YAML location)
     if cfg.get("sample_map") is not None:
         sm = Path(cfg["sample_map"])

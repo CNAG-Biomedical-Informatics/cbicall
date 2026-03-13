@@ -201,3 +201,62 @@ def test_main_verbose_prints(monkeypatch, tmp_path, capsys):
     out = capsys.readouterr().out
     assert "CBICALL FINISHED OK" in out
     assert "Running time" in out
+
+
+def test_main_passes_wgs_cohort_workflow_keys(monkeypatch, tmp_path):
+    def fake_usage(version):
+        return {
+            "threads": 4,
+            "paramfile": str(tmp_path / "params.yaml"),
+            "debug": 0,
+            "verbose": False,
+            "noemoji": True,
+            "nocolor": False,
+        }
+
+    monkeypatch.setattr(cli_mod, "usage", fake_usage)
+
+    fake_param = {
+        "pipeline": "wgs",
+        "mode": "cohort",
+        "sample": None,
+        "sample_map": str(tmp_path / "sample_map.tsv"),
+        "workflow_engine": "bash",
+        "gatk_version": "gatk-4.6",
+        "cleanup_bam": False,
+    }
+
+    monkeypatch.setattr(cli_mod.config_mod, "read_param_file", lambda _: fake_param)
+    monkeypatch.setattr(
+        cli_mod.config_mod,
+        "set_config_values",
+        lambda _: {
+            "projectdir": str(tmp_path / "proj"),
+            "id": "IDWGSCOHORT",
+            "genome": "b37",
+            "bash_wgs_cohort": "/x_wgs_cohort.sh",
+            "smk_wgs_cohort": "/x_wgs_cohort.smk",
+        },
+    )
+
+    seen = {}
+    monkeypatch.setattr(cli_mod, "write_log", lambda cfg, arg, param: None)
+
+    class FakeDNAseq:
+        def __init__(self, settings):
+            seen["settings"] = settings
+
+        def variant_calling(self):
+            return True
+
+    monkeypatch.setattr(cli_mod, "DNAseq", FakeDNAseq)
+
+    class FakeGoodBye:
+        def say_goodbye(self):
+            return "Bye"
+
+    monkeypatch.setattr(cli_mod, "GoodBye", FakeGoodBye)
+
+    assert cli_mod.main() == 0
+    assert seen["settings"]["bash_wgs_cohort"] == "/x_wgs_cohort.sh"
+    assert seen["settings"]["smk_wgs_cohort"] == "/x_wgs_cohort.smk"

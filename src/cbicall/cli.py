@@ -216,11 +216,13 @@ def main() -> int:
         "bash_mit_single": cfg.get("bash_mit_single"),
         "bash_wes_cohort": cfg.get("bash_wes_cohort"),
         "bash_wes_single": cfg.get("bash_wes_single"),
+        "bash_wgs_cohort": cfg.get("bash_wgs_cohort"),
         "bash_wgs_single": cfg.get("bash_wgs_single"),
         "smk_mit_cohort": cfg.get("smk_mit_cohort"),
         "smk_mit_single": cfg.get("smk_mit_single"),
         "smk_wes_cohort": cfg.get("smk_wes_cohort"),
         "smk_wes_single": cfg.get("smk_wes_single"),
+        "smk_wgs_cohort": cfg.get("smk_wgs_cohort"),
         "smk_wgs_single": cfg.get("smk_wgs_single"),
     }
 
@@ -253,4 +255,3 @@ def main() -> int:
     print(f"{WHITE}{PROMPT}{'' if no_emoji else ' 👋 '} {gb.say_goodbye()}{RESET}")
 
     return 0
-
