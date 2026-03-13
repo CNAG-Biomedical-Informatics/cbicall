@@ -85,4 +85,5 @@ These records allow runs to be inspected, reproduced, and debugged.
 
 ## Getting started
 
+[➡️ Choose Your Path](usage/choose-your-path.md){ .md-button }
 [➡️ Get Started](usage/quickstart.md){ .md-button .md-button--primary }

@@ -1,11 +1,12 @@
 # Quickstart
 
-This page provides a minimal introduction to using CBIcall.  
-It focuses on **basic commands**, **help options**, and **a simple built-in test run**.
+This page is the shortest path to a validated local test run using the example data shipped in the repository.
+
+If you first need to decide which installation method or workflow applies to you, start with [Choose your path](choose-your-path.md).
 
 ---
 
-## 1. Basic usage
+## 1. Confirm the CLI is available
 
 You can check the command-line interface using:
 
@@ -21,36 +22,25 @@ bin/cbicall --version
 
 ---
 
-## 2. Minimal command example
+## 2. Run the shipped WES smoke test
 
-Once you have a parameters file (YAML), you can run:
-
-```bash
-bin/cbicall -p param.yaml -t 8
-```
-
-- `-p` selects the param file  
-- `-t` sets the number of threads
-
-This is the minimal invocation required for any workflow.
-
----
-
-## 3. Run a small WES job (local workstation)
-
-CBIcall includes small test configurations to validate that your installation works.
-
-Example:
+This is the most reliable first run because it uses the same example layout used by the integration test script.
 
 ```bash
 cd examples/input
-../../bin/cbicall -p wes_single.yaml -t 4
+./run_tests.sh --wes
 ```
 
-When the job completes successfully (<2 min), you should see:
+What this does:
+
+- runs `cbicall` on the bundled WES example
+- compares the resulting VCF against the shipped reference output
+- exits non-zero if the result differs
+
+When the test completes successfully, you should have a run directory like:
 
 ```
-CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_*/
+CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_*/
   01_bam/
   02_varcall/
   03_stats/
@@ -64,24 +54,24 @@ The final `VCF` will be located at:
 
 ---
 
-## 4. Run a small mtDNA job (local workstation)
+## 3. Run the shipped mtDNA smoke test
 
-Example:
+Run this after the WES example is working. The mtDNA example depends on the WES/WGS-style project structure and uses the bundled mtDNA example configuration.
 
 ```bash
-cd examples/input # ommit if you are already there
-../../bin/cbicall -p mit_single.yaml -t 4
+cd examples/input
+./run_tests.sh --mit
 ```
 
-When the job completes successfully (~ 5 min), you should see:
+When the test completes successfully, you should have a run directory like:
 
-```
-CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_gatk-3.5_*/
+```text
+CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_rsrs_gatk-3.5_*/
   01_mtoolbox/
   02_browser/
 ```
 
-We recommend you to check:
+Start by checking:
 
 ```
 02_browser/README.txt
@@ -89,9 +79,23 @@ We recommend you to check:
 
 ---
 
+## 4. Run CBIcall directly with a YAML file
+
+Once the smoke tests work, the minimal direct invocation is:
+
+```bash
+bin/cbicall -p param.yaml -t 8
+```
+
+- `-p` selects the parameter file
+- `-t` sets the number of threads
+
+---
 
 ## 5. Next steps
 
-For a complete, real-case workflow demonstration, see:
+- Use [Choose your path](choose-your-path.md) if you are still deciding between installation methods or workflows.
+- For a realistic WES walkthrough, see [End-to-end example WES](end-to-end-example-wes.md).
+- For mtDNA, see [End-to-end example mtDNA](end-to-end-example-mit.md).
 
 [➡️ End-to-end example WES](end-to-end-example-wes.md){ .md-button .md-button--primary }

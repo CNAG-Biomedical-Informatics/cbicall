@@ -76,14 +76,15 @@ nav:
       - "🛠️  Non-containerized": installation/non-containerized.md
 
   - "🚀 Getting Started":
+    - "🧭 Choose Your Path": usage/choose-your-path.md
     - "⚡ Quickstart": usage/quickstart.md
     - "🧪 End-to-end Example (WES)": usage/end-to-end-example-wes.md
     - "🧬 End-to-end Example (mtDNA)": usage/end-to-end-example-mit.md
     - "📘 General Usage": usage/usage.md
 
   - "🧪 Pipelines":
-      - "🔬 WES WGS Single":  pipelines/wes_wgs_single.md
-      - "🧫 WES WGS Cohort": pipelines/wes_wgs_cohort.md
+      - "🔬 WES WGS Single":  pipelines/wes-wgs-single.md
+      - "🧫 WES WGS Cohort": pipelines/wes-wgs-cohort.md
       - "🧬 mtDNA": pipelines/mtdna.md
 
   - "🔧 Technical Details":

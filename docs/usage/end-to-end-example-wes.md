@@ -79,7 +79,7 @@
     After completion, you will find:
     
     ```
-    CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_gatk-4.6_*/
+    CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_*/
       01_bam/
       02_varcall/
       03_stats/
@@ -173,7 +173,7 @@
     After completion, you will find:
     
     ```
-    cbicall_bash_wes_cohort_gatk-4.6_*/
+    cbicall_bash_wes_cohort_b37_gatk-4.6_*/
       02_varcall/
       logs/
     ```

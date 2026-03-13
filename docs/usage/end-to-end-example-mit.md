@@ -66,7 +66,7 @@
     After completion, you will find:
     
     ```
-    CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_mit_gatk-3.5_*/
+    CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_rsrs_gatk-3.5_*/
       01_mtoolbox/
       02_browser/
     ```
@@ -94,7 +94,7 @@
     
     ### HTML table:
     
-    In this tab SG-ADVISER mtDNA displays a browsable table consisting of the most relavant fields relative to the variant annotation:
+    In this tab SG-ADVISER mtDNA displays a browsable table consisting of the most relevant fields relative to the variant annotation:
     
     * **Sample**: The full name of each sample.
     * **Locus**: The location on the mitochondrial chromosome.
