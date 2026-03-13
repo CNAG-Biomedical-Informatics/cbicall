@@ -236,6 +236,7 @@ def test_main_passes_wgs_cohort_workflow_keys(monkeypatch, tmp_path):
             "genome": "b37",
             "bash_wgs_cohort": "/x_wgs_cohort.sh",
             "smk_wgs_cohort": "/x_wgs_cohort.smk",
+            "smk_config": "/x_config.yaml",
         },
     )
 
@@ -260,3 +261,4 @@ def test_main_passes_wgs_cohort_workflow_keys(monkeypatch, tmp_path):
     assert cli_mod.main() == 0
     assert seen["settings"]["bash_wgs_cohort"] == "/x_wgs_cohort.sh"
     assert seen["settings"]["smk_wgs_cohort"] == "/x_wgs_cohort.smk"
+    assert seen["settings"]["smk_config"] == "/x_config.yaml"

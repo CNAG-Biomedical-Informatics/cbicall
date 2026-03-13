@@ -82,7 +82,7 @@ def _validate_args_core(args: argparse.Namespace) -> argparse.Namespace:
 def parse_args(argv, version: str) -> argparse.Namespace:
     """
     Pure argument parsing + validation.
-    Does not call sys.exit; raises ValueError on invalid args.
+    Raises SystemExit on invalid args.
     Suitable for tests.
     """
     parser = _build_parser(version)

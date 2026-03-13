@@ -55,6 +55,7 @@ class DNAseq:
                 raise RuntimeError(f"Missing Snakefile for pipeline/mode '{suffix}'")
             cmd = self._build_snakemake_cmd(
                 script=script,
+                smk_config=getattr(self, "smk_config", None),
                 threads=threads,
                 pipeline=pipeline,
                 gatk_version=gatk_version,
@@ -109,6 +110,7 @@ class DNAseq:
     def _build_snakemake_cmd(
         self,
         script: str,
+        smk_config: Optional[str],
         threads: int,
         pipeline: str,
         gatk_version: str,
@@ -123,20 +125,23 @@ class DNAseq:
             "--cores",
             str(threads),
         ]
-    
+
+        if smk_config:
+            cmd += ["--configfile", smk_config]
+
         # Always pass genome
         snk_config_kvs: List[str] = [f"genome={genome}"]
-    
+
         if gatk_version != "gatk-3.5":
             snk_config_kvs.append(f"pipeline={pipeline}")
-    
+
             # Mirror bash behavior: pass sample_map + workspace if provided
             sample_map: Optional[str] = getattr(self, "sample_map", None)
             if sample_map:
                 run_id: str = str(getattr(self, "id"))
                 snk_config_kvs.append(f"sample_map={sample_map}")
                 snk_config_kvs.append(f"workspace=cohort.genomicsdb.{run_id}")
-    
+
         cmd += ["--config"] + snk_config_kvs
         return cmd
 
@@ -189,4 +194,3 @@ class DNAseq:
                 parts.append(f"{k}={shlex.quote(str(v))}")
         parts.extend(shlex.quote(str(x)) for x in cmd)
         return " ".join(parts)
-

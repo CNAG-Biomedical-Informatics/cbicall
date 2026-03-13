@@ -123,12 +123,15 @@ def test_dnaseq_builds_snakemake_command_and_config(tmp_path, monkeypatch):
         "id": "RID777",
         "debug": False,
         "genome": "hg38",
+        "smk_config": str(tmp_path / "config.yaml"),
         "smk_wes_single": snakefile,
     }
 
     assert dnaseq.DNAseq(settings).variant_calling() is True
     cmd = recorded["cmd"]
     assert cmd[:3] == ["snakemake", "--forceall", "all"]
+    assert "--configfile" in cmd
+    assert str(tmp_path / "config.yaml") in cmd
     assert "genome=hg38" in cmd
     assert "pipeline=wes" in cmd
 
