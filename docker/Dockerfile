@@ -39,5 +39,5 @@ RUN groupadd -g "${GID}" dockeruser \
 # To change default user from root -> dockeruser
 #USER dockeruser
 
-# Get back to entry dir
+# Set the entry dir
 WORKDIR /usr/share/cbicall
