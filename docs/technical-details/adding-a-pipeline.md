@@ -218,19 +218,23 @@ This ensures that workflows are always executed from **registered and validated 
 
 Most pipelines only require workflow scripts and registry entries.
 
-If additional parameters or configuration options are needed, they can be added in:
+If additional parameters or configuration options are needed, the Python changes may span several modules depending on the type of change:
 
-```
-src/cbicall/config.py
-```
+- `src/cbicall/config.py` for parameter defaults, semantic validation, and resolved runtime metadata
+- `src/cbicall/workflow_registry.py` for workflow resolution and registry-related validation
+- `src/cbicall/models.py` if a new option must become part of the typed internal runtime/config model
+- `src/cbicall/dnaseq.py` if the change affects execution behavior or engine-specific command building
 
-This file defines parameter defaults and validation logic used by the execution driver.
+For most workflow additions, no Python code changes are required beyond scripts and registry entries.
+
+If you are unsure where a change belongs, inspect the existing implementations in the repository first and follow the closest matching pattern.
 
 ---
 
 # Quick checklist
 
 - [ ] Inspect existing pipelines in `workflows/{bash|snakemake}/{gatk-version}/`
+- [ ] Check the existing Python implementation paths in `src/cbicall/` when adding new parameters or execution behavior
 - [ ] Add workflow script(s)
 - [ ] Register the pipeline in `workflows/config/cbicall.workflows.yaml`
 - [ ] Validate registry against the JSON schema
