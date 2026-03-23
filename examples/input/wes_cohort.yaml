@@ -1,0 +1,6 @@
+mode: cohort
+pipeline: wes
+workflow_engine: bash
+gatk_version: gatk-3.5
+input_dir: CNAG999_exome
+cleanup_bam: true

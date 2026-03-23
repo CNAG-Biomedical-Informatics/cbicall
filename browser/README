@@ -1,0 +1,6 @@
+./mtb2json.py  -i ../examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_gatk-3.5_764327235354851/MTOOLBOX/mit_prioritized_variants.txt  -f json4html > mit.json
+
+./mtb2html.py --id CNAG99901P-DNA_MIT --json mit.json --out mtdna.html --job-id 176099009134887
+
+chromium --allow-file-access-from-files --disable-web-security mtdna.html 
+

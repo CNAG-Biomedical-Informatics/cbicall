@@ -1,0 +1,1 @@
+../../bash/gatk-3.5/env.sh
