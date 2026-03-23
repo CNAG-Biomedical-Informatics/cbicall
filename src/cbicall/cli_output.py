@@ -14,6 +14,7 @@ def _short_path(value) -> str:
         return "(undef)"
 
     path = Path(str(value))
+    display_path = path
     try:
         home = Path.home()
         resolved = path.resolve()
@@ -22,11 +23,11 @@ def _short_path(value) -> str:
         except ValueError:
             pass
     except Exception:
-        resolved = path
+        pass
 
-    parts = resolved.parts
+    parts = display_path.parts
     if len(parts) <= 4:
-        return str(resolved)
+        return str(display_path)
 
     return str(Path("...") / Path(*parts[-3:]))
 
