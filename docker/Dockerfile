@@ -23,6 +23,9 @@ RUN git clone https://github.com/mrueda/cbicall.git
 # Remove the .git folder to save space and avoid shipping VCS data
 RUN rm -rf cbicall/.git
 
+# Remove docs folder
+RUN rm -rf docs/ mkdocs.yml
+
 # Install Python packages
 RUN pip3 install -r /usr/share/cbicall/requirements.txt
 
