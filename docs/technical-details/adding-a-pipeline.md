@@ -31,7 +31,8 @@ Because the workflow registry defines the available pipelines, adding a new work
 
 The runtime path is split into two responsibilities:
 
-- `src/cbicall/config.py` validates the requested combination and resolves the workflow entrypoint from the registry
+- `src/cbicall/config.py` validates parameters, applies semantic rules, and assembles resolved runtime metadata
+- `src/cbicall/workflow_registry.py` loads the workflow registry, resolves the workflow entrypoint, and validates referenced files
 - `src/cbicall/dnaseq.py` dispatches execution to an engine-specific runner
 
 The current execution runners are:
@@ -76,8 +77,10 @@ For Bash workflows:
 For Snakemake workflows:
 
 - the registry must define a version-specific `config.yaml`
-- CBIcall launches `snakemake` and passes the resolved Snakefile with `--config`
-- `genome` is always passed to Snakemake, and `pipeline` or `sample_map` are added when required by the selected mode/version
+- CBIcall launches `snakemake` with the resolved Snakefile via `-s` and the shared config file via `--configfile`
+- `genome` is always passed to Snakemake via `--config`
+- `pipeline`, `sample_map`, and `workspace` are added when required by the selected mode/version
+- if `workflow_rule` is set, CBIcall uses that rule as the Snakemake target instead of `all`
 
 ---
 
@@ -199,6 +202,8 @@ cbicall -p params.yaml -t 4
 
 CBIcall validates the configuration, creates the runtime directory, and executes the workflow script.
 
+If `input_dir` is defined, the runtime directory is created below that input directory with a generated run identifier appended to the configured `project_dir` prefix.
+
 ---
 
 ## 7. Validation
@@ -207,6 +212,7 @@ CBIcall checks that:
 
 - the pipeline is registered in the workflow registry
 - the selected execution backend exists
+- the selected backend/version/pipeline/mode combination is allowed by the Python validation layer
 - referenced workflow scripts are present
 - Bash scripts are executable
 
