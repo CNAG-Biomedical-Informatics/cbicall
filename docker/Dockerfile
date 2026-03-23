@@ -20,8 +20,8 @@ RUN apt-get update && \
 WORKDIR /usr/share/
 RUN git clone https://github.com/mrueda/cbicall.git
 
-# Remove the .git* folders to save space and avoid shipping VCS data
-RUN rm -rf cbicall/.git cbicall/.github
+# Remove Git metadata and CI configs to shrink image and avoid shipping them
+RUN rm -rf cbicall/.git cbicall/.github cbicall/.gitattributes cbicall/.gitignore
 
 # Remove docs
 RUN rm -rf cbicall/docs/ cbicall/mkdocs.yml
