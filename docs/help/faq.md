@@ -100,7 +100,6 @@
     You can cite the **CBIcall** paper. Thx!
 
     !!! Note "Citation"
-
-        CBIcall: a configuration-driven framework for variant calling in large sequencing cohorts. _Manuscript In preparation._
+        CBIcall: a configuration-driven framework for variant calling in large sequencing cohorts. [Preprint DOI](https://doi.org/10.64898/2026.03.23.713646).
 
     ##### last change 2025-10-15 by Manuel Rueda [:fontawesome-brands-github:](https://github.com/mrueda)
