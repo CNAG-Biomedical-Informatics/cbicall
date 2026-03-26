@@ -1,7 +1,7 @@
 # Citation for ClarID-Tools
 
 !!! Abstract "Citation"
-    CBIcall: a configuration-driven framework for variant calling in large sequencing cohorts. _Manuscript In preparation._
+    CBIcall: a configuration-driven framework for variant calling in large sequencing cohorts. [Preprint DOI](https://doi.org/10.64898/2026.03.23.713646).
 
 !!! Success "Funding agencies"
 
