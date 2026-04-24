@@ -72,6 +72,38 @@
     - `-p` selects the YAML parameters file  
     - `-t` sets the number of threads
     
+
+    You should see something like this on the screen:
+
+    ```bash
+    CBIcall 1.0.0
+      Executable   => .../cbicall/bin/cbicall
+      Workflow     => bash -> wes -> single
+      Genome       => b37
+      Threads      => 4
+      Project      => .../CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_177447031761843
+      Run ID       => 177447031761843
+    
+    Inputs
+      Param file   => wes_single.yaml
+      Input dir    => .../input/CNAG999_exome/CNAG99901P_ex
+      Sample map   => (undef)
+      GATK         => gatk-4.6
+    
+    Resolved
+      Entrypoint   => .../bash/gatk-4.6/wes_single.sh
+      Log          => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_177447031761843/bash_wes_single_b37_gatk-4.6.log
+    
+    Running
+      Workflow     => bash -> wes -> single
+      This workflow may take a while depending on input size and pipeline.
+    
+    Completed
+      Status       => Finished successfully
+      Elapsed      => 1m 30s
+      Log          => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_177447031761843/bash_wes_single_b37_gatk-4.6.log
+    Do Widzenia
+    ```
     ---
     
     ## 4. Inspect outputs
