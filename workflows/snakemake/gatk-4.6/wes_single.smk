@@ -78,6 +78,7 @@ for d in (BAMDIR, VARCALLDIR, STATSDIR, LOGDIR):
 # -----------------------------
 rawid = Path.cwd().parent.name
 ID = rawid.split("_", 1)[0]
+SAMPLE_NAME = ID
 
 # -----------------------------
 # FASTQ pairs (match bash glob)
@@ -130,10 +131,8 @@ rule align_rg:
     shell:
         r"""
         set -eu
-        SAMPLE=$(echo {wildcards.base} | cut -d'_' -f1-2)
-        LANE=$(echo   {wildcards.base} | cut -d'_' -f3)
-        RGID="${{SAMPLE}}.${{LANE}}.$(date +%s)"
-        RGPU="${{SAMPLE}}.${{LANE}}.unit1"
+        RGID="{SAMPLE_NAME}.{wildcards.base}"
+        RGPU="{SAMPLE_NAME}.{wildcards.base}.unit1"
 
         {BWA} mem -M -t {threads} {REFGZ} {input.r1} {input.r2} \
           | {GATK4} AddOrReplaceReadGroups \
@@ -142,7 +141,7 @@ rule align_rg:
               --TMP_DIR {TMPDIR} \
               --RGPL ILLUMINA \
               --RGLB sureselect \
-              --RGSM "$SAMPLE" \
+              --RGSM "{SAMPLE_NAME}" \
               --RGID "$RGID" \
               --RGPU "$RGPU" \
           2>> {log}
@@ -439,4 +438,3 @@ rule cleanup_bams:
         except Exception as e:
             Path(log[0]).write_text(str(e) + "\n")
             raise
-

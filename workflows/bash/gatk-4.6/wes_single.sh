@@ -82,6 +82,7 @@ mkdir -p "$BAMDIR" "$VARCALLDIR" "$STATSDIR" "$LOGDIR"
 # Determine sample ID & log file
 rawid=$(basename "$(dirname "$PWD")")
 id=${rawid%%_*}
+sample_name="$id"
 LOG=$LOGDIR/${id}.log
 
 # Set interval argument for WES vs WGS
@@ -104,11 +105,10 @@ for R1 in ../*_R1_*fastq.gz; do
   base=${fn%_R1*}
   R2=${R1/_R1_/_R2_}
 
-  SAMPLE=$(echo "$base" | cut -d'_' -f1-2)
-  LANE=$(echo   "$base" | cut -d'_' -f3)
-  # ensure RGIDs are unique by appending a timestamp
-  RGID="${SAMPLE}.${LANE}.$(date +%s)"
-  RGPU="${SAMPLE}.${LANE}.unit1"
+  # Keep one canonical sample name for the whole run. FASTQ prefixes may vary
+  # across files for the same sample, so read groups must not derive RGSM from them.
+  RGID="${sample_name}.${base}"
+  RGPU="${sample_name}.${base}.unit1"
 
   out_bam="$BAMDIR/${base}.rg.bam"
   echo "Aligning $fn -> $(basename "$out_bam")"
@@ -126,7 +126,7 @@ for R1 in ../*_R1_*fastq.gz; do
         --TMP_DIR "$TMPDIR" \
         --RGPL ILLUMINA \
         --RGLB sureselect \
-        --RGSM "$SAMPLE" \
+        --RGSM "$sample_name" \
         --RGID "$RGID" \
         --RGPU "$RGPU" \
     2>> "$LOG"

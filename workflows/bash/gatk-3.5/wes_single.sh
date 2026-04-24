@@ -80,6 +80,7 @@ mkdir $LOGDIR
 
 # id will be used to name final VCF files. Note that we can't use fq info since naming can be wrong (e.g., MA00M5_ instead of MA0000502M_)
 id=$( echo $DIR | awk -F'/' '{print $(NF-1)}' | awk -F'_' '{print $1}' )
+sample_name=$id
 
 # Create a log file with STDERR
 LOG=$LOGDIR/cbicall_bash_wes_single.log
@@ -116,14 +117,8 @@ do
  R2=${R1/_R1_/_R2_} # substitute R1 by R2 in $R1 to create $R2
  string_R1=$( echo $R1 | awk -F'/' '{print $NF}' )
  string_R2=${string_R1/_R1_/_R2_}
- array=(${string_R1//_/ })  # split $R1 fq by '_" and load an array to get misc sample info
- sample="${array[0]}_${array[1]}" # ID_ex
- barcode_seq=${array[2]}
- lane=${array[3]}
- read_number=${array[4]}
- part=${array[5]}
- part=${part%.*.*}  # getting rid of .fastq.gz
- #echo "$sample $barcode_seq $index $lane $read_number $part"
+ base=${string_R1%.fastq.gz}
+ rg_token=${base%_R1*}
 
  echo " $string_R1 / $string_R2"
 
@@ -136,11 +131,11 @@ do
       I=$in  \
       O=$out \
       SO=coordinate \
-      RGID=$lane \
+      RGID=$rg_token \
       RGLB=sureselect \
       RGPL=illumina \
-      RGPU=$barcode_seq \
-      RGSM=$sample  2>> $LOG
+      RGPU=${rg_token}.unit1 \
+      RGSM=$sample_name  2>> $LOG
 
  # Fixmate information and bam indexing with Picard
  in=$out
