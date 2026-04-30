@@ -97,7 +97,7 @@ echo "Extracting Mitochondrial DNA from exome BAM files..."
 
 # Find candidate sample directories one level up (same layout as your tree)
 # Example: ../MA0002401P_ex/...
-sample_dirs=$(ls -d ../../??????????_ex 2>/dev/null || true)
+sample_dirs=$(ls -d ../../??????????_{ex,wg} 2>/dev/null || true)
 
 if [ -z "${sample_dirs:-}" ]; then
   echo "ERROR: No sample directories matching ../??????????_ex were found." >&2

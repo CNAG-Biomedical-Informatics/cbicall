@@ -29,7 +29,7 @@ BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source env.sh from the same directory
 source "$BINDIR/env.sh"
 
-dir=../*_ex/cbicall_${workflow_engine}_wes_single*/02_varcall
+dir=../*_{ex,wg}/cbicall_${workflow_engine}_wes_single*/02_varcall
 
 for vcf1 in $( ls -1 "$dir"/*.*QC.vcf )
 do
