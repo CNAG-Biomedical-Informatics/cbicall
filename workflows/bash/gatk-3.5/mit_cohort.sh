@@ -65,7 +65,7 @@ fi
 DIR="$(pwd)"
 
 # Check that nomenclature exists
-if [[ "$DIR" != *cbicall_bash_mit_cohort* ]]; then
+if [[ "$DIR" != *_bash_mit_cohort* ]]; then
   usage
 fi
 
@@ -95,13 +95,6 @@ cd "$VARCALLDIR"
 
 echo "Extracting Mitochondrial DNA from exome BAM files..."
 
-# Determine chrM naming based on REF
-if [[ "$REF" == *b37*.fasta* ]]; then
-  chrM="MT"
-else
-  chrM="chrM"
-fi
-
 # Find candidate sample directories one level up (same layout as your tree)
 # Example: ../MA0002401P_ex/...
 sample_dirs=$(ls -d ../../??????????_ex 2>/dev/null || true)
@@ -121,7 +114,7 @@ for sdir in $sample_dirs; do
   bam_raw=""
 
   # --- Prefer GATK 3.5 bam layout (wes_single, fixed.bam) ---
-  p35="$sdir/"*cbicall_bash_wes_single_*gatk-3.5*/01_bam/input.merged.filtered.realigned.fixed.bam
+  p35="$sdir/"*_bash_wes_single_*gatk-3.5*/01_bam/input.merged.filtered.realigned.fixed.bam
   list35=$(ls -1 $p35 2>/dev/null | grep -v 'ref_cbicall' || true)
   n35=$(printf "%s\n" "$list35" | sed '/^$/d' | wc -l)
 
@@ -136,7 +129,7 @@ for sdir in $sample_dirs; do
 
   # --- Otherwise try GATK 4.6 bam layout (wes/wgs single, recal.bam) ---
   if [ -z "$bam_raw" ]; then
-    p46="$sdir/"*cbicall_bash_w[ge]s_single_*gatk-4.6*/01_bam/"$sid".rg.merged.dedup.recal.bam
+    p46="$sdir/"*_bash_w[ge]s_single_*gatk-4.6*/01_bam/"$sid".rg.merged.dedup.recal.bam
     list46=$(ls -1 $p46 2>/dev/null | grep -v 'ref_cbicall' || true)
     n46=$(printf "%s\n" "$list46" | sed '/^$/d' | wc -l)
 
@@ -165,6 +158,17 @@ for sdir in $sample_dirs; do
   fi
 
   out_raw="${mtb_id}.bam"
+
+  case "$bam_raw" in
+    *_b37_gatk-*)
+      chrM="MT"
+      ;;
+    *)
+      chrM="chrM"
+      ;;
+  esac
+
+  echo "Extracting mitochondrial contig '$chrM' from BAM for $sid: $bam_raw"
 
   "$SAM" view -b "$bam_raw" "$chrM" > "$out_raw"
   "$SAM" index "$out_raw"
@@ -294,4 +298,3 @@ EOF
 
 echo "All done!!!"
 exit
-

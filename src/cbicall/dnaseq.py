@@ -168,6 +168,9 @@ class BashRunner(BaseRunner):
                 "Partial workflow runs are not supported for workflow_engine='bash'."
             )
 
+        # Bash reads workflow scripts directly from the repository at runtime.
+        # Editing a .sh file while a job is running can make bash reach EOF early
+        # and still exit 0 if the last completed command succeeded.
         script = self.workflow.entrypoint
         if not script:
             raise WorkflowResolutionError(f"Missing bash script for pipeline/mode '{self.suffix}'")

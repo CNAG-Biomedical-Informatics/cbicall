@@ -3,6 +3,7 @@ Revision history for cbicall:
 1.0.1  2026-0X-XX
 
     - Fix single-sample workflows to keep one sample name across FASTQs with different prefixes.
+    - Fix mtDNA extraction from hg38 BAMs by selecting chrM instead of MT.
 
 1.0.0  2026-03-23
 
