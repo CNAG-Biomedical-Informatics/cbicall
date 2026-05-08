@@ -1,4 +1,4 @@
-# WES/WGS Cohort Joint-Genotyping Pipeline  
+# WES/WGS Cohort Joint-Genotyping Pipeline
 
 A user-oriented guide for multi-sample joint genotyping using GenomicsDB, GenotypeGVCFs, and VQSR.
 
@@ -9,30 +9,7 @@ A user-oriented guide for multi-sample joint genotyping using GenomicsDB, Genoty
 
 ## Diagram: Cohort Joint-Genotyping Workflow
 
-```mermaid
-flowchart TD
-A["Input per sample gVCF files"]
-B["Import gVCFs into GenomicsDB workspace"]
-C["Run GenotypeGVCFs to create cohort raw VCF"]
-D["Count SNP and INDEL variants"]
-E["Check SNP count threshold"]
-F["Check INDEL count threshold"]
-G["Build SNP VQSR model"]
-H["Build INDEL VQSR model"]
-I["Apply SNP VQSR"]
-J["Apply INDEL VQSR"]
-K["Choose best available VCF"]
-L["Apply hard filters"]
-M["Write cohort QC VCF"]
-
-A --> B --> C --> D
-D --> E -->|Enough SNPs| G --> I
-D --> F -->|Enough INDELs| H --> J
-C --> K
-I --> K
-J --> K
-K --> L --> M
-```
+![WES/WGS cohort joint-genotyping workflow](/img/diagram-wes-wgs-cohort.svg)
 
 ---
 
@@ -144,4 +121,3 @@ This QC VCF is the recommended cohort VCF for downstream analysis.
   - Family-based segregation analysis.
   - Case/control or population cohorts.
   - Downstream tools that expect joint genotypes.
-

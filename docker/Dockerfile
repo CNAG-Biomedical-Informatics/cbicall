@@ -23,8 +23,8 @@ RUN git clone https://github.com/mrueda/cbicall.git
 # Remove Git metadata and CI configs to shrink image and avoid shipping them
 RUN rm -rf cbicall/.git cbicall/.github cbicall/.gitattributes cbicall/.gitignore
 
-# Remove docs
-RUN rm -rf cbicall/docs/ cbicall/mkdocs.yml
+# Remove documentation sources from the runtime image
+RUN rm -rf cbicall/docs-site/
 
 # Install Python packages
 RUN pip3 install -r /usr/share/cbicall/requirements.txt

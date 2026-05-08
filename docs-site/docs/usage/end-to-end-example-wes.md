@@ -49,6 +49,7 @@ Notes:
 - `mode` selects single-sample or cohort (joint genotyping).  
 - `pipeline` switches between WES, WGS or mtDNA.  
 - `workflow_engine` chooses the backend (bash or snakemake).  
+- See [Configuration Reference](../help/configuration-reference) for all YAML keys and supported combinations.
 
 > **How can I perform WGS?**
     Simply change the parameter `pipeline` to `wgs`. Like this:
@@ -125,7 +126,13 @@ Where:
 - QC metrics (coverage, sample stats, sex prediction) are in `03_stats`  
 - Logs for all pipeline steps are under `logs/`  
 
-These files are ready for downstream analysis, annotation or integration with cohort-level studies.
+:::tip[What you get]
+- Final VCF for interpretation: `02_varcall/<id>.hc.QC.vcf.gz`
+- gVCF for cohort joint genotyping: `02_varcall/<id>.hc.g.vcf.gz`
+- Run metadata: `log.json`
+
+See [Outputs](../help/outputs) for the full file reference.
+:::
 
 ---
 
@@ -210,6 +217,14 @@ Where:
 
 - Final VCF files are stored in `02_varcall/`  
 - Logs for all pipeline steps are under `logs/`  
+
+:::tip[What you get]
+- Final joint VCF: `02_varcall/cohort.gv.QC.vcf.gz`
+- GenomicsDB workspace and raw cohort VCF in `02_varcall/`
+- Run metadata: `log.json`
+
+See [Outputs](../help/outputs) for the full file reference.
+:::
 
 </TabItem>
 </Tabs>

@@ -11,11 +11,11 @@ const config: Config = {
   organizationName: 'CNAG-Biomedical-Informatics',
   projectName: 'cbicall',
   onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'warn',
   markdown: {
-    mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
   },
-  themes: ['@docusaurus/theme-mermaid'],
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
@@ -64,9 +64,27 @@ const config: Config = {
           position: 'left',
         },
         {
-          to: '/docs/help/faq',
-          label: 'FAQ',
+          type: 'dropdown',
+          label: 'Reference',
           position: 'left',
+          items: [
+            {
+              to: '/docs/help/configuration-reference',
+              label: 'Configuration Reference',
+            },
+            {
+              to: '/docs/help/outputs',
+              label: 'Outputs',
+            },
+            {
+              to: '/docs/help/troubleshooting',
+              label: 'Troubleshooting',
+            },
+            {
+              to: '/docs/help/faq',
+              label: 'FAQ',
+            },
+          ],
         },
         {
           href: 'https://github.com/CNAG-Biomedical-Informatics/cbicall',

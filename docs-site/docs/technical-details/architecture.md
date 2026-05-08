@@ -15,33 +15,24 @@ The actual bioinformatics work (alignment, variant calling, QC) is implemented i
 
 ---
 
+## Architecture diagram
+
+![Diagram](/img/architecture-diagram.png)
+
+---
+
 ## Main components
 
 At a high level, CBIcall consists of:
 
-- **Python execution driver**  
-  Parses the YAML configuration, validates parameters, resolves paths and dispatches execution to the selected pipeline and workflow engine.
-
-- **Pipelines**  
-  Implement the variant-calling workflows for WES, WGS and mtDNA analyses. Each pipeline lives in its own directory and can provide Bash and/or Snakemake workflows.  
-  Common parameters are loaded via `env.sh`.
-
-- **Workflow engines**  
-  Control how the workflow is executed:
-    - Bash scripts for simple, transparent runs
-    - Snakemake workflows for dependency tracking and parallelization
-
-- **Project layout and logs**  
-  A standard output structure with separate `01_bam/`, `02_varcall/`, `03_stats/` and `logs/` directories reused across all pipelines.
-
-- **External data**  
-  Executables and databases for third-party tools, reference genomes and accessory data.
-
----
-
-## Architecture diagram
-
-![Diagram](/img/architecture-diagram.png)
+| Component | Role | Main files or directories |
+| --- | --- | --- |
+| Python execution driver | Reads the YAML configuration, validates parameters, resolves paths, and dispatches execution to the selected workflow. | `src/cbicall/config.py`, `src/cbicall/dnaseq.py` |
+| Workflow registry | Maps `workflow_engine`, `gatk_version`, `pipeline`, and `mode` to concrete workflow scripts. | `workflows/config/cbicall.workflows.yaml`, `src/cbicall/workflow_registry.py` |
+| Pipelines | Implement WES, WGS, and mtDNA analyses. A pipeline may provide Bash workflows, Snakemake workflows, or both. | `workflows/bash/`, `workflows/snakemake/` |
+| Workflow engines | Execute the resolved workflow. Bash is transparent and direct; Snakemake adds rule-based orchestration and partial targets. | `BashRunner`, `SnakemakeRunner` in `src/cbicall/dnaseq.py` |
+| Run directory | Stores outputs, logs, and `log.json` for one execution. | `01_bam/`, `02_varcall/`, `03_stats/`, `logs/` |
+| External data | Provides third-party tools, reference genomes, known-sites resources, and accessory databases. | `DATADIR`, `NGSUTILS`, `Databases` |
 
 ---
 

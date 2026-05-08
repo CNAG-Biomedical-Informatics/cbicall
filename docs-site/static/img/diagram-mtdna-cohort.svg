@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" role="img" aria-labelledby="title desc">
+  <title id="title">mtDNA cohort workflow</title>
+  <desc id="desc">Workflow from multiple WES sample directories through mtDNA BAM extraction, joint MToolBox analysis, genotype/depth/heteroplasmy extraction, and cohort prioritized variant report.</desc>
+  <rect width="960" height="280" rx="18" fill="#f8fafc"/>
+  <style>
+    .label{font:600 15px Arial,Helvetica,sans-serif;fill:#1f2937}
+    .small{font:12px Arial,Helvetica,sans-serif;fill:#475569}
+    .box{fill:#fff;stroke:#cbd5e1;stroke-width:2}
+    .data{fill:#ecfdf5;stroke:#10b981}
+    .tool{fill:#fff7ed;stroke:#f59e0b}
+    .final{fill:#eff6ff;stroke:#2563eb}
+    .line{fill:none;stroke:#64748b;stroke-width:2.3;stroke-linecap:round}
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <text x="480" y="38" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="25" font-weight="700" fill="#0f172a">mtDNA Cohort Workflow</text>
+  <text x="480" y="62" text-anchor="middle" class="small">Multiple WES/WGS BAMs to one joint mtDNA variant table</text>
+  <g transform="translate(38 110)">
+    <rect class="data" x="0" y="0" width="132" height="68" rx="10"/>
+    <text class="label" x="66" y="27" text-anchor="middle">Sample dirs</text>
+    <text class="small" x="66" y="49" text-anchor="middle">WES/WGS outputs</text>
+    <rect class="box" x="170" y="0" width="132" height="68" rx="10"/>
+    <text class="label" x="236" y="25" text-anchor="middle">Extract mtDNA</text>
+    <text class="small" x="236" y="47" text-anchor="middle">per sample</text>
+    <rect class="box" x="340" y="0" width="132" height="68" rx="10"/>
+    <text class="label" x="406" y="25" text-anchor="middle">BAM set</text>
+    <text class="small" x="406" y="47" text-anchor="middle">cohort input</text>
+    <rect class="tool" x="510" y="0" width="132" height="68" rx="10"/>
+    <text class="label" x="576" y="25" text-anchor="middle">MToolBox</text>
+    <text class="small" x="576" y="47" text-anchor="middle">joint analysis</text>
+    <rect class="box" x="680" y="0" width="132" height="68" rx="10"/>
+    <text class="label" x="746" y="25" text-anchor="middle">Append</text>
+    <text class="small" x="746" y="47" text-anchor="middle">per-sample HF</text>
+    <rect class="final" x="826" y="0" width="132" height="68" rx="10"/>
+    <text class="label" x="896" y="25" text-anchor="middle">Cohort report</text>
+    <text class="small" x="896" y="47" text-anchor="middle">joint table</text>
+    <path class="line" marker-end="url(#arrow)" d="M132 34 H166"/>
+    <path class="line" marker-end="url(#arrow)" d="M302 34 H336"/>
+    <path class="line" marker-end="url(#arrow)" d="M472 34 H506"/>
+    <path class="line" marker-end="url(#arrow)" d="M642 34 H676"/>
+    <path class="line" marker-end="url(#arrow)" d="M812 34 H826"/>
+  </g>
+</svg>

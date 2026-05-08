@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/mrueda/cbicall">
-    <img src="https://raw.githubusercontent.com/mrueda/cbicall/main/docs/img/cbicall-logo.png"
+    <img src="https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/main/docs-site/static/img/cbicall-logo.png"
          width="300" alt="CBIcall">
   </a>
   <p><em>CNAG Biomedical Informatics framework for variant calling</em></p>
@@ -80,4 +80,3 @@ Written by Manuel Rueda (mrueda). GitHub repository: [https://github.com/CNAG-Bi
 # Copyright and license
 
 Please see the included LICENSE file for distribution and usage terms.
-

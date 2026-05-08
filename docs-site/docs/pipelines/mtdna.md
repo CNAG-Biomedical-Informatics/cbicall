@@ -7,8 +7,8 @@ These pipelines extract mitochondrial reads from exome data and run **MToolBox**
 
 There are two processing modes:
 
-- **Single-sample analysis** (`mit_single`)
-- **Cohort / family analysis** (`mit_cohort`)
+- **Single-sample analysis**: `mit_single`
+- **Cohort / family analysis**: `mit_cohort`
 
 Both consume **WES single-sample outputs** and assume [this nomenclature](../help/naming-conventions).
 
@@ -26,7 +26,7 @@ Both consume **WES single-sample outputs** and assume [this nomenclature](../hel
 ## Workflow Details
 
 <Tabs groupId="workflow-mode">
-<TabItem value="single-sample-mit-single" label="Single-Sample (`mit_single`)" default>
+<TabItem value="single-sample-mit-single" label="Single-Sample: mit_single" default>
 
 ## mtDNA Single-Sample Pipeline
 
@@ -34,17 +34,7 @@ Both consume **WES single-sample outputs** and assume [this nomenclature](../hel
 
 ### Workflow Diagram
 
-```mermaid
-flowchart TD
-    A["Input WES BAM from single sample pipeline"]
-    B["Extract mitochondrial reads (chrM/MT)"]
-    C["Create mtDNA-only BAM"]
-    D["Run MToolBox (RSRS reference)"]
-    E["Get VCF + prioritized variants"]
-    F["Extract GT/DP/HF for each variant"]
-    G["Write mit_prioritized_variants.txt"]
-    A --> B --> C --> D --> E --> F --> G
-```
+![mtDNA single-sample workflow](/img/diagram-mtdna-single.svg)
 
 ### Summary
 
@@ -74,7 +64,7 @@ It extracts mtDNA reads, runs MToolBox, and enriches the prioritized variants wi
 | `mit_prioritized_variants.txt` | Final prioritized list with GT/DP/HF |
 
 </TabItem>
-<TabItem value="cohort-mit-cohort" label="Cohort (`mit_cohort`)">
+<TabItem value="cohort-mit-cohort" label="Cohort: mit_cohort">
 
 ## mtDNA Cohort Pipeline
 
@@ -82,17 +72,7 @@ It extracts mtDNA reads, runs MToolBox, and enriches the prioritized variants wi
 
 ### Workflow Diagram
 
-```mermaid
-flowchart TD
-    A["Input all WES single-sample directories"]
-    B["Extract mtDNA BAMs for each sample"]
-    C["mtDNA BAM collection"]
-    D["Run MToolBox jointly on cohort"]
-    E["Get cohort VCF + prioritized variants"]
-    F["Extract GT/DP/HF for all samples"]
-    G["Write mit_prioritized_variants.txt (cohort)"]
-    A --> B --> C --> D --> E --> F --> G
-```
+![mtDNA cohort workflow](/img/diagram-mtdna-cohort.svg)
 
 ### Summary
 
@@ -119,7 +99,7 @@ flowchart TD
 
 </TabItem>
 </Tabs>
-# When to Use Each Pipeline
+## When to Use Each Pipeline
 
 ### Use `mit_single` when:
 
@@ -135,7 +115,7 @@ flowchart TD
 
 ---
 
-# Background Information
+## Background Information
 
 **SG-ADVISER mtDNA** builds on [MToolbox v1.0](https://github.com/mitoNGS/MToolBox) and performs:
 
@@ -171,4 +151,3 @@ Pipeline steps include:
    **MToolBox: a highly automated pipeline for heteroplasmy annotation and prioritization analysis of human mitochondrial variants in high-throughput sequencing.**  
    *Bioinformatics* (2014).  
    [Read paper](https://academic.oup.com/bioinformatics/article-lookup/doi/10.1093/bioinformatics/btu483)
-

@@ -1,129 +1,30 @@
 # General Usage
 
-CBIcall execution requires:
+CBIcall is normally run with a YAML parameters file and a thread count:
 
-## Input Files
+```bash
+bin/cbicall -p parameters.yaml -t 4
+```
 
-A folder containing paired-end FASTQ files, for example:
+Use this page for command syntax and common execution patterns. For YAML keys and supported combinations, see [Configuration Reference](../help/configuration-reference).
+
+:::tip[Typical workflow]
+Choose or edit a YAML file, run `bin/cbicall -p ... -t ...`, then inspect the generated run directory and `log.json`.
+:::
+
+## Input Model
+
+For WES/WGS single-sample runs, `input_dir` points to a sample directory containing paired FASTQ files:
 
 ```text
-CNAG999_exome/CNAG99901P_ex//*{R1,R2}*fastq.gz
+CNAG999_exome/CNAG99901P_ex/
+  *_R1_*.fastq.gz
+  *_R2_*.fastq.gz
 ```
 
-Example input data is available under `examples/input/`.
+For WES/WGS cohort runs, `sample_map` points to a TSV containing sample IDs and gVCF paths.
 
-## Parameters File
-
-CBIcall is configured through a YAML parameters file.
-
-Below are the main parameters and their default values.
-
-## Essential Parameters
-
-```yaml
-mode:              single
-pipeline:          wes
-input_dir:         null
-sample_map:        null
-workflow_engine:   bash
-gatk_version:      gatk-4.6
-genome:            b37
-cleanup_bam:       false
-workflow_rule:     null
-allow_partial_run: false
-project_dir:       cbicall
-```
-
-## Optional Parameters
-
-```yaml
-organism:    Homo sapiens
-technology:  Illumina HiSeq
-```
-
-CBIcall creates a dedicated project directory to store analysis outputs. Multiple runs can coexist without modifying the original inputs.
-
-## Parameter Reference
-
-### `cleanup_bam`
-
-Set to `true` to delete `01_bam/*.{bam,bai}` after the workflow completes.
-
-### `gatk_version`
-
-Supported values:
-
-- `gatk-3.5`
-- `gatk-4.6`
-
-### `genome`
-
-Supported values:
-
-- `b37` (default for non-mtDNA runs)
-- `hg38`
-- `rsrs` (forced for `pipeline: mit`)
-
-### `mode`
-
-Supported values:
-
-- `single`
-- `cohort`
-
-### `pipeline`
-
-Supported values:
-
-- `wes`
-- `wgs`
-- `mit`
-
-For `cohort` analysis, complete the corresponding `single` analysis for each sample first.
-
-### `project_dir`
-
-Prefix used for the generated run directory, for example `cancer_sample_001`.
-It can also contain a path such as `foo/cancer_sample_001`.
-
-When `input_dir` is defined, the final run directory is created below `input_dir`, with a unique run identifier appended automatically.
-
-### `input_dir`
-
-Path, relative or absolute, to the directory containing FASTQ inputs for analysis.
-
-Example:
-
-```text
-examples/input/CNAG999_exome/CNAG99901P_ex
-```
-
-### `sample_map`
-
-Cohort-mode parameter pointing to the TSV file containing sample identifiers and GVCF paths.
-
-Example:
-
-- [examples/input/sample_map.tsv](/examples/input/sample_map.tsv)
-
-### `workflow_engine`
-
-Supported workflow engines:
-
-- `bash`
-- `snakemake`
-
-### `workflow_rule`
-
-Optional workflow target used to start a partial run. Leave it unset for a normal full workflow execution.
-
-Partial runs are currently supported for the `snakemake` workflow engine.
-
-### `allow_partial_run`
-
-Safety switch for partial runs. Set it to `true` together with `workflow_rule` to explicitly allow a partial workflow start.
-
-If `workflow_rule` is set but `allow_partial_run` is not `true`, CBIcall refuses to start the run.
+For mtDNA runs, CBIcall expects BAM files from previous WES/WGS single-sample runs. mtDNA workflows do not start from FASTQ files.
 
 ## CLI Synopsis
 
@@ -131,36 +32,78 @@ If `workflow_rule` is set but `allow_partial_run` is not `true`, CBIcall refuses
 cbicall -p <parameters_file.yaml> -t <n_threads> [options]
 ```
 
-Arguments:
+| Argument | Meaning |
+| --- | --- |
+| `-p`, `--param` | YAML parameters file. |
+| `-t`, `--threads` | Number of CPUs/cores/threads passed to the workflow. |
 
-- `-p`, `--param`: Parameters input file (YAML)
-- `-t`, `--threads`: Number of CPUs/Cores/Threads
+| Option | Meaning |
+| --- | --- |
+| `-verbose` | Enable verbose output. |
+| `-debug`, `--debug` | Debugging level. |
+| `-nc`, `--no-color` | Disable ANSI colors in standard output. |
+| `-v`, `--version` | Show version information. |
+| `-h`, `--help` | Show brief help. |
+| `-man` | Show full command-line documentation. |
 
-Options:
-
-- `-debug`, `--debug`: Debugging level
-- `-h`, `--help`: Brief help message
-- `-man`: Full documentation
-- `-v`, `--version`: Show version information
-- `-verbose`: Enable verbose output
-- `-nc`, `--no-color`: Disable ANSI colors in STDOUT
-
-## Example Commands
+## Common Commands
 
 ```bash
-bin/cbicall -p param_file.yaml -t 8
-bin/cbicall -p param_file.yaml -t 4 -verbose
-bin/cbicall -p param_file.yaml -t 16 > log 2>&1
-python3 -u ../../bin/cbicall -p param.yaml -t 8 --no-color > log
-$path_to_cbicall/bin/cbicall -p param_file.yaml -t 8 -debug 5
-nohup bin/cbicall -p param_file.yaml -t 4 &
+bin/cbicall -p wes_single.yaml -t 4
+bin/cbicall -p wes_cohort.yaml -t 8 -verbose
+bin/cbicall -p mit_single.yaml -t 4 --no-color > run.log 2>&1
+nohup bin/cbicall -p parameters.yaml -t 4 > run.log 2>&1 &
+```
+
+| Pattern | Use when |
+| --- | --- |
+| `bin/cbicall -p wes_single.yaml -t 4` | Normal foreground run. |
+| `-verbose` | You want more CLI output while the workflow starts. |
+| `--no-color > run.log 2>&1` | You are saving terminal output to a file. |
+| `nohup ... &` | You need a simple long-running background job outside a scheduler. |
+
+:::tip[Thread choice]
+For most WES/WGS runs, start with **4 threads per task**. See [Performance](../help/performance) for the benchmark and scaling guidance.
+:::
+
+## Minimal YAML Examples
+
+### WES Single-Sample
+
+```yaml
+mode:            single
+pipeline:        wes
+workflow_engine: bash
+gatk_version:    gatk-4.6
+input_dir:       CNAG999_exome/CNAG99901P_ex
+genome:          b37
+cleanup_bam:     false
+```
+
+### WES Cohort
+
+```yaml
+mode:            cohort
+pipeline:        wes
+workflow_engine: bash
+gatk_version:    gatk-4.6
+genome:          b37
+sample_map:      ./sample_map.tsv
+```
+
+### mtDNA Single-Sample
+
+```yaml
+mode:            single
+pipeline:        mit
+workflow_engine: bash
+gatk_version:    gatk-3.5
+input_dir:       CNAG999_exome/CNAG99901P_ex
 ```
 
 ## Partial Runs
 
-Partial runs are intended for workflow-layer restarts or targeted execution, without changing the output directory naming scheme.
-
-Example:
+Partial runs are intended for targeted Snakemake execution and restarts. Leave `workflow_rule` unset for a normal full run.
 
 ```yaml
 workflow_engine: snakemake
@@ -172,32 +115,36 @@ Behavior:
 
 - if `workflow_rule` is unset, the full workflow runs
 - if `workflow_rule` is set, the run is marked as partial in metadata and CLI output
-- if `workflow_rule` is set without `allow_partial_run: true`, the run is rejected
+- if `workflow_rule` is set without `allow_partial_run: true`, CBIcall refuses to start
 
-## Outputs and Logging
+## Outputs and Logs
 
-Each run creates a project directory containing:
+Each run creates a directory containing:
 
-- the workflow log file
+- the main workflow log
 - `log.json` with CLI arguments, resolved configuration, and YAML parameters
-- workflow-generated outputs
+- workflow outputs such as VCFs, BAMs, statistics, and browser reports
 
-The project directory name is not changed when `workflow_rule` is used.
+See [Outputs](../help/outputs) for the file reference.
+
+:::info[Reproducibility]
+Keep `log.json` with the workflow outputs. It records the CLI arguments, resolved configuration, and parameters used for the run.
+:::
 
 ## Recommended Specifications
 
-CBIcall is optimized for multi-core Linux desktop, workstation, or server environments.
+CBIcall is designed for multi-core Linux desktop, workstation, server, and HPC environments.
 
-- Works on amd64 and arm64 architectures, including Apple Silicon
-- Debian-based distributions are preferred, though others may work
-- At least 8 GB RAM
-- At least 4 CPU cores
-- At least 250 GB disk space
+| Resource | Recommendation |
+| --- | --- |
+| CPU | At least 4 cores |
+| RAM | At least 8 GB for single-sample runs; more for cohort joint genotyping |
+| Disk | At least 250 GB, depending on input size and whether BAM cleanup is enabled |
+| Source installation | Python 3.8+, Java 8, Snakemake when using Snakemake workflows |
 
-## Additional Requirements for Source Installation
+## Next Steps
 
-These are required only when installing CBIcall from source:
-
-- Python 3.8 or newer
-- Java 8
-- Snakemake
+- First run: [Quickstart](quickstart)
+- Decide workflow choices: [Choose Your Path](choose-your-path)
+- Full YAML reference: [Configuration Reference](../help/configuration-reference)
+- Output files: [Outputs](../help/outputs)

@@ -4,96 +4,66 @@
 
 <p align="center"><em>Reproducible germline variant calling for Illumina DNA sequencing</em></p>
 
----
+**CBIcall** (**C**NAG **B**iomedical **I**nformatics framework for variant **call**ing) gives users a single command-line entry point for curated WES, WGS, and mtDNA workflows, while keeping run configuration, logs, and outputs traceable.
 
-## What is CBIcall?
+:::tip[In one sentence]
+CBIcall validates a YAML file, resolves the requested workflow, creates a run directory, and launches the matching Bash or Snakemake pipeline.
+:::
 
-**CBIcall** (**C**NAG **B**iomedical **I**nformatics framework for variant **call**ing) is a framework for running **Illumina-based germline variant calling workflows** using curated **Bash** and **Snakemake** pipelines.
+## What CBIcall Does
 
-The system provides a command-line interface, a validated YAML configuration, and a registry-driven dispatcher that ensures only supported workflows are executed.
+CBIcall is an orchestrator. It does not re-implement alignment or variant calling algorithms; it runs curated workflows built from established tools such as BWA, GATK, and MToolBox.
 
----
+| Responsibility | What it means in practice |
+| --- | --- |
+| Configuration validation | Invalid engines, genomes, GATK versions, and pipeline/mode combinations fail before execution. |
+| Workflow resolution | Requested workflows are resolved through a versioned registry. |
+| Run isolation | Each execution gets its own timestamped run directory. |
+| Logging and traceability | `log.json` records CLI arguments, resolved configuration, and user parameters. |
+| Output organization | Workflow results are written into predictable directories such as `01_bam/`, `02_varcall/`, `03_stats/`, and `logs/`. |
 
-## Core functionality
+## Supported Workflows
 
-CBIcall is a workflow **orchestrator**: it runs predefined pipelines but does **not re-implement bioinformatics tools**.
+| Input type | Start with | Main output |
+| --- | --- | --- |
+| WES FASTQs | `pipeline: wes`, `mode: single` | Per-sample QC VCF and gVCF |
+| WGS FASTQs | `pipeline: wgs`, `mode: single` | Per-sample QC VCF and gVCF |
+| Existing gVCFs | `mode: cohort` | Joint cohort QC VCF |
+| WES/WGS BAMs | `pipeline: mit` | mtDNA prioritized variant report and browser output |
 
-It performs the following tasks:
+## Compatibility
 
-- Validates user parameters and compatibility (engine, GATK version, genome, mode)
-- Loads a versioned workflow registry (YAML) validated with JSON Schema
-- Resolves workflow scripts and checks that referenced files exist and are executable
-- Creates a per-run project directory with a unique run identifier
-- Executes the selected workflow and captures stdout/stderr into a unified log file
+| Pipeline | Mode | Genome | GATK version | Notes |
+|---------|------|--------|--------------|------|
+| WES | `single` | `b37` | `gatk-3.5`, `gatk-4.6` | Supported |
+| WES | `cohort` | `b37` | `gatk-3.5`, `gatk-4.6` | Supported |
+| WGS | `single` | `b37`, `hg38` | `gatk-4.6` | Supported |
+| WGS | `cohort` | `b37`, `hg38` | `gatk-4.6` | Supported |
+| mtDNA | `single` | `rsrs` | `gatk-3.5` | x86_64 only |
+| mtDNA | `cohort` | `rsrs` | `gatk-3.5` | x86_64 only |
 
-All biological processing is performed by external tools and workflows (e.g. BWA, GATK, MToolBox).
+:::info[Workflow engines]
+`bash` is the broadest supported engine. `snakemake` is supported for GATK 4.6 WES/WGS workflows. mtDNA workflows currently use Bash.
+:::
 
----
+## How a Run Is Traced
 
-## Supported pipelines
+Every run creates:
 
-| Pipeline | Mode | Genome | GATK version | Status / Notes |
-|---------|------|--------|--------------|---------------|
-| **WES** | `single` | `b37` (default) | `gatk-3.5`, `gatk-4.6` | ✓ Supported |
-| **WES** | `cohort` | `b37` (default) | `gatk-3.5`, `gatk-4.6` | ✓ Supported |
-| **WGS** | `single` | `b37` (default), `hg38` | `gatk-4.6` | ✓ Supported |
-| **WGS** | `cohort` | `b37` (default), `hg38` | `gatk-4.6` | ✓ Supported |
-| **MIT** (mtDNA) | `single` | `rsrs` (fixed) | `gatk-3.5` | ⚠ Not supported on ARM / aarch64 |
-| **MIT** (mtDNA) | `cohort` | `rsrs` (fixed) | `gatk-3.5` | ⚠ Not supported on ARM / aarch64 |
+- a generated run identifier
+- a dedicated output directory
+- a workflow log
+- `log.json` with CLI arguments, resolved configuration, and user parameters
+- pipeline-specific outputs
 
-✓ Fully supported configuration
-⚠ Platform limitation
+This makes completed runs easier to inspect, compare, debug, and reproduce.
 
-Date: March-2026
+## Where to Go Next
 
----
-
-## Workflow engines
-
-CBIcall dispatches workflows declared in an external registry:
-
-- **Bash** (fully supported)
-- **Snakemake** (supported with GATK ≥ 4.6)
-- **Nextflow** (declared but not implemented)
-
-Workflow resolution order:
-engine → GATK version → pipeline → mode
-
-
-Only workflows declared in the registry **and present on disk with executable permissions** can be executed.
-
----
-
-## Configuration philosophy
-
-CBIcall uses a single YAML parameter file with:
-
-- Explicit defaults
-- Strict enum validation
-- Fail-fast semantic checks (e.g. incompatible genome/pipeline combinations)
-- Limited parameter inference where appropriate (e.g. default genome selection)
-
-This design helps detect configuration errors before workflow execution.
-
----
-
-## Reproducibility and traceability
-
-For every run, CBIcall:
-
-* Generates a unique run identifier
-* Creates a dedicated project directory
-* Writes a structured `log.json` containing:
-    - CLI arguments
-    - Resolved configuration
-    - User parameters
-* Captures the workflow stdout/stderr into a single log file
-
-These records allow runs to be inspected, reproduced, and debugged.
-
----
-
-## Getting started
-
-[Choose Your Path](usage/choose-your-path)
-[Get Started](usage/quickstart)
+| Goal | Page |
+| --- | --- |
+| Decide what to run | [Choose Your Path](usage/choose-your-path) |
+| Run the shipped test data | [Quickstart](usage/quickstart) |
+| Configure a real run | [Configuration Reference](help/configuration-reference) |
+| Understand output files | [Outputs](help/outputs) |
+| See the system design | [Architecture](technical-details/architecture) |

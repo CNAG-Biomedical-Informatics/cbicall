@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 520" role="img" aria-labelledby="title desc">
+  <title id="title">WES/WGS single-sample workflow</title>
+  <desc id="desc">Workflow from FASTQ input through alignment, BAM processing, gVCF, raw VCF, optional VQSR, final QC VCF, coverage, and sex inference.</desc>
+  <rect width="1040" height="520" rx="18" fill="#f8fafc"/>
+  <style>
+    .label{font:600 16px Arial,Helvetica,sans-serif;fill:#1f2937}
+    .small{font:13px Arial,Helvetica,sans-serif;fill:#475569}
+    .box{fill:#fff;stroke:#cbd5e1;stroke-width:2}
+    .accent{fill:#ecfdf5;stroke:#10b981}
+    .decision{fill:#fff7ed;stroke:#f59e0b}
+    .final{fill:#eff6ff;stroke:#2563eb}
+    .line{fill:none;stroke:#64748b;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+    .dash{fill:none;stroke:#f59e0b;stroke-width:2.4;stroke-dasharray:6 5;stroke-linecap:round}
+    .tag{font:700 12px Arial,Helvetica,sans-serif;fill:#92400e}
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrowOrange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b"/>
+    </marker>
+  </defs>
+  <text x="520" y="42" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="28" font-weight="700" fill="#0f172a">WES/WGS Single-Sample Workflow</text>
+  <text x="520" y="70" text-anchor="middle" class="small">FASTQ to final QC VCF, with gVCF output for later cohort analysis</text>
+
+  <g transform="translate(54 112)">
+    <rect class="box" x="0" y="0" width="140" height="68" rx="10"/>
+    <text class="label" x="70" y="30" text-anchor="middle">FASTQ</text>
+    <text class="small" x="70" y="50" text-anchor="middle">paired reads</text>
+
+    <rect class="box" x="182" y="0" width="150" height="68" rx="10"/>
+    <text class="label" x="257" y="28" text-anchor="middle">Align + RG</text>
+    <text class="small" x="257" y="50" text-anchor="middle">BWA MEM</text>
+
+    <rect class="box" x="374" y="0" width="150" height="68" rx="10"/>
+    <text class="label" x="449" y="28" text-anchor="middle">Merge lanes</text>
+    <text class="small" x="449" y="50" text-anchor="middle">sample BAM</text>
+
+    <rect class="box" x="566" y="0" width="150" height="68" rx="10"/>
+    <text class="label" x="641" y="28" text-anchor="middle">Deduplicate</text>
+    <text class="small" x="641" y="50" text-anchor="middle">metrics + BAM</text>
+
+    <rect class="box" x="758" y="0" width="150" height="68" rx="10"/>
+    <text class="label" x="833" y="28" text-anchor="middle">BQSR</text>
+    <text class="small" x="833" y="50" text-anchor="middle">recalibrated BAM</text>
+
+    <path class="line" marker-end="url(#arrow)" d="M140 34 H178"/>
+    <path class="line" marker-end="url(#arrow)" d="M332 34 H370"/>
+    <path class="line" marker-end="url(#arrow)" d="M524 34 H562"/>
+    <path class="line" marker-end="url(#arrow)" d="M716 34 H754"/>
+  </g>
+
+  <g transform="translate(120 238)">
+    <rect class="accent" x="0" y="0" width="160" height="72" rx="10"/>
+    <text class="label" x="80" y="28" text-anchor="middle">HaplotypeCaller</text>
+    <text class="small" x="80" y="52" text-anchor="middle">per-sample gVCF</text>
+
+    <rect class="box" x="218" y="0" width="160" height="72" rx="10"/>
+    <text class="label" x="298" y="28" text-anchor="middle">GenotypeGVCFs</text>
+    <text class="small" x="298" y="52" text-anchor="middle">raw VCF</text>
+
+    <rect class="decision" x="436" y="0" width="160" height="72" rx="10"/>
+    <text class="label" x="516" y="26" text-anchor="middle">Enough variants?</text>
+    <text class="small" x="516" y="50" text-anchor="middle">SNP / INDEL VQSR</text>
+
+    <path class="line" marker-end="url(#arrow)" d="M160 36 H214"/>
+    <path class="line" marker-end="url(#arrow)" d="M378 36 H432"/>
+  </g>
+
+  <path class="line" marker-end="url(#arrow)" d="M887 180 C930 180 936 274 720 274"/>
+
+  <g transform="translate(150 368)">
+    <rect class="box" x="0" y="0" width="150" height="70" rx="10"/>
+    <text class="label" x="75" y="28" text-anchor="middle">Hard filters</text>
+    <text class="small" x="75" y="50" text-anchor="middle">fallback path</text>
+
+    <rect class="decision" x="218" y="0" width="150" height="70" rx="10"/>
+    <text class="label" x="293" y="27" text-anchor="middle">Apply VQSR</text>
+    <text class="small" x="293" y="50" text-anchor="middle">when available</text>
+
+    <rect class="final" x="436" y="0" width="150" height="70" rx="10"/>
+    <text class="label" x="511" y="27" text-anchor="middle">Final QC VCF</text>
+    <text class="small" x="511" y="50" text-anchor="middle">recommended</text>
+
+    <rect class="box" x="654" y="0" width="150" height="70" rx="10"/>
+    <text class="label" x="729" y="27" text-anchor="middle">Stats</text>
+    <text class="small" x="729" y="50" text-anchor="middle">coverage + sex</text>
+
+    <path class="line" marker-end="url(#arrow)" d="M150 35 H214"/>
+    <path class="line" marker-end="url(#arrow)" d="M368 35 H432"/>
+    <path class="line" marker-end="url(#arrow)" d="M586 35 H650"/>
+  </g>
+
+  <path class="dash" marker-end="url(#arrowOrange)" d="M636 310 C542 334 470 346 443 365"/>
+  <text class="tag" x="475" y="333">yes</text>
+  <path class="dash" marker-end="url(#arrowOrange)" d="M636 292 C450 316 312 342 254 365"/>
+  <text class="tag" x="318" y="335">no</text>
+</svg>

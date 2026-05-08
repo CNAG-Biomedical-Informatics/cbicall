@@ -107,6 +107,16 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'doc',
+          id: 'help/configuration-reference',
+          label: 'Configuration Reference',
+        },
+        {
+          type: 'doc',
+          id: 'help/outputs',
+          label: 'Outputs',
+        },
+        {
+          type: 'doc',
           id: 'help/performance',
           label: 'Performance',
         },

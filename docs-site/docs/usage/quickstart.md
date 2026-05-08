@@ -1,67 +1,63 @@
 # Quickstart
 
-This page is the shortest path to a validated local test run using the example data shipped in the repository.
+Use this page when you want to verify that CBIcall runs correctly on the shipped example data.
 
-If you first need to decide which installation method or workflow applies to you, start with [Choose your path](choose-your-path).
+:::tip[Fast path]
+Run the WES smoke test first. If it passes, the CLI, example layout, reference paths, and core GATK workflow are working together.
+:::
 
----
+If you still need to choose an installation method or workflow, start with [Choose Your Path](choose-your-path).
 
-## 1. Confirm the CLI is available
-
-You can check the command-line interface using:
+## 1. Confirm the CLI
 
 ```bash
 bin/cbicall --help
-```
-
-To display the version:
-
-```bash
 bin/cbicall --version
 ```
 
----
+You should see the command help and the installed CBIcall version.
 
-## 2. Run the shipped WES smoke test
-
-This is the most reliable first run because it uses the same example layout used by the integration test script.
+## 2. Run the WES Smoke Test
 
 ```bash
 cd examples/input
 ./run_tests.sh --wes
 ```
 
-What this does:
+This test:
 
-- runs `cbicall` on the bundled WES example
-- compares the resulting VCF against the shipped reference output
-- exits non-zero if the result differs
+| Check | What it confirms |
+| --- | --- |
+| Starts `cbicall` | The CLI and Python package are usable. |
+| Runs the bundled WES example | The example input layout is valid. |
+| Compares the output VCF | The result matches the shipped reference output. |
 
-When the test completes successfully, you should have a run directory like:
-```
+When it succeeds, the run directory looks like this:
+
+```text
 CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_*/
   01_bam/
   02_varcall/
   03_stats/
   logs/
 ```
-The final `VCF` will be located at:
-```
+
+The main file to inspect is:
+
+```text
 02_varcall/CNAG99901P.hc.QC.vcf.gz
 ```
 
----
+## 3. Run the mtDNA Smoke Test
 
-## 3. Run the shipped mtDNA smoke test
-
-Run this after the WES example is working. The mtDNA example depends on the WES/WGS-style project structure and uses the bundled mtDNA example configuration.
+Run this after the WES test works. The mtDNA workflow depends on the WES/WGS-style project structure and consumes BAMs from previous WES/WGS runs.
 
 ```bash
 cd examples/input
 ./run_tests.sh --mit
 ```
 
-When the test completes successfully, you should have a run directory like:
+When it succeeds, the run directory looks like this:
 
 ```text
 CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_rsrs_gatk-3.5_*/
@@ -69,30 +65,38 @@ CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_rsrs_gatk-3.5_*/
   02_browser/
 ```
 
-Start by checking:
-```
+Start with:
+
+```text
 02_browser/README.txt
 ```
 
----
+:::info[Architecture]
+The mtDNA workflow uses MToolBox and is x86_64-only. If you are on ARM / aarch64, run WES/WGS workflows there but move mtDNA runs to an x86_64 host.
+:::
 
-## 4. Run CBIcall directly with a YAML file
+## 4. Run With Your Own YAML
 
-Once the smoke tests work, the minimal direct invocation is:
+Once the smoke tests work, use the normal invocation:
 
 ```bash
-bin/cbicall -p param.yaml -t 8
+bin/cbicall -p parameters.yaml -t 4
 ```
 
-- `-p` selects the parameter file
-- `-t` sets the number of threads
+| Option | Meaning |
+| --- | --- |
+| `-p` | YAML parameters file. |
+| `-t` | Threads passed to the workflow. |
 
----
+For most WES/WGS runs, start with 4 threads and adjust after checking [Performance](../help/performance).
 
-## 5. Next steps
+## Next Steps
 
-- Use [Choose your path](choose-your-path) if you are still deciding between installation methods or workflows.
-- For a realistic WES walkthrough, see [End-to-end example WES](end-to-end-example-wes).
-- For mtDNA, see [End-to-end example mtDNA](end-to-end-example-mit).
+| Goal | Page |
+| --- | --- |
+| Pick the right workflow | [Choose Your Path](choose-your-path) |
+| Run real WES/WGS data | [End-to-end Example: WES](end-to-end-example-wes) |
+| Run mtDNA analysis | [End-to-end Example: mtDNA](end-to-end-example-mit) |
+| Understand generated files | [Outputs](../help/outputs) |
+| Edit the YAML safely | [Configuration Reference](../help/configuration-reference) |
 
-[End-to-end example WES](end-to-end-example-wes)

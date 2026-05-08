@@ -16,13 +16,13 @@ import TabItem from '@theme/TabItem';
 <Tabs groupId="workflow-mode">
 <TabItem value="mit-single-sample-run" label="MIT single-sample run" default>
 
-## 1. Before running mtDNA calling you must have a `bam` file coming from wes/wgs
+## 1. Before running mtDNA calling you must have a BAM file from WES/WGS
 
 > **Does it matter if I ran WES/WGS with GATK 3.5 or GATK 4.6?**
     No. CBIcall will detect and use the `bam` files produced by either version.  
     Just make sure that `bam` files are available — **FASTQ input is not supported**.
 
-CBIcall expects a BAM file from a previous wes/wgs run:
+CBIcall expects a BAM file from a previous WES/WGS run:
 ```
 CNAG999_exome
 └── CNAG99901P_ex  <--- ID taken from here
@@ -38,7 +38,7 @@ CNAG999_exome
 Create a YAML file, e.g. `mit_single.yaml`. 
 
 > **Important**
-    Please make sure you use the same value for the key `sample` that you used for wes/wgs.
+    Please make sure you use the same value for the key `sample` that you used for WES/WGS.
 
 Example:
 
@@ -48,6 +48,8 @@ pipeline:        mit
 workflow_engine: bash
 input_dir:       CNAG999_exome/CNAG99901P_ex
 ```
+
+See [Configuration Reference](../help/configuration-reference) for all YAML keys and supported combinations.
 
 ---
 
@@ -71,6 +73,14 @@ CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_rsrs_gatk-3.5_*/
   02_browser/
 ```
 
+:::tip[What you get]
+- Final mtDNA report: `01_mtoolbox/mit_prioritized_variants.txt`
+- mtDNA VCF: `01_mtoolbox/VCF_file.vcf`
+- Browser report: `02_browser/<run-id>.html`
+
+See [Outputs](../help/outputs) for the full file reference.
+:::
+
 ## 5.  Visualize variants in the browser
 
 Please see:
@@ -78,7 +88,7 @@ Please see:
 02_browser/README.txt
 ```
 
-The results are reported both as a HTML table and as downloadable files.
+The results are reported both as an HTML table and as downloadable files.
 
 > **See snapshot**
     ![browser](/img/browser.png)
@@ -122,13 +132,13 @@ For advanced parameters, multi-sample analyses, mtDNA workflows and troubleshoot
 </TabItem>
 <TabItem value="mit-cohort-run" label="MIT cohort run">
 
-## 1. Before running mtDNA calling you must have `bam` files coming from wes/wgs
+## 1. Before running mtDNA calling you must have BAM files from WES/WGS
 
 > **Does it matter if I ran WES/WGS with GATK 3.5 or GATK 4.6?**
     No. CBIcall will detect and use the `bam` files produced by either version.  
     Just make sure that `bam` files are available — **FASTQ input is not supported**.
 
-CBIcall expects BAM files from previous wes/wgs runs:
+CBIcall expects BAM files from previous WES/WGS runs:
 ```
 CNAG999_exome
 └── CNAG99901P_ex  <--- ID taken from here
@@ -153,6 +163,8 @@ gatk_version:    gatk-3.5
 input_dir:       CNAG999_exome
 ```
 
+See [Configuration Reference](../help/configuration-reference) for all YAML keys and supported combinations.
+
 ---
 
 ## 3. Run CBIcall
@@ -175,6 +187,14 @@ CNAG999_exome/cbicall_bash_mit_cohort_rsrs_gatk-3.5*
   02_browser/
 ```
 
+:::tip[What you get]
+- Final joint mtDNA report: `01_mtoolbox/mit_prioritized_variants.txt`
+- Joint mtDNA VCF: `01_mtoolbox/VCF_file.vcf`
+- Browser report: `02_browser/<run-id>.html`
+
+See [Outputs](../help/outputs) for the full file reference.
+:::
+
 ## 5.  Visualize variants in the browser
 
 Please see:
@@ -182,7 +202,7 @@ Please see:
 02_browser/README.txt
 ```
 
-The results are reported both as a HTML table and as downloadable files.
+The results are reported both as an HTML table and as downloadable files.
 
 > **See snapshot**
     ![browser](/img/browser-cohort.png)
@@ -196,7 +216,7 @@ The results are reported both as a HTML table and as downloadable files.
 
 ### HTML table:
 
-In this tab SG-ADVISER mtDNA displays a browsable table consisting of the most relavant fields relative to the variant annotation:
+In this tab SG-ADVISER mtDNA displays a browsable table consisting of the most relevant fields relative to the variant annotation:
 
 * **Sample**: The full name of each sample.
 * **Locus**: The location on the mitochondrial chromosome.

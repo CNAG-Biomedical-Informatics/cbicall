@@ -1,59 +1,34 @@
 # Naming Conventions
 
-CBIcall supports more than one FASTQ naming style.
+CBIcall supports both Illumina-style FASTQ names and run accession-based FASTQ names used in public datasets such as 1000 Genomes, ENA, and SRA.
 
-> **Short version**
-    CBIcall accepts both **Illumina-style** FASTQ names and **run accession-based** FASTQ names such as those commonly seen in **1000 Genomes / ENA / SRA** datasets.
+:::tip[Main rule]
+For active WES/WGS single-sample workflows, paired FASTQs must be matchable as `_R1_` and `_R2_`, and all FASTQs for the sample should live in the same sample directory.
+:::
 
-    The main workflow requirement is that paired-end files can be matched as `_R1_` and `_R2_`.
+The FASTQ filename does not need to contain the sample ID, `_ex`, or `_wg` as long as mate pairing is unambiguous.
 
-    The historical `_ex` / `_wg` convention is mainly a **legacy sample-directory naming** convention used for compatibility with older workflows such as **GATK 3.5** and **MTOOLBox**.
+## What CBIcall Uses
 
----
-
-## What Is Required
-
-> **Required by active workflows**
-    For current single-sample workflows, the important parts are:
-
-    - paired FASTQs must follow the `_R1_` / `_R2_` convention
-    - FASTQs for the same sample should be grouped under the same sample directory
-    - FASTQ prefixes may differ within that directory
-
-This means the FASTQ filename does **not** need to contain:
-
-- the sample ID
-- `_ex`
-- `_wg`
-
-as long as read pairing is still unambiguous.
-
----
+| Item | Required? | Why it matters |
+| --- | --- | --- |
+| `_R1_` / `_R2_` in FASTQ names | Yes | Used to pair reads. |
+| One sample per sample directory | Yes | The sample directory defines the analysis unit. |
+| Sample ID inside FASTQ filename | No | Useful for humans, but not required by current single-sample workflows. |
+| `_ex` / `_wg` suffix | Legacy-dependent | Useful for older CNAG layouts, GATK 3.5, and mtDNA workflows. |
 
 ## Supported FASTQ Styles
 
-### Illumina-style naming
-
-Typical format:
-
-```text
-SampleName_SampleNumber_Lane_Read_001.fastq.gz
-```
-
-Example:
+### Illumina-Style Names
 
 ```text
 NA12878_S1_L001_R1_001.fastq.gz
 NA12878_S1_L001_R2_001.fastq.gz
 ```
 
-This format is supported.
+This is the standard pattern for many local sequencing runs.
 
-### 1000 Genomes / ENA / SRA-style naming
-
-Run accession-based prefixes are also supported, as long as mate pairing still uses `_R1_` / `_R2_`.
-
-Example:
+### Run Accession-Based Names
 
 ```text
 HG00096/
@@ -63,22 +38,19 @@ HG00096/
 └── ERR3239277_S1_L002_R2_001.fastq.gz
 ```
 
-In this layout, the FASTQ prefix is the run accession, and the sample is defined by the sample directory rather than by the FASTQ filename.
+Here, the FASTQ prefix is the run accession. The sample is defined by the directory, not by the FASTQ basename.
 
----
+## Legacy `_ex` / `_wg` Layout
 
-## Legacy `_ex` / `_wg` Convention
+Keep the historical `_ex` / `_wg` convention when a project may use:
 
-> **Use this for legacy compatibility**
-    Keep the historical `_ex` / `_wg` convention if your project may use:
+- GATK 3.5 workflows
+- MToolBox / mtDNA workflows
+- older CNAG run layouts
 
-    - **GATK 3.5**
-    - **MTOOLBox / mtDNA workflows**
-    - older runs that already follow the original CNAG layout
-
-In those cases, the important part is usually the **sample directory name**, not the FASTQ filename itself.
-
-### Internal CNAG example
+:::info[Directory convention]
+In legacy-compatible layouts, the sample directory name is more important than the FASTQ filename itself.
+:::
 
 Project directory:
 
@@ -86,26 +58,28 @@ Project directory:
 CN99999_exome
 ```
 
-- `CN99999` is the family / project identifier
-- `_exome` indicates the analysis type
-
 Sample directory:
 
 ```text
 CN9999901P_ex
 ```
 
-- `CN9999901` is the sample ID
-- `P` is the role code
-- `_ex` indicates exome
+| Part | Meaning |
+| --- | --- |
+| `CN99999` | Family or project identifier. |
+| `01` | Individual/sample index within the project convention. |
+| `P` | Role code, for example proband/patient. |
+| `_ex` | Exome sample directory suffix. |
 
 Common role codes:
 
-- `P` = proband / patient
-- `F` = father
-- `M` = mother
+| Code | Meaning |
+| --- | --- |
+| `P` | Proband / patient |
+| `F` | Father |
+| `M` | Mother |
 
-Legacy-compatible directory layout:
+Legacy-compatible layout:
 
 ```text
 CN99999_exome/
@@ -114,7 +88,7 @@ CN99999_exome/
     └── CN9999901P_ex_S1_L001_R2_001.fastq.gz
 ```
 
-Legacy-compatible directory layout with run-based FASTQ names:
+The same layout also works with run-based FASTQ names:
 
 ```text
 CN99999_exome/
@@ -125,24 +99,19 @@ CN99999_exome/
     └── ERR3239277_S1_L002_R2_001.fastq.gz
 ```
 
-So `_ex` / `_wg` should be thought of mainly as a directory convention for legacy compatibility.
+## Equivalent Examples
 
----
+For current single-sample WES/WGS workflows, both examples are valid:
 
-## Equivalent FASTQ Examples
+```text
+CNAG99901P_ex_S2_L001_R1_001.fastq.gz
+CNAG99901P_S2_L001_R1_001.fastq.gz
+```
 
-For active single-sample workflows, these filenames are equally valid:
+What matters is that the matching mate exists as `_R2_` and that all FASTQs for the sample are grouped together.
 
-- `CNAG99901P_ex_S2_L001_R1_001.fastq.gz`
-- `CNAG99901P_S2_L001_R1_001.fastq.gz`
+## Next Steps
 
-What matters is that the matching mate exists as `_R2_` and that all FASTQs for the sample are kept in the same sample directory.
-
----
-
-## Notes
-
-- `_ex` means exome sequencing
-- `_wg` means whole-genome sequencing
-- Illumina-style FASTQ naming follows the standard described in the
-  [Illumina FASTQ naming convention](https://support.illumina.com/help/BaseSpace_Sequence_Hub_OLH_009008_2/Source/Informatics/BS/NamingConvention_FASTQ-files-swBS.htm).
+- Build a YAML file with [Configuration Reference](configuration-reference).
+- Run a test with [Quickstart](../usage/quickstart).
+- Inspect generated files with [Outputs](outputs).

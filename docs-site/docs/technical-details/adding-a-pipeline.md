@@ -1,115 +1,136 @@
 # Adding a Pipeline
 
-> **What you will learn**
-    This page explains how to integrate a new workflow into CBIcall by registering it in the workflow registry and adding the corresponding workflow scripts.
+CBIcall is built so most new workflows can be added with two things:
 
-CBIcall is designed to be **extensible**. New pipelines are added by providing workflow scripts and registering them in the workflow registry.
+1. Workflow script(s)
+2. A registry entry in `workflows/config/cbicall.workflows.yaml`
 
-The components involved are:
+:::tip[Most additions do not need Python changes]
+If the new pipeline fits the existing concepts of `pipeline`, `mode`, `workflow_engine`, `gatk_version`, `input_dir`, and `sample_map`, start with workflow scripts and the registry only.
+:::
 
-- `workflows/config/cbicall.workflows.yaml` — workflow registry describing available pipelines
-- `workflows/schema/workflows.schema.json` — schema used to validate the registry
+## What You Are Adding
 
-The execution driver reads the user configuration, resolves the requested workflow from the registry, creates a runtime directory, and executes the workflow script.
+Before editing files, define the shape of the workflow.
 
----
+| Decision | Options | Why it matters |
+| --- | --- | --- |
+| Engine | `bash`, `snakemake` | Determines where the entrypoint lives and how CBIcall launches it. |
+| Version | `gatk-3.5`, `gatk-4.6` | Determines the workflow subdirectory and shared helper files. |
+| Pipeline name | e.g. `mypipe` | Becomes the value users set as `pipeline: mypipe`. |
+| Mode | `single`, `cohort`, or both | Determines which entrypoint filenames are needed. |
+| Inputs | `input_dir`, `sample_map`, or both | Determines how users configure the run. |
 
-## 1. How CBIcall runs workflows
+For example, a Bash single-sample pipeline named `mypipe` for GATK 4.6 would use:
+
+```text
+workflows/bash/gatk-4.6/mypipe_single.sh
+```
+
+and users would select it with:
+
+```yaml
+pipeline: mypipe
+mode: single
+workflow_engine: bash
+gatk_version: gatk-4.6
+```
+
+## How Execution Works
 
 At runtime, CBIcall:
 
-1. Reads the user configuration file (e.g. `params.yaml`)
-2. Validates parameters and compatibility rules
+1. Reads the YAML parameters file
+2. Validates values and compatibility rules
 3. Loads the workflow registry
-4. Resolves the workflow script corresponding to the selected pipeline
-5. Creates a runtime directory and launches the workflow
+4. Resolves the requested workflow script
+5. Creates a run directory
+6. Launches the workflow from inside that run directory
 
-Because the workflow registry defines the available pipelines, adding a new workflow typically involves only **a script and a registry entry**.
+The main implementation layers are:
 
-### Execution layers
+| File | Responsibility |
+| --- | --- |
+| `src/cbicall/config.py` | Parameter defaults, semantic validation, runtime metadata. |
+| `src/cbicall/workflow_registry.py` | Registry loading, workflow resolution, referenced-file validation. |
+| `src/cbicall/dnaseq.py` | Engine-specific execution through `BashRunner` and `SnakemakeRunner`. |
+| `workflows/config/cbicall.workflows.yaml` | Declares available workflow scripts. |
+| `workflows/schema/workflows.schema.json` | Validates the registry structure. |
 
-The runtime path is split into two responsibilities:
+## 1. Add the Workflow Entrypoint
 
-- `src/cbicall/config.py` validates parameters, applies semantic rules, and assembles resolved runtime metadata
-- `src/cbicall/workflow_registry.py` loads the workflow registry, resolves the workflow entrypoint, and validates referenced files
-- `src/cbicall/dnaseq.py` dispatches execution to an engine-specific runner
+Workflow filenames follow:
 
-The current execution runners are:
-
-- `BashRunner`
-- `SnakemakeRunner`
-
-This separation is intentional: adding a new workflow usually means adding scripts plus a registry entry, while adding a new **engine** should be done by introducing a new runner class rather than growing a single dispatcher.
-
----
-
-## 2. Create workflow scripts
-
-Workflow entrypoints are stored under the engine directory and tool version.
-
-Example structure:
-```
-workflows/bash/gatk-4.6/
-  mypipe_single.sh
-  mypipe_cohort.sh
-  env.sh
-```
-
-or
-```
-workflows/snakemake/gatk-4.6/
-  mypipe_single.smk
-  mypipe_cohort.smk
-  config.yaml
-```
-
-### Engine-specific expectations
-
-For Bash workflows:
-
-- the registry must define the common helper scripts required by the selected version
-- the pipeline entrypoint is executed directly as a command
-- `GENOME` is exported in the runtime environment
-
-For Snakemake workflows:
-
-- the registry must define a version-specific `config.yaml`
-- CBIcall launches `snakemake` with the resolved Snakefile via `-s` and the shared config file via `--configfile`
-- `genome` is always passed to Snakemake via `--config`
-- `pipeline`, `sample_map`, and `workspace` are added when required by the selected mode/version
-- if `workflow_rule` is set, CBIcall uses that rule as the Snakemake target instead of `all`
-
----
-
-## 3. Naming conventions
-
-Workflow filenames follow the pattern:
-```
+```text
 {pipeline}_{mode}.{sh|smk}
 ```
 
-Where:
+### Bash Layout
 
-- `pipeline` is the pipeline name (e.g. `wes`, `wgs`, `mit`)
-- `mode` is either `single` or `cohort`
-
-Examples:
-```
-wes_single.sh
-wes_cohort.sh
-mypipe_single.smk
+```text
+workflows/bash/gatk-4.6/
+  env.sh
+  mypipe_single.sh
+  mypipe_cohort.sh
 ```
 
----
+Bash workflows are executed directly. CBIcall sets `GENOME` in the environment and launches the script from inside the generated run directory.
 
-## 4. Register the pipeline
+Minimal Bash example:
 
-Edit the workflow registry:
+```bash
+#!/usr/bin/env bash
+set -eu
+
+BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RUNDIR="$(pwd)"
+
+source "$BINDIR/env.sh"
+
+mkdir -p logs results
+
+echo "Running mypipe in $RUNDIR" | tee logs/mypipe.log
+
+for R1 in ../*_R1_*fastq.gz; do
+  R2="${R1/_R1_/_R2_}"
+  echo "Pair: $R1 $R2" >> logs/mypipe.log
+done
+
+echo "done" > results/mypipe.done
 ```
+
+Make it executable:
+
+```bash
+chmod +x workflows/bash/gatk-4.6/mypipe_single.sh
+```
+
+### Snakemake Layout
+
+```text
+workflows/snakemake/gatk-4.6/
+  config.yaml
+  mypipe_single.smk
+  mypipe_cohort.smk
+```
+
+CBIcall launches Snakemake with:
+
+- the resolved Snakefile through `-s`
+- the shared config file through `--configfile`
+- `genome` through `--config`
+- `sample_map` and `workspace` for cohort workflows when needed
+- `workflow_rule` as the Snakemake target when partial execution is requested
+
+## 2. Register the Pipeline
+
+Edit:
+
+```text
 workflows/config/cbicall.workflows.yaml
 ```
 
-Example entry:
+Add the pipeline under the correct engine and version.
 
 ```yaml
 workflows:
@@ -133,106 +154,108 @@ pipelines:
     cohort: "mypipe_cohort.sh"
 ```
 
----
+:::info[Registry paths]
+Registry paths are relative to the engine/version directory. For Bash GATK 4.6, `mypipe_single.sh` resolves below `workflows/bash/gatk-4.6/`.
+:::
 
-## 5. Minimal pipeline example
+## 3. Make the Pipeline Selectable
 
-The following script illustrates a minimal workflow.
+The registry makes the script discoverable, but Python validation still controls which `pipeline`, `mode`, and `gatk_version` combinations are allowed.
 
-> **Execution context**
-    Workflow scripts are executed **inside the runtime directory** created by CBIcall.  
-    Input FASTQ files are typically located in the **parent sample directory**.
+If `mypipe` is a new pipeline name, update the validation sets in `src/cbicall/config.py`:
 
-Example script:
-```
-workflows/bash/gatk-4.6/mypipe_single.sh
-```
+```python
+PIPELINE_VALUES = {"wes", "wgs", "mit", "mypipe"}
 
-```bash
-#!/usr/bin/env bash
-set -eu
-
-BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-RUNDIR=$(pwd)
-
-mkdir -p logs
-
-echo "Running example pipeline in $RUNDIR"
-
-for R1 in ../*_R1_*fastq.gz; do
-    echo "Found FASTQ: $R1"
-done
-
-echo "Pipeline finished"
+_ALLOWED_COMBOS = {
+    "gatk-4.6": {
+        "wes": ["single", "cohort"],
+        "wgs": ["single", "cohort"],
+        "mypipe": ["single"],
+    },
+}
 ```
 
-Make it executable:
-```
-chmod +x workflows/bash/gatk-4.6/mypipe_single.sh
-```
+If you are only adding a missing mode or script for an existing pipeline and version, the registry entry may be enough.
 
----
+## 4. Add a User-Facing YAML Example
 
-## 6. Select the pipeline in params.yaml
-
-Example configuration:
+Create a minimal parameters file that exercises the new workflow:
 
 ```yaml
-pipeline: mypipe
-mode: single
+mode:            single
+pipeline:        mypipe
 workflow_engine: bash
-gatk_version: gatk-4.6
-input_dir: SAMPLE01
+gatk_version:    gatk-4.6
+input_dir:       SAMPLE01
+genome:          b37
 ```
 
-Run:
+Run it:
+
+```bash
+bin/cbicall -p mypipe.yaml -t 4
 ```
-cbicall -p params.yaml -t 4
+
+CBIcall should create a run directory similar to:
+
+```text
+SAMPLE01/cbicall_bash_mypipe_single_b37_gatk-4.6_<run-id>/
 ```
 
-CBIcall validates the configuration, creates the runtime directory, and executes the workflow script.
+## 5. Validate the Addition
 
-If `input_dir` is defined, the runtime directory is created below that input directory with a generated run identifier appended to the configured `project_dir` prefix.
+Check the pipeline at three levels.
 
----
+| Level | What to verify |
+| --- | --- |
+| Registry | The workflow appears under the correct engine/version/pipeline/mode. |
+| Files | Referenced scripts exist; Bash scripts are executable. |
+| Runtime | CBIcall creates a run directory, writes `log.json`, and produces expected outputs. |
 
-## 7. Validation
+Good first checks:
 
-CBIcall checks that:
+```bash
+bin/cbicall -p mypipe.yaml -t 2 --no-color
+```
 
-- the pipeline is registered in the workflow registry
-- the selected execution backend exists
-- the selected backend/version/pipeline/mode combination is allowed by the Python validation layer
-- referenced workflow scripts are present
-- Bash scripts are executable
+Then inspect:
 
-This ensures that workflows are always executed from **registered and validated configurations**.
+```text
+<run-dir>/log.json
+<run-dir>/logs/
+```
 
----
+## When Python Changes Are Needed
 
-## 8. Optional Python configuration
+Most workflow additions only need validation changes in `config.py` if the pipeline name is new. Broader Python changes are needed when the execution model changes.
 
-Most pipelines only require workflow scripts and registry entries.
+| Change | Likely file |
+| --- | --- |
+| New YAML key or default | `src/cbicall/config.py` |
+| New value in the typed runtime model | `src/cbicall/models.py` |
+| New registry resolution behavior | `src/cbicall/workflow_registry.py` |
+| New execution engine | `src/cbicall/dnaseq.py` |
+| Different command-line launch behavior | `src/cbicall/dnaseq.py` |
 
-If additional parameters or configuration options are needed, the Python changes may span several modules depending on the type of change:
+:::warning[New engine]
+Adding an engine is different from adding a pipeline. Prefer adding a new runner class rather than expanding conditional logic inside an existing runner.
+:::
 
-- `src/cbicall/config.py` for parameter defaults, semantic validation, and resolved runtime metadata
-- `src/cbicall/workflow_registry.py` for workflow resolution and registry-related validation
-- `src/cbicall/models.py` if a new option must become part of the typed internal runtime/config model
-- `src/cbicall/dnaseq.py` if the change affects execution behavior or engine-specific command building
+## Contributor Checklist
 
-For most workflow additions, no Python code changes are required beyond scripts and registry entries.
+- [ ] Pick engine, version, pipeline name, and mode.
+- [ ] Inspect the closest existing workflow in `workflows/{bash|snakemake}/{gatk-version}/`.
+- [ ] Add workflow entrypoint scripts.
+- [ ] Make Bash scripts executable.
+- [ ] Register scripts in `workflows/config/cbicall.workflows.yaml`.
+- [ ] Update Python validation if the pipeline name or compatibility matrix changes.
+- [ ] Add a minimal YAML example.
+- [ ] Run CBIcall and inspect `log.json`, `logs/`, and expected outputs.
+- [ ] Add or update tests when validation or execution behavior changes.
 
-If you are unsure where a change belongs, inspect the existing implementations in the repository first and follow the closest matching pattern.
+## Next Steps
 
----
-
-# Quick checklist
-
-- [ ] Inspect existing pipelines in `workflows/{bash|snakemake}/{gatk-version}/`
-- [ ] Check the existing Python implementation paths in `src/cbicall/` when adding new parameters or execution behavior
-- [ ] Add workflow script(s)
-- [ ] Register the pipeline in `workflows/config/cbicall.workflows.yaml`
-- [ ] Validate registry against the JSON schema
-- [ ] Make Bash scripts executable (`chmod +x`)
-- [ ] Provide example `params.yaml`
+- Review the execution model in [Architecture](architecture).
+- Check YAML behavior in [Configuration Reference](../help/configuration-reference).
+- Document generated files in [Outputs](../help/outputs) if the new pipeline produces user-facing outputs.

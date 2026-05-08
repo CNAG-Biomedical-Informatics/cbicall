@@ -1,7 +1,7 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# WES/WGS Single-Sample Pipeline  
+# WES/WGS Single-Sample Pipeline
 A user-focused guide to processing whole-exome (WES) and whole-genome (WGS) data using GATK Best Practices.
 
 
@@ -21,28 +21,7 @@ A user-focused guide to processing whole-exome (WES) and whole-genome (WGS) data
 
 ## Diagram: Single-Sample WES/WGS Workflow
 
-```mermaid
-flowchart TD
-A["Input FASTQ reads"]
-B["Align with BWA MEM and add read groups"]
-C["Merge lane BAM files"]
-D["Mark duplicates"]
-E["Base recalibration BQSR"]
-F["Run HaplotypeCaller to produce gVCF"]
-G["Run GenotypeGVCFs to produce raw VCF"]
-H["Check if enough variants for VQSR"]
-I["Build SNP VQSR model"]
-J["Build INDEL VQSR model"]
-K["Apply VQSR"]
-L["Apply hard filters"]
-M["Write final QC VCF"]
-N["Compute coverage and infer sex"]
-
-A --> B --> C --> D --> E --> F --> G --> H
-H -->|Yes| I --> J --> K --> M
-H -->|No| L --> M
-M --> N
-```
+![WES/WGS single-sample workflow](/img/diagram-wes-wgs-single.svg)
 
 ---
 
@@ -50,7 +29,7 @@ M --> N
 
 This pipeline processes **one sample** at a time and produces a high-quality, filtered VCF suitable for downstream analysis. It automatically adapts to:
 
-- **WES**: restricted to an exome interval list  
+- **WES**: restricted to an exome interval list
 - **WGS**: whole genome (no interval restriction)
 
 ---
@@ -141,4 +120,3 @@ This pipeline processes **one sample** at a time and produces a high-quality, fi
 - Standard clinical or research **WES** or **WGS** processing.
 - Generating gVCFs for **cohort joint genotyping**.
 - Producing high-quality single-sample VCFs for interpretation.
-

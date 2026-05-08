@@ -1,99 +1,118 @@
 # Choose Your Path
 
-Use this page to decide which installation route and workflow to run before diving into the detailed documentation.
+Use this page to pick the right installation method and workflow before opening the detailed examples.
 
----
+:::tip[Short answer]
+Use Docker for local runs, Apptainer on HPC, `pipeline: wes` or `pipeline: wgs` for FASTQs, and `pipeline: mit` only after WES/WGS BAMs already exist.
+:::
 
-## 1. Choose how you will run CBIcall
+## Fast Recommendations
 
-### Use Docker if:
+| Situation | Start here | Then run |
+|---|---|---|
+| Local workstation or server with Docker | [Docker](../installation/docker) | [Quickstart](quickstart) |
+| HPC cluster or Slurm environment | [Apptainer](../installation/apptainer) | WES/WGS or mtDNA examples |
+| Development, debugging, or workflow editing | [Non-containerized](../installation/non-containerized) | Any supported workflow |
+| First time testing CBIcall | [Quickstart](quickstart) | WES single-sample smoke test |
+| Real WES or WGS data from FASTQ | [WES example](end-to-end-example-wes) | `pipeline: wes` or `pipeline: wgs` |
+| mtDNA analysis | [mtDNA example](end-to-end-example-mit) | `pipeline: mit` after WES/WGS BAMs exist |
 
-- You are on a local Linux workstation or server.
-- You want the fastest setup.
-- You do not need an HPC scheduler integration.
+## 1. Pick an Installation Route
+
+:::tip[Most users]
+
+Use **Docker** on a local workstation or server. Use **Apptainer** on HPC.
+
+:::
+
+### Docker
+
+Choose Docker when:
+
+- you are running locally or on a server where Docker is available
+- you want the fastest reproducible setup
+- you do not need direct scheduler integration
 
 Go to [Docker installation](../installation/docker).
 
-### Use Apptainer if:
+### Apptainer / Singularity
 
-- You are on an HPC cluster.
-- Docker is not available.
-- You need a container workflow that works with batch schedulers.
+Choose Apptainer when:
 
-Go to [Apptainer installation](../installation/apptainer).
+- you are on an HPC cluster
+- Docker is not available or not permitted
+- you need a container workflow compatible with Slurm or another scheduler
 
-### Use the non-containerized setup if:
+Go to [HPC with Apptainer / Singularity](../installation/apptainer).
 
-- You want to inspect or modify the source tree directly.
-- You already manage Python and Java on the host.
-- You are developing or debugging workflows.
+### Non-containerized
+
+Choose a source installation when:
+
+- you are developing or debugging CBIcall
+- you want to inspect or modify workflow scripts
+- you already manage Python, Java, Snakemake, and external tools on the host
 
 Go to [Non-containerized installation](../installation/non-containerized).
 
----
+## 2. Pick a Pipeline
 
-## 2. Choose the analysis you want to run
+| Pipeline | Input | Main use | Notes |
+|---|---|---|---|
+| `wes` | WES FASTQs | Exome germline calling | Supports single and cohort modes |
+| `wgs` | WGS FASTQs | Genome-wide germline calling | Supports single and cohort modes with GATK 4.6 |
+| `mit` | BAMs from previous WES/WGS runs | mtDNA calling with MToolBox | Does not start from FASTQ |
 
-### Run `wes` if:
+Use [WES/WGS single-sample](../pipelines/wes-wgs-single) first when starting from FASTQ.
 
-- Your input data is whole-exome sequencing.
-- You want standard germline calling for one sample or a cohort.
+Use [WES/WGS cohort](../pipelines/wes-wgs-cohort) when per-sample gVCFs already exist and you want joint genotyping.
 
-See [WES/WGS single-sample pipeline](../pipelines/wes-wgs-single) and [WES/WGS cohort pipeline](../pipelines/wes-wgs-cohort).
+Use [mtDNA pipelines](../pipelines/mtdna) only after the required WES/WGS BAM outputs are available.
 
-### Run `wgs` if:
+## 3. Pick `single` or `cohort`
 
-- Your input data is whole-genome sequencing.
-- You want the same general calling flow as WES, but genome-wide.
+### `mode: single`
 
-See [WES/WGS single-sample pipeline](../pipelines/wes-wgs-single) and [WES/WGS cohort pipeline](../pipelines/wes-wgs-cohort).
+Use this when:
 
-### Run `mit` if:
+- processing one individual
+- creating a per-sample VCF or gVCF
+- preparing inputs for a later cohort run
 
-- You want mtDNA calling with MToolBox.
-- You already have BAM output from a previous WES/WGS single-sample run.
+This is the normal first step for WES/WGS.
 
-Important: mtDNA mode does not start from FASTQ in this project documentation flow.
+### `mode: cohort`
 
-See [mtDNA pipelines](../pipelines/mtdna) and [End-to-end example (mtDNA)](end-to-end-example-mit).
+Use this when:
 
----
+- joint genotyping multiple WES/WGS samples
+- combining existing per-sample gVCFs
+- analyzing mtDNA across a family or cohort after WES/WGS BAMs exist
 
-## 3. Choose `single` or `cohort`
+:::warning
 
-### Use `single` if:
+For WES/WGS, run `single` first for each sample. Cohort mode expects per-sample gVCF inputs.
 
-- You are processing one individual.
-- You need a per-sample VCF or gVCF.
-- You are preparing inputs for a later cohort run.
+:::
 
-### Use `cohort` if:
+## 4. Pick a Workflow Engine
 
-- You want joint genotyping across multiple samples.
-- You already have the required per-sample gVCFs for WES/WGS.
-- For mtDNA, you already have the required WES/WGS BAM outputs for all samples.
+| Engine | Use when | Limitations |
+|---|---|---|
+| `bash` | You want the broadest supported path or mtDNA workflows | No partial workflow-rule starts |
+| `snakemake` | You want Snakemake orchestration for WES/WGS GATK 4.6 workflows | Not supported for mtDNA or GATK 3.5 |
 
----
+When unsure, start with:
 
-## 4. Choose the workflow engine
+```yaml
+workflow_engine: bash
+gatk_version: gatk-4.6
+```
 
-### Use `bash` if:
+## Recommended Next Pages
 
-- You want the most broadly supported option.
-- You are running mtDNA.
-- You want behavior that matches the legacy and example scripts most closely.
-
-### Use `snakemake` if:
-
-- You want Snakemake orchestration for supported WES/WGS workflows.
-- You are using `gatk-4.6`.
-
-Important: `snakemake` is not supported for `mit`, and it is not supported with `gatk-3.5`.
-
----
-
-## Recommended Starting Points
-
-- If you want the shortest validated smoke test, go to [Quickstart](quickstart).
-- If you want a realistic WES example from inputs to outputs, go to [End-to-end example (WES)](end-to-end-example-wes).
-- If you want a realistic mtDNA example, go to [End-to-end example (mtDNA)](end-to-end-example-mit).
+- [Quickstart](quickstart): shortest validated local test
+- [End-to-end Example: WES](end-to-end-example-wes): realistic WES run from FASTQ to outputs
+- [End-to-end Example: mtDNA](end-to-end-example-mit): mtDNA workflow after WES/WGS BAM generation
+- [Configuration Reference](../help/configuration-reference): YAML keys and supported combinations
+- [General Usage](/docs/usage): command syntax and execution patterns
