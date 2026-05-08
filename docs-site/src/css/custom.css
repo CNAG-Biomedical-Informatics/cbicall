@@ -1,0 +1,36 @@
+:root {
+  --ifm-color-primary: #0f6f8f;
+  --ifm-color-primary-dark: #0d647f;
+  --ifm-color-primary-darker: #0c5e78;
+  --ifm-color-primary-darkest: #0a4e63;
+  --ifm-color-primary-light: #117a9d;
+  --ifm-color-primary-lighter: #1280a4;
+  --ifm-color-primary-lightest: #1490b9;
+  --ifm-code-font-size: 95%;
+  --ifm-heading-letter-spacing: 0;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #5fb7d2;
+  --ifm-color-primary-dark: #45accb;
+  --ifm-color-primary-darker: #38a7c8;
+  --ifm-color-primary-darkest: #2c8aa5;
+  --ifm-color-primary-light: #79c2d9;
+  --ifm-color-primary-lighter: #86c7dc;
+  --ifm-color-primary-lightest: #acd8e7;
+}
+
+.markdown img {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown img[alt='CBIcall'] {
+  display: block;
+  width: min(300px, 72vw);
+  margin: 0 auto 0.75rem;
+}
+
+.theme-doc-sidebar-container {
+  border-right: 1px solid var(--ifm-color-emphasis-200);
+}
