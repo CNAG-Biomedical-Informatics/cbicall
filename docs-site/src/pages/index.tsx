@@ -32,22 +32,22 @@ export default function Home(): JSX.Element {
         </section>
         <section className={styles.sections}>
           <div className={styles.grid}>
-            <article className={styles.card}>
+            <Link className={styles.card} to="/docs/usage/choose-your-path">
               <h2>Install</h2>
               <p>Docker, Apptainer, and non-containerized setup paths.</p>
-            </article>
-            <article className={styles.card}>
+            </Link>
+            <Link className={styles.card} to="/docs/usage/quickstart">
               <h2>Run</h2>
               <p>Single-sample and cohort workflows for WES, WGS, and mtDNA.</p>
-            </article>
-            <article className={styles.card}>
+            </Link>
+            <Link className={styles.card} to="/docs/help/outputs">
               <h2>Inspect</h2>
               <p>Standard project layout, logs, QC files, and generated outputs.</p>
-            </article>
-            <article className={styles.card}>
+            </Link>
+            <Link className={styles.card} to="/docs/technical-details/adding-a-pipeline">
               <h2>Extend</h2>
               <p>Registry-driven workflow wiring for adding new pipelines.</p>
-            </article>
+            </Link>
           </div>
         </section>
       </main>
