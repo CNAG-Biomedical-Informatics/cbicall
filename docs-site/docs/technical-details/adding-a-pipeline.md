@@ -76,6 +76,12 @@ workflows/bash/gatk-4.6/
 
 Bash workflows are executed directly. CBIcall sets `GENOME` in the environment and launches the script from inside the generated run directory.
 
+:::info[Entrypoint location]
+CBIcall does not copy Bash workflow scripts into the run directory. It launches the registered script from `workflows/bash/...` while setting the process working directory to the generated run directory.
+
+This keeps workflow code centralized and keeps helper paths such as `env.sh` stable through `BASH_SOURCE[0]`. The tradeoff is that workflow `.sh` files should not be edited while jobs are running.
+:::
+
 Minimal Bash example:
 
 ```bash

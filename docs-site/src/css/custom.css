@@ -25,6 +25,23 @@
   height: auto;
 }
 
+.markdown figure {
+  margin: 1.5rem auto 2rem;
+  text-align: center;
+}
+
+.markdown figure img {
+  display: block;
+  margin: 0 auto 0.65rem;
+}
+
+.markdown figcaption {
+  color: var(--ifm-color-emphasis-700);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .markdown img[alt='CBIcall'] {
   display: block;
   width: min(300px, 72vw);
@@ -33,4 +50,105 @@
 
 .theme-doc-sidebar-container {
   border-right: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.cbicallCardLabel {
+  color: var(--ifm-color-primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.cbicallCardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.cbicallCard,
+.cbicallNotePanel {
+  border: 1px solid rgba(15, 111, 143, 0.18);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, rgba(239, 248, 250, 0.7));
+  box-shadow: 0 10px 26px rgba(15, 47, 67, 0.055);
+}
+
+.cbicallCard {
+  padding: 1.1rem;
+}
+
+.cbicallCard h3 {
+  margin: 0.35rem 0 0.4rem;
+  color: #173244;
+}
+
+.cbicallCard p,
+.cbicallNotePanel p {
+  margin: 0;
+  color: var(--ifm-color-emphasis-700);
+  line-height: 1.55;
+}
+
+.cbicallNotePanel {
+  margin: 1rem 0 1.5rem;
+  padding: 1rem;
+}
+
+.about-hero {
+  margin: 1.2rem 0 1.6rem;
+  padding: 1.25rem 1.4rem;
+  border: 1px solid rgba(15, 111, 143, 0.16);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(237, 250, 253, 0.96), rgba(246, 251, 247, 0.94));
+  box-shadow: 0 10px 26px rgba(15, 47, 67, 0.06);
+}
+
+.about-hero p {
+  margin: 0;
+  color: var(--ifm-color-emphasis-800);
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.about-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  margin: 1rem 0 2rem;
+}
+
+.about-card {
+  padding: 1.1rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 8px;
+  background: var(--ifm-card-background-color);
+  box-shadow: 0 10px 26px rgba(15, 47, 67, 0.06);
+}
+
+.about-card h3 {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 1.16rem;
+}
+
+.about-card p {
+  margin: 0;
+  color: var(--ifm-color-emphasis-800);
+  line-height: 1.55;
+}
+
+.about-kicker {
+  display: inline-block;
+  color: var(--ifm-color-primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 760px) {
+  .cbicallCardGrid {
+    grid-template-columns: 1fr;
+  }
 }

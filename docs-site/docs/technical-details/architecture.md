@@ -1,7 +1,5 @@
 # Architecture
 
-## Overview
-
 CBIcall is a thin orchestration layer around one or more concrete pipelines. Its main responsibilities are:
 
 - Reading a YAML configuration file
@@ -17,13 +15,38 @@ The actual bioinformatics work (alignment, variant calling, QC) is implemented i
 
 ## Architecture diagram
 
-![Diagram](/img/architecture-diagram.png)
+![CBIcall architecture diagram](/img/architecture-diagram.png)
+
+_CBIcall resolves a validated YAML run into a concrete workflow engine and pipeline implementation._
 
 ---
 
 ## Main components
 
 At a high level, CBIcall consists of:
+
+<div className="cbicallCardGrid">
+  <div className="cbicallCard">
+    <span className="cbicallCardLabel">Python</span>
+    <h3>Execution driver</h3>
+    <p>Reads YAML, validates parameters, builds the run directory, and dispatches the selected workflow.</p>
+  </div>
+  <div className="cbicallCard">
+    <span className="cbicallCardLabel">Registry</span>
+    <h3>Workflow resolver</h3>
+    <p>Maps engine, GATK version, pipeline, and mode to a concrete script or Snakefile.</p>
+  </div>
+  <div className="cbicallCard">
+    <span className="cbicallCardLabel">Workflows</span>
+    <h3>Analysis layer</h3>
+    <p>Runs alignment, variant calling, mtDNA analysis, QC, and report generation.</p>
+  </div>
+  <div className="cbicallCard">
+    <span className="cbicallCardLabel">Run folder</span>
+    <h3>Outputs</h3>
+    <p>Stores BAMs, VCFs, stats, browser reports, logs, and the resolved run metadata.</p>
+  </div>
+</div>
 
 | Component | Role | Main files or directories |
 | --- | --- | --- |
@@ -68,6 +91,10 @@ The workflow engine is selected in the YAML:
 
 - `workflow_engine: bash`
 - `workflow_engine: snakemake`
+
+<div className="cbicallNotePanel">
+  <p><strong>Rule of thumb:</strong> Bash workflows are direct and transparent. Snakemake workflows are better when rule-based orchestration or partial targets matter.</p>
+</div>
 
 ---
 

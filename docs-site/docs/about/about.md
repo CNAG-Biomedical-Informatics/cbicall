@@ -2,33 +2,37 @@
 title: About
 ---
 
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
+**CBIcall** is developed at [CNAG](https://cnag.eu), Barcelona, Spain.
 
-**CBIcall** has been developed at [CNAG](https://cnag.eu), Barcelona, Spain.
+<div className="about-hero">
+  <p>
+    The project packages routine WES, WGS, and mtDNA variant-calling workflows
+    behind a small configuration layer, with reproducible command-line execution
+    and predictable output folders.
+  </p>
+</div>
 
-## Developers
+## Contributors
 
-<Tabs groupId="about-section">
-<TabItem value="cli" label="CLI" default>
+<div className="about-grid">
+  <article className="about-card">
+    <span className="about-kicker">Core software</span>
+    <h3><a href="https://github.com/mrueda">Manuel Rueda</a></h3>
+    <p>Workflow dispatcher, pipeline integration, command-line interface, and documentation.</p>
+  </article>
+  <article className="about-card">
+    <span className="about-kicker">Documentation</span>
+    <h3>Project docs</h3>
+    <p>Published with <a href="https://docusaurus.io">Docusaurus</a> and aligned with the supported Bash and Snakemake workflows.</p>
+  </article>
+</div>
 
-* [Manuel Rueda](https://github.com/mrueda)
-
-</TabItem>
-<TabItem value="documentation" label="Documentation">
-
-* [Manuel Rueda](https://github.com/mrueda). 
-  
-Project documentation is published with [Docusaurus](https://docusaurus.io/).
-
-</TabItem>
-</Tabs>
 ## Acknowledgments
 
-<Tabs groupId="about-section">
-<TabItem value="cnag" label="CNAG" default>
-
-* [Ivo G. Gut](https://scholar.google.com/citations?user=YKdDEVYAAAAJ) and his [team](https://www.cnag.eu/teams/genome-research-unit/biomedical-genomics-group)
-
-</TabItem>
-</Tabs>
+<div className="about-grid">
+  <article className="about-card">
+    <span className="about-kicker">CNAG</span>
+    <h3>Institutional support</h3>
+    <p><a href="https://scholar.google.com/citations?user=YKdDEVYAAAAJ">Ivo G. Gut</a> and his <a href="https://www.cnag.eu/teams/genome-research-unit/biomedical-genomics-group">team</a>.</p>
+  </article>
+</div>

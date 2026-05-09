@@ -1,23 +1,40 @@
 .hero {
-  min-height: 68vh;
-  display: flex;
-  align-items: center;
-  padding: 6rem 0 4rem;
+  padding: clamp(4rem, 8vw, 6.5rem) 1.5rem clamp(3rem, 6vw, 4.5rem);
   background:
-    radial-gradient(circle at 18% 18%, rgba(95, 183, 210, 0.22), transparent 32rem),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.055),
+      rgba(255, 255, 255, 0.055) 1px,
+      transparent 1px,
+      transparent 68px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.045) 1px,
+      transparent 1px,
+      transparent 68px
+    ),
     linear-gradient(135deg, #092f43 0%, #0f6f8f 58%, #2f7d73 100%);
   color: #fff;
 }
 
-.heroInner {
-  max-width: 980px;
+.heroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  gap: clamp(2rem, 6vw, 4rem);
+  align-items: center;
+  max-width: 1140px;
   margin: 0 auto;
-  padding: 0 1.5rem;
+}
+
+.heroCopy {
+  max-width: 720px;
 }
 
 .heroLogo {
   display: block;
-  width: min(280px, 72vw);
+  width: min(250px, 72vw);
   height: auto;
   margin: 0 0 1.75rem;
   filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.22));
@@ -35,24 +52,89 @@
   border: 0;
 }
 
-.heroTitle {
-  font-size: clamp(3rem, 8vw, 5.8rem);
-  line-height: 0.96;
-  margin: 0 0 1rem;
-  letter-spacing: 0;
-}
-
 .heroSubtitle {
-  max-width: 720px;
   font-size: 1.25rem;
   line-height: 1.6;
   margin-bottom: 2rem;
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .actions {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.workflowPanel {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(6, 38, 54, 0.58);
+  box-shadow: 0 22px 52px rgba(3, 25, 36, 0.28);
+}
+
+.workflowStep,
+.workflowStepPrimary {
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.workflowStepPrimary {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.workflowStep span,
+.workflowStepPrimary span,
+.card span {
+  display: block;
+  color: #9fe4f0;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.workflowStepPrimary span {
+  color: #0f6f8f;
+}
+
+.workflowStep strong,
+.workflowStepPrimary strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: #fff;
+  font-size: 1.04rem;
+}
+
+.workflowStepPrimary strong {
+  color: #173244;
+}
+
+.workflowArrow {
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.tokens span {
+  padding: 0.28rem 0.52rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.84);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
 }
 
 .sections {
@@ -68,7 +150,10 @@
 }
 
 .card {
-  display: block;
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  min-height: 160px;
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: 8px;
   padding: 1.25rem;
@@ -88,10 +173,31 @@
 
 .card h2 {
   font-size: 1.1rem;
-  margin-bottom: 0.5rem;
+  margin: 0;
 }
 
 .card p {
   margin: 0;
   color: var(--ifm-color-emphasis-700);
+  line-height: 1.55;
+}
+
+.card span {
+  color: var(--ifm-color-primary);
+}
+
+@media (max-width: 900px) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .workflowPanel {
+    max-width: 560px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding-top: 3rem;
+  }
 }
