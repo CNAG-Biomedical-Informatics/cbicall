@@ -4,7 +4,7 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 import styles from './index.module.css';
 
 export default function Home() {
-  const logoUrl = useBaseUrl('/img/cbicall-logo.png');
+  const logoUrl = useBaseUrl('/img/cbicall-logo-transparent.png');
 
   return (
     <Layout

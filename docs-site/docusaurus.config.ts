@@ -44,7 +44,7 @@ const config: Config = {
       title: 'CBIcall',
       logo: {
         alt: 'CBIcall',
-        src: 'img/cbicall-logo.png',
+        src: 'img/cbicall-logo-small-transparent.png',
       },
       items: [
         {

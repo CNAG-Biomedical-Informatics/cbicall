@@ -36,8 +36,11 @@
   display: block;
   width: min(250px, 72vw);
   height: auto;
+  padding: 0.65rem;
   margin: 0 0 1.75rem;
-  filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.22));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 16px 34px rgba(3, 25, 36, 0.22);
 }
 
 .srOnly {

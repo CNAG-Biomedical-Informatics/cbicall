@@ -52,6 +52,25 @@
   border-right: 1px solid var(--ifm-color-emphasis-200);
 }
 
+.navbar__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-right: 0.45rem;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 1px 8px rgba(15, 47, 67, 0.12);
+}
+
+.navbar__logo img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
 .cbicallCardLabel {
   color: var(--ifm-color-primary);
   font-size: 0.75rem;
