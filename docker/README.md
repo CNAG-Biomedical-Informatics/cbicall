@@ -59,10 +59,17 @@ If disk space is tight and the checksum has passed, add `--remove-parts` to remo
 
 CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.json`. The GDrive bundle only needs a small identifier file, for example `cbicall-bundle-id.json` containing `{"bundle": "cbicall-germline-resources-v1"}`. When that identifier file is available, the registry can store its Google Drive file ID and SHA-256 so the downloader can verify that the remote bundle matches the local CBIcall catalog entry.
 
-Finally, in the `cbicall` repo:
+### Point CBIcall to your resource directory
 
-Change `DATADIR` variable in `workflows/bash/*/env.sh` and `workflows/snakemake/*/config.yaml` so that it matches the location of your downloaded data.
+CBIcall workflows read resource paths from Bash `env.sh` files and the
+Snakemake `config.yaml`. In Docker, mount your host resource directory as
+`/cbicall-data` and point CBIcall to that container path:
 
+```bash
+sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-4.6/env.sh
+sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-3.5/env.sh
+sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/config.yaml
+```
 
 ### Method 1: Installing from Docker Hub (fast)
 
@@ -111,9 +118,12 @@ To connect to the container:
 docker exec -ti cbicall bash
 ```
 
-Finally, inside the `cbicall` repo:
+Inside the container, confirm that CBIcall sees the mounted resources:
 
-Change `DATADIR` variable in `workflows/bash/gatk-4.6/env.sh` and `workflows/snakemake/gatk-4.6/config.yaml` to `/cbicall-data`.
+```bash
+bin/cbicall validate-resources
+bin/cbicall doctor -p examples/input/param.yaml
+```
 
 ## Performing integration tests
 

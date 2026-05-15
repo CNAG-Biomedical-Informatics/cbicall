@@ -162,11 +162,24 @@ apptainer shell \
 
 You will start directly in the CBIcall working directory.
 
-### Modify DATADIR to point to `/cbicall-data`
+### Point CBIcall to `/cbicall-data`
 
-Finally, inside the `cbicall` repo:
+CBIcall workflows read resource paths from Bash `env.sh` files and the
+Snakemake `config.yaml`. In Apptainer, bind your external resource directory as
+`/cbicall-data` and point CBIcall to that container path:
 
-Change `DATADIR` variable in `workflows/bash/gatk-4.6/env.sh` and `workflows/snakemake/gatk-4.6/config.yaml` to `/cbicall-data`.
+```bash
+sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-4.6/env.sh
+sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-3.5/env.sh
+sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/config.yaml
+```
+
+Confirm that CBIcall sees the mounted resources:
+
+```bash
+bin/cbicall validate-resources
+bin/cbicall doctor -p examples/input/param.yaml
+```
 
 ---
 

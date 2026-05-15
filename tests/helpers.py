@@ -152,6 +152,7 @@ def write_registry(
             "          coverage: \"coverage.sh\"",
             "          jaccard: \"jaccard.sh\"",
             "          vcf2sex: \"vcf2sex.sh\"",
+            "          vcf2hash: \"vcf2hash.sh\"",
         ]
         if bash_profiles:
             lines.append("        profiles:")

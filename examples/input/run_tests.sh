@@ -8,7 +8,7 @@ LC_ALL=C
 
 CBICALL=${CBICALL:-'../../bin/cbicall'}
 THREADS=${THREADS:-1}
-PATTERN=${PATTERN:-'#'}
+PATTERN=${PATTERN:-'^#'}
 LAUNCHER_LOG_DIR=${LAUNCHER_LOG_DIR:-$(pwd -P)}
 
 RUN_WES=0
@@ -38,7 +38,7 @@ Options:
 Environment variables:
   CBICALL   Path to cbicall executable (default: ../../bin/cbicall)
   THREADS   Number of threads to use (default: 1)
-  PATTERN   Regex pattern to filter out lines before comparison (default: '#')
+  PATTERN   Regex pattern to filter out lines before comparison (default: '^#')
 EOF
 }
 
@@ -121,6 +121,12 @@ compare_files() {
   tst_filtered=$(mktemp)
   "$filter_tool" -v -E "$PATTERN" "$ref" | sort > "$ref_filtered"
   "$filter_tool" -v -E "$PATTERN" "$tst" | sort > "$tst_filtered"
+
+  echo "Normalized SHA-256 (pattern: $PATTERN):"
+  printf "  REF : "
+  sha256sum "$ref_filtered" | awk '{print $1}'
+  printf "  TEST: "
+  sha256sum "$tst_filtered" | awk '{print $1}'
 
   if diff -u "$ref_filtered" "$tst_filtered"; then
     rm -f "$ref_filtered" "$tst_filtered"

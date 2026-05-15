@@ -71,7 +71,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
     profiles = _resolve_profiles(ver_cfg.get("profiles", {}), base_dir)
 
     if engine == "bash":
-        needed_common = ["env", "coverage", "jaccard", "vcf2sex"]
+        needed_common = ["env", "coverage", "jaccard", "vcf2sex", "vcf2hash"]
         missing_common = [k for k in needed_common if k not in common]
         if missing_common:
             raise WorkflowResolutionError(
@@ -89,6 +89,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
                 "coverage": str(base_dir / common["coverage"]),
                 "jaccard": str(base_dir / common["jaccard"]),
                 "vcf2sex": str(base_dir / common["vcf2sex"]),
+                "vcf2hash": str(base_dir / common["vcf2hash"]),
             },
             profiles=profiles,
         )

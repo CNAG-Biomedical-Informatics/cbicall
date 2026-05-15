@@ -1,0 +1,262 @@
+---
+title: Google Cloud with Docker
+---
+
+This page is a practical recipe for running the CBIcall one-sample WES
+reproducibility check on a Google Cloud Compute Engine VM with Docker.
+
+Use this when you want evidence that the same CBIcall checkout, Docker image,
+YAML, workflow registry, and resource bundle resolve and run outside your local
+or institutional environment.
+
+:::info[Scope]
+This is not a cloud-scale production benchmark. It runs the bundled one-sample
+WES integration test and checks framework portability.
+:::
+
+## What This Checks
+
+The recipe runs:
+
+```bash
+bin/cbicall validate-registry
+bin/cbicall validate-resources
+bin/cbicall doctor -p examples/input/param.yaml
+bin/cbicall test --wes -t 1
+```
+
+Expected evidence:
+
+| Evidence | Meaning |
+| --- | --- |
+| `validate-registry` succeeds | The workflow registry is valid. |
+| `validate-resources` succeeds | The resource catalog is well formed and points to declared workflows. |
+| `doctor` resolves the run | The YAML resolves to a concrete workflow, profile, pipeline version, and bundle. |
+| `test --wes` succeeds | The generated WES VCF matches the shipped reference output under the integration-test comparison. |
+| Normalized SHA-256 is printed | The filtered, sorted variant records have a compact reporting fingerprint. |
+| `run-report.json` exists | The cloud run records workflow and resource provenance. |
+
+## Prerequisites
+
+On your local machine:
+
+- a Google Cloud project with billing enabled
+- the `gcloud` CLI installed and initialized
+- permission to create Compute Engine VMs
+
+References:
+
+- [Install the Google Cloud CLI](https://cloud.google.com/sdk/docs/install)
+- [Create and start a Compute Engine instance](https://cloud.google.com/compute/docs/instances/create-start-instance)
+- [Install Docker Engine on Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
+
+## 1. Create a VM
+
+Set your project, zone, and VM name:
+
+```bash
+export PROJECT_ID="your-google-cloud-project"
+export ZONE="europe-west1-b"
+export VM_NAME="cbicall-docker-test"
+
+gcloud config set project "$PROJECT_ID"
+gcloud services enable compute.googleapis.com
+```
+
+Create an Ubuntu VM. The disk is intentionally larger than the example data
+because the external resource bundle is the large part of the test.
+
+```bash
+gcloud compute instances create "$VM_NAME" \
+  --zone "$ZONE" \
+  --machine-type "e2-standard-4" \
+  --boot-disk-size "200GB" \
+  --boot-disk-type "pd-balanced" \
+  --image-family "ubuntu-2204-lts" \
+  --image-project "ubuntu-os-cloud"
+```
+
+Connect to the VM:
+
+```bash
+gcloud compute ssh "$VM_NAME" --zone "$ZONE"
+```
+
+:::warning[Cost]
+The VM and disk can generate charges while they exist. Delete the VM at the end
+of the recipe if you only need a reproducibility check.
+:::
+
+## 2. Install Docker on the VM
+
+For a short-lived reproducibility VM, the Ubuntu package is sufficient:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y docker.io git python3
+sudo systemctl enable --now docker
+sudo docker run --rm hello-world
+```
+
+For long-lived systems, use the current Docker Engine instructions linked above.
+
+## 3. Clone CBIcall and Pull the Image
+
+```bash
+git clone https://github.com/CNAG-Biomedical-Informatics/cbicall.git
+cd cbicall
+
+export CBICALL_IMAGE="manuelrueda/cbicall:latest"
+sudo docker pull "$CBICALL_IMAGE"
+```
+
+Record the checkout and image identity:
+
+```bash
+git rev-parse HEAD
+sudo docker image inspect "$CBICALL_IMAGE" --format '{{index .RepoDigests 0}}'
+```
+
+For a manuscript or rebuttal, keep those two values with the run artifacts.
+
+## 4. Prepare the Resource Directory
+
+Create a host directory that will be mounted as `/cbicall-data` inside Docker:
+
+```bash
+export CBICALL_DATA="$HOME/cbicall-data"
+mkdir -p "$CBICALL_DATA"
+```
+
+Define a small helper so every CBIcall command uses the same image, checkout,
+and resource directory:
+
+```bash
+cbicall_docker() {
+  sudo docker run --rm \
+    --user "$(id -u):$(id -g)" \
+    -v "$PWD":/usr/share/cbicall \
+    -v "$CBICALL_DATA":/cbicall-data \
+    -w /usr/share/cbicall \
+    "$CBICALL_IMAGE" "$@"
+}
+```
+
+Download, assemble, verify, and extract the external resource bundle:
+
+```bash
+cbicall_docker python3 scripts/01_download_external_data.py \
+  --outdir /cbicall-data \
+  --catalog resources/cbicall-resource-catalog.json
+```
+
+If Google Drive throttles or stalls, print the manual download URLs:
+
+```bash
+cbicall_docker python3 scripts/01_download_external_data.py \
+  --outdir /cbicall-data \
+  --catalog resources/cbicall-resource-catalog.json \
+  --print-manual-download
+```
+
+After copying the listed files into `$CBICALL_DATA`, finish setup with:
+
+```bash
+cbicall_docker python3 scripts/01_download_external_data.py \
+  --outdir /cbicall-data \
+  --catalog resources/cbicall-resource-catalog.json \
+  --skip-download
+```
+
+## 5. Point CBIcall to `/cbicall-data`
+
+The Docker container sees the mounted resource directory as `/cbicall-data`.
+Update the local checkout before launching CBIcall:
+
+```bash
+sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-4.6/env.sh
+sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-3.5/env.sh
+sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/config.yaml
+```
+
+## 6. Run the Reproducibility Check
+
+```bash
+cbicall_docker bin/cbicall validate-registry
+cbicall_docker bin/cbicall validate-resources
+cbicall_docker bin/cbicall doctor -p examples/input/param.yaml
+cbicall_docker bin/cbicall test --wes -t 1
+```
+
+The final command should print the run directory, workflow log,
+`run-report.json`, launcher log, and the output VCF used for comparison.
+
+## 7. Capture Evidence
+
+Find the newest WES test run:
+
+```bash
+RUN_DIR=$(find examples/input/CNAG999_exome/CNAG99901P_ex \
+  -maxdepth 1 \
+  -type d \
+  -name 'cbicall_bash_wes_single_b37_gatk-4.6_*' \
+  | sort \
+  | tail -n 1)
+
+echo "$RUN_DIR"
+```
+
+Inspect the compact run report:
+
+```bash
+grep -E '"status"|"pipeline_version"|"resource_bundle"|"fingerprint"|"workflow_log"' \
+  "$RUN_DIR/run-report.json"
+```
+
+Compute a normalized variant-record hash for the generated VCF:
+
+```bash
+zgrep -v -E '^#' "$RUN_DIR/02_varcall/CNAG99901P.hc.QC.vcf.gz" \
+  | sort \
+  | sha256sum
+```
+
+Do not use the raw `.vcf.gz` file hash for reproducibility reporting. VCF
+headers and gzip metadata can differ between otherwise equivalent runs. The
+integration test compares and reports the normalized variant-record stream
+instead.
+
+For a reviewer response, keep:
+
+- CBIcall commit: `git rev-parse HEAD`
+- Docker image digest
+- the four command outputs from the reproducibility check
+- `run-report.json`
+- the normalized variant-record SHA-256
+
+## 8. Clean Up
+
+Exit the VM:
+
+```bash
+exit
+```
+
+Delete the VM from your local terminal:
+
+```bash
+gcloud compute instances delete "$VM_NAME" --zone "$ZONE"
+```
+
+If you created a separate disk or copied resources to Cloud Storage, delete
+those separately.
+
+## Suggested Manuscript Wording
+
+> To directly assess portability, we executed the bundled single-sample WES
+> integration test on a Google Cloud Compute Engine VM using Docker. The cloud
+> run used the same CBIcall checkout, user YAML, workflow registry, Docker image,
+> and resource bundle as the local test. CBIcall resolved the same workflow
+> implementation and resource bundle identity, and the generated VCF matched the
+> shipped reference output under the deterministic comparison used by the
+> integration test.

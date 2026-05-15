@@ -18,7 +18,7 @@
 #     7) VariantRecalibrator (VQSR) if variant counts suffice
 #     8) Apply VQSR models or fallback to hard filters
 #     9) Hard-filter & write QC VCF
-#    10) Coverage stats & sex determination
+#    10) Coverage stats, sex determination & VCF hash
 
 set -eu
 
@@ -295,9 +295,9 @@ echo ">>> STEP 9: Hard-filter & write QC.vcf"
   2>> "$LOG"
 
 #------------------------------------------------------------------------------
-# STEP 10: Coverage Stats & Sex Determination
+# STEP 10: Coverage Stats, Sex Determination & VCF Hash
 #------------------------------------------------------------------------------
-echo ">>> STEP 10: Coverage & Sex Determination" 2>> "$LOG"
+echo ">>> STEP 10: Coverage, Sex Determination & VCF Hash" 2>> "$LOG"
 
 # choose chromosome 1 naming
 if [[ "$REF" == *b37*.fasta ]]; then
@@ -324,6 +324,8 @@ $SAM index "$out_dedup"  2>> "$LOG"
     > "$STATSDIR/${id}.coverage.txt" 2>> "$LOG"
 "$BINDIR"/vcf2sex.sh "$VARCALLDIR/${id}.hc.QC.vcf.gz" \
     > "$STATSDIR/${id}.sex.txt" 2>> "$LOG"
+"$BINDIR"/vcf2hash.sh "$VARCALLDIR/${id}.hc.QC.vcf.gz" \
+    > "$STATSDIR/${id}.vcf.sha256.txt" 2>> "$LOG"
 
 # Delete $STATSDIR/*bam
 rm "$out_raw" "$out_dedup" "$out_raw.bai" "$out_dedup.bai"

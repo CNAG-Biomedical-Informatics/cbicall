@@ -89,9 +89,26 @@ If disk space is tight and the checksum has passed, add `--remove-parts` to remo
 
 CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.json`. The GDrive bundle only needs a small identifier file, for example `cbicall-bundle-id.json` containing `{"bundle": "cbicall-germline-resources-v1"}`. When that identifier file is available, the registry can store its Google Drive file ID and SHA-256 so the downloader can verify that the remote bundle matches the local CBIcall catalog entry.
 
-Finally, in the `cbicall` repo:
+### Point CBIcall to your resource directory
 
-Change the `DATADIR` variable in `workflows/bash/*/env.sh` and `workflows/snakemake/*/config.yaml` so that it matches the location of your downloaded data.
+CBIcall workflows read resource paths from Bash `env.sh` files and the
+Snakemake `config.yaml`. In a non-containerized installation, point those files
+to the host directory where you installed the external resource bundle:
+
+```bash
+export CBICALL_DATA="/absolute/path/to/cbicall-data"
+
+sed -i "s|^DATADIR=.*|DATADIR=${CBICALL_DATA}|" workflows/bash/gatk-4.6/env.sh
+sed -i "s|^DATADIR=.*|DATADIR=${CBICALL_DATA}|" workflows/bash/gatk-3.5/env.sh
+sed -i "s|^datadir:.*|datadir: \"${CBICALL_DATA}\"|" workflows/snakemake/gatk-4.6/config.yaml
+```
+
+Confirm that CBIcall sees the configured resources:
+
+```bash
+bin/cbicall validate-resources
+bin/cbicall doctor -p examples/input/param.yaml
+```
 
 Ok, finally we are going to install `Java 8` in case you don't have it already:
 

@@ -8,6 +8,7 @@ workflows:
           coverage: "coverage.sh"
           jaccard: "jaccard.sh"
           vcf2sex: "vcf2sex.sh"
+          vcf2hash: "vcf2hash.sh"
         profiles:
           cnag-hpc:
             env: "cnag-hpc-env.sh"
@@ -41,6 +42,7 @@ workflows:
           coverage: "coverage.sh"
           jaccard: "jaccard.sh"
           vcf2sex: "vcf2sex.sh"
+          vcf2hash: "vcf2hash.sh"
         profiles:
           cnag-hpc:
             env: "cnag-hpc-env.sh"

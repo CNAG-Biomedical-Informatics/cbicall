@@ -47,7 +47,8 @@
             "config": { "$ref": "#/$defs/pathString" },
             "coverage": { "$ref": "#/$defs/pathString" },
             "jaccard": { "$ref": "#/$defs/pathString" },
-            "vcf2sex": { "$ref": "#/$defs/pathString" }
+            "vcf2sex": { "$ref": "#/$defs/pathString" },
+            "vcf2hash": { "$ref": "#/$defs/pathString" }
           }
         },
         "profiles": {
@@ -71,7 +72,8 @@
         "config": { "$ref": "#/$defs/pathString" },
         "coverage": { "$ref": "#/$defs/pathString" },
         "jaccard": { "$ref": "#/$defs/pathString" },
-        "vcf2sex": { "$ref": "#/$defs/pathString" }
+        "vcf2sex": { "$ref": "#/$defs/pathString" },
+        "vcf2hash": { "$ref": "#/$defs/pathString" }
       }
     },
     "pipelineModes": {

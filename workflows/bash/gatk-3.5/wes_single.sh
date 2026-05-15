@@ -59,6 +59,7 @@ source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
 # Scripts to calculate miscellanea stats on coverage (chr1) and determine sex
 COV=$BINDIR/coverage.sh
 VCF2SEX=$BINDIR/vcf2sex.sh
+VCF2HASH=$BINDIR/vcf2hash.sh
 
 # Defining directories
 DIR=$( pwd )
@@ -480,6 +481,10 @@ $COV $id $out_raw $out_dedup > $stats_log
 echo "Estimating Sex of the sample"
 sex_log=$STATSDIR/$id.sex.txt
 $VCF2SEX $VARCALLDIR/$id.ug.QC.vcf  > $sex_log
+
+echo "Computing VCF SHA-256 fingerprints"
+vcf2hash_log=$STATSDIR/$id.vcf.sha256.txt
+$VCF2HASH $VARCALLDIR/$id.ug.QC.vcf > $vcf2hash_log 2>> $LOG
 
 # Fin
 echo "All done!!!"

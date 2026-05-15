@@ -50,7 +50,7 @@ def _touch_bash_files(root: Path, gatk_ver: str, script_name: str, *, make_exec:
     bash_dir = root / "workflows" / "bash" / gatk_ver
     bash_dir.mkdir(parents=True, exist_ok=True)
 
-    for name in ["env.sh", "coverage.sh", "jaccard.sh", "vcf2sex.sh", script_name]:
+    for name in ["env.sh", "coverage.sh", "jaccard.sh", "vcf2sex.sh", "vcf2hash.sh", script_name]:
         p = bash_dir / name
         p.write_text("#!/bin/sh\n", encoding="utf-8")
         if make_exec:
@@ -75,6 +75,7 @@ def _minimal_bash_registry_block(gatk_ver: str = "gatk-4.6") -> str:
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"
         "          vcf2sex: \"vcf2sex.sh\"\n"
+        "          vcf2hash: \"vcf2hash.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
@@ -869,6 +870,7 @@ def test_set_config_values_engine_not_in_registry_raises(monkeypatch, tmp_path):
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"
         "          vcf2sex: \"vcf2sex.sh\"\n"
+        "          vcf2hash: \"vcf2hash.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
@@ -907,6 +909,7 @@ def test_set_config_values_version_not_in_registry_raises(monkeypatch, tmp_path)
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"
         "          vcf2sex: \"vcf2sex.sh\"\n"
+        "          vcf2hash: \"vcf2hash.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
@@ -939,6 +942,7 @@ def test_set_config_values_pipeline_not_in_registry_raises(monkeypatch, tmp_path
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"
         "          vcf2sex: \"vcf2sex.sh\"\n"
+        "          vcf2hash: \"vcf2hash.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
@@ -971,6 +975,7 @@ def test_set_config_values_mode_not_in_registry_raises(monkeypatch, tmp_path):
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"
         "          vcf2sex: \"vcf2sex.sh\"\n"
+        "          vcf2hash: \"vcf2hash.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
@@ -995,7 +1000,7 @@ def test_set_config_values_mode_not_in_registry_raises(monkeypatch, tmp_path):
 def test_set_config_values_bash_missing_common_keys_raises(monkeypatch, tmp_path):
     root = _mk_fake_root(monkeypatch, tmp_path)
 
-    # Omit coverage/jaccard/vcf2sex in common
+    # Omit coverage/jaccard/vcf2sex/vcf2hash in common
     reg = (
         "workflows:\n"
         "  bash:\n"
@@ -1460,6 +1465,7 @@ def test_set_config_values_missing_workflow_files_raises(monkeypatch, tmp_path):
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"
         "          vcf2sex: \"vcf2sex.sh\"\n"
+        "          vcf2hash: \"vcf2hash.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
@@ -1495,6 +1501,7 @@ def test_set_config_values_not_executable_bash_raises(monkeypatch, tmp_path):
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"
         "          vcf2sex: \"vcf2sex.sh\"\n"
+        "          vcf2hash: \"vcf2hash.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
