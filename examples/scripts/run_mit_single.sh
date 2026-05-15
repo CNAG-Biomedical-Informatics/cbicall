@@ -20,7 +20,7 @@ pipeline: mit
 input_dir: $DIR/$DIRNAME/$SAMPLE
 EOF
 
-    "$CBICALL" -t "$NCPU" -p "$SAMPLE.mit_single.yaml" > "$SAMPLE.mit_single.log" 2>&1
+    "$CBICALL" run -t "$NCPU" -p "$SAMPLE.mit_single.yaml" > "$SAMPLE.mit_single.log" 2>&1
     cd ".."
   done
 

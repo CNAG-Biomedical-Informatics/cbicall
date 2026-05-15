@@ -56,7 +56,7 @@ Key points:
 
 # Quick Start
 
-    bin/cbicall -p params.yaml -t 8
+    bin/cbicall run -p params.yaml -t 8
 
 Runnable examples and sample inputs are available under `examples/`.
 

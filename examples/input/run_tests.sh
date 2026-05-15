@@ -256,7 +256,7 @@ if [ "$RUN_WES" -eq 1 ]; then
   WES_LAUNCHER_LOG=$(mktemp -p "$LAUNCHER_LOG_DIR" cbicall-test-wes.XXXXXX.log)
   list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_BEFORE"
 
-  if ! "$CBICALL" -p "$PARAM_WES" -t "$THREADS" > "$WES_LAUNCHER_LOG" 2>&1; then
+  if ! "$CBICALL" run -p "$PARAM_WES" -t "$THREADS" > "$WES_LAUNCHER_LOG" 2>&1; then
     list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_AFTER"
     WES_RUN_DIR=$(run_dir_from_launcher_log "$WES_LAUNCHER_LOG")
     if [ -z "${WES_RUN_DIR:-}" ]; then
@@ -332,7 +332,7 @@ if [ "$RUN_MIT" -eq 1 ]; then
   MIT_LAUNCHER_LOG=$(mktemp -p "$LAUNCHER_LOG_DIR" cbicall-test-mit.XXXXXX.log)
   list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$MIT_BEFORE"
 
-  if ! "$CBICALL" -p "$PARAM_MIT" -t "$THREADS" > "$MIT_LAUNCHER_LOG" 2>&1; then
+  if ! "$CBICALL" run -p "$PARAM_MIT" -t "$THREADS" > "$MIT_LAUNCHER_LOG" 2>&1; then
     list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$MIT_AFTER"
     MIT_RUN_DIR=$(run_dir_from_launcher_log "$MIT_LAUNCHER_LOG")
     if [ -z "${MIT_RUN_DIR:-}" ]; then

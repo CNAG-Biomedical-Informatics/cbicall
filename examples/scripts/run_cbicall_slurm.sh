@@ -79,6 +79,7 @@ cleanup_bam: false
 YAML
 
 srun "\$CBICALL" \\
+     run \\
      -p "\$YAML_FILE" \\
      -t $THREADS
 EOF

@@ -93,7 +93,7 @@ The mtDNA workflow uses MToolBox and is x86_64-only. If you are on ARM / aarch64
 Once the integration tests work, use the normal invocation:
 
 ```bash
-bin/cbicall -p parameters.yaml -t 4
+bin/cbicall run -p parameters.yaml -t 4
 ```
 
 | Option | Meaning |

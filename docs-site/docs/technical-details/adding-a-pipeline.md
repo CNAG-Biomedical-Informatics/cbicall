@@ -216,7 +216,7 @@ genome:          b37
 Run it:
 
 ```bash
-bin/cbicall -p mypipe.yaml -t 4
+bin/cbicall run -p mypipe.yaml -t 4
 ```
 
 CBIcall should create a run directory similar to:
@@ -242,7 +242,7 @@ Good first checks:
 bin/cbicall validate-registry
 bin/cbicall validate-resources
 bin/cbicall doctor -p mypipe.yaml
-bin/cbicall -p mypipe.yaml -t 2
+bin/cbicall run -p mypipe.yaml -t 2
 ```
 
 Then inspect:

@@ -69,7 +69,7 @@ Notes:
 ## 3. Run CBIcall
 
 ```bash
-bin/cbicall -p wes_single.yaml -t 4
+bin/cbicall run -p wes_single.yaml -t 4
 ```
 
 - `-p` selects the YAML parameters file  
@@ -196,7 +196,7 @@ sample_map:      ./sample_map.tsv
 ## 3. Run CBIcall
 
 ```bash
-bin/cbicall -p wes_cohort.yaml -t 4
+bin/cbicall run -p wes_cohort.yaml -t 4
 ```
 
 - `-p` selects the YAML parameters file  

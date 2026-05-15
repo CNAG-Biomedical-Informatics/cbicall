@@ -20,7 +20,7 @@ from .cli_output import (
     _section,
 )
 from .dnaseq import DNAseq
-from .helpmod import usage, parse_args as _parse_args
+from .helpmod import usage, parse_args as _parse_args, parse_run_args as _parse_run_args
 from .models import ResolvedConfig, RunSettings
 from .resources import validate_resource_catalog
 from .workflow_registry import load_workflow_registry
@@ -65,6 +65,8 @@ def parse_args(argv):
     Convenience wrapper so tests can do cli.parse_args([...])
     and get an argparse.Namespace.
     """
+    if argv and argv[0] == "run":
+        return _parse_run_args(argv[1:], VERSION)
     return _parse_args(argv, VERSION)
 
 
@@ -342,21 +344,7 @@ def run_with_spinner(func, *args, no_spinner: bool = False):
     return result
 
 
-def main() -> int:
-    start_time = time.time()
-    cbicall_path = Path(sys.argv[0]).resolve()
-
-    if len(sys.argv) > 1 and sys.argv[1] == "doctor":
-        return _run_doctor_command(sys.argv[2:])
-    if len(sys.argv) > 1 and sys.argv[1] == "validate-registry":
-        return _run_validate_registry_command(sys.argv[2:])
-    if len(sys.argv) > 1 and sys.argv[1] == "validate-resources":
-        return _run_validate_resources_command(sys.argv[2:])
-    if len(sys.argv) > 1 and sys.argv[1] == "test":
-        return _run_test_command(sys.argv[2:])
-
-    # Parse CLI args (Help::usage)
-    arg = usage(VERSION)
+def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
     if arg.get("nocolor"):
         os.environ["ANSI_COLORS_DISABLED"] = "1"
     _refresh_colors()
@@ -445,3 +433,28 @@ def main() -> int:
     print(f"{WHITE}{gb.say_goodbye()}{RESET}")
 
     return 0
+
+
+def _run_run_command(argv: List[str], *, start_time: float, cbicall_path: Path) -> int:
+    arg = vars(_parse_run_args(argv, VERSION))
+    return _run_analysis(arg, start_time=start_time, cbicall_path=cbicall_path)
+
+
+def main() -> int:
+    start_time = time.time()
+    cbicall_path = Path(sys.argv[0]).resolve()
+
+    if len(sys.argv) > 1 and sys.argv[1] == "run":
+        return _run_run_command(sys.argv[2:], start_time=start_time, cbicall_path=cbicall_path)
+    if len(sys.argv) > 1 and sys.argv[1] == "doctor":
+        return _run_doctor_command(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "validate-registry":
+        return _run_validate_registry_command(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "validate-resources":
+        return _run_validate_resources_command(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        return _run_test_command(sys.argv[2:])
+
+    # Backward-compatible legacy run form: cbicall -p params.yaml -t THREADS.
+    arg = usage(VERSION)
+    return _run_analysis(arg, start_time=start_time, cbicall_path=cbicall_path)

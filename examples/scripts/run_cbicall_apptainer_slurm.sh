@@ -110,6 +110,7 @@ srun apptainer exec \\
   --bind "${WORKDIR}":"${WORKDIR}" \\
   "${SIF_IMAGE}" \\
   "\${CBICALL_IN_CONTAINER}" \\
+    run \\
     -p "\${YAML_FILE}" \\
     -t ${THREADS}
 EOF

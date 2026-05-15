@@ -3,13 +3,13 @@
 CBIcall is normally run with a YAML parameters file and a thread count:
 
 ```bash
-bin/cbicall -p parameters.yaml -t 4
+bin/cbicall run -p parameters.yaml -t 4
 ```
 
 Use this page for command syntax and common execution patterns. For YAML keys and supported combinations, see [Configuration Reference](../help/configuration-reference).
 
 :::tip[Typical workflow]
-Choose or edit a YAML file, run `bin/cbicall -p ... -t ...`, then inspect the generated run directory and `log.json`.
+Choose or edit a YAML file, run `bin/cbicall run -p ... -t ...`, then inspect the generated run directory and `log.json`.
 :::
 
 ## Input Model
@@ -29,8 +29,10 @@ For mtDNA runs, CBIcall expects BAM files from previous WES/WGS single-sample ru
 ## CLI Synopsis
 
 ```text
-cbicall -p <parameters_file.yaml> -t <n_threads> [options]
+cbicall run -p <parameters_file.yaml> -t <n_threads> [options]
 ```
+
+Use `run` for normal analysis execution. The other subcommands perform preflight checks, validation, or bundled integration tests.
 
 | Argument | Meaning |
 | --- | --- |
@@ -49,15 +51,15 @@ cbicall -p <parameters_file.yaml> -t <n_threads> [options]
 ## Common Commands
 
 ```bash
-bin/cbicall -p wes_single.yaml -t 4
-bin/cbicall -p wes_cohort.yaml -t 8 -verbose
-bin/cbicall -p mit_single.yaml -t 4 > run.log 2>&1
-nohup bin/cbicall -p parameters.yaml -t 4 > run.log 2>&1 &
+bin/cbicall run -p wes_single.yaml -t 4
+bin/cbicall run -p wes_cohort.yaml -t 8 -verbose
+bin/cbicall run -p mit_single.yaml -t 4 > run.log 2>&1
+nohup bin/cbicall run -p parameters.yaml -t 4 > run.log 2>&1 &
 ```
 
 | Pattern | Use when |
 | --- | --- |
-| `bin/cbicall -p wes_single.yaml -t 4` | Normal foreground run. |
+| `bin/cbicall run -p wes_single.yaml -t 4` | Normal foreground run. |
 | `-verbose` | You want more CLI output while the workflow starts. |
 | `> run.log 2>&1` | You are saving terminal output to a file. ANSI colors are disabled automatically. |
 | `nohup ... &` | You need a simple long-running background job outside a scheduler. |

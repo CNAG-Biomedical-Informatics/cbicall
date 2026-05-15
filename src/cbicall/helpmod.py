@@ -4,10 +4,10 @@ import textwrap
 import argparse
 
 
-def _build_parser(version: str) -> argparse.ArgumentParser:
+def _build_parser(version: str, *, prog: str = "cbicall") -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         add_help=False,
-        prog="cbicall",
+        prog=prog,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=textwrap.dedent(
             f"""\
@@ -15,6 +15,7 @@ def _build_parser(version: str) -> argparse.ArgumentParser:
             CNAG Biomedical Informatics Framework for variant calling on Illumina DNA-seq.
 
             Commands:
+              cbicall run -p parameters.yaml -t THREADS
               cbicall doctor -p parameters.yaml
               cbicall validate-registry
               cbicall validate-resources
@@ -86,6 +87,24 @@ def parse_args(argv, version: str) -> argparse.Namespace:
     """
     parser = _build_parser(version)
     args = parser.parse_args(argv)
+    return _validate_args_core(args)
+
+
+def parse_run_args(argv, version: str) -> argparse.Namespace:
+    """
+    Parse arguments for the explicit 'cbicall run' subcommand.
+    """
+    parser = _build_parser(version, prog="cbicall run")
+    args = parser.parse_args(argv)
+
+    if args.show_version:
+        print(version)
+        raise SystemExit(0)
+
+    if args.help or args.man:
+        parser.print_help()
+        raise SystemExit(0)
+
     return _validate_args_core(args)
 
 

@@ -3,7 +3,7 @@
 CBIcall runs from a YAML parameters file plus the CLI thread setting.
 
 ```bash
-bin/cbicall -p parameters.yaml -t 4
+bin/cbicall run -p parameters.yaml -t 4
 ```
 
 Unknown YAML keys are rejected, so misspellings fail early instead of being ignored.
@@ -133,12 +133,14 @@ During a real run, the resolved `profile` and selected environment file are writ
 
 | Command | Use |
 | --- | --- |
+| `bin/cbicall run -p parameters.yaml -t 4` | Execute a normal analysis run. |
 | `bin/cbicall doctor -p parameters.yaml` | Dry-run preflight for one concrete run. It resolves the parameter YAML, workflow, profile env file, and resource bundle without launching the workflow. |
 | `bin/cbicall validate-registry` | Developer check for `workflows/registry/workflows.yaml` against `workflows/schema/workflows.schema.json`. |
 | `bin/cbicall validate-resources` | Developer check for `resources/cbicall-resource-catalog.json` and its workflow compatibility keys. |
 | `bin/cbicall test --wes`, `--mit`, or `--all` | Runs the bundled integration examples without remembering the script path. |
 
 ```bash
+bin/cbicall run -p parameters.yaml -t 4
 bin/cbicall doctor -p parameters.yaml
 bin/cbicall validate-registry
 bin/cbicall validate-resources

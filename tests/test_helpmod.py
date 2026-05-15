@@ -20,6 +20,17 @@ def test_helpmod_parse_args_valid(tmp_path):
     assert not args.verbose
 
 
+def test_helpmod_parse_run_args_valid(tmp_path):
+    param_file = tmp_path / "params.yaml"
+    param_file.write_text("mode: single\npipeline: wes\n", encoding="utf-8")
+
+    argv = ["-t", "4", "-p", str(param_file)]
+    args = helpmod.parse_run_args(argv, "0.0.1")
+
+    assert args.threads == 4
+    assert args.paramfile == str(param_file)
+
+
 def test_helpmod_parse_args_missing_required(tmp_path):
     param_file = tmp_path / "params.yaml"
     param_file.write_text("mode: single\npipeline: wes\n", encoding="utf-8")
@@ -67,6 +78,15 @@ def test_cli_parse_args_wrapper(tmp_path):
     assert args.paramfile == str(param_file)
 
 
+def test_cli_parse_args_wrapper_accepts_run(tmp_path):
+    param_file = tmp_path / "params.yaml"
+    param_file.write_text("pipeline: wes\nmode: single\n", encoding="utf-8")
+
+    args = cli_mod.parse_args(["run", "-t", "2", "-p", str(param_file)])
+    assert args.threads == 2
+    assert args.paramfile == str(param_file)
+
+
 def test_usage_sets_no_color(tmp_path, monkeypatch):
     param_file = tmp_path / "params.yaml"
     param_file.write_text("pipeline: wes\nmode: single\n", encoding="utf-8")
@@ -102,6 +122,13 @@ def test_usage_help_exits(monkeypatch):
     with pytest.raises(SystemExit) as excinfo:
         helpmod.usage("0.0.1")
     assert excinfo.value.code == 0
+
+
+def test_parse_run_args_help_exits(capsys):
+    with pytest.raises(SystemExit) as excinfo:
+        helpmod.parse_run_args(["-h"], "0.0.1")
+    assert excinfo.value.code == 0
+    assert "usage: cbicall run" in capsys.readouterr().out
 
 
 def test_usage_man_exits(monkeypatch):

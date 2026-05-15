@@ -17,6 +17,6 @@ pipeline: mit
 input_dir: $DIR/$DIRNAME
 EOF
 
-  "$CBICALL" -t "$NCPU" -p "$DIRNAME.mit_cohort.yaml"
+  "$CBICALL" run -t "$NCPU" -p "$DIRNAME.mit_cohort.yaml"
   cd ..
 done

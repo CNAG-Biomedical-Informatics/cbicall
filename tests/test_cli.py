@@ -274,6 +274,70 @@ def test_main_happy_path(monkeypatch, tmp_path):
     assert logs["settings"].workflow.entrypoint == "/x.sh"
 
 
+def test_main_run_subcommand_happy_path(monkeypatch, tmp_path):
+    param_file = tmp_path / "params.yaml"
+    param_file.write_text("pipeline: wes\nmode: single\n", encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["cbicall", "run", "-t", "4", "-p", str(param_file), "--no-color"])
+
+    fake_param = {
+        "pipeline": "wes",
+        "mode": "single",
+        "input_dir": None,
+        "sample_map": None,
+        "workflow_engine": "bash",
+        "gatk_version": "gatk-4.6",
+        "cleanup_bam": False,
+    }
+
+    monkeypatch.setattr(cli_mod.config_mod, "read_param_file", lambda _: fake_param)
+    monkeypatch.setattr(
+        cli_mod.config_mod,
+        "set_config_values",
+        lambda _: {
+            "project_dir": str(tmp_path / "proj_run"),
+            "run_id": "IDRUN",
+            "genome": "b37",
+            "inputs": {"input_dir": None, "sample_map": None},
+            "workflow": {
+                "engine": "bash",
+                "pipeline": "wes",
+                "mode": "single",
+                "gatk_version": "gatk-4.6",
+                "entrypoint": "/x_run.sh",
+                "config_file": None,
+                "helpers": {},
+            },
+        },
+    )
+
+    logs = {}
+    monkeypatch.setattr(
+        cli_mod, "write_log",
+        lambda cfg, arg, param: logs.update({"cfg": cfg, "arg": arg, "param": param})
+    )
+
+    class FakeDNAseq:
+        def __init__(self, settings):
+            logs["settings"] = settings
+
+        def variant_calling(self):
+            return True
+
+    monkeypatch.setattr(cli_mod, "DNAseq", FakeDNAseq)
+
+    class FakeGoodBye:
+        def say_goodbye(self):
+            return "Bye"
+
+    monkeypatch.setattr(cli_mod, "GoodBye", FakeGoodBye)
+
+    assert cli_mod.main() == 0
+    assert logs["arg"]["threads"] == 4
+    assert logs["arg"]["paramfile"] == str(param_file)
+    assert logs["settings"].run_id == "IDRUN"
+    assert logs["settings"].workflow.entrypoint == "/x_run.sh"
+
+
 def test_main_verbose_prints(monkeypatch, tmp_path, capsys):
     def fake_usage(version):
         return {

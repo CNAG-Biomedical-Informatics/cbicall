@@ -17,6 +17,6 @@ pipeline: wes
 input_dir: $DIR/$DIRNAME
 EOF
 
-  "$CBICALL" -t "$NCPU" -p "$DIRNAME.wes_cohort.yaml"
+  "$CBICALL" run -t "$NCPU" -p "$DIRNAME.wes_cohort.yaml"
   cd ".."
 done

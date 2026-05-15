@@ -56,7 +56,7 @@ See [Configuration Reference](../help/configuration-reference) for all YAML keys
 ## 3. Run CBIcall
 
 ```bash
-bin/cbicall -p mit_single.yaml -t 4
+bin/cbicall run -p mit_single.yaml -t 4
 ```
 
 - `-p` selects the YAML parameters file  
@@ -170,7 +170,7 @@ See [Configuration Reference](../help/configuration-reference) for all YAML keys
 ## 3. Run CBIcall
 
 ```bash
-bin/cbicall -p mit_cohort.yaml -t 4
+bin/cbicall run -p mit_cohort.yaml -t 4
 ```
 
 - `-p` selects the YAML parameters file  

@@ -23,7 +23,7 @@ gatk_version: gatk-4.6
 input_dir: $DIR/$DIRNAME/$SAMPLE
 EOF
 
-    time "$CBICALL" -t "$NCPU" -p "$SAMPLE.smk_wes_single.yaml" > "$SAMPLE.smk_wes_single.log" 2>&1
+    time "$CBICALL" run -t "$NCPU" -p "$SAMPLE.smk_wes_single.yaml" > "$SAMPLE.smk_wes_single.log" 2>&1
     cd ".."
   done
 
