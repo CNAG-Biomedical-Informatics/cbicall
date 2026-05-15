@@ -86,6 +86,7 @@ def _print_run_summary(
     _section(f"CBIcall {version}", colors["cyan"], colors["bold"], colors["reset"])
     _row("Executable", _short_path(cbicall_path))
     _row("Workflow", f"{workflow.engine} -> {workflow.pipeline} -> {workflow.mode}")
+    _row("Profile", resolved_config.profile)
     _row("Genome", genome)
     _row("Threads", arg.get("threads"))
     _row("Project", _short_path(resolved_config.project_dir))
@@ -114,6 +115,7 @@ def _print_run_summary(
     _section("Resolved", colors["blue"], colors["bold"], colors["reset"])
     if workflow.engine == "bash":
         _row("Entrypoint", _short_path(workflow.entrypoint))
+        _row("Env file", _short_path(workflow.helpers.get("env")))
     elif workflow.engine == "snakemake":
         _row("Snakefile", _short_path(workflow.entrypoint))
         _row("Config", _short_path(workflow.config_file))

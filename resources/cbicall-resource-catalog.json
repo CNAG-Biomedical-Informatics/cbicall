@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "bundles": {
+    "cbicall-germline-resources-v1": {
+      "bundle_id": "cbicall-germline-resources",
+      "bundle_version": "1",
+      "status": "current",
+      "description": "Default CBIcall external tools and reference resources",
+      "compatible_cbicall": ">=1.0,<2.0",
+      "compatible_workflows": [
+        "bash/wes/single/gatk-3.5",
+        "bash/wes/cohort/gatk-3.5",
+        "bash/wes/single/gatk-4.6",
+        "bash/wes/cohort/gatk-4.6",
+        "bash/wgs/single/gatk-4.6",
+        "bash/wgs/cohort/gatk-4.6",
+        "bash/mit/single/gatk-3.5",
+        "bash/mit/cohort/gatk-3.5",
+        "snakemake/wes/single/gatk-4.6",
+        "snakemake/wes/cohort/gatk-4.6"
+      ],
+      "remote_identifier": {
+        "filename": "cbicall-bundle-id.json",
+        "google_drive_file_id": null,
+        "sha256": null,
+        "expected": {
+          "bundle": "cbicall-germline-resources-v1"
+        }
+      },
+      "source": {
+        "provider": "google_drive",
+        "folder": "https://drive.google.com/drive/folders/13MqZk0MHN_MQdNyXwjz_QTjbl2Najkeg",
+        "files": {
+          "data.tar.gz.md5": "1MmeppkZ1xR9ODsBLuDWUh-2ob98Prxq6",
+          "data.tar.gz.part-00": "12HQw_duxmlcASh7Yw8yL2-f-hyjqMim9",
+          "data.tar.gz.part-01": "1Ejrn1oQ2WO3TSTmWSfoQ1IjYBOXivbRm",
+          "data.tar.gz.part-02": "18CC1y2t5heV66-jOHCFIHqgj9GbT3QgF",
+          "data.tar.gz.part-03": "1mq5t0U8GFk6ZdaMqBzWHD73LfYJ626vi",
+          "data.tar.gz.part-04": "1v8rQA-qtgYgnPcOV8PzO-otw9dE9ePqt",
+          "data.tar.gz.part-05": "1knI_DEdrlushYj5lOclnRNDdvSEmXQ5m"
+        }
+      },
+      "archive": {
+        "source_name": "data.tar.gz",
+        "canonical_name": "cbicall-germline-resources-v1.tar.gz",
+        "checksum_file": "data.tar.gz.md5",
+        "checksum_algorithm": "md5",
+        "parts": [
+          "data.tar.gz.part-00",
+          "data.tar.gz.part-01",
+          "data.tar.gz.part-02",
+          "data.tar.gz.part-03",
+          "data.tar.gz.part-04",
+          "data.tar.gz.part-05"
+        ]
+      },
+      "layout": {
+        "datadir": ".",
+        "dbdir": "Databases",
+        "ngsutils": "NGSutils",
+        "expected_top_level": [
+          "Databases",
+          "NGSutils"
+        ]
+      },
+      "env_bindings": {
+        "DATADIR": ".",
+        "DBDIR": "Databases",
+        "NGSUTILS": "NGSutils"
+      },
+      "tools": {
+        "gatk4": {
+          "version": "4.6.2.0",
+          "path_hint": "NGSutils/gatk/gatk-4.6.2.0/gatk"
+        },
+        "bwa": {
+          "version": "0.7.18",
+          "path_hint": "NGSutils/bwa-0.7.18/bwa"
+        },
+        "samtools": {
+          "version": "0.1.19",
+          "path_hint": "NGSutils/samtools-0.1.19/samtools"
+        }
+      },
+      "resource_sets": {
+        "b37": {
+          "reference_fasta_hint": "Databases/GATK_bundle/b37/references_b37_Homo_sapiens_assembly19.fasta",
+          "known_sites_hint": [
+            "Databases/dbSNP/human_9606_b144_GRCh37p13/All_20160408.vcf.gz",
+            "Databases/GATK_bundle/b37/b37_Mills_and_1000G_gold_standard.indels.b37.vcf.gz"
+          ]
+        },
+        "hg38": {
+          "reference_fasta_hint": "Databases/GATK_bundle/hg38/resources_broad_hg38_v0_Homo_sapiens_assembly38.fasta"
+        },
+        "rsrs": {
+          "description": "Mitochondrial resources used by MToolBox workflows"
+        }
+      }
+    }
+  }
+}

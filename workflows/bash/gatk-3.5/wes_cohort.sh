@@ -59,7 +59,7 @@ esac
 BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source env.sh from the same directory
-source "$BINDIR/env.sh"
+source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
 
 # Scripts to calculate miscellanea stats
 JACCARD=$BINDIR/jaccard.sh

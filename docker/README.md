@@ -14,39 +14,42 @@ pip3 install gdown
 
 Finally, navigate to a directory where you want the databases stored and execute:
 
-```
+```bash
+mkdir -p /absolute/path/to/cbicall-data
 wget https://raw.githubusercontent.com/mrueda/cbicall/refs/heads/main/scripts/01_download_external_data.py
-python3 ./01_download_external_data.py
+python3 ./01_download_external_data.py --outdir /absolute/path/to/cbicall-data
 ```
 
-Note: Google Drive can be a tad restrictive with the download. If you get an error, please use the error URL link in a browser and you should be able to retrieve it there.
+Google Drive can be restrictive with large files. If the Python download stalls or fails, print the manual download list:
 
-
-> The files are located at: [GDrive Link](https://drive.google.com/drive/folders/13MqZk0MHN_MQdNyXwjz_QTjbl2Najkeg?dmr=1&ec=wgc-drive-globalnav-goto)
-
-Once downloaded, perform a checksum to make sure the files were not corrupted:
-
-```
-md5sum -c data.tar.gz.md5
+```bash
+python3 ./01_download_external_data.py \
+  --outdir /absolute/path/to/cbicall-data \
+  --print-manual-download
 ```
 
-Now let's reassemble the split files into the original tar archive:
+Download every listed file into `/absolute/path/to/cbicall-data`, then let the script continue from those files:
 
-```
-cat data.tar.gz.part-?? > data.tar.gz
-```
-
-Clean up split files to save space (when you think you are ready!):
-
-```
-rm data.tar.gz.part-??
+```bash
+python3 ./01_download_external_data.py \
+  --outdir /absolute/path/to/cbicall-data \
+  --skip-download
 ```
 
-Extract the tar archive:
+The script will:
 
-```
-tar -xzvf data.tar.gz
-```
+- download missing split files when possible
+- reassemble `data.tar.gz`
+- verify `data.tar.gz` with `data.tar.gz.md5`
+- read the local CBIcall resource registry
+- optionally verify a small GDrive bundle identifier file such as `cbicall-bundle-id.json`
+- rename the verified archive using the bundle identity, for example `cbicall-germline-resources-v1.tar.gz`
+- extract the archive into `DATADIR`
+- write `cbicall-resource-installation.json` with the installed bundle provenance
+
+If disk space is tight and the checksum has passed, add `--remove-parts` to remove `data.tar.gz.part-*` after assembly.
+
+CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.json`. The GDrive bundle only needs a small identifier file, for example `cbicall-bundle-id.json` containing `{"bundle": "cbicall-germline-resources-v1"}`. When that identifier file is available, the registry can store its Google Drive file ID and SHA-256 so the downloader can verify that the remote bundle matches the local CBIcall catalog entry.
 
 Finally, in the `cbicall` repo:
 

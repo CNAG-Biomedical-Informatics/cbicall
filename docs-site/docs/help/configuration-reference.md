@@ -7,13 +7,16 @@ bin/cbicall -p parameters.yaml -t 4
 ```
 
 Unknown YAML keys are rejected, so misspellings fail early instead of being ignored.
+Run configuration is defined in YAML. The CLI supplies runtime controls such as the parameter file, thread count, color output, and validation/test commands; it does not override YAML analysis keys.
 
 :::tip[Minimal WES single-sample run]
 ```yaml
 mode:            single
 pipeline:        wes
 workflow_engine: bash
+profile:         local
 gatk_version:    gatk-4.6
+resource_bundle: "cbicall-germline-resources-v1"
 input_dir:       CNAG999_exome/CNAG99901P_ex
 genome:          b37
 cleanup_bam:     false
@@ -27,7 +30,9 @@ cleanup_bam:     false
 | `mode` | `single` | `single`, `cohort` | Selects one-sample processing or cohort-level processing. |
 | `pipeline` | `wes` | `wes`, `wgs`, `mit` | Selects the analysis type. |
 | `workflow_engine` | `bash` | `bash`, `snakemake` | Selects the execution backend supported by the current workflows. |
+| `profile` | `local` | `local`, `cnag-hpc` | Selects the runtime environment file. `cnag-hpc` uses `cnag-hpc-env.sh` instead of the default `env.sh` for Bash workflows. |
 | `gatk_version` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the workflow version. Use `gatk-4.6` for current WES/WGS workflows. |
+| `resource_bundle` | `cbicall-germline-resources-v1` | local catalog key | Selects the external dependency bundle declared in `resources/cbicall-resource-catalog.json`. |
 | `genome` | inferred | `b37`, `hg38`, `rsrs` | Reference genome. If omitted, CBIcall uses `b37` for WES/WGS and `rsrs` for mtDNA. |
 | `input_dir` | `null` | path | Input sample or project directory. Relative paths are resolved from the YAML file location. |
 | `sample_map` | `null` | path | Cohort-mode TSV containing sample IDs and gVCF paths. Relative paths are resolved from the YAML file location. |
@@ -63,9 +68,11 @@ Use `input_dir` pointing to the sample directory containing paired FASTQ files.
 mode:            single
 pipeline:        wes
 workflow_engine: bash
+profile:         local
 gatk_version:    gatk-4.6
 input_dir:       CNAG999_exome/CNAG99901P_ex
 genome:          b37
+resource_bundle: "cbicall-germline-resources-v1"
 ```
 
 ### Cohort WES/WGS
@@ -76,8 +83,10 @@ Use `sample_map` pointing to a TSV with sample identifiers and gVCF paths.
 mode:            cohort
 pipeline:        wes
 workflow_engine: bash
+profile:         local
 gatk_version:    gatk-4.6
 genome:          b37
+resource_bundle: "cbicall-germline-resources-v1"
 sample_map:      ./sample_map.tsv
 ```
 
@@ -89,8 +98,39 @@ mtDNA workflows consume BAMs from previous WES/WGS runs. They do not start from 
 mode:            single
 pipeline:        mit
 workflow_engine: bash
+profile:         local
 gatk_version:    gatk-3.5
+resource_bundle: "cbicall-germline-resources-v1"
 input_dir:       CNAG999_exome/CNAG99901P_ex
+```
+
+## Resource Bundle Provenance
+
+`resource_bundle` pins the external tools and reference data expected for the run. CBIcall resolves this readable bundle key against `resources/cbicall-resource-catalog.json` and writes a structured `resource_bundle` block to `log.json`.
+
+Two runs used the same declared external dependency set when their `resource_bundle.fingerprint` values match. The fingerprint is computed from the local catalog entry, so changes to tool versions, reference paths, archive naming, or compatibility metadata create a different value.
+
+## Runtime Profiles
+
+Profiles make site-specific execution explicit. For example, CNAG HPC runs no longer require manually replacing `env.sh`; set the profile in YAML:
+
+```yaml
+profile: cnag-hpc
+```
+
+Check the resolved setup without starting the workflow:
+
+```bash
+bin/cbicall doctor -p parameters.yaml
+```
+
+The resolved `profile` and selected environment file are written to `log.json`.
+
+Run the bundled integration tests without remembering their path:
+
+```bash
+bin/cbicall test --wes -t 1
+bin/cbicall test --all -t 1
 ```
 
 ## Advanced Keys
@@ -116,4 +156,3 @@ Every run gets a generated directory:
 
 When `input_dir` is set, this directory is created inside `input_dir`.
 See [Outputs](outputs) for the files produced by each workflow.
-

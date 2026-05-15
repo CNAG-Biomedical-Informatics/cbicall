@@ -30,37 +30,39 @@ Download the data preparation script and execute it:
 
 ```bash
 wget https://raw.githubusercontent.com/mrueda/cbicall/refs/heads/main/scripts/01_download_external_data.py
-python3 ./01_download_external_data.py
+python3 ./01_download_external_data.py --outdir "$CBICALL_DATA"
 ```
 
-> **Note:** Google Drive may occasionally block automated downloads. If this happens, follow the provided error URL in a browser to retrieve the files manually.
-
-The files are also available at:  
-https://drive.google.com/drive/folders/13MqZk0MHN_MQdNyXwjz_QTjbl2Najkeg
-
-Verify file integrity:
+Google Drive may occasionally block or stall automated downloads. If this happens, print the manual download list:
 
 ```bash
-md5sum -c data.tar.gz.md5
+python3 ./01_download_external_data.py \
+  --outdir "$CBICALL_DATA" \
+  --print-manual-download
 ```
 
-Reassemble the split archive:
+Download every listed file into `$CBICALL_DATA`, then let the script continue from those files:
 
 ```bash
-cat data.tar.gz.part-?? > data.tar.gz
+python3 ./01_download_external_data.py \
+  --outdir "$CBICALL_DATA" \
+  --skip-download
 ```
 
-Remove split files to save space (optional):
+The script will:
 
-```bash
-rm data.tar.gz.part-??
-```
+- download missing split files when possible
+- reassemble `data.tar.gz`
+- verify `data.tar.gz` with `data.tar.gz.md5`
+- read the local CBIcall resource registry
+- optionally verify a small GDrive bundle identifier file such as `cbicall-bundle-id.json`
+- rename the verified archive using the bundle identity, for example `cbicall-germline-resources-v1.tar.gz`
+- extract the archive into `DATADIR`
+- write `cbicall-resource-installation.json` with the installed bundle provenance
 
-Extract the archive:
+If disk space is tight and the checksum has passed, add `--remove-parts` to remove `data.tar.gz.part-*` after assembly.
 
-```bash
-tar -xzvf data.tar.gz
-```
+CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.json`. The GDrive bundle only needs a small identifier file, for example `cbicall-bundle-id.json` containing `{"bundle": "cbicall-germline-resources-v1"}`. When that identifier file is available, the registry can store its Google Drive file ID and SHA-256 so the downloader can verify that the remote bundle matches the local CBIcall catalog entry.
 
 ---
 
@@ -239,4 +241,3 @@ rm -rf $CBICALL_DATA
 - Apptainer images (`.sif`) are removed with `rm`
 - There is no equivalent to `docker stop`, `docker rm`, or `docker rmi`
 - User data and configuration live outside the container and must be cleaned separately
-

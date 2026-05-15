@@ -159,8 +159,12 @@ class BaseRunner:
 
 class BashRunner(BaseRunner):
     def env_overrides(self) -> Optional[Dict[str, str]]:
-        # env.sh will pick the bundle based on GENOME.
-        return {"GENOME": self.genome}
+        # Bash workflow scripts source this resolved file at runtime.
+        env_updates = {"GENOME": self.genome}
+        env_file = self.workflow.helpers.get("env")
+        if env_file:
+            env_updates["CBICALL_ENV_FILE"] = str(env_file)
+        return env_updates
 
     def build_command(self) -> List[str]:
         if self.workflow_rule:

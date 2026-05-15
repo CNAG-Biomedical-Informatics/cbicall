@@ -53,7 +53,7 @@ fi
 BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source env.sh from the same directory
-source "$BINDIR/env.sh"
+source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
 
 # Check ARCH (same behavior as mit_single)
 if [ "${ARCH:-}" = "aarch64" ]; then

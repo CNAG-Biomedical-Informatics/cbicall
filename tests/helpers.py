@@ -60,12 +60,22 @@ def write_workflow_schema(path: Path) -> None:
                         "type": "object",
                         "additionalProperties": {"type": "string", "minLength": 1},
                     },
+                    "profiles": {
+                        "type": "object",
+                        "minProperties": 1,
+                        "additionalProperties": {"$ref": "#/$defs/profile"},
+                    },
                     "pipelines": {
                         "type": "object",
                         "minProperties": 1,
                         "additionalProperties": {"$ref": "#/$defs/pipelineModes"},
                     },
                 },
+            },
+            "profile": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": {"type": "string", "minLength": 1},
             },
             "pipelineModes": {
                 "type": "object",
@@ -89,9 +99,13 @@ def write_registry(
     include_snakemake: bool = False,
     bash_pipelines: Optional[Dict[str, Dict[str, str]]] = None,
     snakemake_pipelines: Optional[Dict[str, Dict[str, str]]] = None,
+    bash_profiles: Optional[Dict[str, Dict[str, str]]] = None,
+    snakemake_profiles: Optional[Dict[str, Dict[str, str]]] = None,
 ) -> None:
     bash_pipelines = bash_pipelines or {"wes": {"single": "wes_single.sh"}}
     snakemake_pipelines = snakemake_pipelines or {}
+    bash_profiles = bash_profiles or {}
+    snakemake_profiles = snakemake_profiles or {}
 
     lines = ["workflows:"]
 
@@ -106,8 +120,14 @@ def write_registry(
             "          coverage: \"coverage.sh\"",
             "          jaccard: \"jaccard.sh\"",
             "          vcf2sex: \"vcf2sex.sh\"",
-            "        pipelines:",
         ]
+        if bash_profiles:
+            lines.append("        profiles:")
+            for profile_name, helpers in bash_profiles.items():
+                lines.append(f"          {profile_name}:")
+                for helper_name, helper_path in helpers.items():
+                    lines.append(f"            {helper_name}: \"{helper_path}\"")
+        lines.append("        pipelines:")
         for pipeline, modes in bash_pipelines.items():
             lines.append(f"          {pipeline}:")
             for mode, script in modes.items():
@@ -121,8 +141,14 @@ def write_registry(
             f"      {gatk_ver}:",
             "        common:",
             "          config: \"config.yaml\"",
-            "        pipelines:",
         ]
+        if snakemake_profiles:
+            lines.append("        profiles:")
+            for profile_name, helpers in snakemake_profiles.items():
+                lines.append(f"          {profile_name}:")
+                for helper_name, helper_path in helpers.items():
+                    lines.append(f"            {helper_name}: \"{helper_path}\"")
+        lines.append("        pipelines:")
         for pipeline, modes in snakemake_pipelines.items():
             lines.append(f"          {pipeline}:")
             for mode, script in modes.items():

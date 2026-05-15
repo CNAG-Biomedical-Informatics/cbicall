@@ -69,7 +69,7 @@ fi
 
 # Load GATK env (reference, known-sites, interval list, tool paths)
 BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$BINDIR/env.sh"
+source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
 
 # Prepare output directories
 dir=$(pwd)

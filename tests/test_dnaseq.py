@@ -53,6 +53,43 @@ def test_dnaseq_builds_bash_command_with_flags(tmp_path, monkeypatch):
     assert recorded["engine"] == "bash"
 
 
+def test_dnaseq_passes_resolved_env_file_to_bash(tmp_path, monkeypatch):
+    recorded = {}
+
+    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
+        recorded.update({"env": env})
+
+    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    env_file = tmp_path / "cnag-hpc-env.sh"
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 1,
+        "run_id": "RIDENV",
+        "debug": False,
+        "genome": "b37",
+        "inputs": {"input_dir": None, "sample_map": None},
+        "workflow_rule": None,
+        "allow_partial_run": False,
+        "run_mode": "full",
+        "workflow": {
+            "engine": "bash",
+            "pipeline": "wes",
+            "mode": "single",
+            "gatk_version": "gatk-4.6",
+            "entrypoint": str(tmp_path / "wes_single.sh"),
+            "config_file": None,
+            "helpers": {"env": str(env_file)},
+        },
+    }
+
+    assert dnaseq.DNAseq(settings).variant_calling() is True
+    assert recorded["env"]["CBICALL_ENV_FILE"] == str(env_file)
+
+
 def test_dnaseq_debug_prints(monkeypatch, tmp_path, capsys):
     def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
         return None

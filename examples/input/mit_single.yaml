@@ -1,5 +1,7 @@
 mode: single
 pipeline: mit
 workflow_engine: bash
+profile: local
 gatk_version: gatk-3.5
+resource_bundle: "cbicall-germline-resources-v1"
 input_dir: CNAG999_exome/CNAG99901P_ex

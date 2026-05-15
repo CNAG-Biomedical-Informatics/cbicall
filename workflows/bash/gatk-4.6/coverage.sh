@@ -18,7 +18,7 @@ fi
 
 # Load env (defines INTERVAL_LIST, REF, SAM, etc.)
 BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$BINDIR/env.sh"
+source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
 
 # Reference FASTA from env.sh
 FASTA="${REF}"

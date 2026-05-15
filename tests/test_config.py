@@ -201,6 +201,48 @@ def test_read_param_file_accepts_partial_run_fields(tmp_path):
     assert cfg["allow_partial_run"] is True
 
 
+def test_read_param_file_accepts_resource_bundle(tmp_path):
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: single\n"
+        "pipeline: wes\n"
+        "workflow_engine: bash\n"
+        "gatk_version: gatk-4.6\n"
+        "resource_bundle: \"cbicall-germline-resources-v1\"\n",
+        encoding="utf-8",
+    )
+    cfg = config_mod.read_param_file(str(p))
+    assert cfg["resource_bundle"] == "cbicall-germline-resources-v1"
+
+
+def test_read_param_file_accepts_profile(tmp_path):
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: single\n"
+        "pipeline: wes\n"
+        "workflow_engine: bash\n"
+        "gatk_version: gatk-4.6\n"
+        "profile: cnag-hpc\n",
+        encoding="utf-8",
+    )
+    cfg = config_mod.read_param_file(str(p))
+    assert cfg["profile"] == "cnag-hpc"
+
+
+def test_read_param_file_rejects_empty_profile(tmp_path):
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: single\n"
+        "pipeline: wes\n"
+        "workflow_engine: bash\n"
+        "gatk_version: gatk-4.6\n"
+        "profile: ''\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ParameterValidationError, match="profile must be a non-empty value"):
+        config_mod.read_param_file(str(p))
+
+
 # -----------------------------------------
 # set_config_values() missing-registry/schema
 # -----------------------------------------
@@ -273,6 +315,84 @@ def test_set_config_values_partial_run_metadata(monkeypatch, tmp_path):
     assert cfg["workflow_rule"] == "call_variants"
     assert cfg["allow_partial_run"] is True
     assert cfg["run_mode"] == "partial"
+
+
+def test_set_config_values_records_resource_bundle(monkeypatch, tmp_path):
+    root = fake_project(
+        monkeypatch,
+        tmp_path,
+        gatk_ver="gatk-4.6",
+        registry_kwargs=dict(
+            include_bash=True,
+            bash_pipelines={"wes": {"single": "wes_single.sh"}},
+            bash_profiles={"cnag-hpc": {"env": "cnag-hpc-env.sh"}},
+        ),
+    )
+    _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+    resources = root / "resources"
+    resources.mkdir()
+    (resources / "cbicall-resource-catalog.json").write_text(
+        """{
+  "schema_version": 1,
+  "bundles": {
+    "cbicall-germline-resources-v1": {
+      "bundle_id": "cbicall-germline-resources",
+      "bundle_version": "1",
+      "status": "current",
+      "compatible_workflows": ["bash/wes/single/gatk-4.6"],
+      "archive": {"canonical_name": "cbicall-germline-resources-v1.tar.gz"}
+    }
+  }
+}
+""",
+        encoding="utf-8",
+    )
+
+    cfg = config_mod.set_config_values(
+        {
+            "mode": "single",
+            "pipeline": "wes",
+            "workflow_engine": "bash",
+            "gatk_version": "gatk-4.6",
+            "resource_bundle": "cbicall-germline-resources-v1",
+        }
+    )
+
+    assert cfg["resource_bundle"]["key"] == "cbicall-germline-resources-v1"
+    assert cfg["resource_bundle"]["status"] == "current"
+    assert cfg["resource_bundle"]["compatible"] is True
+    assert len(cfg["resource_bundle"]["fingerprint"]) == 64
+
+
+def test_set_config_values_rejects_unknown_resource_bundle(monkeypatch, tmp_path):
+    root = fake_project(
+        monkeypatch,
+        tmp_path,
+        gatk_ver="gatk-4.6",
+        registry_kwargs=dict(
+            include_bash=True,
+            bash_pipelines={"wes": {"single": "wes_single.sh"}},
+            bash_profiles={"cnag-hpc": {"env": "cnag-hpc-env.sh"}},
+        ),
+    )
+    _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+    resources = root / "resources"
+    resources.mkdir()
+    (resources / "cbicall-resource-catalog.json").write_text(
+        '{"schema_version": 1, "bundles": {}}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ParameterValidationError, match="Resource bundle 'missing-bundle'"):
+        config_mod.set_config_values(
+            {
+                "mode": "single",
+                "pipeline": "wes",
+                "workflow_engine": "bash",
+                "gatk_version": "gatk-4.6",
+                "resource_bundle": "missing-bundle",
+            }
+        )
 
 
 def test_set_config_values_invalid_combo_raises(monkeypatch, tmp_path):
@@ -638,6 +758,57 @@ def test_set_config_values_builds_normalized_workflow_structure(monkeypatch, tmp
     assert cfg["workflow"]["entrypoint"].endswith("workflows/bash/gatk-4.6/wes_single.sh")
     assert cfg["workflow"]["helpers"]["env"].endswith("workflows/bash/gatk-4.6/env.sh")
     assert cfg["inputs"] == {"input_dir": None, "sample_map": None}
+
+
+def test_set_config_values_applies_cnag_hpc_profile(monkeypatch, tmp_path):
+    root = fake_project(
+        monkeypatch,
+        tmp_path,
+        gatk_ver="gatk-4.6",
+        registry_kwargs=dict(
+            include_bash=True,
+            bash_pipelines={"wes": {"single": "wes_single.sh"}},
+            bash_profiles={"cnag-hpc": {"env": "cnag-hpc-env.sh"}},
+        ),
+    )
+    bash_dir = _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+    cnag_env = bash_dir / "cnag-hpc-env.sh"
+    cnag_env.write_text("#!/bin/sh\n", encoding="utf-8")
+    make_executable(cnag_env)
+
+    cfg = config_mod.set_config_values(
+        {
+            "mode": "single",
+            "pipeline": "wes",
+            "workflow_engine": "bash",
+            "gatk_version": "gatk-4.6",
+            "profile": "cnag-hpc",
+        }
+    )
+
+    assert cfg["profile"] == "cnag-hpc"
+    assert cfg["workflow"]["helpers"]["env"].endswith("workflows/bash/gatk-4.6/cnag-hpc-env.sh")
+
+
+def test_set_config_values_undeclared_profile_raises(monkeypatch, tmp_path):
+    root = fake_project(
+        monkeypatch,
+        tmp_path,
+        gatk_ver="gatk-4.6",
+        registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
+    )
+    _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+
+    with pytest.raises(WorkflowResolutionError, match="not declared"):
+        config_mod.set_config_values(
+            {
+                "mode": "single",
+                "pipeline": "wes",
+                "workflow_engine": "bash",
+                "gatk_version": "gatk-4.6",
+                "profile": "cnag-hpc",
+            }
+        )
 
 
 def test_set_config_values_capture_branches(monkeypatch, tmp_path):

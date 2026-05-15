@@ -1,9 +1,12 @@
 import json
 import os
+import argparse
+import subprocess
 import sys
 import threading
 import time
 from pathlib import Path
+from typing import List
 
 from . import config as config_mod
 from .cli_output import (
@@ -61,6 +64,10 @@ def parse_args(argv):
     return _parse_args(argv, VERSION)
 
 
+def _project_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
 def _section(title: str, color: str = WHITE) -> None:
     from .cli_output import _section as _render_section
 
@@ -103,6 +110,116 @@ def write_log(resolved_config: dict, arg: dict, params: dict) -> None:
     }
     with file_path.open("w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, indent=2, sort_keys=True)
+
+
+def write_run_report(
+    resolved_config: ResolvedConfig,
+    arg: dict,
+    params: dict,
+    *,
+    elapsed_seconds: float,
+    workflow_log: Path,
+) -> Path:
+    """Write a compact execution report next to log.json."""
+    project_dir = Path(resolved_config.project_dir)
+    project_dir.mkdir(parents=True, exist_ok=True)
+    report_path = project_dir / "run-report.json"
+    workflow = resolved_config.workflow
+    payload = {
+        "status": "success",
+        "elapsed_seconds": round(elapsed_seconds, 3),
+        "workflow_log": str(workflow_log),
+        "command_trace": "Detailed workflow stdout/stderr is recorded in the workflow log.",
+        "profile": resolved_config.profile,
+        "workflow": workflow.to_dict(),
+        "resource_bundle": resolved_config.resource_bundle,
+        "run": {
+            "run_id": resolved_config.run_id,
+            "project_dir": resolved_config.project_dir,
+            "threads": arg.get("threads"),
+            "genome": resolved_config.genome,
+        },
+        "inputs": resolved_config.inputs.to_dict(),
+        "parameters": {
+            "paramfile": arg.get("paramfile"),
+            "cleanup_bam": params.get("cleanup_bam", False),
+            "workflow_rule": resolved_config.workflow_rule,
+            "allow_partial_run": resolved_config.allow_partial_run,
+        },
+    }
+    with report_path.open("w", encoding="utf-8") as fh:
+        json.dump(payload, fh, ensure_ascii=False, indent=2, sort_keys=True)
+    return report_path
+
+
+def _run_validate_command(argv: List[str], *, command_name: str) -> int:
+    parser = argparse.ArgumentParser(
+        prog=f"cbicall {command_name}",
+        description="Resolve and validate a CBIcall run without starting the workflow.",
+    )
+    parser.add_argument("-p", "--param", dest="paramfile", required=True, help="Parameters input file (YAML).")
+    parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
+    args = parser.parse_args(argv)
+
+    if args.nocolor:
+        os.environ["ANSI_COLORS_DISABLED"] = "1"
+    _refresh_colors()
+
+    params = config_mod.read_param_file(args.paramfile)
+    resolved_config = ResolvedConfig.from_mapping({**config_mod.set_config_values(params), "version": VERSION})
+
+    _section("Configuration OK", GREEN)
+    workflow = resolved_config.workflow
+    bundle = resolved_config.resource_bundle
+    _row("Param file", _short_path(args.paramfile))
+    _row("Profile", resolved_config.profile)
+    _row("Workflow", f"{workflow.engine} -> {workflow.pipeline} -> {workflow.mode}")
+    _row("GATK", workflow.gatk_version)
+    _row("Genome", resolved_config.genome or "b37")
+    _row("Entrypoint", _short_path(workflow.entrypoint))
+    if workflow.engine == "bash":
+        _row("Env file", _short_path(workflow.helpers.get("env")))
+    _row("Bundle", bundle.get("key"))
+    _row("Bundle hash", bundle.get("fingerprint"))
+    return 0
+
+
+def _run_test_command(argv: List[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="cbicall test",
+        description="Run the bundled CBIcall integration tests from examples/input.",
+    )
+    parser.add_argument("--wes", action="store_true", help="Run the WES integration test.")
+    parser.add_argument("--mit", action="store_true", help="Run the mitochondrial integration test.")
+    parser.add_argument("--all", action="store_true", help="Run all bundled integration tests.")
+    parser.add_argument("-t", "--threads", type=int, default=1, help="Number of threads to use.")
+    args = parser.parse_args(argv)
+
+    if args.threads <= 0:
+        parser.error("--threads requires a positive integer")
+
+    selected = []
+    if args.all or args.wes:
+        selected.append("--wes")
+    if args.all or args.mit:
+        selected.append("--mit")
+    if not selected:
+        parser.error("select at least one test with --wes, --mit, or --all")
+
+    root = _project_root()
+    script = root / "examples" / "input" / "run_tests.sh"
+    if not script.is_file():
+        raise FileNotFoundError(f"Integration test launcher not found: {script}")
+
+    env = os.environ.copy()
+    env["CBICALL"] = str(root / "bin" / "cbicall")
+    env["THREADS"] = str(args.threads)
+    return subprocess.run(
+        [str(script), *selected],
+        cwd=str(script.parent),
+        env=env,
+        check=False,
+    ).returncode
 
 
 def run_with_spinner(func, *args, no_spinner: bool = False):
@@ -158,6 +275,11 @@ def main() -> int:
     start_time = time.time()
     cbicall_path = Path(sys.argv[0]).resolve()
 
+    if len(sys.argv) > 1 and sys.argv[1] in {"validate", "doctor"}:
+        return _run_validate_command(sys.argv[2:], command_name=sys.argv[1])
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        return _run_test_command(sys.argv[2:])
+
     # Parse CLI args (Help::usage)
     arg = usage(VERSION)
     if arg.get("nocolor"):
@@ -200,6 +322,7 @@ def main() -> int:
             "run_id": resolved_config.run_id,
             "threads": arg["threads"],
             "debug": arg["debug"],
+            "profile": resolved_config.profile,
             "genome": resolved_config.genome,
             "cleanup_bam": params.get("cleanup_bam", False),
             "workflow_rule": resolved_config.workflow_rule,
@@ -230,7 +353,16 @@ def main() -> int:
     _row("Elapsed", _format_duration(elapsed))
     genome = resolved_config.genome or "b37"
     log_name = f"{workflow.engine}_{workflow.pipeline}_{workflow.mode}_{genome}_{workflow.gatk_version}.log"
-    _row("Log", Path(resolved_config.project_dir) / log_name)
+    workflow_log = Path(resolved_config.project_dir) / log_name
+    report_path = write_run_report(
+        resolved_config,
+        arg,
+        params,
+        elapsed_seconds=elapsed,
+        workflow_log=workflow_log,
+    )
+    _row("Log", workflow_log)
+    _row("Report", report_path)
     if arg.get("verbose"):
         _row("Date", time.ctime())
 

@@ -10,6 +10,9 @@ export TMPDIR=/scratch_isilon/projects/0012-hereditary/tmp
 export LC_ALL=C
 export GATK_DISABLE_AUTO_S3_UPLOAD=true   # disable unintended S3 uploads
 
+# Genome selection (default b37)
+: "${GENOME:=b37}"
+
 # Memory & architecture
 MEM=16G
 MEM_GENOTYPE=64G
@@ -33,7 +36,7 @@ else
     PY27_MODULE="Python/2.7.18-GCCcore-11.2.0"
 fi
 
-# CNAG HPC Cluster (Java/17.0.2) <---required                                                                                
+# CNAG HPC Cluster (Java/17.0.2) <---required
 export PATH=/software/crgadm/software/Java/17.0.2/bin:$PATH
 
 # Picard (shared by GATK3 & bed conversion)

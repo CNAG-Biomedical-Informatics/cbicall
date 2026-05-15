@@ -13,6 +13,11 @@ def _build_parser(version: str) -> argparse.ArgumentParser:
             f"""\
             CBIcall {version}
             CNAG Biomedical Informatics Framework for variant calling on Illumina DNA-seq.
+
+            Commands:
+              cbicall doctor -p parameters.yaml
+              cbicall validate -p parameters.yaml
+              cbicall test --wes|--mit|--all [-t THREADS]
             """
         ),
     )

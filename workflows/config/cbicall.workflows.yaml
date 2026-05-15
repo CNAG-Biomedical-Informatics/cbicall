@@ -8,6 +8,9 @@ workflows:
           coverage: "coverage.sh"
           jaccard: "jaccard.sh"
           vcf2sex: "vcf2sex.sh"
+        profiles:
+          cnag-hpc:
+            env: "cnag-hpc-env.sh"
         pipelines:
           wes:
             single: "wes_single.sh"
@@ -22,6 +25,9 @@ workflows:
           coverage: "coverage.sh"
           jaccard: "jaccard.sh"
           vcf2sex: "vcf2sex.sh"
+        profiles:
+          cnag-hpc:
+            env: "cnag-hpc-env.sh"
         pipelines:
           wes:
             single: "wes_single.sh"

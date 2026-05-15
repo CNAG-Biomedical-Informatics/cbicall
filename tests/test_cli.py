@@ -24,6 +24,44 @@ def test_write_log_creates_json(tmp_path):
     assert data["param"]["pipeline"] == "wes"
 
 
+def test_write_run_report_creates_compact_summary(tmp_path):
+    resolved = cli_mod.ResolvedConfig.from_mapping(
+        {
+            "project_dir": str(tmp_path),
+            "run_id": "RIDREPORT",
+            "workflow_engine": "bash",
+            "profile": "cnag-hpc",
+            "genome": "b37",
+            "inputs": {"input_dir": None, "sample_map": None},
+            "workflow": {
+                "engine": "bash",
+                "pipeline": "wes",
+                "mode": "single",
+                "gatk_version": "gatk-4.6",
+                "entrypoint": "/x.sh",
+                "config_file": None,
+                "helpers": {"env": "/cnag-hpc-env.sh"},
+            },
+            "resource_bundle": {"key": "cbicall-germline-resources-v1", "fingerprint": "abc"},
+        }
+    )
+
+    report = cli_mod.write_run_report(
+        resolved,
+        {"threads": 2, "paramfile": "params.yaml", "profile": "cnag-hpc"},
+        {"cleanup_bam": False},
+        elapsed_seconds=12.3456,
+        workflow_log=tmp_path / "workflow.log",
+    )
+
+    data = json.loads(report.read_text(encoding="utf-8"))
+    assert data["status"] == "success"
+    assert data["profile"] == "cnag-hpc"
+    assert data["elapsed_seconds"] == 12.346
+    assert data["resource_bundle"]["fingerprint"] == "abc"
+    assert data["workflow_log"].endswith("workflow.log")
+
+
 def test_run_with_spinner_no_spinner_calls_function():
     calls = []
 

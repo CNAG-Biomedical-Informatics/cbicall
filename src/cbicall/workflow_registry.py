@@ -60,6 +60,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
 
     base_dir = (project_root / eng_cfg["base_dir"] / version).resolve()
     script_name = pipelines_cfg[pipeline][mode]
+    profiles = _resolve_profiles(ver_cfg.get("profiles", {}), base_dir)
 
     if engine == "bash":
         needed_common = ["env", "coverage", "jaccard", "vcf2sex"]
@@ -80,6 +81,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
                 "jaccard": str(base_dir / common["jaccard"]),
                 "vcf2sex": str(base_dir / common["vcf2sex"]),
             },
+            profiles=profiles,
         )
 
     if engine == "snakemake":
@@ -94,6 +96,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
             gatk_version=version,
             entrypoint=str(base_dir / script_name),
             config_file=str(base_dir / common["config"]),
+            profiles=profiles,
         )
 
     if engine == "nextflow":
@@ -130,6 +133,16 @@ def validate_resolved_workflow_files(workflow: WorkflowSpec) -> None:
 def _load_json(path: Path) -> dict:
     with path.open("r") as fh:
         return json.load(fh)
+
+
+def _resolve_profiles(profiles_cfg: dict, base_dir: Path) -> dict:
+    profiles = {}
+    for profile_name, helper_overrides in profiles_cfg.items():
+        profiles[str(profile_name)] = {
+            str(helper_name): str(base_dir / helper_path)
+            for helper_name, helper_path in helper_overrides.items()
+        }
+    return profiles
 
 
 def _validate_with_schema(data: dict, schema: dict, label: str) -> None:

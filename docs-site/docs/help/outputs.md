@@ -18,9 +18,12 @@ The exact files depend on the selected pipeline and mode. The tables below are d
 
 | File | Meaning |
 | --- | --- |
-| `log.json` | Structured record of CLI arguments, resolved configuration, and runtime parameters. |
+| `log.json` | Structured record of CLI arguments, resolved configuration, selected `profile`, selected `resource_bundle`, and runtime parameters. |
+| `run-report.json` | Compact execution report with status, elapsed time, workflow, profile, bundle fingerprint, and workflow log path. |
 | `<engine>_<pipeline>_<mode>_<genome>_<gatk-version>.log` | Main wrapper log for Bash runs. |
 | `logs/*.log` | Per-rule or per-step logs for Snakemake/GATK 4.6 workflows. |
+
+Use `config.resource_bundle.fingerprint` inside `log.json` to check whether two runs used the same declared external dependency set.
 
 ## WES/WGS Single-Sample
 

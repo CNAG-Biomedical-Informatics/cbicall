@@ -27,6 +27,7 @@ class WorkflowSpec:
     entrypoint: Optional[str]
     config_file: Optional[str] = None
     helpers: Dict[str, str] = field(default_factory=dict)
+    profiles: Dict[str, Dict[str, str]] = field(default_factory=dict)
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "WorkflowSpec":
@@ -38,6 +39,7 @@ class WorkflowSpec:
             entrypoint=data.get("entrypoint"),
             config_file=data.get("config_file"),
             helpers=dict(data.get("helpers", {})),
+            profiles={str(k): dict(v) for k, v in data.get("profiles", {}).items()},
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -50,6 +52,7 @@ class RunSettings:
     run_id: str
     threads: int
     debug: bool
+    profile: str
     genome: Optional[str]
     cleanup_bam: bool
     inputs: InputsSpec
@@ -67,6 +70,7 @@ class RunSettings:
             run_id=str(run_id),
             threads=int(data["threads"]),
             debug=bool(data["debug"]),
+            profile=str(data.get("profile", "local")),
             genome=data.get("genome"),
             cleanup_bam=bool(data.get("cleanup_bam", False)),
             workflow_rule=data.get("workflow_rule"),
@@ -82,6 +86,7 @@ class RunSettings:
             "run_id": self.run_id,
             "threads": self.threads,
             "debug": self.debug,
+            "profile": self.profile,
             "genome": self.genome,
             "cleanup_bam": self.cleanup_bam,
             "workflow_rule": self.workflow_rule,
@@ -96,6 +101,7 @@ class RunSettings:
 class ResolvedConfig:
     user: str
     workflow_engine: str
+    profile: str
     genome: Optional[str]
     pipeline: str
     mode: str
@@ -116,6 +122,7 @@ class ResolvedConfig:
     capture_label: Optional[str] = None
     arch: Optional[str] = None
     version: Optional[str] = None
+    resource_bundle: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "ResolvedConfig":
@@ -128,6 +135,7 @@ class ResolvedConfig:
         return cls(
             user=str(data.get("user", "")),
             workflow_engine=str(workflow_engine),
+            profile=str(data.get("profile", "local")),
             genome=data.get("genome"),
             pipeline=str(pipeline),
             mode=str(mode),
@@ -148,12 +156,14 @@ class ResolvedConfig:
             capture_label=data.get("capture_label"),
             arch=data.get("arch"),
             version=data.get("version"),
+            resource_bundle=dict(data.get("resource_bundle", {})),
         )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "user": self.user,
             "workflow_engine": self.workflow_engine,
+            "profile": self.profile,
             "genome": self.genome,
             "pipeline": self.pipeline,
             "mode": self.mode,
@@ -174,4 +184,5 @@ class ResolvedConfig:
             "capture_label": self.capture_label,
             "arch": self.arch,
             "version": self.version,
+            "resource_bundle": self.resource_bundle,
         }

@@ -18,7 +18,7 @@ fi
 BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source env.sh from the same directory
-source "$BINDIR/env.sh"
+source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
 
 chrN=chr1
 REGION=$EXOM/hg19.$chrN.bed
@@ -93,4 +93,3 @@ END {
 '
 
 exit 0
-
