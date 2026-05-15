@@ -14,12 +14,9 @@ Run configuration is defined in YAML. The CLI supplies runtime controls such as 
 mode:            single
 pipeline:        wes
 workflow_engine: bash
-profile:         local
 gatk_version:    gatk-4.6
-resource_bundle: "cbicall-germline-resources-v1"
 input_dir:       CNAG999_exome/CNAG99901P_ex
 genome:          b37
-cleanup_bam:     false
 ```
 :::
 
@@ -68,11 +65,9 @@ Use `input_dir` pointing to the sample directory containing paired FASTQ files.
 mode:            single
 pipeline:        wes
 workflow_engine: bash
-profile:         local
 gatk_version:    gatk-4.6
 input_dir:       CNAG999_exome/CNAG99901P_ex
 genome:          b37
-resource_bundle: "cbicall-germline-resources-v1"
 ```
 
 ### Cohort WES/WGS
@@ -83,10 +78,8 @@ Use `sample_map` pointing to a TSV with sample identifiers and gVCF paths.
 mode:            cohort
 pipeline:        wes
 workflow_engine: bash
-profile:         local
 gatk_version:    gatk-4.6
 genome:          b37
-resource_bundle: "cbicall-germline-resources-v1"
 sample_map:      ./sample_map.tsv
 ```
 
@@ -98,21 +91,29 @@ mtDNA workflows consume BAMs from previous WES/WGS runs. They do not start from 
 mode:            single
 pipeline:        mit
 workflow_engine: bash
-profile:         local
 gatk_version:    gatk-3.5
-resource_bundle: "cbicall-germline-resources-v1"
 input_dir:       CNAG999_exome/CNAG99901P_ex
 ```
 
 ## Resource Bundle Provenance
 
-`resource_bundle` pins the external tools and reference data expected for the run. CBIcall resolves this readable bundle key against `resources/cbicall-resource-catalog.json` and writes a structured `resource_bundle` block to `log.json`.
+`resource_bundle` pins the external tools and reference data expected for the run. CBIcall resolves this readable bundle key against `resources/cbicall-resource-catalog.json` and writes a compact `resource_bundle` provenance block to `log.json`.
 
 Two runs used the same declared external dependency set when their `resource_bundle.fingerprint` values match. The fingerprint is computed from the local catalog entry, so changes to tool versions, reference paths, archive naming, or compatibility metadata create a different value.
 
+## Pipeline Implementation Version
+
+Each registry entry also has a CBIcall pipeline implementation version, currently `v1` for the bundled workflows. This is different from `gatk_version`: `gatk_version` selects the tool family and workflow directory, while the pipeline implementation version identifies the CBIcall script/Snakefile revision selected inside that registry entry.
+
+Normal YAML files do not need to set this. The workflow registry provides the default, currently `v1`.
+
+Set `pipeline_version` only when a registry entry exposes more than one implementation and a run must pin a non-default one. The resolved value is written to `log.json` and `run-report.json`.
+
 ## Runtime Profiles
 
-Profiles make site-specific execution explicit. For example, CNAG HPC runs no longer require manually replacing `env.sh`; set the profile in YAML:
+Profiles select the environment mapping used by a workflow. The default profile is `local`; additional profiles can be declared in the workflow registry when the same workflow needs more than one `env.sh` layout, for example on a shared HPC system.
+
+Select a non-default profile in YAML:
 
 ```yaml
 profile: cnag-hpc
@@ -124,14 +125,14 @@ Check the resolved setup without starting the workflow:
 bin/cbicall doctor -p parameters.yaml
 ```
 
-The resolved `profile` and selected environment file are written to `log.json`.
+During a real run, the resolved `profile` and selected environment file are written to `log.json`. `doctor` prints the same resolved values without creating a run directory or log file.
 
 ## Command Utilities
 
 | Command | Use |
 | --- | --- |
 | `bin/cbicall doctor -p parameters.yaml` | Dry-run preflight for one concrete run. It resolves the parameter YAML, workflow, profile env file, and resource bundle without launching the workflow. |
-| `bin/cbicall validate-registry` | Developer check for `workflows/config/cbicall.workflows.yaml` against `workflows/schema/workflows.schema.json`. |
+| `bin/cbicall validate-registry` | Developer check for `workflows/registry/workflows.yaml` against `workflows/schema/workflows.schema.json`. |
 | `bin/cbicall test --wes`, `--mit`, or `--all` | Runs the bundled integration examples without remembering the script path. |
 
 ```bash
@@ -145,6 +146,7 @@ bin/cbicall test --all -t 1
 
 | Key | Default | Use |
 | --- | --- | --- |
+| `pipeline_version` | Registry default, currently `v1` | Advanced pin for a specific CBIcall pipeline implementation. Leave unset for normal runs. |
 | `workflow_rule` | `null` | Snakemake target for a partial run. Leave unset for normal full runs. |
 | `allow_partial_run` | `false` | Must be `true` when `workflow_rule` is set. This prevents accidental partial starts. |
 | `organism` | `Homo sapiens` | Metadata field. |

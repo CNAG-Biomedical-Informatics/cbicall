@@ -3,7 +3,7 @@
 Use this page when you want to verify that CBIcall runs correctly on the shipped example data.
 
 :::tip[Fast path]
-Run the WES smoke test first. If it passes, the CLI, example layout, reference paths, and core GATK workflow are working together.
+Run the WES integration test first. If it passes, the CLI, example layout, reference paths, and core GATK workflow are working together.
 :::
 
 If you still need to choose an installation method or workflow, start with [Choose Your Path](choose-your-path).
@@ -17,11 +17,10 @@ bin/cbicall --version
 
 You should see the command help and the installed CBIcall version.
 
-## 2. Run the WES Smoke Test
+## 2. Run the WES Integration Test
 
 ```bash
-cd examples/input
-./run_tests.sh --wes
+bin/cbicall test --wes -t 1
 ```
 
 This test:
@@ -48,13 +47,14 @@ The main file to inspect is:
 02_varcall/CNAG99901P.hc.QC.vcf.gz
 ```
 
-## 3. Run the mtDNA Smoke Test
+The test command also prints the exact run directory, workflow log, `run-report.json`, launcher log, and output file used for comparison.
+
+## 3. Run the mtDNA Integration Test
 
 Run this after the WES test works. The mtDNA workflow depends on the WES/WGS-style project structure and consumes BAMs from previous WES/WGS runs.
 
 ```bash
-cd examples/input
-./run_tests.sh --mit
+bin/cbicall test --mit -t 1
 ```
 
 When it succeeds, the run directory looks like this:
@@ -71,13 +71,15 @@ Start with:
 02_browser/README.txt
 ```
 
+The final summary reports whether the mtDNA text and JSON outputs matched the shipped references, plus the exact run directory used for the comparison.
+
 :::info[Architecture]
 The mtDNA workflow uses MToolBox and is x86_64-only. If you are on ARM / aarch64, run WES/WGS workflows there but move mtDNA runs to an x86_64 host.
 :::
 
 ## 4. Run With Your Own YAML
 
-Once the smoke tests work, use the normal invocation:
+Once the integration tests work, use the normal invocation:
 
 ```bash
 bin/cbicall -p parameters.yaml -t 4
@@ -99,4 +101,3 @@ For most WES/WGS runs, start with 4 threads and adjust after checking [Performan
 | Run mtDNA analysis | [End-to-end Example: mtDNA](end-to-end-example-mit) |
 | Understand generated files | [Outputs](../help/outputs) |
 | Edit the YAML safely | [Configuration Reference](../help/configuration-reference) |
-

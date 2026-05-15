@@ -13,7 +13,7 @@ Use Docker for local runs, Apptainer on HPC, `pipeline: wes` or `pipeline: wgs` 
 | Local workstation or server with Docker | [Docker](../installation/docker) | [Quickstart](quickstart) |
 | HPC cluster or Slurm environment | [Apptainer](../installation/apptainer) | WES/WGS or mtDNA examples |
 | Development, debugging, or workflow editing | [Non-containerized](../installation/non-containerized) | Any supported workflow |
-| First time testing CBIcall | [Quickstart](quickstart) | WES single-sample smoke test |
+| First time testing CBIcall | [Quickstart](quickstart) | WES single-sample integration test |
 | Real WES or WGS data from FASTQ | [WES example](end-to-end-example-wes) | `pipeline: wes` or `pipeline: wgs` |
 | mtDNA analysis | [mtDNA example](end-to-end-example-mit) | `pipeline: mit` after WES/WGS BAMs exist |
 

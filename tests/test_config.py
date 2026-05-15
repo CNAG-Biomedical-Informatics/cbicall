@@ -26,12 +26,12 @@ def _mk_fake_root(monkeypatch, tmp_path: Path) -> Path:
 
 
 def _write_registry_and_schema(root: Path, *, registry_lines: str) -> None:
-    cfg_dir = root / "workflows" / "config"
+    cfg_dir = root / "workflows" / "registry"
     sch_dir = root / "workflows" / "schema"
     cfg_dir.mkdir(parents=True, exist_ok=True)
     sch_dir.mkdir(parents=True, exist_ok=True)
 
-    (cfg_dir / "cbicall.workflows.yaml").write_text(registry_lines, encoding="utf-8")
+    (cfg_dir / "workflows.yaml").write_text(registry_lines, encoding="utf-8")
     write_workflow_schema(sch_dir / "workflows.schema.json")
 
 
@@ -69,7 +69,11 @@ def _minimal_bash_registry_block(gatk_ver: str = "gatk-4.6") -> str:
         "          vcf2sex: \"vcf2sex.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
-        "            single: \"wes_single.sh\"\n"
+        "            single:\n"
+        "              default: \"v1\"\n"
+        "              versions:\n"
+        "                v1:\n"
+        "                  script: \"wes_single.sh\"\n"
     )
 
 
@@ -133,6 +137,20 @@ def test_read_param_file_hg38_only_allowed_for_wgs(tmp_path):
         encoding="utf-8",
     )
     with pytest.raises(ParameterValidationError, match="genome='hg38' is only supported for pipeline='wgs'"):
+        config_mod.read_param_file(str(p))
+
+
+def test_read_param_file_empty_pipeline_version_raises(tmp_path):
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: single\n"
+        "pipeline: wes\n"
+        "workflow_engine: bash\n"
+        "gatk_version: gatk-4.6\n"
+        "pipeline_version: ''\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ParameterValidationError, match="pipeline_version must be a non-empty"):
         config_mod.read_param_file(str(p))
 
 
@@ -264,9 +282,9 @@ def test_set_config_values_registry_missing_raises(monkeypatch, tmp_path):
 def test_set_config_values_schema_missing_raises(monkeypatch, tmp_path):
     root = _mk_fake_root(monkeypatch, tmp_path)
 
-    cfg_dir = root / "workflows" / "config"
+    cfg_dir = root / "workflows" / "registry"
     cfg_dir.mkdir(parents=True, exist_ok=True)
-    (cfg_dir / "cbicall.workflows.yaml").write_text("workflows:\n  bash: {}\n", encoding="utf-8")
+    (cfg_dir / "workflows.yaml").write_text("workflows:\n  bash: {}\n", encoding="utf-8")
 
     with pytest.raises(FileNotFoundError, match="Workflow schema not found"):
         config_mod.set_config_values(
@@ -362,6 +380,67 @@ def test_set_config_values_records_resource_bundle(monkeypatch, tmp_path):
     assert cfg["resource_bundle"]["status"] == "current"
     assert cfg["resource_bundle"]["compatible"] is True
     assert len(cfg["resource_bundle"]["fingerprint"]) == 64
+    assert "entry" not in cfg["resource_bundle"]
+
+
+def test_set_config_values_uses_registry_default_pipeline_version(monkeypatch, tmp_path):
+    root = fake_project(
+        monkeypatch,
+        tmp_path,
+        gatk_ver="gatk-4.6",
+        registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
+    )
+    _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+
+    cfg = config_mod.set_config_values(
+        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+    )
+
+    assert cfg["pipeline_version"] == "v1"
+    assert cfg["workflow"]["pipeline_version"] == "v1"
+
+
+def test_set_config_values_accepts_explicit_pipeline_version(monkeypatch, tmp_path):
+    root = fake_project(
+        monkeypatch,
+        tmp_path,
+        gatk_ver="gatk-4.6",
+        registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
+    )
+    _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+
+    cfg = config_mod.set_config_values(
+        {
+            "mode": "single",
+            "pipeline": "wes",
+            "workflow_engine": "bash",
+            "gatk_version": "gatk-4.6",
+            "pipeline_version": "v1",
+        }
+    )
+
+    assert cfg["workflow"]["pipeline_version"] == "v1"
+
+
+def test_set_config_values_unknown_pipeline_version_raises(monkeypatch, tmp_path):
+    root = fake_project(
+        monkeypatch,
+        tmp_path,
+        gatk_ver="gatk-4.6",
+        registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
+    )
+    _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+
+    with pytest.raises(WorkflowResolutionError, match="pipeline_version='v2' is not defined"):
+        config_mod.set_config_values(
+            {
+                "mode": "single",
+                "pipeline": "wes",
+                "workflow_engine": "bash",
+                "gatk_version": "gatk-4.6",
+                "pipeline_version": "v2",
+            }
+        )
 
 
 def test_set_config_values_rejects_unknown_resource_bundle(monkeypatch, tmp_path):
@@ -422,7 +501,7 @@ def test_load_workflow_registry_schema_validation_fails(monkeypatch, tmp_path):
     bad_registry = "not_workflows:\n  x: 1\n"
     _write_registry_and_schema(root, registry_lines=bad_registry)
 
-    registry_yaml = root / "workflows" / "config" / "cbicall.workflows.yaml"
+    registry_yaml = root / "workflows" / "registry" / "workflows.yaml"
     schema_json = root / "workflows" / "schema" / "workflows.schema.json"
 
     with pytest.raises(ParameterValidationError, match="failed schema validation"):
@@ -486,7 +565,11 @@ def test_set_config_values_engine_not_in_registry_raises(monkeypatch, tmp_path):
         "          vcf2sex: \"vcf2sex.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
-        "            single: \"wes_single.sh\"\n"
+        "            single:\n"
+        "              default: \"v1\"\n"
+        "              versions:\n"
+        "                v1:\n"
+        "                  script: \"wes_single.sh\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
@@ -520,7 +603,11 @@ def test_set_config_values_version_not_in_registry_raises(monkeypatch, tmp_path)
         "          vcf2sex: \"vcf2sex.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
-        "            single: \"wes_single.sh\"\n"
+        "            single:\n"
+        "              default: \"v1\"\n"
+        "              versions:\n"
+        "                v1:\n"
+        "                  script: \"wes_single.sh\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
@@ -548,7 +635,11 @@ def test_set_config_values_pipeline_not_in_registry_raises(monkeypatch, tmp_path
         "          vcf2sex: \"vcf2sex.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
-        "            single: \"wes_single.sh\"\n"
+        "            single:\n"
+        "              default: \"v1\"\n"
+        "              versions:\n"
+        "                v1:\n"
+        "                  script: \"wes_single.sh\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
@@ -576,7 +667,11 @@ def test_set_config_values_mode_not_in_registry_raises(monkeypatch, tmp_path):
         "          vcf2sex: \"vcf2sex.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
-        "            single: \"wes_single.sh\"\n"
+        "            single:\n"
+        "              default: \"v1\"\n"
+        "              versions:\n"
+        "                v1:\n"
+        "                  script: \"wes_single.sh\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
@@ -605,7 +700,11 @@ def test_set_config_values_bash_missing_common_keys_raises(monkeypatch, tmp_path
         "          env: \"env.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
-        "            single: \"wes_single.sh\"\n"
+        "            single:\n"
+        "              default: \"v1\"\n"
+        "              versions:\n"
+        "                v1:\n"
+        "                  script: \"wes_single.sh\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
@@ -631,7 +730,11 @@ def test_set_config_values_snakemake_missing_common_config_raises(monkeypatch, t
           "          something_else: \"x.yaml\"\n"
           "        pipelines:\n"
           "          wgs:\n"
-          "            cohort: \"wgs_cohort.smk\"\n"
+          "            cohort:\n"
+          "              default: \"v1\"\n"
+          "              versions:\n"
+          "                v1:\n"
+          "                  script: \"wgs_cohort.smk\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
 
@@ -663,7 +766,11 @@ def test_set_config_values_snakemake_missing_files_triggers_guard(monkeypatch, t
           "          config: \"config.yaml\"\n"
           "        pipelines:\n"
           "          wgs:\n"
-          "            cohort: \"wgs_cohort.smk\"\n"
+          "            cohort:\n"
+          "              default: \"v1\"\n"
+          "              versions:\n"
+          "                v1:\n"
+          "                  script: \"wgs_cohort.smk\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
 
@@ -697,7 +804,11 @@ def test_set_config_values_nextflow_declared_but_not_implemented(monkeypatch, tm
           "        common: {}\n"
           "        pipelines:\n"
           "          wgs:\n"
-          "            single: \"main.nf\"\n"
+          "            single:\n"
+          "              default: \"v1\"\n"
+          "              versions:\n"
+          "                v1:\n"
+          "                  script: \"main.nf\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
@@ -757,6 +868,7 @@ def test_set_config_values_builds_normalized_workflow_structure(monkeypatch, tmp
     assert cfg["workflow"]["gatk_version"] == "gatk-4.6"
     assert cfg["workflow"]["entrypoint"].endswith("workflows/bash/gatk-4.6/wes_single.sh")
     assert cfg["workflow"]["helpers"]["env"].endswith("workflows/bash/gatk-4.6/env.sh")
+    assert "profiles" not in cfg["workflow"]
     assert cfg["inputs"] == {"input_dir": None, "sample_map": None}
 
 
@@ -1044,7 +1156,11 @@ def test_set_config_values_missing_workflow_files_raises(monkeypatch, tmp_path):
         "          vcf2sex: \"vcf2sex.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
-        "            single: \"wes_single.sh\"\n"
+        "            single:\n"
+        "              default: \"v1\"\n"
+        "              versions:\n"
+        "                v1:\n"
+        "                  script: \"wes_single.sh\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
 
@@ -1075,7 +1191,11 @@ def test_set_config_values_not_executable_bash_raises(monkeypatch, tmp_path):
         "          vcf2sex: \"vcf2sex.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
-        "            single: \"wes_single.sh\"\n"
+        "            single:\n"
+        "              default: \"v1\"\n"
+        "              versions:\n"
+        "                v1:\n"
+        "                  script: \"wes_single.sh\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
 

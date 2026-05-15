@@ -58,6 +58,7 @@ _DEFAULTS = {
     "workflow_engine": "bash",
     "profile": "local",
     "gatk_version": "gatk-3.5",
+    "pipeline_version": None,
     "project_dir": "cbicall",
     "cleanup_bam": False,
     "workflow_rule": None,
@@ -195,6 +196,16 @@ def _validate_profile_settings(cfg: dict) -> None:
     cfg["profile"] = cfg["profile"].strip()
 
 
+def _validate_pipeline_version_settings(cfg: dict) -> None:
+    pipeline_version = cfg.get("pipeline_version")
+    if pipeline_version is None:
+        return
+    cfg["pipeline_version"] = str(pipeline_version)
+    if not cfg["pipeline_version"].strip():
+        raise ParameterValidationError("pipeline_version must be a non-empty value when provided.")
+    cfg["pipeline_version"] = cfg["pipeline_version"].strip()
+
+
 def _validate_with_schema(data: dict, schema: dict, label: str) -> None:
     _registry_validate_with_schema(data, schema, label)
 
@@ -222,6 +233,7 @@ def read_param_file(yaml_file: str) -> dict:
     # Validate enums (except genome; it may be None until rules apply)
     _validate_enums_except_genome(cfg)
     _validate_profile_settings(cfg)
+    _validate_pipeline_version_settings(cfg)
     _validate_partial_run_settings(cfg)
     _validate_bundle_settings(cfg)
 
@@ -259,6 +271,7 @@ def _merge_and_validate_param_values(params: dict) -> dict:
     # Validate enums (except genome), then apply genome rules, then validate genome
     _validate_enums_except_genome(cfg_in)
     _validate_profile_settings(cfg_in)
+    _validate_pipeline_version_settings(cfg_in)
     _validate_partial_run_settings(cfg_in)
     _validate_bundle_settings(cfg_in)
     _apply_genome_rules(cfg_in, user_provided_genome=("genome" in params))
@@ -379,7 +392,6 @@ def _build_resource_bundle_metadata(cfg_in: dict, project_root: Path) -> dict:
             "fingerprint": _catalog_fingerprint(entry),
             "compatible": None,
             "workflow_key": f"{cfg_in['workflow_engine']}/{cfg_in['pipeline']}/{cfg_in['mode']}/{cfg_in['gatk_version']}",
-            "entry": entry,
         }
 
     try:
@@ -411,7 +423,6 @@ def _build_resource_bundle_metadata(cfg_in: dict, project_root: Path) -> dict:
         "fingerprint": _catalog_fingerprint(entry),
         "compatible": compatible,
         "workflow_key": workflow_key,
-        "entry": entry,
     }
 
 
@@ -435,6 +446,7 @@ def _apply_runtime_profile(cfg_in: dict, workflow: WorkflowSpec) -> WorkflowSpec
         pipeline=workflow.pipeline,
         mode=workflow.mode,
         gatk_version=workflow.gatk_version,
+        pipeline_version=workflow.pipeline_version,
         entrypoint=workflow.entrypoint,
         config_file=workflow.config_file,
         helpers=helpers,
@@ -461,6 +473,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         pipeline=cfg_in["pipeline"],
         mode=cfg_in["mode"],
         gatk_version=cfg_in["gatk_version"],
+        pipeline_version=workflow.pipeline_version,
         inputs=InputsSpec(
             input_dir=cfg_in.get("input_dir"),
             sample_map=cfg_in.get("sample_map"),
@@ -489,6 +502,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         pipeline=config.pipeline,
         mode=config.mode,
         gatk_version=config.gatk_version,
+        pipeline_version=config.pipeline_version,
         inputs=config.inputs,
         workflow=config.workflow,
         run_id=runtime_identity["run_id"],

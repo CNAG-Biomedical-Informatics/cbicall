@@ -176,6 +176,7 @@ def _run_doctor_command(argv: List[str]) -> int:
     _row("Profile", resolved_config.profile)
     _row("Workflow", f"{workflow.engine} -> {workflow.pipeline} -> {workflow.mode}")
     _row("GATK", workflow.gatk_version)
+    _row("Pipeline ver", workflow.pipeline_version)
     _row("Genome", resolved_config.genome or "b37")
     _row("Entrypoint", _short_path(workflow.entrypoint))
     if workflow.engine == "bash":
@@ -187,7 +188,7 @@ def _run_doctor_command(argv: List[str]) -> int:
 
 def _run_validate_registry_command(argv: List[str]) -> int:
     root = _project_root()
-    default_registry = root / "workflows" / "config" / "cbicall.workflows.yaml"
+    default_registry = root / "workflows" / "registry" / "workflows.yaml"
     default_schema = root / "workflows" / "schema" / "workflows.schema.json"
 
     parser = argparse.ArgumentParser(
@@ -246,7 +247,7 @@ def _run_test_command(argv: List[str]) -> int:
     env["CBICALL"] = str(root / "bin" / "cbicall")
     env["THREADS"] = str(args.threads)
     return subprocess.run(
-        [str(script), *selected],
+        ["bash", str(script), *selected],
         cwd=str(script.parent),
         env=env,
         check=False,

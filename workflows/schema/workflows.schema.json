@@ -78,10 +78,31 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "single": { "$ref": "#/$defs/pathString" },
-        "cohort": { "$ref": "#/$defs/pathString" }
+        "single": { "$ref": "#/$defs/pipelineImplementationSet" },
+        "cohort": { "$ref": "#/$defs/pipelineImplementationSet" }
       },
       "required": ["single"]
+    },
+    "pipelineImplementationSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default", "versions"],
+      "properties": {
+        "default": { "$ref": "#/$defs/pathString" },
+        "versions": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/pipelineImplementation" }
+        }
+      }
+    },
+    "pipelineImplementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["script"],
+      "properties": {
+        "script": { "$ref": "#/$defs/pathString" }
+      }
     }
   }
 }

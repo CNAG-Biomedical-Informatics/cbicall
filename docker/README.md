@@ -20,6 +20,14 @@ wget https://raw.githubusercontent.com/mrueda/cbicall/refs/heads/main/scripts/01
 python3 ./01_download_external_data.py --outdir /absolute/path/to/cbicall-data
 ```
 
+To verify only the catalog-to-Google-Drive bundle identity before starting the large archive download:
+
+```bash
+python3 ./01_download_external_data.py \
+  --outdir /absolute/path/to/cbicall-data \
+  --verify-bundle-id-only
+```
+
 Google Drive can be restrictive with large files. If the Python download stalls or fails, print the manual download list:
 
 ```bash
@@ -40,8 +48,8 @@ The script will:
 
 - download missing split files when possible
 - reassemble `data.tar.gz`
-- verify `data.tar.gz` with `data.tar.gz.md5`
-- read the local CBIcall resource registry
+- verify the split parts or assembled archive with `data.tar.gz.md5`
+- load the CBIcall resource catalog, locally or from the catalog URL
 - optionally verify a small GDrive bundle identifier file such as `cbicall-bundle-id.json`
 - rename the verified archive using the bundle identity, for example `cbicall-germline-resources-v1.tar.gz`
 - extract the archive into `DATADIR`
@@ -109,20 +117,18 @@ Change `DATADIR` variable in `workflows/bash/gatk-4.6/env.sh` and `workflows/sna
 
 ## Performing integration tests
 
-Inside the container:
+Inside the container, from the CBIcall repository root:
 
 **WES**
 
 ```bash
-cd examples/input
-./run_tests.sh --wes
+bin/cbicall test --wes -t 1
 ```
 
 **mtDNA**
 
 ```bash
-cd examples/input
-./run_tests.sh --mit
+bin/cbicall test --mit -t 1
 ```
 
 ## System requirements

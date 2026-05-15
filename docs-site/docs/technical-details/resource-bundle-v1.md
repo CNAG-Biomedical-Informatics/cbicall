@@ -8,11 +8,13 @@ The current bundle is selected in the run YAML with:
 resource_bundle: "cbicall-germline-resources-v1"
 ```
 
-CBIcall resolves this key against the local catalog:
+CBIcall resolves this key against the resource catalog:
 
 ```text
 resources/cbicall-resource-catalog.json
 ```
+
+The downloader uses the local catalog when it is present. If the script is used standalone and the local catalog is absent, it fetches the canonical catalog URL before selecting the bundle entry.
 
 ## Bundle Identity
 
@@ -46,11 +48,12 @@ The bundle key is human-readable, while the catalog entry is machine-readable. `
 
 ## Downloaded Files
 
-The production bundle is distributed as split archive parts plus a checksum file.
+The production bundle is distributed as a small identifier JSON, split archive parts, and a checksum file.
 
 | File | Purpose |
 | --- | --- |
-| `data.tar.gz.md5` | MD5 checksum for the assembled archive. |
+| `cbicall-bundle-id.json` | Declares the bundle catalog key and is pinned by SHA-256 in the catalog. |
+| `data.tar.gz.md5` | MD5 checksum file. The current bundle records the split archive parts. |
 | `data.tar.gz.part-00` | Split archive part. |
 | `data.tar.gz.part-01` | Split archive part. |
 | `data.tar.gz.part-02` | Split archive part. |
@@ -58,7 +61,7 @@ The production bundle is distributed as split archive parts plus a checksum file
 | `data.tar.gz.part-04` | Split archive part. |
 | `data.tar.gz.part-05` | Split archive part. |
 
-The setup utility reassembles the parts into `data.tar.gz`, verifies the archive with `data.tar.gz.md5`, and then renames the verified archive to `cbicall-germline-resources-v1.tar.gz`.
+The setup utility verifies the files covered by `data.tar.gz.md5`, reassembles the parts into `data.tar.gz`, and then renames the verified archive to `cbicall-germline-resources-v1.tar.gz`.
 
 An optional small remote identifier file can also be used:
 

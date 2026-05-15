@@ -21,8 +21,8 @@
       ],
       "remote_identifier": {
         "filename": "cbicall-bundle-id.json",
-        "google_drive_file_id": null,
-        "sha256": null,
+        "google_drive_file_id": "1m0lTdLM4g5k5z3K-Tdvn5DHQv8uMtJiw",
+        "sha256": "e6563425f9763b73d1d14a07bd0cc471c45a1866e613a8699f332846974bc572",
         "expected": {
           "bundle": "cbicall-germline-resources-v1"
         }

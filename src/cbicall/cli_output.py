@@ -110,6 +110,7 @@ def _print_run_summary(
     _row("Input dir", _short_path(resolved_config.inputs.input_dir))
     _row("Sample map", _short_path(resolved_config.inputs.sample_map))
     _row("GATK", workflow.gatk_version)
+    _row("Pipeline ver", workflow.pipeline_version)
     print()
 
     _section("Resolved", colors["blue"], colors["bold"], colors["reset"])

@@ -17,33 +17,19 @@ import os
 import re
 import sys
 import tarfile
+import urllib.request
 from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
 
-BUNDLE_ID = "cbicall-germline-resources"
-BUNDLE_VERSION = "1"
-CATALOG_VERSION = 1
-ARCHIVE_NAME = "data.tar.gz"
-CHECKSUM_NAME = "data.tar.gz.md5"
-BUNDLE_IDENTIFIER_NAME = "cbicall-bundle-id.json"
 DEFAULT_BUNDLE_KEY = "cbicall-germline-resources-v1"
 CATALOG_NAME = "resources/cbicall-resource-catalog.json"
+DEFAULT_CATALOG_URL = (
+    "https://raw.githubusercontent.com/mrueda/cbicall/refs/heads/main/"
+    "resources/cbicall-resource-catalog.json"
+)
 MANIFEST_NAME = "cbicall-resource-installation.json"
-GOOGLE_DRIVE_FOLDER = "https://drive.google.com/drive/folders/13MqZk0MHN_MQdNyXwjz_QTjbl2Najkeg"
-
-FILES = {
-    CHECKSUM_NAME: "1MmeppkZ1xR9ODsBLuDWUh-2ob98Prxq6",
-    "data.tar.gz.part-00": "12HQw_duxmlcASh7Yw8yL2-f-hyjqMim9",
-    "data.tar.gz.part-01": "1Ejrn1oQ2WO3TSTmWSfoQ1IjYBOXivbRm",
-    "data.tar.gz.part-02": "18CC1y2t5heV66-jOHCFIHqgj9GbT3QgF",
-    "data.tar.gz.part-03": "1mq5t0U8GFk6ZdaMqBzWHD73LfYJ626vi",
-    "data.tar.gz.part-04": "1v8rQA-qtgYgnPcOV8PzO-otw9dE9ePqt",
-    "data.tar.gz.part-05": "1knI_DEdrlushYj5lOclnRNDdvSEmXQ5m",
-}
-
-PART_NAMES = sorted(name for name in FILES if name.startswith(f"{ARCHIVE_NAME}.part-"))
-EXPECTED_TOP_LEVEL = ("Databases", "NGSutils")
+CATALOG_VERSION = 1
 
 
 def google_drive_url(file_id: str) -> str:
@@ -58,98 +44,42 @@ def default_catalog_path() -> Path:
     return repo_root() / CATALOG_NAME
 
 
-def load_catalog_entry(catalog_path: Optional[Path], bundle_key: str) -> Optional[dict]:
-    path = catalog_path or default_catalog_path()
-    if not path.is_file():
-        return None
+def fetch_catalog(catalog_url: str) -> dict:
+    try:
+        with urllib.request.urlopen(catalog_url, timeout=30) as handle:
+            return json.loads(handle.read().decode("utf-8"))
+    except Exception as exc:
+        raise SystemExit(
+            "Could not load the CBIcall resource catalog.\n"
+            f"  URL: {catalog_url}\n\n"
+            "Provide a local catalog with --catalog, or check network access."
+        ) from exc
 
-    catalog = json.loads(path.read_text(encoding="utf-8"))
+
+def load_catalog(catalog_path: Optional[Path], catalog_url: str) -> Tuple[dict, str]:
+    path = catalog_path or default_catalog_path()
+    if path.is_file():
+        return json.loads(path.read_text(encoding="utf-8")), str(path)
+
+    if catalog_path is not None:
+        raise SystemExit(f"Resource catalog not found: {path}")
+
+    print(f"Resource catalog not found locally; fetching {catalog_url}")
+    return fetch_catalog(catalog_url), catalog_url
+
+
+def load_catalog_entry(catalog_path: Optional[Path], bundle_key: str, catalog_url: str = DEFAULT_CATALOG_URL) -> dict:
+    catalog, catalog_source = load_catalog(catalog_path, catalog_url)
     bundles = catalog.get("bundles", {}) if isinstance(catalog, dict) else {}
     entry = bundles.get(bundle_key)
     if entry is None:
-        raise SystemExit(f"Bundle {bundle_key!r} not found in registry: {path}")
-    entry["_catalog_path"] = str(path)
+        raise SystemExit(f"Bundle {bundle_key!r} not found in resource catalog: {catalog_source}")
+    entry = dict(entry)
+    entry["_catalog_source"] = catalog_source
+    if catalog_source.startswith("/"):
+        entry["_catalog_path"] = catalog_source
     entry["key"] = bundle_key
     return entry
-
-
-def default_bundle_metadata() -> dict:
-    return {
-        "schema_version": CATALOG_VERSION,
-        "bundle_id": BUNDLE_ID,
-        "bundle_version": BUNDLE_VERSION,
-        "description": "CBIcall external tools and reference resources",
-        "compatible_cbicall": ">=1.0,<2.0",
-        "compatible_workflows": [
-            "bash/wes/single/gatk-4.6",
-            "bash/wes/cohort/gatk-4.6",
-            "bash/wgs/single/gatk-4.6",
-            "bash/wgs/cohort/gatk-4.6",
-            "bash/mit/single/gatk-3.5",
-            "bash/mit/cohort/gatk-3.5",
-            "snakemake/wes/single/gatk-4.6",
-            "snakemake/wes/cohort/gatk-4.6",
-        ],
-        "archive": {
-            "source_name": ARCHIVE_NAME,
-            "canonical_name": f"{BUNDLE_ID}-v{BUNDLE_VERSION}.tar.gz",
-            "checksum_file": CHECKSUM_NAME,
-            "parts": PART_NAMES,
-        },
-        "source": {
-            "provider": "google_drive",
-            "folder": GOOGLE_DRIVE_FOLDER,
-            "files": FILES,
-        },
-        "remote_identifier": {
-            "filename": BUNDLE_IDENTIFIER_NAME,
-            "google_drive_file_id": None,
-            "sha256": None,
-            "expected": {
-                "bundle": DEFAULT_BUNDLE_KEY,
-            },
-        },
-        "layout": {
-            "datadir": ".",
-            "dbdir": "Databases",
-            "ngsutils": "NGSutils",
-            "expected_top_level": list(EXPECTED_TOP_LEVEL),
-        },
-        "env_bindings": {
-            "DATADIR": ".",
-            "DBDIR": "Databases",
-            "NGSUTILS": "NGSutils",
-        },
-        "tools": {
-            "gatk4": {
-                "version": "4.6.2.0",
-                "path_hint": "NGSutils/gatk/gatk-4.6.2.0/gatk",
-            },
-            "bwa": {
-                "version": "0.7.18",
-                "path_hint": "NGSutils/bwa-0.7.18/bwa",
-            },
-            "samtools": {
-                "version": "0.1.19",
-                "path_hint": "NGSutils/samtools-0.1.19/samtools",
-            },
-        },
-        "resource_sets": {
-            "b37": {
-                "reference_fasta_hint": "Databases/GATK_bundle/b37/references_b37_Homo_sapiens_assembly19.fasta",
-                "known_sites_hint": [
-                    "Databases/dbSNP/human_9606_b144_GRCh37p13/All_20160408.vcf.gz",
-                    "Databases/GATK_bundle/b37/b37_Mills_and_1000G_gold_standard.indels.b37.vcf.gz",
-                ],
-            },
-            "hg38": {
-                "reference_fasta_hint": "Databases/GATK_bundle/hg38/resources_broad_hg38_v0_Homo_sapiens_assembly38.fasta",
-            },
-            "rsrs": {
-                "description": "Mitochondrial resources used by MToolBox workflows",
-            },
-        },
-    }
 
 
 def safe_slug(value: str) -> str:
@@ -157,8 +87,11 @@ def safe_slug(value: str) -> str:
 
 
 def bundle_slug(metadata: dict) -> str:
-    bundle_id = safe_slug(str(metadata.get("bundle_id") or BUNDLE_ID))
-    bundle_version = safe_slug(str(metadata.get("bundle_version") or BUNDLE_VERSION))
+    if not metadata.get("bundle_id") or not metadata.get("bundle_version"):
+        return safe_slug(bundle_key(metadata))
+
+    bundle_id = safe_slug(str(metadata["bundle_id"]))
+    bundle_version = safe_slug(str(metadata["bundle_version"]))
     if bundle_version.startswith("v"):
         return f"{bundle_id}-{bundle_version}"
     return f"{bundle_id}-v{bundle_version}"
@@ -169,31 +102,57 @@ def canonical_archive_name(metadata: dict) -> str:
     explicit_name = archive.get("canonical_name")
     if explicit_name:
         return Path(str(explicit_name)).name
-    return f"{bundle_slug(metadata)}.tar.gz"
+    return f"{safe_slug(bundle_key(metadata))}.tar.gz"
+
+
+def archive_source_name(metadata: dict) -> str:
+    archive = metadata.get("archive") if isinstance(metadata.get("archive"), dict) else {}
+    if not archive.get("source_name"):
+        raise SystemExit(f"Bundle {bundle_key(metadata)!r} is missing archive.source_name in the resource catalog.")
+    return Path(str(archive["source_name"])).name
+
+
+def checksum_file_name(metadata: dict) -> str:
+    archive = metadata.get("archive") if isinstance(metadata.get("archive"), dict) else {}
+    if not archive.get("checksum_file"):
+        raise SystemExit(f"Bundle {bundle_key(metadata)!r} is missing archive.checksum_file in the resource catalog.")
+    return Path(str(archive["checksum_file"])).name
+
+
+def checksum_algorithm(metadata: dict) -> str:
+    archive = metadata.get("archive") if isinstance(metadata.get("archive"), dict) else {}
+    return str(archive.get("checksum_algorithm") or "md5").lower()
 
 
 def bundle_key(metadata: dict) -> str:
     if metadata.get("key"):
         return str(metadata["key"])
-    return f"{metadata.get('bundle_id', BUNDLE_ID)}-v{metadata.get('bundle_version', BUNDLE_VERSION)}"
+    if metadata.get("bundle_id") and metadata.get("bundle_version"):
+        return f"{metadata['bundle_id']}-v{metadata['bundle_version']}"
+    return "unknown-bundle"
 
 
 def source_files(metadata: dict) -> dict:
     source = metadata.get("source") if isinstance(metadata.get("source"), dict) else {}
     files = source.get("files") if isinstance(source.get("files"), dict) else None
-    return files or FILES
+    if files is None:
+        raise SystemExit(f"Bundle {bundle_key(metadata)!r} is missing source.files in the resource catalog.")
+    return dict(files)
 
 
 def archive_part_names(metadata: dict) -> List[str]:
     archive = metadata.get("archive") if isinstance(metadata.get("archive"), dict) else {}
     parts = archive.get("parts") if isinstance(archive.get("parts"), list) else None
-    return list(parts or PART_NAMES)
+    if parts is not None:
+        return list(parts)
+    prefix = f"{archive_source_name(metadata)}.part-"
+    return sorted(name for name in source_files(metadata) if name.startswith(prefix))
 
 
 def expected_top_level(metadata: dict) -> List[str]:
     layout = metadata.get("layout") if isinstance(metadata.get("layout"), dict) else {}
     expected = layout.get("expected_top_level") if isinstance(layout.get("expected_top_level"), list) else None
-    return list(expected or EXPECTED_TOP_LEVEL)
+    return list(expected or [])
 
 
 def remote_identifier(metadata: dict) -> dict:
@@ -202,7 +161,7 @@ def remote_identifier(metadata: dict) -> dict:
 
 
 def identifier_filename(metadata: dict) -> str:
-    return Path(str(remote_identifier(metadata).get("filename") or BUNDLE_IDENTIFIER_NAME)).name
+    return Path(str(remote_identifier(metadata).get("filename") or "cbicall-bundle-id.json")).name
 
 
 def identifier_file_id(metadata: dict) -> Optional[str]:
@@ -257,6 +216,27 @@ def validate_bundle_identifier(outdir: Path, metadata: dict, expected_sha256: Op
     return payload
 
 
+def require_bundle_identifier(outdir: Path, metadata: dict, bundle_identifier: Optional[dict]) -> dict:
+    if bundle_identifier is not None:
+        return bundle_identifier
+
+    raise SystemExit(
+        "Bundle identifier file was not found.\n"
+        f"  expected file: {outdir / identifier_filename(metadata)}\n\n"
+        "Either allow the script to download it, or place the file in --outdir "
+        "and rerun with --skip-download."
+    )
+
+
+def print_bundle_identifier_summary(metadata: dict, bundle_identifier: dict) -> None:
+    observed_bundle = bundle_identifier.get("bundle") or bundle_identifier.get("bundle_key")
+    print("Bundle identifier OK.")
+    print(f"  Bundle      : {observed_bundle}")
+    print(f"  File        : {bundle_identifier.get('_source')}")
+    print(f"  SHA-256     : {bundle_identifier.get('_sha256')}")
+    print(f"  Catalog key : {bundle_key(metadata)}")
+
+
 def print_manual_download_instructions(outdir: Path, metadata: dict, bundle_id_file_id: Optional[str] = None) -> None:
     print("Manual download mode")
     print("====================")
@@ -270,8 +250,10 @@ def print_manual_download_instructions(outdir: Path, metadata: dict, bundle_id_f
     for filename, file_id in source_files(metadata).items():
         print(f"- {filename}")
         print(f"  {google_drive_url(file_id)}")
-    print()
-    print(f"Folder view: {GOOGLE_DRIVE_FOLDER}")
+    folder = metadata.get("source", {}).get("folder") if isinstance(metadata.get("source"), dict) else None
+    if folder:
+        print()
+        print(f"Folder view: {folder}")
     print()
     print("After all files are present, run:")
     print(f"  python3 {Path(__file__).resolve()} --outdir {outdir.resolve()} --skip-download")
@@ -303,7 +285,7 @@ def download_if_missing(filename: str, file_id: str, outdir: Path, force: bool =
 
 
 def archive_candidates(outdir: Path, metadata: dict) -> List[Path]:
-    names = [canonical_archive_name(metadata), ARCHIVE_NAME]
+    names = [canonical_archive_name(metadata), archive_source_name(metadata)]
     candidates = []
     for name in names:
         path = outdir / name
@@ -321,9 +303,10 @@ def existing_archive(outdir: Path, metadata: dict) -> Optional[Path]:
 
 def download_files(outdir: Path, metadata: dict, force: bool = False) -> None:
     archive = existing_archive(outdir, metadata)
-    checksum_file = outdir / CHECKSUM_NAME
+    checksum_name = checksum_file_name(metadata)
+    checksum_file = outdir / checksum_name
     if archive and checksum_file.exists() and not force:
-        print(f"{archive.name} and {CHECKSUM_NAME} already exist; skipping source downloads.")
+        print(f"{archive.name} and {checksum_name} already exist; skipping source downloads.")
         return
 
     for filename, file_id in source_files(metadata).items():
@@ -348,15 +331,16 @@ def assemble_archive(outdir: Path, metadata: dict, force: bool = False) -> Path:
         print(f"{existing.name} already exists; skipping assembly.")
         return existing
 
-    archive = outdir / ARCHIVE_NAME
+    source_name = archive_source_name(metadata)
+    archive = outdir / source_name
     if archive.exists() and archive.stat().st_size > 0 and not force:
-        print(f"{ARCHIVE_NAME} already exists; skipping assembly.")
+        print(f"{source_name} already exists; skipping assembly.")
         return archive
 
     ensure_required_files(outdir, metadata)
-    tmp_archive = outdir / f"{ARCHIVE_NAME}.tmp"
+    tmp_archive = outdir / f"{source_name}.tmp"
 
-    print(f"Assembling {ARCHIVE_NAME} from split parts...")
+    print(f"Assembling {source_name} from split parts...")
     with tmp_archive.open("wb") as output:
         for part_name in archive_part_names(metadata):
             part = outdir / part_name
@@ -373,6 +357,11 @@ def assemble_archive(outdir: Path, metadata: dict, force: bool = False) -> Path:
 
 
 def parse_md5_file(path: Path) -> Tuple[str, Optional[str]]:
+    return parse_md5_entries(path)[0]
+
+
+def parse_md5_entries(path: Path) -> List[Tuple[str, Optional[str]]]:
+    entries = []
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line:
@@ -383,7 +372,9 @@ def parse_md5_file(path: Path) -> Tuple[str, Optional[str]]:
         checksum = match.group(1).lower()
         remainder = line[match.end():].strip()
         target = remainder.lstrip("*").strip() or None
-        return checksum, target
+        entries.append((checksum, target))
+    if entries:
+        return entries
     raise ValueError(f"No MD5 checksum found in {path}")
 
 
@@ -409,34 +400,100 @@ def compute_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def verify_archive(outdir: Path, archive: Optional[Path] = None) -> Tuple[str, str]:
-    archive = archive or (outdir / ARCHIVE_NAME)
-    checksum_file = outdir / CHECKSUM_NAME
-    if not archive.is_file():
-        raise SystemExit(f"Cannot verify checksum because {archive} does not exist.")
-    if not checksum_file.is_file():
-        raise SystemExit(f"Cannot verify checksum because {checksum_file} does not exist.")
+def verify_file_md5(path: Path, expected: str) -> str:
+    if not path.is_file():
+        raise SystemExit(f"Cannot verify checksum because {path} does not exist.")
 
-    expected, target = parse_md5_file(checksum_file)
-    if target and Path(target).name not in {ARCHIVE_NAME, archive.name}:
-        print(f"Warning: checksum file refers to {target!r}, verifying {archive.name!r}.")
-
-    print(f"Verifying {archive.name} with {CHECKSUM_NAME}...")
-    actual = compute_md5(archive)
+    actual = compute_md5(path)
     if actual != expected:
         raise SystemExit(
             "Checksum verification failed.\n"
+            f"  file: {path}\n"
             f"  expected: {expected}\n"
             f"  observed: {actual}\n\n"
-            "Remove the archive and rerun assembly, or download the parts again."
+            "Remove the file and download it again."
+        )
+    return actual
+
+
+def verify_bundle_checksums(outdir: Path, metadata: dict, archive: Optional[Path] = None) -> dict:
+    if checksum_algorithm(metadata) != "md5":
+        raise SystemExit(
+            f"Unsupported archive checksum algorithm {checksum_algorithm(metadata)!r}; "
+            "currently supported: md5."
         )
 
-    print("Checksum OK.")
-    return expected, actual
+    checksum_name = checksum_file_name(metadata)
+    checksum_file = outdir / checksum_name
+    if not checksum_file.is_file():
+        raise SystemExit(f"Cannot verify checksum because {checksum_file} does not exist.")
+
+    entries = parse_md5_entries(checksum_file)
+    part_names = set(archive_part_names(metadata))
+    archive_names = {archive_source_name(metadata), canonical_archive_name(metadata)}
+    if archive is not None:
+        archive_names.add(archive.name)
+
+    part_entries = [(expected, Path(target).name) for expected, target in entries if target and Path(target).name in part_names]
+    archive_entries = [
+        (expected, Path(target).name if target else None)
+        for expected, target in entries
+        if (target and Path(target).name in archive_names) or (target is None and len(entries) == 1 and archive is not None)
+    ]
+
+    if part_entries:
+        expected_part_names = {name for _, name in part_entries}
+        missing_entries = sorted(part_names - expected_part_names)
+        missing_files = sorted(name for name in expected_part_names if not (outdir / name).is_file())
+        if missing_entries or missing_files:
+            details = []
+            if missing_entries:
+                details.append("missing checksum entries: " + ", ".join(missing_entries))
+            if missing_files:
+                details.append("missing part files: " + ", ".join(missing_files))
+            raise SystemExit(
+                "Checksum file covers split archive parts, but the part set is incomplete.\n"
+                + "\n".join(f"  {detail}" for detail in details)
+                + "\n\nCopy/download the split parts and rerun with --skip-download. "
+                "A copied assembled data.tar.gz cannot be verified with this part-level checksum file."
+            )
+
+        print(f"Verifying split archive parts with {checksum_name}...")
+        verified = []
+        for expected, part_name in part_entries:
+            actual = verify_file_md5(outdir / part_name, expected)
+            verified.append({"filename": part_name, "expected_md5": expected, "observed_md5": actual, "verified": True})
+        print("Checksum OK.")
+        return {"algorithm": "md5", "scope": "parts", "checksum_file": checksum_name, "verified": True, "entries": verified}
+
+    if archive_entries and archive is not None:
+        expected, target_name = archive_entries[0]
+        print(f"Verifying {archive.name} with {checksum_name}...")
+        actual = verify_file_md5(archive, expected)
+        print("Checksum OK.")
+        return {
+            "algorithm": "md5",
+            "scope": "archive",
+            "checksum_file": checksum_name,
+            "verified": True,
+            "entries": [{"filename": target_name or archive.name, "expected_md5": expected, "observed_md5": actual, "verified": True}],
+        }
+
+    if archive is not None:
+        raise SystemExit(
+            "Cannot verify the assembled archive with this checksum file.\n"
+            f"  archive: {archive}\n"
+            f"  checksum file: {checksum_file}\n\n"
+            "The checksum entries do not refer to the assembled archive. "
+            "Copy/download the split parts, or provide an archive-level checksum."
+        )
+
+    raise SystemExit(f"No usable checksum entries found in {checksum_file}.")
 
 
 def extraction_looks_done(outdir: Path, metadata: dict) -> bool:
-    return all((outdir / name).exists() for name in expected_top_level(metadata))
+    expected = expected_top_level(metadata)
+    return bool(expected) and all((outdir / name).exists() for name in expected)
 
 
 def _safe_members(tar: tarfile.TarFile, destination: Path) -> Iterable[tarfile.TarInfo]:
@@ -484,8 +541,7 @@ def write_manifest(
     outdir: Path,
     metadata: dict,
     archive: Path,
-    expected_md5: Optional[str],
-    observed_md5: Optional[str],
+    checksum_result: Optional[dict],
     extracted: bool,
     bundle_identifier: Optional[dict] = None,
     manifest_name: str = MANIFEST_NAME,
@@ -494,22 +550,22 @@ def write_manifest(
     public_metadata = {key: value for key, value in metadata.items() if not key.startswith("_")}
     payload = {
         "catalog_version": CATALOG_VERSION,
-        "bundle_id": metadata.get("bundle_id", BUNDLE_ID),
-        "bundle_version": metadata.get("bundle_version", BUNDLE_VERSION),
+        "bundle_id": metadata.get("bundle_id") or bundle_key(metadata),
+        "bundle_version": metadata.get("bundle_version"),
         "bundle_slug": bundle_slug(metadata),
         "catalog_entry": public_metadata,
-        "catalog_source": metadata.get("_catalog_path"),
+        "catalog_source": metadata.get("_catalog_source") or metadata.get("_catalog_path"),
         "remote_identifier": bundle_identifier,
         "installed_at_utc": _dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
         "datadir": str(outdir.resolve()),
         "archive": {
             "filename": archive.name,
-            "source_filename": ARCHIVE_NAME,
-            "checksum_file": CHECKSUM_NAME,
-            "expected_md5": expected_md5,
-            "observed_md5": observed_md5,
-            "verified": bool(expected_md5 and observed_md5 and expected_md5 == observed_md5),
+            "source_filename": archive_source_name(metadata),
+            "checksum_file": checksum_file_name(metadata),
+            "checksum_algorithm": checksum_algorithm(metadata),
+            "verified": bool(checksum_result and checksum_result.get("verified")),
         },
+        "checksum": checksum_result,
         "parts": [
             {
                 "filename": part_name,
@@ -522,7 +578,7 @@ def write_manifest(
         "extracted": extracted or extraction_looks_done(outdir, metadata),
         "source": {
             "type": metadata.get("source", {}).get("provider", "google_drive"),
-            "folder": metadata.get("source", {}).get("folder", GOOGLE_DRIVE_FOLDER),
+            "folder": metadata.get("source", {}).get("folder"),
             "file_ids": source_files(metadata),
         },
     }
@@ -543,6 +599,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--catalog",
         help=f"CBIcall resource catalog JSON (default: {CATALOG_NAME}).",
+    )
+    parser.add_argument(
+        "--catalog-url",
+        default=DEFAULT_CATALOG_URL,
+        help="URL used to fetch the CBIcall resource catalog when the local catalog is not present.",
     )
     parser.add_argument(
         "--bundle",
@@ -571,6 +632,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--download-only",
         action="store_true",
         help="Download missing files, then stop before assembly and extraction.",
+    )
+    parser.add_argument(
+        "--verify-bundle-id-only",
+        action="store_true",
+        help="Download and verify only the small bundle identifier JSON, then exit.",
     )
     parser.add_argument(
         "--no-extract",
@@ -610,7 +676,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     outdir = Path(args.outdir).expanduser()
     outdir.mkdir(parents=True, exist_ok=True)
     catalog_path = Path(args.catalog).expanduser() if args.catalog else None
-    metadata = load_catalog_entry(catalog_path, args.bundle) or default_bundle_metadata()
+    metadata = load_catalog_entry(catalog_path, args.bundle, catalog_url=args.catalog_url)
     bundle_id_file_id = args.bundle_id_file_id or identifier_file_id(metadata)
     expected_bundle_id_sha256 = args.expected_bundle_id_sha256 or identifier_sha256(metadata)
 
@@ -622,19 +688,27 @@ def main(argv: Optional[List[str]] = None) -> int:
         maybe_download_bundle_identifier(outdir, metadata, bundle_id_file_id, force=args.force_download)
 
     bundle_identifier = validate_bundle_identifier(outdir, metadata, expected_sha256=expected_bundle_id_sha256)
-    print(f"Bundle: {metadata.get('bundle_id', BUNDLE_ID)} v{metadata.get('bundle_version', BUNDLE_VERSION)}")
+    version_label = metadata.get("bundle_version")
+    if version_label:
+        print(f"Bundle: {metadata.get('bundle_id') or bundle_key(metadata)} v{version_label}")
+    else:
+        print(f"Bundle: {bundle_key(metadata)}")
+
+    if args.verify_bundle_id_only:
+        bundle_identifier = require_bundle_identifier(outdir, metadata, bundle_identifier)
+        print_bundle_identifier_summary(metadata, bundle_identifier)
+        return 0
 
     if not args.skip_download:
         download_files(outdir, metadata, force=args.force_download)
 
     if args.download_only:
         print("Download-only mode complete.")
-        archive = existing_archive(outdir, metadata) or (outdir / ARCHIVE_NAME)
+        archive = existing_archive(outdir, metadata) or (outdir / archive_source_name(metadata))
         write_manifest(
             outdir,
             metadata,
             archive,
-            None,
             None,
             extracted=False,
             bundle_identifier=bundle_identifier,
@@ -643,7 +717,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 0
 
     archive = assemble_archive(outdir, metadata, force=args.force_assemble)
-    expected_md5, observed_md5 = verify_archive(outdir, archive)
+    checksum_result = verify_bundle_checksums(outdir, metadata, archive)
     archive = canonicalize_archive(outdir, archive, metadata)
 
     if args.remove_parts:
@@ -657,8 +731,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         outdir,
         metadata,
         archive,
-        expected_md5,
-        observed_md5,
+        checksum_result,
         extracted=extracted,
         bundle_identifier=bundle_identifier,
         manifest_name=args.manifest,

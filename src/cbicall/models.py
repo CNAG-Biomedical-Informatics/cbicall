@@ -24,6 +24,7 @@ class WorkflowSpec:
     pipeline: str
     mode: str
     gatk_version: str
+    pipeline_version: str
     entrypoint: Optional[str]
     config_file: Optional[str] = None
     helpers: Dict[str, str] = field(default_factory=dict)
@@ -36,6 +37,7 @@ class WorkflowSpec:
             pipeline=str(data["pipeline"]),
             mode=str(data["mode"]),
             gatk_version=str(data["gatk_version"]),
+            pipeline_version=str(data.get("pipeline_version", "legacy")),
             entrypoint=data.get("entrypoint"),
             config_file=data.get("config_file"),
             helpers=dict(data.get("helpers", {})),
@@ -43,7 +45,16 @@ class WorkflowSpec:
         )
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        return {
+            "engine": self.engine,
+            "pipeline": self.pipeline,
+            "mode": self.mode,
+            "gatk_version": self.gatk_version,
+            "pipeline_version": self.pipeline_version,
+            "entrypoint": self.entrypoint,
+            "config_file": self.config_file,
+            "helpers": dict(self.helpers),
+        }
 
 
 @dataclass(frozen=True)
@@ -106,6 +117,7 @@ class ResolvedConfig:
     pipeline: str
     mode: str
     gatk_version: str
+    pipeline_version: str
     inputs: InputsSpec
     workflow: WorkflowSpec
     run_id: str
@@ -130,6 +142,9 @@ class ResolvedConfig:
         pipeline = data["pipeline"] if "pipeline" in data else data["workflow"]["pipeline"]
         mode = data["mode"] if "mode" in data else data["workflow"]["mode"]
         gatk_version = data["gatk_version"] if "gatk_version" in data else data["workflow"]["gatk_version"]
+        pipeline_version = data.get("pipeline_version")
+        if pipeline_version is None and "workflow" in data:
+            pipeline_version = data["workflow"].get("pipeline_version")
         run_id = data["run_id"] if "run_id" in data else data["id"]
         project_dir = data["project_dir"]
         return cls(
@@ -140,6 +155,7 @@ class ResolvedConfig:
             pipeline=str(pipeline),
             mode=str(mode),
             gatk_version=str(gatk_version),
+            pipeline_version=str(pipeline_version) if pipeline_version is not None else "legacy",
             inputs=InputsSpec.from_mapping(data.get("inputs", {})),
             workflow=WorkflowSpec.from_mapping(data["workflow"]),
             run_id=str(run_id),
@@ -168,6 +184,7 @@ class ResolvedConfig:
             "pipeline": self.pipeline,
             "mode": self.mode,
             "gatk_version": self.gatk_version,
+            "pipeline_version": self.pipeline_version,
             "inputs": self.inputs.to_dict(),
             "workflow": self.workflow.to_dict(),
             "run_id": self.run_id,

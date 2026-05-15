@@ -2,7 +2,7 @@
 import json
 import stat
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from cbicall import config as config_mod
 
@@ -15,7 +15,7 @@ def make_executable(path: Path) -> None:
 
 def write_workflow_schema(path: Path) -> None:
     """
-    Schema for workflows/config/cbicall.workflows.yaml.
+    Schema for workflows/registry/workflows.yaml.
 
     Key rule: pipeline modes must define at least one of {single, cohort}.
     """
@@ -81,14 +81,46 @@ def write_workflow_schema(path: Path) -> None:
                 "type": "object",
                 "additionalProperties": False,
                 "properties": {
-                    "single": {"type": "string", "minLength": 1},
-                    "cohort": {"type": "string", "minLength": 1},
+                    "single": {"$ref": "#/$defs/pipelineImplementationSet"},
+                    "cohort": {"$ref": "#/$defs/pipelineImplementationSet"},
                 },
                 "minProperties": 1,
+            },
+            "pipelineImplementationSet": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["default", "versions"],
+                "properties": {
+                    "default": {"type": "string", "minLength": 1},
+                    "versions": {
+                        "type": "object",
+                        "minProperties": 1,
+                        "additionalProperties": {"$ref": "#/$defs/pipelineImplementation"},
+                    },
+                },
+            },
+            "pipelineImplementation": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["script"],
+                "properties": {"script": {"type": "string", "minLength": 1}},
             },
         },
     }
     path.write_text(json.dumps(schema, indent=2), encoding="utf-8")
+
+
+def _append_pipeline_modes(lines: List[str], modes: Dict[str, str], indent: str) -> None:
+    for mode, script in modes.items():
+        lines.extend(
+            [
+                f"{indent}{mode}:",
+                f"{indent}  default: \"v1\"",
+                f"{indent}  versions:",
+                f"{indent}    v1:",
+                f"{indent}      script: \"{script}\"",
+            ]
+        )
 
 
 def write_registry(
@@ -130,8 +162,7 @@ def write_registry(
         lines.append("        pipelines:")
         for pipeline, modes in bash_pipelines.items():
             lines.append(f"          {pipeline}:")
-            for mode, script in modes.items():
-                lines.append(f"            {mode}: \"{script}\"")
+            _append_pipeline_modes(lines, modes, "            ")
 
     if include_snakemake:
         lines += [
@@ -151,8 +182,7 @@ def write_registry(
         lines.append("        pipelines:")
         for pipeline, modes in snakemake_pipelines.items():
             lines.append(f"          {pipeline}:")
-            for mode, script in modes.items():
-                lines.append(f"            {mode}: \"{script}\"")
+            _append_pipeline_modes(lines, modes, "            ")
 
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -176,12 +206,12 @@ def fake_project(
     fake_config_file.write_text("# dummy\n", encoding="utf-8")
     monkeypatch.setattr(config_mod, "__file__", str(fake_config_file))
 
-    cfg_dir = root / "workflows" / "config"
+    cfg_dir = root / "workflows" / "registry"
     sch_dir = root / "workflows" / "schema"
     cfg_dir.mkdir(parents=True, exist_ok=True)
     sch_dir.mkdir(parents=True, exist_ok=True)
 
-    write_registry(cfg_dir / "cbicall.workflows.yaml", gatk_ver=gatk_ver, **registry_kwargs)
+    write_registry(cfg_dir / "workflows.yaml", gatk_ver=gatk_ver, **registry_kwargs)
     write_workflow_schema(sch_dir / "workflows.schema.json")
 
     return root

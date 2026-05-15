@@ -62,6 +62,22 @@ nohup bin/cbicall -p parameters.yaml -t 4 > run.log 2>&1 &
 | `--no-color > run.log 2>&1` | You are saving terminal output to a file. |
 | `nohup ... &` | You need a simple long-running background job outside a scheduler. |
 
+## Integration Tests
+
+Use the built-in test command from the repository root. It runs the bundled example workflow and compares outputs against the shipped reference files.
+
+```bash
+bin/cbicall test --wes -t 1
+bin/cbicall test --mit -t 1
+bin/cbicall test --all -t 1
+```
+
+| Command | Use |
+| --- | --- |
+| `bin/cbicall test --wes -t 1` | Fast WES integration test. Run this first. |
+| `bin/cbicall test --mit -t 1` | mtDNA integration test after the WES path is working. |
+| `bin/cbicall test --all -t 1` | Run all bundled integration examples. |
+
 :::tip[Thread choice]
 For most WES/WGS runs, start with **4 threads per task**. See [Performance](../help/performance) for the benchmark and scaling guidance.
 :::
@@ -77,7 +93,6 @@ workflow_engine: bash
 gatk_version:    gatk-4.6
 input_dir:       CNAG999_exome/CNAG99901P_ex
 genome:          b37
-cleanup_bam:     false
 ```
 
 ### WES Cohort

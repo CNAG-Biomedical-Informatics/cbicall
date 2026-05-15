@@ -3,7 +3,7 @@
 CBIcall is built so most new workflows can be added with two things:
 
 1. Workflow script(s)
-2. A registry entry in `workflows/config/cbicall.workflows.yaml`
+2. A registry entry in `workflows/registry/workflows.yaml`
 
 :::tip[Most additions do not need Python changes]
 If the new pipeline fits the existing concepts of `pipeline`, `mode`, `workflow_engine`, `gatk_version`, `input_dir`, and `sample_map`, start with workflow scripts and the registry only.
@@ -54,7 +54,7 @@ The main implementation layers are:
 | `src/cbicall/config.py` | Parameter defaults, semantic validation, runtime metadata. |
 | `src/cbicall/workflow_registry.py` | Registry loading, workflow resolution, referenced-file validation. |
 | `src/cbicall/dnaseq.py` | Engine-specific execution through `BashRunner` and `SnakemakeRunner`. |
-| `workflows/config/cbicall.workflows.yaml` | Declares available workflow scripts. |
+| `workflows/registry/workflows.yaml` | Declares available workflow scripts. |
 | `workflows/schema/workflows.schema.json` | Validates the registry structure. |
 
 ## 1. Add the Workflow Entrypoint
@@ -133,7 +133,7 @@ CBIcall launches Snakemake with:
 Edit:
 
 ```text
-workflows/config/cbicall.workflows.yaml
+workflows/registry/workflows.yaml
 ```
 
 Add the pipeline under the correct engine and version.
@@ -148,7 +148,11 @@ workflows:
           env: "env.sh"
         pipelines:
           mypipe:
-            single: "mypipe_single.sh"
+            single:
+              default: "v1"
+              versions:
+                v1:
+                  script: "mypipe_single.sh"
 ```
 
 If cohort mode is supported:
@@ -156,12 +160,24 @@ If cohort mode is supported:
 ```yaml
 pipelines:
   mypipe:
-    single: "mypipe_single.sh"
-    cohort: "mypipe_cohort.sh"
+    single:
+      default: "v1"
+      versions:
+        v1:
+          script: "mypipe_single.sh"
+    cohort:
+      default: "v1"
+      versions:
+        v1:
+          script: "mypipe_cohort.sh"
 ```
 
 :::info[Registry paths]
 Registry paths are relative to the engine/version directory. For Bash GATK 4.6, `mypipe_single.sh` resolves below `workflows/bash/gatk-4.6/`.
+:::
+
+:::tip[Pipeline implementation versions]
+The registry version above is the tool family version, for example `gatk-4.6`. The nested `v1` is the CBIcall pipeline implementation version. Normal run YAML files do not need to set it because the registry `default` is used. If a pipeline script changes in a way that may affect outputs, add a new implementation such as `v2`, point it to the new script, and choose whether to move `default` to that version.
 :::
 
 ## 3. Make the Pipeline Selectable
@@ -256,7 +272,7 @@ Adding an engine is different from adding a pipeline. Prefer adding a new runner
 - [ ] Inspect the closest existing workflow in `workflows/{bash|snakemake}/{gatk-version}/`.
 - [ ] Add workflow entrypoint scripts.
 - [ ] Make Bash scripts executable.
-- [ ] Register scripts in `workflows/config/cbicall.workflows.yaml`.
+- [ ] Register scripts in `workflows/registry/workflows.yaml`.
 - [ ] Update Python validation if the pipeline name or compatibility matrix changes.
 - [ ] Add a minimal YAML example.
 - [ ] Run CBIcall and inspect `log.json`, `logs/`, and expected outputs.

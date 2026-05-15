@@ -1,0 +1,99 @@
+workflows:
+  bash:
+    base_dir: "workflows/bash"
+    versions:
+      gatk-3.5:
+        common:
+          env: "env.sh"
+          coverage: "coverage.sh"
+          jaccard: "jaccard.sh"
+          vcf2sex: "vcf2sex.sh"
+        profiles:
+          cnag-hpc:
+            env: "cnag-hpc-env.sh"
+        pipelines:
+          wes:
+            single:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wes_single.sh"
+            cohort:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wes_cohort.sh"
+          mit:
+            single:
+              default: "v1"
+              versions:
+                v1:
+                  script: "mit_single.sh"
+            cohort:
+              default: "v1"
+              versions:
+                v1:
+                  script: "mit_cohort.sh"
+
+      gatk-4.6:
+        common:
+          env: "env.sh"
+          coverage: "coverage.sh"
+          jaccard: "jaccard.sh"
+          vcf2sex: "vcf2sex.sh"
+        profiles:
+          cnag-hpc:
+            env: "cnag-hpc-env.sh"
+        pipelines:
+          wes:
+            single:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wes_single.sh"
+            cohort:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wes_cohort.sh"
+          wgs:
+            single:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wgs_single.sh"
+            cohort:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wgs_cohort.sh"
+
+  snakemake:
+    base_dir: "workflows/snakemake"
+    versions:
+      gatk-4.6:
+        common:
+          config: "config.yaml"
+        pipelines:
+          wes:
+            single:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wes_single.smk"
+            cohort:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wes_cohort.smk"
+          wgs:
+            single:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wgs_single.smk"
+            cohort:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wgs_cohort.smk"

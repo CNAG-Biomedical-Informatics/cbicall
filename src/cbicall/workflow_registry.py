@@ -37,6 +37,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
     version = cfg_in["gatk_version"]
     pipeline = cfg_in["pipeline"]
     mode = cfg_in["mode"]
+    requested_pipeline_version = cfg_in.get("pipeline_version")
 
     workflows = registry["workflows"]
     if engine not in workflows:
@@ -59,7 +60,14 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
         )
 
     base_dir = (project_root / eng_cfg["base_dir"] / version).resolve()
-    script_name = pipelines_cfg[pipeline][mode]
+    pipeline_version, script_name = _resolve_pipeline_implementation(
+        pipelines_cfg[pipeline][mode],
+        requested_pipeline_version,
+        engine=engine,
+        gatk_version=version,
+        pipeline=pipeline,
+        mode=mode,
+    )
     profiles = _resolve_profiles(ver_cfg.get("profiles", {}), base_dir)
 
     if engine == "bash":
@@ -74,6 +82,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
             pipeline=pipeline,
             mode=mode,
             gatk_version=version,
+            pipeline_version=pipeline_version,
             entrypoint=str(base_dir / script_name),
             helpers={
                 "env": str(base_dir / common["env"]),
@@ -94,6 +103,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
             pipeline=pipeline,
             mode=mode,
             gatk_version=version,
+            pipeline_version=pipeline_version,
             entrypoint=str(base_dir / script_name),
             config_file=str(base_dir / common["config"]),
             profiles=profiles,
@@ -145,6 +155,53 @@ def _resolve_profiles(profiles_cfg: dict, base_dir: Path) -> dict:
     return profiles
 
 
+def _resolve_pipeline_implementation(
+    mode_cfg,
+    requested_pipeline_version,
+    *,
+    engine: str,
+    gatk_version: str,
+    pipeline: str,
+    mode: str,
+) -> Tuple[str, str]:
+    label = f"{engine}/{gatk_version}/{pipeline}/{mode}"
+    if isinstance(mode_cfg, str):
+        if requested_pipeline_version:
+            raise WorkflowResolutionError(
+                f"pipeline_version was set to '{requested_pipeline_version}', but {label} "
+                "uses legacy registry syntax without implementation versions."
+            )
+        return "legacy", mode_cfg
+
+    if not isinstance(mode_cfg, dict):
+        raise WorkflowResolutionError(f"Invalid registry entry for {label}: expected a versioned object.")
+
+    implementations = mode_cfg.get("versions")
+    if not isinstance(implementations, dict) or not implementations:
+        raise WorkflowResolutionError(f"Registry entry for {label} must define implementation versions.")
+
+    default_version = mode_cfg.get("default")
+    selected_version = requested_pipeline_version or default_version
+    if not selected_version:
+        raise WorkflowResolutionError(f"Registry entry for {label} must define a default implementation version.")
+    selected_version = str(selected_version)
+
+    if selected_version not in implementations:
+        available = ", ".join(sorted(str(k) for k in implementations))
+        raise WorkflowResolutionError(
+            f"pipeline_version='{selected_version}' is not defined for {label}. Available: {available}"
+        )
+
+    implementation = implementations[selected_version]
+    if isinstance(implementation, str):
+        return selected_version, implementation
+    if isinstance(implementation, dict) and implementation.get("script"):
+        return selected_version, str(implementation["script"])
+    raise WorkflowResolutionError(
+        f"Implementation {selected_version!r} for {label} must define a script path."
+    )
+
+
 def _validate_with_schema(data: dict, schema: dict, label: str) -> None:
     v = Draft202012Validator(schema)
     errors = sorted(v.iter_errors(data), key=lambda e: list(e.path))
@@ -157,6 +214,6 @@ def _validate_with_schema(data: dict, schema: dict, label: str) -> None:
 
 
 def _registry_paths(project_root: Path) -> Tuple[Path, Path]:
-    registry_yaml = (project_root / "workflows" / "config" / "cbicall.workflows.yaml").resolve()
+    registry_yaml = (project_root / "workflows" / "registry" / "workflows.yaml").resolve()
     schema_json = (project_root / "workflows" / "schema" / "workflows.schema.json").resolve()
     return registry_yaml, schema_json

@@ -158,7 +158,7 @@ def test_validate_registry_command_uses_default_registry(capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert "Registry OK" in out
-    assert "cbicall.workflows.yaml" in out
+    assert "workflows.yaml" in out
     assert "workflows.schema.json" in out
 
 
