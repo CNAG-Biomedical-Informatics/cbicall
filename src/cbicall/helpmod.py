@@ -17,6 +17,7 @@ def _build_parser(version: str) -> argparse.ArgumentParser:
             Commands:
               cbicall doctor -p parameters.yaml
               cbicall validate-registry
+              cbicall validate-resources
               cbicall test --wes|--mit|--all [-t THREADS]
             """
         ),

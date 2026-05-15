@@ -80,8 +80,7 @@ YAML
 
 srun "\$CBICALL" \\
      -p "\$YAML_FILE" \\
-     -t $THREADS \\
-     --no-color
+     -t $THREADS
 EOF
 
 # submit it

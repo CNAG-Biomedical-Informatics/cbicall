@@ -111,8 +111,7 @@ srun apptainer exec \\
   "${SIF_IMAGE}" \\
   "\${CBICALL_IN_CONTAINER}" \\
     -p "\${YAML_FILE}" \\
-    -t ${THREADS} \\
-    --no-color
+    -t ${THREADS}
 EOF
 
 # submit it

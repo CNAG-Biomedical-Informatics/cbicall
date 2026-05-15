@@ -97,7 +97,7 @@ input_dir:       CNAG999_exome/CNAG99901P_ex
 
 ## Resource Bundle Provenance
 
-`resource_bundle` pins the external tools and reference data expected for the run. CBIcall resolves this readable bundle key against `resources/cbicall-resource-catalog.json` and writes a compact `resource_bundle` provenance block to `log.json`.
+`resource_bundle` pins the external tools and reference data expected for the run. CBIcall resolves this readable bundle key against `resources/cbicall-resource-catalog.json`, checks compatibility with the resolved workflow and pipeline implementation version, and writes a compact `resource_bundle` provenance block to `log.json`.
 
 Two runs used the same declared external dependency set when their `resource_bundle.fingerprint` values match. The fingerprint is computed from the local catalog entry, so changes to tool versions, reference paths, archive naming, or compatibility metadata create a different value.
 
@@ -135,11 +135,13 @@ During a real run, the resolved `profile` and selected environment file are writ
 | --- | --- |
 | `bin/cbicall doctor -p parameters.yaml` | Dry-run preflight for one concrete run. It resolves the parameter YAML, workflow, profile env file, and resource bundle without launching the workflow. |
 | `bin/cbicall validate-registry` | Developer check for `workflows/registry/workflows.yaml` against `workflows/schema/workflows.schema.json`. |
+| `bin/cbicall validate-resources` | Developer check for `resources/cbicall-resource-catalog.json` and its workflow compatibility keys. |
 | `bin/cbicall test --wes`, `--mit`, or `--all` | Runs the bundled integration examples without remembering the script path. |
 
 ```bash
 bin/cbicall doctor -p parameters.yaml
 bin/cbicall validate-registry
+bin/cbicall validate-resources
 bin/cbicall test --wes -t 1
 bin/cbicall test --all -t 1
 ```

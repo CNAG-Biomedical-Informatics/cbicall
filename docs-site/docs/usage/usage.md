@@ -41,7 +41,7 @@ cbicall -p <parameters_file.yaml> -t <n_threads> [options]
 | --- | --- |
 | `-verbose` | Enable verbose output. |
 | `-debug`, `--debug` | Debugging level. |
-| `-nc`, `--no-color` | Disable ANSI colors in standard output. |
+| `-nc`, `--no-color` | Disable ANSI colors explicitly. Colors are automatically disabled when output is redirected. |
 | `-v`, `--version` | Show version information. |
 | `-h`, `--help` | Show brief help. |
 | `-man` | Show full command-line documentation. |
@@ -51,7 +51,7 @@ cbicall -p <parameters_file.yaml> -t <n_threads> [options]
 ```bash
 bin/cbicall -p wes_single.yaml -t 4
 bin/cbicall -p wes_cohort.yaml -t 8 -verbose
-bin/cbicall -p mit_single.yaml -t 4 --no-color > run.log 2>&1
+bin/cbicall -p mit_single.yaml -t 4 > run.log 2>&1
 nohup bin/cbicall -p parameters.yaml -t 4 > run.log 2>&1 &
 ```
 
@@ -59,17 +59,24 @@ nohup bin/cbicall -p parameters.yaml -t 4 > run.log 2>&1 &
 | --- | --- |
 | `bin/cbicall -p wes_single.yaml -t 4` | Normal foreground run. |
 | `-verbose` | You want more CLI output while the workflow starts. |
-| `--no-color > run.log 2>&1` | You are saving terminal output to a file. |
+| `> run.log 2>&1` | You are saving terminal output to a file. ANSI colors are disabled automatically. |
 | `nohup ... &` | You need a simple long-running background job outside a scheduler. |
 
 ## Integration Tests
 
 Use the built-in test command from the repository root. It runs the bundled example workflow and compares outputs against the shipped reference files.
 
+These tests are intended as framework-level integration validation: they exercise
+the normal CLI, parameter YAML resolution, workflow registry dispatch,
+pipeline-version provenance, resource-bundle reporting, workflow execution, and
+deterministic output comparison. They do not replace biological or clinical
+validation of the underlying variant-calling methods.
+
 ```bash
 bin/cbicall test --wes -t 1
 bin/cbicall test --mit -t 1
 bin/cbicall test --all -t 1
+bin/cbicall validate-resources
 ```
 
 | Command | Use |
@@ -77,6 +84,7 @@ bin/cbicall test --all -t 1
 | `bin/cbicall test --wes -t 1` | Fast WES integration test. Run this first. |
 | `bin/cbicall test --mit -t 1` | mtDNA integration test after the WES path is working. |
 | `bin/cbicall test --all -t 1` | Run all bundled integration examples. |
+| `bin/cbicall validate-resources` | Validate the resource bundle catalog and its workflow compatibility keys. |
 
 :::tip[Thread choice]
 For most WES/WGS runs, start with **4 threads per task**. See [Performance](../help/performance) for the benchmark and scaling guidance.

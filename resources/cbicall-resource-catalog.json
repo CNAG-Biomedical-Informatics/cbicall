@@ -8,16 +8,18 @@
       "description": "Default CBIcall external tools and reference resources",
       "compatible_cbicall": ">=1.0,<2.0",
       "compatible_workflows": [
-        "bash/wes/single/gatk-3.5",
-        "bash/wes/cohort/gatk-3.5",
-        "bash/wes/single/gatk-4.6",
-        "bash/wes/cohort/gatk-4.6",
-        "bash/wgs/single/gatk-4.6",
-        "bash/wgs/cohort/gatk-4.6",
-        "bash/mit/single/gatk-3.5",
-        "bash/mit/cohort/gatk-3.5",
-        "snakemake/wes/single/gatk-4.6",
-        "snakemake/wes/cohort/gatk-4.6"
+        "bash/wes/single/gatk-3.5/v1",
+        "bash/wes/cohort/gatk-3.5/v1",
+        "bash/wes/single/gatk-4.6/v1",
+        "bash/wes/cohort/gatk-4.6/v1",
+        "bash/wgs/single/gatk-4.6/v1",
+        "bash/wgs/cohort/gatk-4.6/v1",
+        "bash/mit/single/gatk-3.5/v1",
+        "bash/mit/cohort/gatk-3.5/v1",
+        "snakemake/wes/single/gatk-4.6/v1",
+        "snakemake/wes/cohort/gatk-4.6/v1",
+        "snakemake/wgs/single/gatk-4.6/v1",
+        "snakemake/wgs/cohort/gatk-4.6/v1"
       ],
       "remote_identifier": {
         "filename": "cbicall-bundle-id.json",

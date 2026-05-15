@@ -232,6 +232,7 @@ Check the pipeline at three levels.
 | Level | What to verify |
 | --- | --- |
 | Registry | The workflow appears under the correct engine/version/pipeline/mode. |
+| Resource catalog | Compatible resource bundle entries point to real registry workflow keys. |
 | Files | Referenced scripts exist; Bash scripts are executable. |
 | Runtime | CBIcall creates a run directory, writes `log.json`, and produces expected outputs. |
 
@@ -239,8 +240,9 @@ Good first checks:
 
 ```bash
 bin/cbicall validate-registry
-bin/cbicall doctor -p mypipe.yaml --no-color
-bin/cbicall -p mypipe.yaml -t 2 --no-color
+bin/cbicall validate-resources
+bin/cbicall doctor -p mypipe.yaml
+bin/cbicall -p mypipe.yaml -t 2
 ```
 
 Then inspect:

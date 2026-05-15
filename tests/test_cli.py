@@ -118,13 +118,44 @@ def test_run_with_spinner_non_tty_bypasses_spinner(monkeypatch):
 
 
 def test_colors_enabled_and_code(monkeypatch):
+    class TtyStdout(io.StringIO):
+        def isatty(self):
+            return True
+
+    monkeypatch.setattr(sys, "stdout", TtyStdout())
     monkeypatch.delenv("ANSI_COLORS_DISABLED", raising=False)
+    monkeypatch.delenv("NO_COLOR", raising=False)
     assert cli_mod._colors_enabled() is True
     assert cli_mod._code("X") == "X"
 
     monkeypatch.setenv("ANSI_COLORS_DISABLED", "1")
     assert cli_mod._colors_enabled() is False
     assert cli_mod._code("X") == ""
+
+
+def test_colors_disabled_for_non_tty(monkeypatch):
+    class NonTtyStdout(io.StringIO):
+        def isatty(self):
+            return False
+
+    monkeypatch.setattr(sys, "stdout", NonTtyStdout())
+    monkeypatch.delenv("ANSI_COLORS_DISABLED", raising=False)
+    monkeypatch.delenv("NO_COLOR", raising=False)
+
+    assert cli_mod._colors_enabled() is False
+    assert cli_mod._code("X") == ""
+
+
+def test_colors_disabled_by_no_color(monkeypatch):
+    class TtyStdout(io.StringIO):
+        def isatty(self):
+            return True
+
+    monkeypatch.setattr(sys, "stdout", TtyStdout())
+    monkeypatch.delenv("ANSI_COLORS_DISABLED", raising=False)
+    monkeypatch.setenv("NO_COLOR", "1")
+
+    assert cli_mod._colors_enabled() is False
 
 
 def test_format_duration():
@@ -160,6 +191,16 @@ def test_validate_registry_command_uses_default_registry(capsys):
     assert "Registry OK" in out
     assert "workflows.yaml" in out
     assert "workflows.schema.json" in out
+
+
+def test_validate_resources_command_uses_default_catalog(capsys):
+    rc = cli_mod._run_validate_resources_command(["--no-color"])
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Resources OK" in out
+    assert "cbicall-resource-catalog.json" in out
+    assert "Compatible workflows" in out
 
 
 def test_main_happy_path(monkeypatch, tmp_path):

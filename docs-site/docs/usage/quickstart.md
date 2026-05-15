@@ -17,19 +17,30 @@ bin/cbicall --version
 
 You should see the command help and the installed CBIcall version.
 
-## 2. Run the WES Integration Test
+## 2. Run the Minimal Reproducibility Check
+
+From the repository root, run the bundled WES check:
 
 ```bash
+bin/cbicall validate-registry
+bin/cbicall validate-resources
+bin/cbicall doctor -p examples/input/param.yaml
 bin/cbicall test --wes -t 1
 ```
+
+This is a small framework-level reproducibility check on shipped example data.
+It validates the workflow registry and resource catalog, resolves the
+user-facing YAML without launching GATK, then runs the example workflow and
+compares the generated VCF against the shipped reference output.
 
 This test:
 
 | Check | What it confirms |
 | --- | --- |
-| Starts `cbicall` | The CLI and Python package are usable. |
-| Runs the bundled WES example | The example input layout is valid. |
-| Compares the output VCF | The result matches the shipped reference output. |
+| `validate-registry` | The workflow registry conforms to its JSON Schema. |
+| `validate-resources` | The resource catalog is well formed and compatible workflow keys exist in the registry. |
+| `doctor` | The YAML resolves to a declared workflow, profile, pipeline implementation version, and resource bundle. |
+| `test --wes` | The CLI can execute the bundled WES workflow and reproduce the shipped reference VCF under deterministic comparison rules. |
 
 When it succeeds, the run directory looks like this:
 

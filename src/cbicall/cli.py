@@ -22,6 +22,7 @@ from .cli_output import (
 from .dnaseq import DNAseq
 from .helpmod import usage, parse_args as _parse_args
 from .models import ResolvedConfig, RunSettings
+from .resources import validate_resource_catalog
 from .workflow_registry import load_workflow_registry
 from .goodbye import GoodBye
 
@@ -33,9 +34,11 @@ AUTHOR = "Author: Manuel Rueda, PhD"
 LICENSE = "License: GNU General Public License v3"
 
 
-# ANSI color helpers (respect ANSI_COLORS_DISABLED)
+# ANSI color helpers: color only for interactive terminals.
 def _colors_enabled() -> bool:
-    return not os.environ.get("ANSI_COLORS_DISABLED")
+    if os.environ.get("ANSI_COLORS_DISABLED") or os.environ.get("NO_COLOR"):
+        return False
+    return sys.stdout.isatty()
 
 
 def _code(s: str) -> str:
@@ -221,6 +224,37 @@ def _run_validate_registry_command(argv: List[str]) -> int:
     return 0
 
 
+def _run_validate_resources_command(argv: List[str]) -> int:
+    root = _project_root()
+    default_catalog = root / "resources" / "cbicall-resource-catalog.json"
+    default_registry = root / "workflows" / "registry" / "workflows.yaml"
+    default_schema = root / "workflows" / "schema" / "workflows.schema.json"
+
+    parser = argparse.ArgumentParser(
+        prog="cbicall validate-resources",
+        description="Validate the resource bundle catalog and workflow compatibility keys.",
+    )
+    parser.add_argument("--catalog", default=str(default_catalog), help="Resource catalog JSON.")
+    parser.add_argument("--registry", default=str(default_registry), help="Workflow registry YAML.")
+    parser.add_argument("--schema", default=str(default_schema), help="Workflow registry JSON Schema.")
+    parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
+    args = parser.parse_args(argv)
+
+    if args.nocolor:
+        os.environ["ANSI_COLORS_DISABLED"] = "1"
+    _refresh_colors()
+
+    registry = load_workflow_registry(Path(args.registry), Path(args.schema))
+    summary = validate_resource_catalog(Path(args.catalog), registry)
+
+    _section("Resources OK", GREEN)
+    _row("Catalog", _short_path(summary["path"]))
+    _row("Schema version", summary["schema_version"])
+    _row("Bundles", summary["bundles"])
+    _row("Compatible workflows", summary["compatible_workflows"])
+    return 0
+
+
 def _run_test_command(argv: List[str]) -> int:
     parser = argparse.ArgumentParser(
         prog="cbicall test",
@@ -316,6 +350,8 @@ def main() -> int:
         return _run_doctor_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "validate-registry":
         return _run_validate_registry_command(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "validate-resources":
+        return _run_validate_resources_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "test":
         return _run_test_command(sys.argv[2:])
 

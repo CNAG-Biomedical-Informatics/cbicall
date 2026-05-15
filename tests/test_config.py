@@ -7,6 +7,7 @@ import pytest
 
 from cbicall import config as config_mod
 from cbicall.errors import ParameterValidationError, WorkflowResolutionError
+from cbicall.resources import validate_resource_catalog
 from helpers import fake_project, make_executable, write_workflow_schema
 
 
@@ -364,7 +365,7 @@ def test_set_config_values_records_resource_bundle(monkeypatch, tmp_path):
       "bundle_id": "cbicall-germline-resources",
       "bundle_version": "1",
       "status": "current",
-      "compatible_workflows": ["bash/wes/single/gatk-4.6"],
+      "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
       "archive": {"canonical_name": "cbicall-germline-resources-v1.tar.gz"}
     }
   }
@@ -386,8 +387,158 @@ def test_set_config_values_records_resource_bundle(monkeypatch, tmp_path):
     assert cfg["resource_bundle"]["key"] == "cbicall-germline-resources-v1"
     assert cfg["resource_bundle"]["status"] == "current"
     assert cfg["resource_bundle"]["compatible"] is True
+    assert cfg["resource_bundle"]["workflow_key"] == "bash/wes/single/gatk-4.6/v1"
     assert len(cfg["resource_bundle"]["fingerprint"]) == 64
     assert "entry" not in cfg["resource_bundle"]
+
+
+def test_set_config_values_requires_versioned_resource_compatibility(monkeypatch, tmp_path):
+    root = fake_project(
+        monkeypatch,
+        tmp_path,
+        gatk_ver="gatk-4.6",
+        registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
+    )
+    _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+    resources = root / "resources"
+    resources.mkdir()
+    (resources / "cbicall-resource-catalog.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "bundles": {
+                    "cbicall-germline-resources-v1": {
+                        "bundle_id": "cbicall-germline-resources",
+                        "bundle_version": "1",
+                        "status": "current",
+                        "compatible_workflows": ["bash/wes/single/gatk-4.6"],
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ParameterValidationError, match="bash/wes/single/gatk-4.6/v1"):
+        config_mod.set_config_values(
+            {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+        )
+
+
+def test_validate_resource_catalog_accepts_registry_workflow_keys(tmp_path):
+    catalog = tmp_path / "cbicall-resource-catalog.json"
+    catalog.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "bundles": {
+                    "cbicall-germline-resources-v1": {
+                        "bundle_id": "cbicall-germline-resources",
+                        "bundle_version": "1",
+                        "status": "current",
+                        "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
+                        "remote_identifier": {
+                            "sha256": "a" * 64,
+                            "expected": {"bundle": "cbicall-germline-resources-v1"},
+                        },
+                        "archive": {"checksum_algorithm": "md5"},
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    registry = {
+        "workflows": {
+            "bash": {
+                "versions": {
+                    "gatk-4.6": {
+                        "pipelines": {
+                            "wes": {
+                                "single": {
+                                    "default": "v1",
+                                    "versions": {"v1": {"script": "wes_single.sh"}},
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    summary = validate_resource_catalog(catalog, registry)
+
+    assert summary["bundles"] == 1
+    assert summary["compatible_workflows"] == 1
+
+
+def test_validate_resource_catalog_rejects_unknown_workflow_key(tmp_path):
+    catalog = tmp_path / "cbicall-resource-catalog.json"
+    catalog.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "bundles": {
+                    "cbicall-germline-resources-v1": {
+                        "bundle_id": "cbicall-germline-resources",
+                        "bundle_version": "1",
+                        "status": "current",
+                        "compatible_workflows": ["bash/wgs/single/gatk-4.6/v1"],
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    registry = {
+        "workflows": {
+            "bash": {
+                "versions": {
+                    "gatk-4.6": {
+                        "pipelines": {
+                            "wes": {
+                                "single": {
+                                    "default": "v1",
+                                    "versions": {"v1": {"script": "wes_single.sh"}},
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    with pytest.raises(ParameterValidationError, match="not defined in the workflow registry"):
+        validate_resource_catalog(catalog, registry)
+
+
+def test_validate_resource_catalog_rejects_bad_identifier_metadata(tmp_path):
+    catalog = tmp_path / "cbicall-resource-catalog.json"
+    catalog.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "bundles": {
+                    "cbicall-germline-resources-v1": {
+                        "bundle_id": "cbicall-germline-resources",
+                        "bundle_version": "1",
+                        "status": "current",
+                        "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
+                        "remote_identifier": {
+                            "sha256": "not-a-sha",
+                            "expected": {"bundle": "other-bundle"},
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ParameterValidationError, match="sha256.*64-character"):
+        validate_resource_catalog(catalog)
 
 
 def test_set_config_values_verifies_installed_bundle_identifier(monkeypatch, tmp_path):
@@ -417,7 +568,7 @@ def test_set_config_values_verifies_installed_bundle_identifier(monkeypatch, tmp
                         "bundle_id": "cbicall-germline-resources",
                         "bundle_version": "1",
                         "status": "current",
-                        "compatible_workflows": ["bash/wes/single/gatk-4.6"],
+                        "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
                         "remote_identifier": {"sha256": identifier_sha256},
                     }
                 },
@@ -453,7 +604,7 @@ def test_set_config_values_verifies_installation_manifest_fingerprint(monkeypatc
         "bundle_id": "cbicall-germline-resources",
         "bundle_version": "1",
         "status": "current",
-        "compatible_workflows": ["bash/wes/single/gatk-4.6"],
+        "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
     }
     (datadir / "cbicall-resource-installation.json").write_text(
         json.dumps({"catalog_entry": catalog_entry}),
@@ -471,7 +622,7 @@ def test_set_config_values_verifies_installation_manifest_fingerprint(monkeypatc
                         "bundle_id": "cbicall-germline-resources",
                         "bundle_version": "1",
                         "status": "current",
-                        "compatible_workflows": ["bash/wes/single/gatk-4.6"],
+                        "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
                     }
                 },
             }

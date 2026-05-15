@@ -22,6 +22,20 @@ CBIcall is an orchestrator. It does not re-implement alignment or variant callin
 | Logging and traceability | `log.json` records CLI arguments, resolved configuration, and user parameters. |
 | Output organization | Workflow results are written into predictable directories such as `01_bam/`, `02_varcall/`, `03_stats/`, and `logs/`. |
 
+## Where CBIcall Fits
+
+CBIcall is not a competitor to workflow engines or community pipelines. It is a
+workflow-engine-agnostic validation and dispatch layer focused on reproducible
+execution: the user-facing YAML is checked once, resolved through a versioned
+registry, and then launched through the selected backend.
+
+| Layer or tool | Main role | Reproducibility contribution | Relationship to CBIcall |
+| --- | --- | --- | --- |
+| Raw Bash scripts | Direct, transparent execution of concrete commands. | Commands are easy to inspect, but validation and provenance are usually script-specific. | CBIcall can dispatch curated Bash workflows while adding shared YAML validation, compatibility checks, and run provenance. |
+| Raw Snakemake workflows | Rule-based execution, restart behavior, and partial targets. | Workflow logic is explicit and restartable, but project-level validation depends on local configuration conventions. | CBIcall can dispatch curated Snakemake workflows through the same user-facing configuration layer used for Bash workflows. |
+| nf-core/Sarek | Comprehensive community Nextflow pipeline with its own execution, configuration, and reporting model. | Strong community-maintained reproducibility model through Nextflow, containers, profiles, and reports. | CBIcall does not replace Sarek; it addresses a different use case: institutions that want one reproducibility-focused front end over locally curated workflows and multiple possible backends. |
+| CBIcall layer | Configuration validation, workflow resolution, resource-bundle checks, and provenance capture. | Enforces compatibility before execution and records the resolved workflow implementation, resource identity, runtime context, logs, and output layout. | Provides a stable interface above concrete workflow implementations rather than a new alignment or variant-calling algorithm. |
+
 ## Supported Workflows
 
 | Input type | Start with | Main output |

@@ -403,7 +403,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
     validate_resolved_workflow_files(workflow)
     workflow = _apply_runtime_profile(cfg_in, workflow)
     validate_resolved_workflow_files(workflow)
-    resource_bundle = build_resource_bundle_metadata(cfg_in, project_root)
+    resource_bundle = build_resource_bundle_metadata(cfg_in, project_root, workflow)
     resource_bundle["runtime_check"] = validate_installed_resource_bundle(resource_bundle, workflow)
 
     config = ResolvedConfig(
