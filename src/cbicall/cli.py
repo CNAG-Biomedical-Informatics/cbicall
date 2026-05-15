@@ -22,6 +22,7 @@ from .cli_output import (
 from .dnaseq import DNAseq
 from .helpmod import usage, parse_args as _parse_args
 from .models import ResolvedConfig, RunSettings
+from .workflow_registry import load_workflow_registry
 from .goodbye import GoodBye
 
 VERSION = "1.0.0"
@@ -152,10 +153,10 @@ def write_run_report(
     return report_path
 
 
-def _run_validate_command(argv: List[str], *, command_name: str) -> int:
+def _run_doctor_command(argv: List[str]) -> int:
     parser = argparse.ArgumentParser(
-        prog=f"cbicall {command_name}",
-        description="Resolve and validate a CBIcall run without starting the workflow.",
+        prog="cbicall doctor",
+        description="Resolve and check a CBIcall run without starting the workflow.",
     )
     parser.add_argument("-p", "--param", dest="paramfile", required=True, help="Parameters input file (YAML).")
     parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
@@ -181,6 +182,36 @@ def _run_validate_command(argv: List[str], *, command_name: str) -> int:
         _row("Env file", _short_path(workflow.helpers.get("env")))
     _row("Bundle", bundle.get("key"))
     _row("Bundle hash", bundle.get("fingerprint"))
+    return 0
+
+
+def _run_validate_registry_command(argv: List[str]) -> int:
+    root = _project_root()
+    default_registry = root / "workflows" / "config" / "cbicall.workflows.yaml"
+    default_schema = root / "workflows" / "schema" / "workflows.schema.json"
+
+    parser = argparse.ArgumentParser(
+        prog="cbicall validate-registry",
+        description="Validate the workflow registry YAML against its JSON Schema.",
+    )
+    parser.add_argument("--registry", default=str(default_registry), help="Workflow registry YAML.")
+    parser.add_argument("--schema", default=str(default_schema), help="Workflow registry JSON Schema.")
+    parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
+    args = parser.parse_args(argv)
+
+    if args.nocolor:
+        os.environ["ANSI_COLORS_DISABLED"] = "1"
+    _refresh_colors()
+
+    registry_path = Path(args.registry)
+    schema_path = Path(args.schema)
+    registry = load_workflow_registry(registry_path, schema_path)
+    engines = sorted((registry.get("workflows") or {}).keys())
+
+    _section("Registry OK", GREEN)
+    _row("Registry", _short_path(registry_path))
+    _row("Schema", _short_path(schema_path))
+    _row("Engines", ", ".join(engines) if engines else "(none)")
     return 0
 
 
@@ -275,8 +306,10 @@ def main() -> int:
     start_time = time.time()
     cbicall_path = Path(sys.argv[0]).resolve()
 
-    if len(sys.argv) > 1 and sys.argv[1] in {"validate", "doctor"}:
-        return _run_validate_command(sys.argv[2:], command_name=sys.argv[1])
+    if len(sys.argv) > 1 and sys.argv[1] == "doctor":
+        return _run_doctor_command(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "validate-registry":
+        return _run_validate_registry_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "test":
         return _run_test_command(sys.argv[2:])
 

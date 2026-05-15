@@ -126,9 +126,17 @@ bin/cbicall doctor -p parameters.yaml
 
 The resolved `profile` and selected environment file are written to `log.json`.
 
-Run the bundled integration tests without remembering their path:
+## Command Utilities
+
+| Command | Use |
+| --- | --- |
+| `bin/cbicall doctor -p parameters.yaml` | Dry-run preflight for one concrete run. It resolves the parameter YAML, workflow, profile env file, and resource bundle without launching the workflow. |
+| `bin/cbicall validate-registry` | Developer check for `workflows/config/cbicall.workflows.yaml` against `workflows/schema/workflows.schema.json`. |
+| `bin/cbicall test --wes`, `--mit`, or `--all` | Runs the bundled integration examples without remembering the script path. |
 
 ```bash
+bin/cbicall doctor -p parameters.yaml
+bin/cbicall validate-registry
 bin/cbicall test --wes -t 1
 bin/cbicall test --all -t 1
 ```

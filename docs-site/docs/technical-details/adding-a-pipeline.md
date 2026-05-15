@@ -222,6 +222,8 @@ Check the pipeline at three levels.
 Good first checks:
 
 ```bash
+bin/cbicall validate-registry
+bin/cbicall doctor -p mypipe.yaml --no-color
 bin/cbicall -p mypipe.yaml -t 2 --no-color
 ```
 

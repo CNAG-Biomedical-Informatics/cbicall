@@ -152,6 +152,16 @@ def test_print_config_includes_workflow_block(capsys):
     assert "(undef)" in out
 
 
+def test_validate_registry_command_uses_default_registry(capsys):
+    rc = cli_mod._run_validate_registry_command(["--no-color"])
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Registry OK" in out
+    assert "cbicall.workflows.yaml" in out
+    assert "workflows.schema.json" in out
+
+
 def test_main_happy_path(monkeypatch, tmp_path):
     def fake_usage(version):
         return {
