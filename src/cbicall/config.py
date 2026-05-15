@@ -1,5 +1,3 @@
-import hashlib
-import json
 import os
 import time
 import shutil
@@ -12,6 +10,7 @@ import yaml
 
 from .errors import ParameterValidationError, WorkflowResolutionError
 from .models import InputsSpec, ResolvedConfig, WorkflowSpec
+from .resources import build_resource_bundle_metadata, validate_installed_resource_bundle
 from .workflow_registry import (
     _validate_with_schema as _registry_validate_with_schema,
     get_project_root,
@@ -367,65 +366,6 @@ def _build_host_runtime_metadata(cfg_in: dict) -> dict:
     return metadata
 
 
-def _catalog_fingerprint(entry: dict) -> str:
-    payload = json.dumps(entry, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
-
-
-def _build_resource_bundle_metadata(cfg_in: dict, project_root: Path) -> dict:
-    catalog_path = project_root / "resources" / "cbicall-resource-catalog.json"
-    bundle_key = cfg_in["resource_bundle"]
-
-    if not catalog_path.is_file():
-        entry = {
-            "bundle_id": "cbicall-germline-resources",
-            "bundle_version": bundle_key,
-            "status": "unregistered",
-            "compatible_workflows": [],
-        }
-        return {
-            "key": bundle_key,
-            "bundle_id": entry["bundle_id"],
-            "bundle_version": entry["bundle_version"],
-            "catalog": None,
-            "status": entry["status"],
-            "fingerprint": _catalog_fingerprint(entry),
-            "compatible": None,
-            "workflow_key": f"{cfg_in['workflow_engine']}/{cfg_in['pipeline']}/{cfg_in['mode']}/{cfg_in['gatk_version']}",
-        }
-
-    try:
-        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        raise ParameterValidationError(f"Invalid resource catalog JSON: {catalog_path}") from exc
-
-    bundles = catalog.get("bundles", {}) if isinstance(catalog, dict) else {}
-    entry = bundles.get(bundle_key)
-    if entry is None:
-        raise ParameterValidationError(
-            f"Resource bundle '{bundle_key}' is not defined in {catalog_path}"
-        )
-
-    workflow_key = f"{cfg_in['workflow_engine']}/{cfg_in['pipeline']}/{cfg_in['mode']}/{cfg_in['gatk_version']}"
-    compatible_workflows = entry.get("compatible_workflows", [])
-    compatible = workflow_key in compatible_workflows if compatible_workflows else None
-    if compatible_workflows and not compatible:
-        raise ParameterValidationError(
-            f"Resource bundle '{bundle_key}' is not declared compatible with workflow '{workflow_key}'"
-        )
-
-    return {
-        "key": bundle_key,
-        "bundle_id": entry.get("bundle_id", "cbicall-germline-resources"),
-        "bundle_version": str(entry.get("bundle_version", bundle_key)),
-        "catalog": str(catalog_path),
-        "status": entry.get("status"),
-        "fingerprint": _catalog_fingerprint(entry),
-        "compatible": compatible,
-        "workflow_key": workflow_key,
-    }
-
-
 def _apply_runtime_profile(cfg_in: dict, workflow: WorkflowSpec) -> WorkflowSpec:
     """Resolve profile-specific helper files for workflows that support them."""
     profile = cfg_in.get("profile", "local")
@@ -463,7 +403,8 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
     validate_resolved_workflow_files(workflow)
     workflow = _apply_runtime_profile(cfg_in, workflow)
     validate_resolved_workflow_files(workflow)
-    resource_bundle = _build_resource_bundle_metadata(cfg_in, project_root)
+    resource_bundle = build_resource_bundle_metadata(cfg_in, project_root)
+    resource_bundle["runtime_check"] = validate_installed_resource_bundle(resource_bundle, workflow)
 
     config = ResolvedConfig(
         user="",

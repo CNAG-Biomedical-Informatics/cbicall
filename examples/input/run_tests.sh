@@ -9,6 +9,7 @@ LC_ALL=C
 CBICALL=${CBICALL:-'../../bin/cbicall'}
 THREADS=${THREADS:-1}
 PATTERN=${PATTERN:-'#'}
+LAUNCHER_LOG_DIR=${LAUNCHER_LOG_DIR:-$(pwd -P)}
 
 RUN_WES=0
 RUN_MIT=0
@@ -246,7 +247,7 @@ if [ "$RUN_WES" -eq 1 ]; then
   WES_STATUS=0
   WES_BEFORE=$(mktemp)
   WES_AFTER=$(mktemp)
-  WES_LAUNCHER_LOG=$(mktemp -p . cbicall-test-wes.XXXXXX.log)
+  WES_LAUNCHER_LOG=$(mktemp -p "$LAUNCHER_LOG_DIR" cbicall-test-wes.XXXXXX.log)
   list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_BEFORE"
 
   if ! "$CBICALL" -p "$PARAM_WES" -t "$THREADS" > "$WES_LAUNCHER_LOG" 2>&1; then
@@ -322,7 +323,7 @@ if [ "$RUN_MIT" -eq 1 ]; then
   MIT_STATUS=0
   MIT_BEFORE=$(mktemp)
   MIT_AFTER=$(mktemp)
-  MIT_LAUNCHER_LOG=$(mktemp -p . cbicall-test-mit.XXXXXX.log)
+  MIT_LAUNCHER_LOG=$(mktemp -p "$LAUNCHER_LOG_DIR" cbicall-test-mit.XXXXXX.log)
   list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$MIT_BEFORE"
 
   if ! "$CBICALL" -p "$PARAM_MIT" -t "$THREADS" > "$MIT_LAUNCHER_LOG" 2>&1; then

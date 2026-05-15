@@ -1,4 +1,5 @@
 # w[eg]s_cohort.smk 
+# Pipeline version: v1
 import os
 import platform
 import shlex
@@ -253,4 +254,3 @@ rule vqsr_and_qc:
         echo "Cohort QC VCF written: {output.qc}" >> {log}
         echo "All done. Cohort raw: {COHORT_RAW_VCF} ; Cohort QC: {output.qc}" >> {log}
         """
-

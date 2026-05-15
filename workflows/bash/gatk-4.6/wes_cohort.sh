@@ -3,6 +3,7 @@
 # w[eg]s_cohort_genomicsdb_with_vqsr.sh
 # Cohort joint-genotyping wrapper using GenomicsDBImport -> GenotypeGVCFs -> VQSR/Hard-filters (GATK 4.6)
 # Last Modified: 2025-10-13
+# Pipeline version: v1
 set -eu
 set -o pipefail
 

@@ -150,3 +150,16 @@ cbicall-resource-installation.json
 ```
 
 This local manifest records the installed bundle key, archive checksum result, source files, extraction status, and optional remote identifier provenance.
+
+## Runtime Check
+
+Before launching a workflow, CBIcall resolves `DATADIR` from the selected Bash `env.sh` or Snakemake `config.yaml`.
+
+If bundle metadata exists beside `DATADIR`, CBIcall validates it:
+
+| File | Runtime check |
+| --- | --- |
+| `cbicall-bundle-id.json` | Bundle key must match the selected `resource_bundle`; SHA-256 must match the catalog when pinned. |
+| `cbicall-resource-installation.json` | Installed bundle key must match the selected `resource_bundle`; the manifest catalog entry must match the local catalog fingerprint. |
+
+This check is intentionally small. It validates the installed bundle identity without hashing the full resource archive on every run.

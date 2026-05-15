@@ -1,4 +1,6 @@
 # tests/test_config.py
+import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -53,6 +55,11 @@ def _touch_bash_files(root: Path, gatk_ver: str, script_name: str, *, make_exec:
         if make_exec:
             make_executable(p)  # writes shebang + adds +x
     return bash_dir
+
+
+def _point_env_to_datadir(root: Path, gatk_ver: str, datadir: Path) -> None:
+    env = root / "workflows" / "bash" / gatk_ver / "env.sh"
+    env.write_text(f"#!/bin/sh\nDATADIR={datadir}\n", encoding="utf-8")
 
 
 def _minimal_bash_registry_block(gatk_ver: str = "gatk-4.6") -> str:
@@ -381,6 +388,154 @@ def test_set_config_values_records_resource_bundle(monkeypatch, tmp_path):
     assert cfg["resource_bundle"]["compatible"] is True
     assert len(cfg["resource_bundle"]["fingerprint"]) == 64
     assert "entry" not in cfg["resource_bundle"]
+
+
+def test_set_config_values_verifies_installed_bundle_identifier(monkeypatch, tmp_path):
+    root = fake_project(
+        monkeypatch,
+        tmp_path,
+        gatk_ver="gatk-4.6",
+        registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
+    )
+    _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+    datadir = tmp_path / "cbicall-data"
+    datadir.mkdir()
+    _point_env_to_datadir(root, "gatk-4.6", datadir)
+
+    identifier_payload = b'{"bundle": "cbicall-germline-resources-v1"}\n'
+    (datadir / "cbicall-bundle-id.json").write_bytes(identifier_payload)
+    identifier_sha256 = hashlib.sha256(identifier_payload).hexdigest()
+
+    resources = root / "resources"
+    resources.mkdir()
+    (resources / "cbicall-resource-catalog.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "bundles": {
+                    "cbicall-germline-resources-v1": {
+                        "bundle_id": "cbicall-germline-resources",
+                        "bundle_version": "1",
+                        "status": "current",
+                        "compatible_workflows": ["bash/wes/single/gatk-4.6"],
+                        "remote_identifier": {"sha256": identifier_sha256},
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = config_mod.set_config_values(
+        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+    )
+
+    runtime_check = cfg["resource_bundle"]["runtime_check"]
+    assert runtime_check["status"] == "verified"
+    assert runtime_check["checks"][0]["type"] == "bundle_identifier"
+    assert runtime_check["checks"][0]["sha256"] == identifier_sha256
+
+
+def test_set_config_values_verifies_installation_manifest_fingerprint(monkeypatch, tmp_path):
+    root = fake_project(
+        monkeypatch,
+        tmp_path,
+        gatk_ver="gatk-4.6",
+        registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
+    )
+    _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+    datadir = tmp_path / "cbicall-data"
+    datadir.mkdir()
+    _point_env_to_datadir(root, "gatk-4.6", datadir)
+
+    catalog_entry = {
+        "key": "cbicall-germline-resources-v1",
+        "bundle_id": "cbicall-germline-resources",
+        "bundle_version": "1",
+        "status": "current",
+        "compatible_workflows": ["bash/wes/single/gatk-4.6"],
+    }
+    (datadir / "cbicall-resource-installation.json").write_text(
+        json.dumps({"catalog_entry": catalog_entry}),
+        encoding="utf-8",
+    )
+
+    resources = root / "resources"
+    resources.mkdir()
+    (resources / "cbicall-resource-catalog.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "bundles": {
+                    "cbicall-germline-resources-v1": {
+                        "bundle_id": "cbicall-germline-resources",
+                        "bundle_version": "1",
+                        "status": "current",
+                        "compatible_workflows": ["bash/wes/single/gatk-4.6"],
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = config_mod.set_config_values(
+        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+    )
+
+    runtime_check = cfg["resource_bundle"]["runtime_check"]
+    assert runtime_check["status"] == "verified"
+    assert runtime_check["checks"][0]["type"] == "installation_manifest"
+    assert len(runtime_check["checks"][0]["fingerprint"]) == 64
+
+
+def test_set_config_values_rejects_mismatched_installed_bundle_identifier(monkeypatch, tmp_path):
+    root = fake_project(
+        monkeypatch,
+        tmp_path,
+        gatk_ver="gatk-4.6",
+        registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
+    )
+    _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+    datadir = tmp_path / "cbicall-data"
+    datadir.mkdir()
+    _point_env_to_datadir(root, "gatk-4.6", datadir)
+    (datadir / "cbicall-bundle-id.json").write_text('{"bundle": "other-bundle"}\n', encoding="utf-8")
+
+    with pytest.raises(ParameterValidationError, match="identifier does not match"):
+        config_mod.set_config_values(
+            {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+        )
+
+
+def test_set_config_values_rejects_mismatched_installation_manifest_fingerprint(monkeypatch, tmp_path):
+    root = fake_project(
+        monkeypatch,
+        tmp_path,
+        gatk_ver="gatk-4.6",
+        registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
+    )
+    _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+    datadir = tmp_path / "cbicall-data"
+    datadir.mkdir()
+    _point_env_to_datadir(root, "gatk-4.6", datadir)
+    (datadir / "cbicall-resource-installation.json").write_text(
+        json.dumps(
+            {
+                "catalog_entry": {
+                    "key": "cbicall-germline-resources-v1",
+                    "bundle_id": "cbicall-germline-resources",
+                    "bundle_version": "old",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ParameterValidationError, match="manifest fingerprint does not match"):
+        config_mod.set_config_values(
+            {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+        )
 
 
 def test_set_config_values_uses_registry_default_pipeline_version(monkeypatch, tmp_path):

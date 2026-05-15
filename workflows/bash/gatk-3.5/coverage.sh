@@ -4,8 +4,6 @@
 #
 #   Last Modified: May/02/2025
 #
-#   $VERSION taken from CBICall
-
 set -eu
 
 # Check arguments

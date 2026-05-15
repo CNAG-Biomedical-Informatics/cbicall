@@ -6,7 +6,6 @@
 #   Handles conversion of Picard IntervalList (1-based inclusive) to 0-based BED.
 #
 #   Last Modified: May/02/2025
-#   version: $VERSION from CBICall
 
 set -eu
 

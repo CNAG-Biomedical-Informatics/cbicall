@@ -1,5 +1,3 @@
-# $VERSION taken from CBICall
-
 # Paths
 DATADIR=/software/biomed/cbicall-data
 DBDIR=$DATADIR/Databases

@@ -6,11 +6,11 @@ Revision history for cbicall:
     - Fix mtDNA extraction from hg38 BAMs by selecting chrM instead of MT.
     - Migrate project documentation from MkDocs Material to Docusaurus.
     - Add a resource bundle catalog and record selected bundle provenance in run logs.
+    - Add runtime resource bundle identity checks using local metadata files and lightweight hash validation.
     - Improve external resource download, verification, extraction, and installation manifests.
-    - Make the external resource downloader catalog-driven and add bundle identifier verification.
     - Add runtime profiles for site-specific environment files, including CNAG HPC.
     - Rename the workflow registry to workflows/registry/workflows.yaml.
-    - Add explicit pipeline implementation versions in the workflow registry and run provenance.
+    - Add explicit pipeline implementation versioning, with registry defaults such as v1 and resolved versions recorded in run provenance.
     - Add doctor, validate-registry, and test helper commands.
     - Add compact run-report.json summaries for completed runs.
 

@@ -2,6 +2,17 @@
 *.old
 *.swp
 *.pyc
+__pycache__/
+.coverage
+.pytest_cache/
 bck/
 old/
 /do_readme.sh
+
+# Local documentation builds and dependencies
+docs-site/build/
+docs-site/node_modules/
+
+# Generated integration-test artifacts
+examples/input/cbicall-test-*.log
+examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_*/

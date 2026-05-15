@@ -181,8 +181,13 @@ def _run_doctor_command(argv: List[str]) -> int:
     _row("Entrypoint", _short_path(workflow.entrypoint))
     if workflow.engine == "bash":
         _row("Env file", _short_path(workflow.helpers.get("env")))
+    elif workflow.engine == "snakemake":
+        _row("Config", _short_path(workflow.config_file))
     _row("Bundle", bundle.get("key"))
     _row("Bundle hash", bundle.get("fingerprint"))
+    runtime_check = bundle.get("runtime_check", {})
+    _row("DATADIR", _short_path(runtime_check.get("datadir")))
+    _row("Bundle check", runtime_check.get("status"))
     return 0
 
 

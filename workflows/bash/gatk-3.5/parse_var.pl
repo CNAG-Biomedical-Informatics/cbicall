@@ -4,8 +4,6 @@
 #
 #   Last Modified; March/05/2025
 #
-#   $VERSION taken from CBICall
-#
 #   Copyright (C) 2025-2026 Manuel Rueda - CNAG (manuel.rueda@cnag.eu)
 
 use strict;

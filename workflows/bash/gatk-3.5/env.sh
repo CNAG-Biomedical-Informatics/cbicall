@@ -1,5 +1,3 @@
-# $VERSION taken from CBICall
-
 # Paths
 DATADIR=/media/mrueda/2TBS
 #DATADIR=/cbicall-data  # From inside the container

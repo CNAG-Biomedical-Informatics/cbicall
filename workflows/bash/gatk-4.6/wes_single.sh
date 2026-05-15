@@ -2,6 +2,7 @@
 #
 #   WGS/WES pipeline Bash script (GATK4.6 best-practices edition).
 #   Last Modified: 2025-05-02
+#   Pipeline version: v1
 #
 # README:
 #   This script runs either WES or WGS pipelines based on the '-p' mode flag.

@@ -4,7 +4,7 @@
 #
 #   Last Modified; Dec/29/2025
 #
-#   $VERSION taken from CBICall
+#   Pipeline version: v1
 #
 #   Copyright (C) 2025-2026 Manuel Rueda - CNAG (manuel.rueda@cnag.eu)
 

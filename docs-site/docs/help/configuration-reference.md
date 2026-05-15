@@ -101,6 +101,8 @@ input_dir:       CNAG999_exome/CNAG99901P_ex
 
 Two runs used the same declared external dependency set when their `resource_bundle.fingerprint` values match. The fingerprint is computed from the local catalog entry, so changes to tool versions, reference paths, archive naming, or compatibility metadata create a different value.
 
+At preflight/runtime, CBIcall also resolves `DATADIR` from the selected `env.sh` or Snakemake config. If `cbicall-resource-installation.json` or `cbicall-bundle-id.json` exists in that directory, CBIcall checks that it matches the selected `resource_bundle`. The identifier file is verified by SHA-256 when the catalog pins one, and the installation manifest is checked against the local catalog fingerprint. Older manual installs without these metadata files are reported as `metadata_not_found`.
+
 ## Pipeline Implementation Version
 
 Each registry entry also has a CBIcall pipeline implementation version, currently `v1` for the bundled workflows. This is different from `gatk_version`: `gatk_version` selects the tool family and workflow directory, while the pipeline implementation version identifies the CBIcall script/Snakefile revision selected inside that registry entry.
