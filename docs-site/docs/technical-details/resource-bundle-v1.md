@@ -1,11 +1,11 @@
-# Resource Bundle v1
+# Bundle v1
 
-CBIcall production workflows require an external resource bundle containing third-party executables, reference genomes, known-sites files, interval lists, and auxiliary databases.
+CBIcall production workflows require a CBIcall-provided bundle containing third-party executables, reference genomes, known-sites files, interval lists, and auxiliary databases.
 
 The current bundle is selected in the run YAML with:
 
 ```yaml
-resource_bundle: "cbicall-germline-resources-v1"
+resource: "cbicall-germline-resources-v1"
 ```
 
 CBIcall resolves this key against the resource catalog:
@@ -14,21 +14,20 @@ CBIcall resolves this key against the resource catalog:
 resources/cbicall-resource-catalog.json
 ```
 
-The downloader uses the local catalog when it is present. If the script is used standalone and the local catalog is absent, it fetches the canonical catalog URL before selecting the bundle entry.
+The resource catalog can contain different resource types. This page documents
+the current `bundle` type and the CBIcall-provided bundle used by the packaged
+workflows.
+
+The `scripts/download_cbicall_bundle.py` utility is intentionally scoped to CBIcall-provided bundle entries in the resource catalog. It is not a general-purpose installer for arbitrary local, HPC module, or third-party layouts. The downloader uses the local catalog when it is present. If the script is used standalone and the local catalog is absent, it fetches the canonical catalog URL before selecting the bundle entry.
 
 ## Bundle Identity
 
 | Field | Value |
 | --- | --- |
-| Catalog key | `cbicall-germline-resources-v1` |
-| Bundle ID | `cbicall-germline-resources` |
-| Bundle version | `1` |
-| Status | `current` |
-| CBIcall compatibility | `>=1.0,<2.0` |
-| Archive name after setup | `cbicall-germline-resources-v1.tar.gz` |
+| Resource key | `cbicall-germline-resources-v1` |
 
 :::info[Why this is explicit]
-The bundle key is human-readable, while the catalog entry is machine-readable. `log.json` records both the selected key and a catalog fingerprint, so two runs can be checked for the same declared external dependency set.
+The resource key is the identifier users select with `resource`. `log.json` records this key and a catalog fingerprint, so two runs can be checked for the same declared external dependency set.
 :::
 
 ## Supported Workflows
@@ -52,7 +51,7 @@ The production bundle is distributed as a small identifier JSON, split archive p
 
 | File | Purpose |
 | --- | --- |
-| `cbicall-bundle-id.json` | Declares the bundle catalog key and is pinned by SHA-256 in the catalog. |
+| `cbicall-resource-id.json` | Declares the resource key and is pinned by SHA-256 in the catalog. |
 | `data.tar.gz.md5` | MD5 checksum file. The current bundle records the split archive parts. |
 | `data.tar.gz.part-00` | Split archive part. |
 | `data.tar.gz.part-01` | Split archive part. |
@@ -61,15 +60,15 @@ The production bundle is distributed as a small identifier JSON, split archive p
 | `data.tar.gz.part-04` | Split archive part. |
 | `data.tar.gz.part-05` | Split archive part. |
 
-The setup utility verifies the files covered by `data.tar.gz.md5`, reassembles the parts into `data.tar.gz`, and then renames the verified archive to `cbicall-germline-resources-v1.tar.gz`.
+The setup utility verifies the files covered by `data.tar.gz.md5`, reassembles the parts into an archive, and verifies the downloaded CBIcall-provided bundle payload before extraction.
 
 An optional small remote identifier file can also be used:
 
 ```json
-{"bundle": "cbicall-germline-resources-v1"}
+{"resource_key": "cbicall-germline-resources-v1"}
 ```
 
-When available, this file is named `cbicall-bundle-id.json`. Its SHA-256 can be pinned in the local catalog to confirm that the remote bundle declares the expected catalog key.
+When available, this file is named `cbicall-resource-id.json`. Its SHA-256 can be pinned in the local catalog to confirm that the remote bundle declares the expected resource key.
 
 ## Expected Layout
 
@@ -81,15 +80,15 @@ DATADIR/
   NGSutils/
 ```
 
-The catalog maps these names to workflow variables:
+The bundle layout uses these conventional top-level names:
 
 | Variable | Meaning |
 | --- | --- |
-| `DATADIR` | Root of the installed external resource bundle. |
+| `DATADIR` | Root of the installed CBIcall-provided bundle. |
 | `DBDIR` | `DATADIR/Databases` |
 | `NGSUTILS` | `DATADIR/NGSutils` |
 
-Workflow-specific files such as `env.sh` and Snakemake `config.yaml` expand these variables into concrete executable and reference paths.
+Workflow-specific files such as Bash `env.sh` and Snakemake `config.yaml` resolve the installed bundle layout into concrete executable and reference paths.
 
 ## Tools
 
@@ -121,25 +120,23 @@ Some workflow branches may use architecture-specific executable paths or legacy 
 
 ### rsrs / mtDNA
 
-The mtDNA workflows use MToolBox-related mitochondrial resources from the external bundle.
+The mtDNA workflows use MToolBox-related mitochondrial files from the bundle.
 
 ## Provenance in Runs
 
-The selected bundle is stored in `log.json` under `config.resource_bundle`.
+The selected bundle is stored in `log.json` under `config.resources.bundle`.
 
 Example:
 
 ```json
 {
   "key": "cbicall-germline-resources-v1",
-  "bundle_id": "cbicall-germline-resources",
-  "bundle_version": "1",
   "compatible": true,
   "fingerprint": "..."
 }
 ```
 
-Two runs used the same declared external dependency set when their `config.resource_bundle.fingerprint` values match.
+Two runs used the same declared external dependency set when their `config.resources.bundle.fingerprint` values match.
 
 ## Installation Manifest
 
@@ -149,7 +146,7 @@ The setup utility also writes:
 cbicall-resource-installation.json
 ```
 
-This local manifest records the installed bundle key, archive checksum result, source files, extraction status, and optional remote identifier provenance.
+This local manifest records the installed resource key, archive checksum result, source files, extraction status, and optional remote identifier provenance.
 
 ## Runtime Check
 
@@ -159,7 +156,7 @@ If bundle metadata exists beside `DATADIR`, CBIcall validates it:
 
 | File | Runtime check |
 | --- | --- |
-| `cbicall-bundle-id.json` | Bundle key must match the selected `resource_bundle`; SHA-256 must match the catalog when pinned. |
-| `cbicall-resource-installation.json` | Installed bundle key must match the selected `resource_bundle`; the manifest catalog entry must match the local catalog fingerprint. |
+| `cbicall-resource-id.json` | Resource key must match the selected `resource`; SHA-256 must match the catalog when pinned. |
+| `cbicall-resource-installation.json` | Installed resource key must match the selected `resource`; the manifest catalog entry must match the local catalog fingerprint. |
 
 This check is intentionally small. It validates the installed bundle identity without hashing the full resource archive on every run.

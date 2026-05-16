@@ -138,7 +138,7 @@ def write_run_report(
         "command_trace": "Detailed workflow stdout/stderr is recorded in the workflow log.",
         "profile": resolved_config.profile,
         "workflow": workflow.to_dict(),
-        "resource_bundle": resolved_config.resource_bundle,
+        "resources": resolved_config.resources,
         "run": {
             "run_id": resolved_config.run_id,
             "project_dir": resolved_config.project_dir,
@@ -176,7 +176,7 @@ def _run_doctor_command(argv: List[str]) -> int:
 
     _section("Configuration OK", GREEN)
     workflow = resolved_config.workflow
-    bundle = resolved_config.resource_bundle
+    bundle = resolved_config.resources.get("bundle", {})
     _row("Param file", _short_path(args.paramfile))
     _row("Profile", resolved_config.profile)
     _row("Workflow", f"{workflow.engine} -> {workflow.pipeline} -> {workflow.mode}")
@@ -188,11 +188,11 @@ def _run_doctor_command(argv: List[str]) -> int:
         _row("Env file", _short_path(workflow.helpers.get("env")))
     elif workflow.engine == "snakemake":
         _row("Config", _short_path(workflow.config_file))
-    _row("Bundle", bundle.get("key"))
-    _row("Bundle hash", bundle.get("fingerprint"))
+    _row("Resource key", bundle.get("key"))
+    _row("Resource hash", bundle.get("fingerprint"))
     runtime_check = bundle.get("runtime_check", {})
     _row("DATADIR", _short_path(runtime_check.get("datadir")))
-    _row("Bundle check", runtime_check.get("status"))
+    _row("Resource check", runtime_check.get("status"))
     return 0
 
 
@@ -234,9 +234,10 @@ def _run_validate_resources_command(argv: List[str]) -> int:
 
     parser = argparse.ArgumentParser(
         prog="cbicall validate-resources",
-        description="Validate the resource bundle catalog and workflow compatibility keys.",
+        description="Validate the resource catalog and workflow compatibility keys.",
     )
     parser.add_argument("--catalog", default=str(default_catalog), help="Resource catalog JSON.")
+    parser.add_argument("--bundle", help="Validate one bundle entry by resource key.")
     parser.add_argument("--registry", default=str(default_registry), help="Workflow registry YAML.")
     parser.add_argument("--schema", default=str(default_schema), help="Workflow registry JSON Schema.")
     parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
@@ -247,12 +248,15 @@ def _run_validate_resources_command(argv: List[str]) -> int:
     _refresh_colors()
 
     registry = load_workflow_registry(Path(args.registry), Path(args.schema))
-    summary = validate_resource_catalog(Path(args.catalog), registry)
+    summary = validate_resource_catalog(Path(args.catalog), registry, resource_key=args.bundle)
 
     _section("Resources OK", GREEN)
     _row("Catalog", _short_path(summary["path"]))
     _row("Schema version", summary["schema_version"])
-    _row("Bundles", summary["bundles"])
+    if summary.get("resource_key"):
+        _row("Resource key", summary["resource_key"])
+    _row("Resources", summary["resources"])
+    _row("Bundle resources", summary["bundle_resources"])
     _row("Compatible workflows", summary["compatible_workflows"])
     return 0
 

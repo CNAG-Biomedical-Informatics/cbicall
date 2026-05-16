@@ -45,7 +45,7 @@ Choose a directory where the databases and bundled external tools should be inst
 
 ```bash
 mkdir -p /absolute/path/to/cbicall-data
-python3 $path_to_cbicall/scripts/01_download_external_data.py --outdir /absolute/path/to/cbicall-data
+python3 $path_to_cbicall/scripts/download_cbicall_bundle.py --outdir /absolute/path/to/cbicall-data
 ```
 
 Replace `$path_to_cbicall` with your CBIcall installation path.
@@ -53,15 +53,15 @@ Replace `$path_to_cbicall` with your CBIcall installation path.
 To verify only the catalog-to-Google-Drive bundle identity before starting the large archive download:
 
 ```bash
-python3 $path_to_cbicall/scripts/01_download_external_data.py \
+python3 $path_to_cbicall/scripts/download_cbicall_bundle.py \
   --outdir /absolute/path/to/cbicall-data \
-  --verify-bundle-id-only
+  --verify-resource-id-only
 ```
 
 Google Drive can be restrictive with large files. If the Python download stalls or fails, print the manual download list:
 
 ```bash
-python3 $path_to_cbicall/scripts/01_download_external_data.py \
+python3 $path_to_cbicall/scripts/download_cbicall_bundle.py \
   --outdir /absolute/path/to/cbicall-data \
   --print-manual-download
 ```
@@ -69,7 +69,7 @@ python3 $path_to_cbicall/scripts/01_download_external_data.py \
 Download every listed file into `/absolute/path/to/cbicall-data`, then let the script continue from those files:
 
 ```bash
-python3 $path_to_cbicall/scripts/01_download_external_data.py \
+python3 $path_to_cbicall/scripts/download_cbicall_bundle.py \
   --outdir /absolute/path/to/cbicall-data \
   --skip-download
 ```
@@ -80,20 +80,20 @@ The script will:
 - reassemble `data.tar.gz`
 - verify the split parts or assembled archive with `data.tar.gz.md5`
 - load the CBIcall resource catalog, locally or from the catalog URL
-- optionally verify a small GDrive bundle identifier file such as `cbicall-bundle-id.json`
+- optionally verify a small GDrive resource identifier file such as `cbicall-resource-id.json`
 - rename the verified archive using the bundle identity, for example `cbicall-germline-resources-v1.tar.gz`
 - extract the archive into `DATADIR`
 - write `cbicall-resource-installation.json` with the installed bundle provenance
 
 If disk space is tight and the checksum has passed, add `--remove-parts` to remove `data.tar.gz.part-*` after assembly.
 
-CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.json`. The GDrive bundle only needs a small identifier file, for example `cbicall-bundle-id.json` containing `{"bundle": "cbicall-germline-resources-v1"}`. When that identifier file is available, the registry can store its Google Drive file ID and SHA-256 so the downloader can verify that the remote bundle matches the local CBIcall catalog entry.
+CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.json`. The GDrive bundle only needs a small identifier file, for example `cbicall-resource-id.json` containing `{"resource_key": "cbicall-germline-resources-v1"}`. When that identifier file is available, the registry can store its Google Drive file ID and SHA-256 so the downloader can verify that the remote bundle matches the local CBIcall catalog entry.
 
 ### Point CBIcall to your resource directory
 
 CBIcall workflows read resource paths from Bash `env.sh` files and the
 Snakemake `config.yaml`. In a non-containerized installation, point those files
-to the host directory where you installed the external resource bundle:
+to the host directory where you installed the CBIcall-provided resource bundle:
 
 ```bash
 export CBICALL_DATA="/absolute/path/to/cbicall-data"

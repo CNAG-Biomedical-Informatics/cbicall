@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Download or install the external CBIcall data bundle.
+"""Download or install CBIcall-provided bundles.
 
-The Google Drive download can be unreliable for large files. This script is
-therefore state-based: users may let it download the files, or download them
-manually into the target directory and then use the script for assembly,
-checksum verification, extraction, and manifest creation.
+This script is intentionally scoped to CBIcall-maintained bundle entries in the
+resource catalog. It is not a general-purpose installer for arbitrary local,
+HPC module, or third-party resource layouts.
+
+The Google Drive download used by the current bundle can be unreliable for
+large files. The script is therefore state-based: users may let it download the
+files, or download them manually into the target directory and then use the
+script for assembly, checksum verification, extraction, and manifest creation.
 """
 
 from __future__ import annotations
@@ -68,17 +72,19 @@ def load_catalog(catalog_path: Optional[Path], catalog_url: str) -> Tuple[dict, 
     return fetch_catalog(catalog_url), catalog_url
 
 
-def load_catalog_entry(catalog_path: Optional[Path], bundle_key: str, catalog_url: str = DEFAULT_CATALOG_URL) -> dict:
+def load_catalog_entry(catalog_path: Optional[Path], key: str, catalog_url: str = DEFAULT_CATALOG_URL) -> dict:
     catalog, catalog_source = load_catalog(catalog_path, catalog_url)
-    bundles = catalog.get("bundles", {}) if isinstance(catalog, dict) else {}
-    entry = bundles.get(bundle_key)
+    resources = catalog.get("resources", {}) if isinstance(catalog, dict) else {}
+    entry = resources.get(key)
     if entry is None:
-        raise SystemExit(f"Bundle {bundle_key!r} not found in resource catalog: {catalog_source}")
+        raise SystemExit(f"Bundle {key!r} not found in resource catalog: {catalog_source}")
+    if not isinstance(entry, dict) or entry.get("type") != "bundle":
+        raise SystemExit(f"Resource {key!r} is not a bundle in resource catalog: {catalog_source}")
     entry = dict(entry)
     entry["_catalog_source"] = catalog_source
     if catalog_source.startswith("/"):
         entry["_catalog_path"] = catalog_source
-    entry["key"] = bundle_key
+    entry["key"] = key
     return entry
 
 
@@ -86,36 +92,25 @@ def safe_slug(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "-", value).strip("-")
 
 
-def bundle_slug(metadata: dict) -> str:
-    if not metadata.get("bundle_id") or not metadata.get("bundle_version"):
-        return safe_slug(bundle_key(metadata))
-
-    bundle_id = safe_slug(str(metadata["bundle_id"]))
-    bundle_version = safe_slug(str(metadata["bundle_version"]))
-    if bundle_version.startswith("v"):
-        return f"{bundle_id}-{bundle_version}"
-    return f"{bundle_id}-v{bundle_version}"
-
-
 def canonical_archive_name(metadata: dict) -> str:
     archive = metadata.get("archive") if isinstance(metadata.get("archive"), dict) else {}
     explicit_name = archive.get("canonical_name")
     if explicit_name:
         return Path(str(explicit_name)).name
-    return f"{safe_slug(bundle_key(metadata))}.tar.gz"
+    return f"{safe_slug(resource_key(metadata))}.tar.gz"
 
 
 def archive_source_name(metadata: dict) -> str:
     archive = metadata.get("archive") if isinstance(metadata.get("archive"), dict) else {}
     if not archive.get("source_name"):
-        raise SystemExit(f"Bundle {bundle_key(metadata)!r} is missing archive.source_name in the resource catalog.")
+        raise SystemExit(f"Bundle {resource_key(metadata)!r} is missing archive.source_name in the resource catalog.")
     return Path(str(archive["source_name"])).name
 
 
 def checksum_file_name(metadata: dict) -> str:
     archive = metadata.get("archive") if isinstance(metadata.get("archive"), dict) else {}
     if not archive.get("checksum_file"):
-        raise SystemExit(f"Bundle {bundle_key(metadata)!r} is missing archive.checksum_file in the resource catalog.")
+        raise SystemExit(f"Bundle {resource_key(metadata)!r} is missing archive.checksum_file in the resource catalog.")
     return Path(str(archive["checksum_file"])).name
 
 
@@ -124,19 +119,17 @@ def checksum_algorithm(metadata: dict) -> str:
     return str(archive.get("checksum_algorithm") or "md5").lower()
 
 
-def bundle_key(metadata: dict) -> str:
+def resource_key(metadata: dict) -> str:
     if metadata.get("key"):
         return str(metadata["key"])
-    if metadata.get("bundle_id") and metadata.get("bundle_version"):
-        return f"{metadata['bundle_id']}-v{metadata['bundle_version']}"
-    return "unknown-bundle"
+    return "unknown-resource"
 
 
 def source_files(metadata: dict) -> dict:
     source = metadata.get("source") if isinstance(metadata.get("source"), dict) else {}
     files = source.get("files") if isinstance(source.get("files"), dict) else None
     if files is None:
-        raise SystemExit(f"Bundle {bundle_key(metadata)!r} is missing source.files in the resource catalog.")
+        raise SystemExit(f"Bundle {resource_key(metadata)!r} is missing source.files in the resource catalog.")
     return dict(files)
 
 
@@ -161,7 +154,7 @@ def remote_identifier(metadata: dict) -> dict:
 
 
 def identifier_filename(metadata: dict) -> str:
-    return Path(str(remote_identifier(metadata).get("filename") or "cbicall-bundle-id.json")).name
+    return Path(str(remote_identifier(metadata).get("filename") or "cbicall-resource-id.json")).name
 
 
 def identifier_file_id(metadata: dict) -> Optional[str]:
@@ -172,13 +165,13 @@ def identifier_sha256(metadata: dict) -> Optional[str]:
     return remote_identifier(metadata).get("sha256")
 
 
-def maybe_download_bundle_identifier(outdir: Path, metadata: dict, file_id: Optional[str], force: bool = False) -> None:
+def maybe_download_resource_identifier(outdir: Path, metadata: dict, file_id: Optional[str], force: bool = False) -> None:
     if not file_id:
         return
     download_if_missing(identifier_filename(metadata), file_id, outdir, force=force)
 
 
-def validate_bundle_identifier(outdir: Path, metadata: dict, expected_sha256: Optional[str] = None) -> Optional[dict]:
+def validate_resource_identifier(outdir: Path, metadata: dict, expected_sha256: Optional[str] = None) -> Optional[dict]:
     path = outdir / identifier_filename(metadata)
     if not path.is_file():
         return None
@@ -187,7 +180,7 @@ def validate_bundle_identifier(outdir: Path, metadata: dict, expected_sha256: Op
     expected_sha256 = expected_sha256 or identifier_sha256(metadata)
     if expected_sha256 and observed_sha256 != expected_sha256:
         raise SystemExit(
-            "Bundle identifier SHA-256 verification failed.\n"
+            "Resource identifier SHA-256 verification failed.\n"
             f"  expected: {expected_sha256}\n"
             f"  observed: {observed_sha256}"
         )
@@ -196,19 +189,19 @@ def validate_bundle_identifier(outdir: Path, metadata: dict, expected_sha256: Op
     try:
         payload = json.loads(text)
     except json.JSONDecodeError:
-        payload = {"bundle": text}
+        payload = {"resource_key": text}
     if isinstance(payload, str):
-        payload = {"bundle": payload}
+        payload = {"resource_key": payload}
     if not isinstance(payload, dict):
-        raise SystemExit(f"Bundle identifier must be a string or JSON object: {path}")
+        raise SystemExit(f"Resource identifier must be a string or JSON object: {path}")
 
-    expected_bundle = remote_identifier(metadata).get("expected", {}).get("bundle") or bundle_key(metadata)
-    observed_bundle = payload.get("bundle") or payload.get("bundle_key")
-    if observed_bundle != expected_bundle:
+    expected_key = remote_identifier(metadata).get("expected", {}).get("resource_key") or resource_key(metadata)
+    observed_key = payload.get("resource_key")
+    if observed_key != expected_key:
         raise SystemExit(
-            "Bundle identifier does not match the selected CBIcall catalog entry.\n"
-            f"  expected: {expected_bundle}\n"
-            f"  observed: {observed_bundle}"
+            "Resource identifier does not match the selected CBIcall catalog entry.\n"
+            f"  expected: {expected_key}\n"
+            f"  observed: {observed_key}"
         )
 
     payload["_source"] = str(path)
@@ -216,34 +209,34 @@ def validate_bundle_identifier(outdir: Path, metadata: dict, expected_sha256: Op
     return payload
 
 
-def require_bundle_identifier(outdir: Path, metadata: dict, bundle_identifier: Optional[dict]) -> dict:
-    if bundle_identifier is not None:
-        return bundle_identifier
+def require_resource_identifier(outdir: Path, metadata: dict, resource_identifier: Optional[dict]) -> dict:
+    if resource_identifier is not None:
+        return resource_identifier
 
     raise SystemExit(
-        "Bundle identifier file was not found.\n"
+        "Resource identifier file was not found.\n"
         f"  expected file: {outdir / identifier_filename(metadata)}\n\n"
         "Either allow the script to download it, or place the file in --outdir "
         "and rerun with --skip-download."
     )
 
 
-def print_bundle_identifier_summary(metadata: dict, bundle_identifier: dict) -> None:
-    observed_bundle = bundle_identifier.get("bundle") or bundle_identifier.get("bundle_key")
-    print("Bundle identifier OK.")
-    print(f"  Bundle      : {observed_bundle}")
-    print(f"  File        : {bundle_identifier.get('_source')}")
-    print(f"  SHA-256     : {bundle_identifier.get('_sha256')}")
-    print(f"  Catalog key : {bundle_key(metadata)}")
+def print_resource_identifier_summary(metadata: dict, resource_identifier: dict) -> None:
+    observed_key = resource_identifier.get("resource_key")
+    print("Resource identifier OK.")
+    print(f"  Resource key: {observed_key}")
+    print(f"  File        : {resource_identifier.get('_source')}")
+    print(f"  SHA-256     : {resource_identifier.get('_sha256')}")
+    print(f"  Catalog     : {resource_key(metadata)}")
 
 
-def print_manual_download_instructions(outdir: Path, metadata: dict, bundle_id_file_id: Optional[str] = None) -> None:
+def print_manual_download_instructions(outdir: Path, metadata: dict, identifier_file_id_override: Optional[str] = None) -> None:
     print("Manual download mode")
     print("====================")
     print()
     print(f"Download these files into: {outdir.resolve()}")
     print()
-    file_id = bundle_id_file_id or identifier_file_id(metadata)
+    file_id = identifier_file_id_override or identifier_file_id(metadata)
     if file_id:
         print(f"- {identifier_filename(metadata)}")
         print(f"  {google_drive_url(file_id)}")
@@ -543,20 +536,21 @@ def write_manifest(
     archive: Path,
     checksum_result: Optional[dict],
     extracted: bool,
-    bundle_identifier: Optional[dict] = None,
+    resource_identifier: Optional[dict] = None,
     manifest_name: str = MANIFEST_NAME,
 ) -> Path:
     manifest = outdir / manifest_name
     public_metadata = {key: value for key, value in metadata.items() if not key.startswith("_")}
     payload = {
         "catalog_version": CATALOG_VERSION,
-        "bundle_id": metadata.get("bundle_id") or bundle_key(metadata),
-        "bundle_version": metadata.get("bundle_version"),
-        "bundle_slug": bundle_slug(metadata),
+        "resource_key": resource_key(metadata),
         "catalog_entry": public_metadata,
         "catalog_source": metadata.get("_catalog_source") or metadata.get("_catalog_path"),
-        "remote_identifier": bundle_identifier,
-        "installed_at_utc": _dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "remote_identifier": resource_identifier,
+        "installed_at_utc": _dt.datetime.now(_dt.UTC)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z"),
         "datadir": str(outdir.resolve()),
         "archive": {
             "filename": archive.name,
@@ -589,7 +583,10 @@ def write_manifest(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Download, assemble, verify, and extract the CBIcall external data bundle.",
+        description=(
+            "Download, assemble, verify, and extract CBIcall-provided resource "
+            "bundles declared in the resource catalog."
+        ),
     )
     parser.add_argument(
         "--outdir",
@@ -608,7 +605,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--bundle",
         default=DEFAULT_BUNDLE_KEY,
-        help=f"Bundle key from the CBIcall resource catalog (default: {DEFAULT_BUNDLE_KEY}).",
+        help=f"Resource key for a bundle entry in the CBIcall resource catalog (default: {DEFAULT_BUNDLE_KEY}).",
     )
     parser.add_argument(
         "--print-manual-download",
@@ -621,12 +618,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Do not use Python/gdown; expect all required files to already exist in --outdir.",
     )
     parser.add_argument(
-        "--bundle-id-file-id",
-        help="Google Drive file ID for the optional small bundle identifier file.",
+        "--identifier-file-id",
+        help="Google Drive file ID for the optional small resource identifier file.",
     )
     parser.add_argument(
-        "--expected-bundle-id-sha256",
-        help="Expected SHA-256 of the optional small bundle identifier file.",
+        "--expected-identifier-sha256",
+        help="Expected SHA-256 of the optional small resource identifier file.",
     )
     parser.add_argument(
         "--download-only",
@@ -634,9 +631,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Download missing files, then stop before assembly and extraction.",
     )
     parser.add_argument(
-        "--verify-bundle-id-only",
+        "--verify-resource-id-only",
         action="store_true",
-        help="Download and verify only the small bundle identifier JSON, then exit.",
+        help="Download and verify only the small resource identifier JSON, then exit.",
     )
     parser.add_argument(
         "--no-extract",
@@ -677,26 +674,22 @@ def main(argv: Optional[List[str]] = None) -> int:
     outdir.mkdir(parents=True, exist_ok=True)
     catalog_path = Path(args.catalog).expanduser() if args.catalog else None
     metadata = load_catalog_entry(catalog_path, args.bundle, catalog_url=args.catalog_url)
-    bundle_id_file_id = args.bundle_id_file_id or identifier_file_id(metadata)
-    expected_bundle_id_sha256 = args.expected_bundle_id_sha256 or identifier_sha256(metadata)
+    selected_identifier_file_id = args.identifier_file_id or identifier_file_id(metadata)
+    expected_identifier_sha256 = args.expected_identifier_sha256 or identifier_sha256(metadata)
 
     if args.print_manual_download:
-        print_manual_download_instructions(outdir, metadata, bundle_id_file_id=bundle_id_file_id)
+        print_manual_download_instructions(outdir, metadata, identifier_file_id_override=selected_identifier_file_id)
         return 0
 
     if not args.skip_download:
-        maybe_download_bundle_identifier(outdir, metadata, bundle_id_file_id, force=args.force_download)
+        maybe_download_resource_identifier(outdir, metadata, selected_identifier_file_id, force=args.force_download)
 
-    bundle_identifier = validate_bundle_identifier(outdir, metadata, expected_sha256=expected_bundle_id_sha256)
-    version_label = metadata.get("bundle_version")
-    if version_label:
-        print(f"Bundle: {metadata.get('bundle_id') or bundle_key(metadata)} v{version_label}")
-    else:
-        print(f"Bundle: {bundle_key(metadata)}")
+    resource_identifier = validate_resource_identifier(outdir, metadata, expected_sha256=expected_identifier_sha256)
+    print(f"Resource key: {resource_key(metadata)}")
 
-    if args.verify_bundle_id_only:
-        bundle_identifier = require_bundle_identifier(outdir, metadata, bundle_identifier)
-        print_bundle_identifier_summary(metadata, bundle_identifier)
+    if args.verify_resource_id_only:
+        resource_identifier = require_resource_identifier(outdir, metadata, resource_identifier)
+        print_resource_identifier_summary(metadata, resource_identifier)
         return 0
 
     if not args.skip_download:
@@ -711,7 +704,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             archive,
             None,
             extracted=False,
-            bundle_identifier=bundle_identifier,
+            resource_identifier=resource_identifier,
             manifest_name=args.manifest,
         )
         return 0
@@ -733,7 +726,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         archive,
         checksum_result,
         extracted=extracted,
-        bundle_identifier=bundle_identifier,
+        resource_identifier=resource_identifier,
         manifest_name=args.manifest,
     )
 

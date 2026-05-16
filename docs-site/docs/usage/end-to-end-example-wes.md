@@ -92,9 +92,11 @@ Inputs
   Input dir    => .../input/CNAG999_exome/CNAG99901P_ex
   Sample map   => (undef)
   GATK         => gatk-4.6
+  Pipeline ver => v1
 
 Resolved
   Entrypoint   => .../bash/gatk-4.6/wes_single.sh
+  Env file     => .../bash/gatk-4.6/env.sh
   Log          => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_177447031761843/bash_wes_single_b37_gatk-4.6.log
 
 Running

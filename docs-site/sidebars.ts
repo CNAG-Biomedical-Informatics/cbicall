@@ -100,13 +100,18 @@ const sidebars: SidebarsConfig = {
           label: 'Adding a Pipeline',
         },
         {
+          type: 'doc',
+          id: 'technical-details/adding-resources',
+          label: 'Adding Resources',
+        },
+        {
           type: 'category',
-          label: 'Resource Bundles',
+          label: 'Resources',
           items: [
             {
               type: 'doc',
               id: 'technical-details/resource-bundle-v1',
-              label: 'Resource Bundle v1',
+              label: 'Bundle v1',
             },
           ],
         },

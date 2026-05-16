@@ -29,7 +29,7 @@ genome:          b37
 | `workflow_engine` | `bash` | `bash`, `snakemake` | Selects the execution backend supported by the current workflows. |
 | `profile` | `local` | `local`, `cnag-hpc` | Selects the runtime environment file. `cnag-hpc` uses `cnag-hpc-env.sh` instead of the default `env.sh` for Bash workflows. |
 | `gatk_version` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the workflow version. Use `gatk-4.6` for current WES/WGS workflows. |
-| `resource_bundle` | `cbicall-germline-resources-v1` | local catalog key | Selects the external dependency bundle declared in `resources/cbicall-resource-catalog.json`. |
+| `resource` | `cbicall-germline-resources-v1` | resource key | Selects one bundle entry from `resources/cbicall-resource-catalog.json`. |
 | `genome` | inferred | `b37`, `hg38`, `rsrs` | Reference genome. If omitted, CBIcall uses `b37` for WES/WGS and `rsrs` for mtDNA. |
 | `input_dir` | `null` | path | Input sample or project directory. Relative paths are resolved from the YAML file location. |
 | `sample_map` | `null` | path | Cohort-mode TSV containing sample IDs and gVCF paths. Relative paths are resolved from the YAML file location. |
@@ -95,13 +95,13 @@ gatk_version:    gatk-3.5
 input_dir:       CNAG999_exome/CNAG99901P_ex
 ```
 
-## Resource Bundle Provenance
+## Bundle Provenance
 
-`resource_bundle` pins the external tools and reference data expected for the run. CBIcall resolves this readable bundle key against `resources/cbicall-resource-catalog.json`, checks compatibility with the resolved workflow and pipeline implementation version, and writes a compact `resource_bundle` provenance block to `log.json`.
+`resource` pins the external tools and reference data expected for the run. CBIcall resolves this readable resource key against the resource catalog, checks compatibility with the resolved workflow and pipeline implementation version, and writes a compact `resources.bundle` provenance block to `log.json`.
 
-Two runs used the same declared external dependency set when their `resource_bundle.fingerprint` values match. The fingerprint is computed from the local catalog entry, so changes to tool versions, reference paths, archive naming, or compatibility metadata create a different value.
+Two runs used the same declared external dependency set when their `resources.bundle.fingerprint` values match. The fingerprint is computed from the local catalog entry, so changes to tool versions, reference paths, archive naming, or compatibility metadata create a different value.
 
-At preflight/runtime, CBIcall also resolves `DATADIR` from the selected `env.sh` or Snakemake config. If `cbicall-resource-installation.json` or `cbicall-bundle-id.json` exists in that directory, CBIcall checks that it matches the selected `resource_bundle`. The identifier file is verified by SHA-256 when the catalog pins one, and the installation manifest is checked against the local catalog fingerprint. Older manual installs without these metadata files are reported as `metadata_not_found`.
+At preflight/runtime, CBIcall also resolves `DATADIR` from the selected `env.sh` or Snakemake config. If `cbicall-resource-installation.json` or `cbicall-resource-id.json` exists in that directory, CBIcall checks that it matches the selected `resource`. The identifier file is verified by SHA-256 when the catalog pins one, and the installation manifest is checked against the local catalog fingerprint. Older manual installs without these metadata files are reported as `metadata_not_found`.
 
 ## Pipeline Implementation Version
 
@@ -134,9 +134,9 @@ During a real run, the resolved `profile` and selected environment file are writ
 | Command | Use |
 | --- | --- |
 | `bin/cbicall run -p parameters.yaml -t 4` | Execute a normal analysis run. |
-| `bin/cbicall doctor -p parameters.yaml` | Dry-run preflight for one concrete run. It resolves the parameter YAML, workflow, profile env file, and resource bundle without launching the workflow. |
+| `bin/cbicall doctor -p parameters.yaml` | Dry-run preflight for one concrete run. It resolves the parameter YAML, workflow, profile env file, and bundle without launching the workflow. |
 | `bin/cbicall validate-registry` | Developer check for `workflows/registry/workflows.yaml` against `workflows/schema/workflows.schema.json`. |
-| `bin/cbicall validate-resources` | Developer check for `resources/cbicall-resource-catalog.json` and its workflow compatibility keys. |
+| `bin/cbicall validate-resources` | Developer check for `resources/cbicall-resource-catalog.json` and its workflow compatibility keys. Use `--bundle <key>` to validate one catalog entry. |
 | `bin/cbicall test --wes`, `--mit`, or `--all` | Runs the bundled integration examples without remembering the script path. |
 
 ```bash
@@ -144,6 +144,7 @@ bin/cbicall run -p parameters.yaml -t 4
 bin/cbicall doctor -p parameters.yaml
 bin/cbicall validate-registry
 bin/cbicall validate-resources
+bin/cbicall validate-resources --bundle cbicall-germline-resources-v1
 bin/cbicall test --wes -t 1
 bin/cbicall test --all -t 1
 ```

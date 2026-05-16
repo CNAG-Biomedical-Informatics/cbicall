@@ -29,22 +29,22 @@ cd "$CBICALL_DATA"
 Download the data preparation script and execute it:
 
 ```bash
-wget https://raw.githubusercontent.com/mrueda/cbicall/refs/heads/main/scripts/01_download_external_data.py
-python3 ./01_download_external_data.py --outdir "$CBICALL_DATA"
+wget https://raw.githubusercontent.com/mrueda/cbicall/refs/heads/main/scripts/download_cbicall_bundle.py
+python3 ./download_cbicall_bundle.py --outdir "$CBICALL_DATA"
 ```
 
 To verify only the catalog-to-Google-Drive bundle identity before starting the large archive download:
 
 ```bash
-python3 ./01_download_external_data.py \
+python3 ./download_cbicall_bundle.py \
   --outdir "$CBICALL_DATA" \
-  --verify-bundle-id-only
+  --verify-resource-id-only
 ```
 
 Google Drive may occasionally block or stall automated downloads. If this happens, print the manual download list:
 
 ```bash
-python3 ./01_download_external_data.py \
+python3 ./download_cbicall_bundle.py \
   --outdir "$CBICALL_DATA" \
   --print-manual-download
 ```
@@ -52,7 +52,7 @@ python3 ./01_download_external_data.py \
 Download every listed file into `$CBICALL_DATA`, then let the script continue from those files:
 
 ```bash
-python3 ./01_download_external_data.py \
+python3 ./download_cbicall_bundle.py \
   --outdir "$CBICALL_DATA" \
   --skip-download
 ```
@@ -63,14 +63,14 @@ The script will:
 - reassemble `data.tar.gz`
 - verify the split parts or assembled archive with `data.tar.gz.md5`
 - load the CBIcall resource catalog, locally or from the catalog URL
-- optionally verify a small GDrive bundle identifier file such as `cbicall-bundle-id.json`
+- optionally verify a small GDrive resource identifier file such as `cbicall-resource-id.json`
 - rename the verified archive using the bundle identity, for example `cbicall-germline-resources-v1.tar.gz`
 - extract the archive into `DATADIR`
 - write `cbicall-resource-installation.json` with the installed bundle provenance
 
 If disk space is tight and the checksum has passed, add `--remove-parts` to remove `data.tar.gz.part-*` after assembly.
 
-CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.json`. The GDrive bundle only needs a small identifier file, for example `cbicall-bundle-id.json` containing `{"bundle": "cbicall-germline-resources-v1"}`. When that identifier file is available, the registry can store its Google Drive file ID and SHA-256 so the downloader can verify that the remote bundle matches the local CBIcall catalog entry.
+CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.json`. The GDrive bundle only needs a small identifier file, for example `cbicall-resource-id.json` containing `{"resource_key": "cbicall-germline-resources-v1"}`. When that identifier file is available, the registry can store its Google Drive file ID and SHA-256 so the downloader can verify that the remote bundle matches the local CBIcall catalog entry.
 
 ---
 

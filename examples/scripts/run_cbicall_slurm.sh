@@ -72,7 +72,7 @@ pipeline: ${PIPELINE}
 workflow_engine: bash
 profile: cnag-hpc
 gatk_version: gatk-4.6
-resource_bundle: "cbicall-germline-resources-v1"
+resource: "cbicall-germline-resources-v1"
 input_dir: ${WORKDIR}
 project_dir: ${SAMPLE_ID}_cbicall
 cleanup_bam: false

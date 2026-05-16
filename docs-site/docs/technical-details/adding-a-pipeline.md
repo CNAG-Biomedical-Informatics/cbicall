@@ -232,7 +232,7 @@ Check the pipeline at three levels.
 | Level | What to verify |
 | --- | --- |
 | Registry | The workflow appears under the correct engine/version/pipeline/mode. |
-| Resource catalog | Compatible resource bundle entries point to real registry workflow keys. |
+| Resource catalog | Compatible bundle entries point to real registry workflow keys. |
 | Files | Referenced scripts exist; Bash scripts are executable. |
 | Runtime | CBIcall creates a run directory, writes `log.json`, and produces expected outputs. |
 

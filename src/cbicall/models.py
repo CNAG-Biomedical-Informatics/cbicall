@@ -134,7 +134,7 @@ class ResolvedConfig:
     capture_label: Optional[str] = None
     arch: Optional[str] = None
     version: Optional[str] = None
-    resource_bundle: Dict[str, Any] = field(default_factory=dict)
+    resources: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "ResolvedConfig":
@@ -172,7 +172,7 @@ class ResolvedConfig:
             capture_label=data.get("capture_label"),
             arch=data.get("arch"),
             version=data.get("version"),
-            resource_bundle=dict(data.get("resource_bundle", {})),
+            resources=dict(data.get("resources", {})),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -201,5 +201,5 @@ class ResolvedConfig:
             "capture_label": self.capture_label,
             "arch": self.arch,
             "version": self.version,
-            "resource_bundle": self.resource_bundle,
+            "resources": self.resources,
         }

@@ -9,8 +9,8 @@ import pytest
 
 def load_downloader():
     repo_root = Path(__file__).resolve().parents[1]
-    script = repo_root / "scripts" / "01_download_external_data.py"
-    spec = importlib.util.spec_from_file_location("download_external_data", script)
+    script = repo_root / "scripts" / "download_cbicall_bundle.py"
+    spec = importlib.util.spec_from_file_location("download_cbicall_bundle", script)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -22,8 +22,6 @@ def bundle_metadata(part_names=None):
     files.update({part_name: f"{part_name}-id" for part_name in part_names})
     return {
         "key": "cbicall-germline-resources-v1",
-        "bundle_id": "cbicall-germline-resources",
-        "bundle_version": "1",
         "archive": {
             "source_name": "data.tar.gz",
             "canonical_name": "cbicall-germline-resources-v1.tar.gz",
@@ -37,8 +35,8 @@ def bundle_metadata(part_names=None):
             "files": files,
         },
         "remote_identifier": {
-            "filename": "cbicall-bundle-id.json",
-            "expected": {"bundle": "cbicall-germline-resources-v1"},
+            "filename": "cbicall-resource-id.json",
+            "expected": {"resource_key": "cbicall-germline-resources-v1"},
         },
         "layout": {"expected_top_level": ["Databases", "NGSutils"]},
     }
@@ -118,14 +116,14 @@ def test_skip_download_accepts_existing_archive_without_parts(tmp_path):
     assert (tmp_path / "cbicall-resource-installation.json").is_file()
 
 
-def test_bundle_identifier_must_match_catalog_entry(tmp_path):
+def test_resource_identifier_must_match_catalog_entry(tmp_path):
     mod = load_downloader()
     metadata = bundle_metadata()
-    identifier = tmp_path / "cbicall-bundle-id.json"
-    identifier.write_text(json.dumps({"bundle": "other-bundle:1"}), encoding="utf-8")
+    identifier = tmp_path / "cbicall-resource-id.json"
+    identifier.write_text(json.dumps({"resource_key": "other-bundle:1"}), encoding="utf-8")
 
-    with pytest.raises(SystemExit, match="Bundle identifier does not match"):
-        mod.validate_bundle_identifier(tmp_path, metadata)
+    with pytest.raises(SystemExit, match="Resource identifier does not match"):
+        mod.validate_resource_identifier(tmp_path, metadata)
 
 
 def test_load_catalog_entry_fetches_catalog_when_local_catalog_is_missing(tmp_path, monkeypatch):
@@ -137,10 +135,9 @@ def test_load_catalog_entry_fetches_catalog_when_local_catalog_is_missing(tmp_pa
         mod,
         "fetch_catalog",
         lambda url: {
-            "bundles": {
+            "resources": {
                 "demo-resources-v1": {
-                    "bundle_id": "demo-resources",
-                    "bundle_version": "1",
+                    "type": "bundle",
                     "source": {"files": {}},
                     "archive": {"parts": []},
                 }
@@ -161,16 +158,16 @@ def test_explicit_missing_catalog_path_raises(tmp_path):
         mod.load_catalog_entry(tmp_path / "missing.json", mod.DEFAULT_BUNDLE_KEY)
 
 
-def test_verify_bundle_id_only_does_not_download_archive_parts(tmp_path, monkeypatch):
+def test_verify_resource_id_only_does_not_download_archive_parts(tmp_path, monkeypatch):
     mod = load_downloader()
     downloaded = []
 
     def fake_download_if_missing(filename, file_id, outdir, force=False):
         downloaded.append(filename)
-        (outdir / filename).write_text(json.dumps({"bundle": mod.DEFAULT_BUNDLE_KEY}) + "\n", encoding="utf-8")
+        (outdir / filename).write_text(f'{{"resource_key":"{mod.DEFAULT_BUNDLE_KEY}"}}\n', encoding="utf-8")
 
     def fail_download_files(outdir, metadata, force=False):
-        raise AssertionError("archive downloads should not run in --verify-bundle-id-only mode")
+        raise AssertionError("archive downloads should not run in --verify-resource-id-only mode")
 
     monkeypatch.setattr(mod, "download_if_missing", fake_download_if_missing)
     monkeypatch.setattr(mod, "download_files", fail_download_files)
@@ -179,18 +176,18 @@ def test_verify_bundle_id_only_does_not_download_archive_parts(tmp_path, monkeyp
         [
             "--outdir",
             str(tmp_path),
-            "--bundle-id-file-id",
+            "--identifier-file-id",
             "identifier-file-id",
-            "--verify-bundle-id-only",
+            "--verify-resource-id-only",
         ]
     ) == 0
 
-    assert downloaded == ["cbicall-bundle-id.json"]
+    assert downloaded == ["cbicall-resource-id.json"]
     assert not (tmp_path / "cbicall-resource-installation.json").exists()
 
 
-def test_verify_bundle_id_only_requires_identifier_when_skip_download(tmp_path):
+def test_verify_resource_id_only_requires_identifier_when_skip_download(tmp_path):
     mod = load_downloader()
 
-    with pytest.raises(SystemExit, match="Bundle identifier file was not found"):
-        mod.main(["--outdir", str(tmp_path), "--skip-download", "--verify-bundle-id-only"])
+    with pytest.raises(SystemExit, match="Resource identifier file was not found"):
+        mod.main(["--outdir", str(tmp_path), "--skip-download", "--verify-resource-id-only"])

@@ -39,11 +39,9 @@ def test_validate_resource_catalog_reports_bundle_shape_errors(tmp_path):
         json.dumps(
             {
                 "schema_version": 1,
-                "bundles": {
+                "resources": {
                     "bad-bundle": {
-                        "bundle_id": "",
-                        "bundle_version": "1",
-                        "status": "current",
+                        "type": "bundle",
                         "description": "",
                         "compatible_workflows": [
                             "bash/wes/single/gatk-4.6/v1",
@@ -68,7 +66,6 @@ def test_validate_resource_catalog_reports_bundle_shape_errors(tmp_path):
         resources_mod.validate_resource_catalog(catalog)
 
     message = str(excinfo.value)
-    assert "bundle_id must be non-empty" in message
     assert "description must be non-empty" in message
     assert "contains duplicate entry" in message
     assert "entries must be non-empty strings" in message
@@ -76,7 +73,7 @@ def test_validate_resource_catalog_reports_bundle_shape_errors(tmp_path):
     assert "sha256 must be a 64-character hex string" in message
     assert "remote_identifier.expected must be an object" in message
     assert "checksum_algorithm must be one of" in message
-    assert "bundles.not-an-object must be an object" in message
+    assert "resources.not-an-object must be an object" in message
 
 
 def test_validate_resource_catalog_accepts_legacy_registry_string_keys(tmp_path):
@@ -85,11 +82,9 @@ def test_validate_resource_catalog_accepts_legacy_registry_string_keys(tmp_path)
         json.dumps(
             {
                 "schema_version": 1,
-                "bundles": {
+                "resources": {
                     "bundle-v1": {
-                        "bundle_id": "bundle",
-                        "bundle_version": "1",
-                        "status": "current",
+                        "type": "bundle",
                         "compatible_workflows": ["bash/wes/single/gatk-4.6"],
                     }
                 },
@@ -121,6 +116,36 @@ def test_validate_resource_catalog_accepts_legacy_registry_string_keys(tmp_path)
     assert "bash/wes/single/gatk-4.6" in resources_mod._registry_workflow_keys(registry)
 
 
+def test_validate_resource_catalog_can_filter_one_bundle(tmp_path):
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "resources": {
+                    "bundle-a": {
+                        "type": "bundle",
+                        "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
+                    },
+                    "bundle-b": {
+                        "type": "bundle",
+                        "compatible_workflows": ["bash/wes/cohort/gatk-4.6/v1"],
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    summary = resources_mod.validate_resource_catalog(catalog, resource_key="bundle-b")
+    assert summary["resource_key"] == "bundle-b"
+    assert summary["bundle_resources"] == 1
+    assert summary["compatible_workflows"] == 1
+
+    with pytest.raises(ParameterValidationError, match="resource key is not defined"):
+        resources_mod.validate_resource_catalog(catalog, resource_key="missing")
+
+
 def test_datadir_parsing_handles_quotes_comments_and_missing_files(tmp_path, monkeypatch):
     datadir = tmp_path / "data dir"
     monkeypatch.setenv("CBICALL_TEST_DATA", str(datadir))
@@ -150,7 +175,7 @@ def test_snakemake_datadir_parsing_and_unresolved_runtime_check(tmp_path):
     no_datadir.write_text("other: 1\n", encoding="utf-8")
     assert resources_mod._datadir_from_snakemake_config(str(no_datadir)) is None
 
-    result = resources_mod.validate_installed_resource_bundle(
+    result = resources_mod.validate_installed_bundle_resource(
         {"key": "bundle-v1"},
         _workflow("snakemake", config_file=no_datadir),
     )
@@ -158,24 +183,24 @@ def test_snakemake_datadir_parsing_and_unresolved_runtime_check(tmp_path):
     assert result["source_key"] == "workflow.config_file"
 
 
-def test_validate_installed_resource_bundle_missing_and_metadata_not_found(tmp_path):
+def test_validate_installed_bundle_resource_missing_and_metadata_not_found(tmp_path):
     env = tmp_path / "env.sh"
     missing_datadir = tmp_path / "missing-data"
     env.write_text(f"DATADIR={missing_datadir}\n", encoding="utf-8")
 
-    result = resources_mod.validate_installed_resource_bundle({"key": "bundle-v1"}, _workflow(env_file=env))
+    result = resources_mod.validate_installed_bundle_resource({"key": "bundle-v1"}, _workflow(env_file=env))
     assert result["status"] == "datadir_missing"
 
     existing_datadir = tmp_path / "data"
     existing_datadir.mkdir()
     env.write_text(f"DATADIR={existing_datadir}\n", encoding="utf-8")
 
-    result = resources_mod.validate_installed_resource_bundle({"key": "bundle-v1"}, _workflow(env_file=env))
+    result = resources_mod.validate_installed_bundle_resource({"key": "bundle-v1"}, _workflow(env_file=env))
     assert result["status"] == "metadata_not_found"
     assert result["checks"] == []
 
 
-def test_validate_installed_resource_bundle_identifier_text_and_sha_mismatch(tmp_path):
+def test_validate_installed_resource_identifier_text_and_sha_mismatch(tmp_path):
     datadir = tmp_path / "data"
     datadir.mkdir()
     env = tmp_path / "env.sh"
@@ -183,12 +208,12 @@ def test_validate_installed_resource_bundle_identifier_text_and_sha_mismatch(tmp
     identifier = datadir / resources_mod.RESOURCE_IDENTIFIER
     identifier.write_text("bundle-v1\n", encoding="utf-8")
 
-    result = resources_mod.validate_installed_resource_bundle({"key": "bundle-v1"}, _workflow(env_file=env))
+    result = resources_mod.validate_installed_bundle_resource({"key": "bundle-v1"}, _workflow(env_file=env))
     assert result["status"] == "verified"
-    assert result["checks"][0]["bundle"] == "bundle-v1"
+    assert result["checks"][0]["resource_key"] == "bundle-v1"
 
     with pytest.raises(ParameterValidationError, match="identifier SHA-256 does not match"):
-        resources_mod.validate_installed_resource_bundle(
+        resources_mod.validate_installed_bundle_resource(
             {"key": "bundle-v1", "identifier_sha256": "0" * 64},
             _workflow(env_file=env),
         )
@@ -196,10 +221,10 @@ def test_validate_installed_resource_bundle_identifier_text_and_sha_mismatch(tmp
     payload = json.dumps(["not", "an", "object"])
     identifier.write_text(payload, encoding="utf-8")
     with pytest.raises(ParameterValidationError, match="must be a string or JSON object"):
-        resources_mod.validate_installed_resource_bundle({"key": "bundle-v1"}, _workflow(env_file=env))
+        resources_mod.validate_installed_bundle_resource({"key": "bundle-v1"}, _workflow(env_file=env))
 
 
-def test_validate_installed_resource_bundle_manifest_edge_cases(tmp_path):
+def test_validate_installed_bundle_resource_manifest_edge_cases(tmp_path):
     datadir = tmp_path / "data"
     datadir.mkdir()
     env = tmp_path / "env.sh"
@@ -208,21 +233,21 @@ def test_validate_installed_resource_bundle_manifest_edge_cases(tmp_path):
 
     manifest.write_text("{not json", encoding="utf-8")
     with pytest.raises(ParameterValidationError, match="Invalid resource installation manifest"):
-        resources_mod.validate_installed_resource_bundle({"key": "bundle-v1"}, _workflow(env_file=env))
+        resources_mod.validate_installed_bundle_resource({"key": "bundle-v1"}, _workflow(env_file=env))
 
-    manifest.write_text(json.dumps({"remote_identifier": {"bundle": "bundle-v1"}}), encoding="utf-8")
-    result = resources_mod.validate_installed_resource_bundle({"key": "bundle-v1"}, _workflow(env_file=env))
+    manifest.write_text(json.dumps({"resource_key": "bundle-v1"}), encoding="utf-8")
+    result = resources_mod.validate_installed_bundle_resource({"key": "bundle-v1"}, _workflow(env_file=env))
     assert result["status"] == "verified"
     assert "fingerprint" not in result["checks"][0]
 
-    manifest.write_text(json.dumps({"bundle_key": "other-bundle"}), encoding="utf-8")
-    with pytest.raises(ParameterValidationError, match="Installed resource bundle does not match"):
-        resources_mod.validate_installed_resource_bundle({"key": "bundle-v1"}, _workflow(env_file=env))
+    manifest.write_text(json.dumps({"resource_key": "other-bundle"}), encoding="utf-8")
+    with pytest.raises(ParameterValidationError, match="Installed bundle does not match"):
+        resources_mod.validate_installed_bundle_resource({"key": "bundle-v1"}, _workflow(env_file=env))
 
 
 def test_load_identifier_accepts_json_string(tmp_path):
     identifier = tmp_path / "id.json"
     identifier.write_text(json.dumps("bundle-v1"), encoding="utf-8")
 
-    assert resources_mod._load_json_or_text_identifier(identifier) == {"bundle": "bundle-v1"}
+    assert resources_mod._load_json_or_text_identifier(identifier) == {"resource_key": "bundle-v1"}
     assert hashlib.sha256(identifier.read_bytes()).hexdigest()

@@ -1,12 +1,9 @@
 {
   "schema_version": 1,
-  "bundles": {
+  "resources": {
     "cbicall-germline-resources-v1": {
-      "bundle_id": "cbicall-germline-resources",
-      "bundle_version": "1",
-      "status": "current",
+      "type": "bundle",
       "description": "Default CBIcall external tools and reference resources",
-      "compatible_cbicall": ">=1.0,<2.0",
       "compatible_workflows": [
         "bash/wes/single/gatk-3.5/v1",
         "bash/wes/cohort/gatk-3.5/v1",
@@ -22,11 +19,11 @@
         "snakemake/wgs/cohort/gatk-4.6/v1"
       ],
       "remote_identifier": {
-        "filename": "cbicall-bundle-id.json",
-        "google_drive_file_id": "1m0lTdLM4g5k5z3K-Tdvn5DHQv8uMtJiw",
-        "sha256": "e6563425f9763b73d1d14a07bd0cc471c45a1866e613a8699f332846974bc572",
+        "filename": "cbicall-resource-id.json",
+        "google_drive_file_id": "1Yi-LXJ2bFrpogY-Nc5Ie5iv6NrvMjeho",
+        "sha256": "113cc0d1ac3098139a22faddfa871cc1f045a79fa1a2ded4f7cae1990c69fca0",
         "expected": {
-          "bundle": "cbicall-germline-resources-v1"
+          "resource_key": "cbicall-germline-resources-v1"
         }
       },
       "source": {
@@ -64,11 +61,6 @@
           "Databases",
           "NGSutils"
         ]
-      },
-      "env_bindings": {
-        "DATADIR": ".",
-        "DBDIR": "Databases",
-        "NGSUTILS": "NGSutils"
       },
       "tools": {
         "gatk4": {

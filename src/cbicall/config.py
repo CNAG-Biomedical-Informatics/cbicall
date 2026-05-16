@@ -1,3 +1,4 @@
+import copy
 import os
 import time
 import shutil
@@ -10,7 +11,7 @@ import yaml
 
 from .errors import ParameterValidationError, WorkflowResolutionError
 from .models import InputsSpec, ResolvedConfig, WorkflowSpec
-from .resources import build_resource_bundle_metadata, validate_installed_resource_bundle
+from .resources import build_bundle_resource_metadata, validate_installed_bundle_resource
 from .workflow_registry import (
     _validate_with_schema as _registry_validate_with_schema,
     get_project_root,
@@ -63,7 +64,7 @@ _DEFAULTS = {
     "workflow_rule": None,
     "allow_partial_run": False,
     "genome": None,  # Option 1: effective default assigned in _apply_genome_rules
-    "resource_bundle": "cbicall-germline-resources-v1",
+    "resource": "cbicall-germline-resources-v1",
 }
 
 
@@ -175,14 +176,14 @@ def _validate_partial_run_settings(cfg: dict) -> None:
         )
 
 
-def _validate_bundle_settings(cfg: dict) -> None:
-    resource_bundle = cfg.get("resource_bundle")
-    if resource_bundle is None:
-        raise ParameterValidationError("resource_bundle cannot be null.")
-    cfg["resource_bundle"] = str(resource_bundle)
-    if not cfg["resource_bundle"].strip():
-        raise ParameterValidationError("resource_bundle must be a non-empty value.")
-    cfg["resource_bundle"] = cfg["resource_bundle"].strip()
+def _validate_resource_settings(cfg: dict) -> None:
+    resource = cfg.get("resource")
+    if resource is None:
+        raise ParameterValidationError("resource cannot be null.")
+    resource = str(resource).strip()
+    if not resource:
+        raise ParameterValidationError("resource must be a non-empty value.")
+    cfg["resource"] = resource
 
 
 def _validate_profile_settings(cfg: dict) -> None:
@@ -221,7 +222,7 @@ def read_param_file(yaml_file: str) -> dict:
         params = yaml.safe_load(fh) or {}
 
     # Start from defaults
-    cfg = dict(_DEFAULTS)
+    cfg = copy.deepcopy(_DEFAULTS)
 
     # Merge provided parameters and validate keys
     for key, value in params.items():
@@ -234,7 +235,7 @@ def read_param_file(yaml_file: str) -> dict:
     _validate_profile_settings(cfg)
     _validate_pipeline_version_settings(cfg)
     _validate_partial_run_settings(cfg)
-    _validate_bundle_settings(cfg)
+    _validate_resource_settings(cfg)
 
     # Apply shared genome rules
     user_provided_genome = "genome" in params
@@ -265,14 +266,14 @@ def read_param_file(yaml_file: str) -> dict:
 
 def _merge_and_validate_param_values(params: dict) -> dict:
     """Merge defaults with user parameters and run semantic validation."""
-    cfg_in = dict(_DEFAULTS)
+    cfg_in = copy.deepcopy(_DEFAULTS)
     cfg_in.update(params)
     # Validate enums (except genome), then apply genome rules, then validate genome
     _validate_enums_except_genome(cfg_in)
     _validate_profile_settings(cfg_in)
     _validate_pipeline_version_settings(cfg_in)
     _validate_partial_run_settings(cfg_in)
-    _validate_bundle_settings(cfg_in)
+    _validate_resource_settings(cfg_in)
     _apply_genome_rules(cfg_in, user_provided_genome=("genome" in params))
     _validate_enum("genome", cfg_in["genome"], GENOME_VALUES)
     _validate_combos(cfg_in)
@@ -403,8 +404,8 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
     validate_resolved_workflow_files(workflow)
     workflow = _apply_runtime_profile(cfg_in, workflow)
     validate_resolved_workflow_files(workflow)
-    resource_bundle = build_resource_bundle_metadata(cfg_in, project_root, workflow)
-    resource_bundle["runtime_check"] = validate_installed_resource_bundle(resource_bundle, workflow)
+    bundle_resource = build_bundle_resource_metadata(cfg_in, project_root, workflow)
+    bundle_resource["runtime_check"] = validate_installed_bundle_resource(bundle_resource, workflow)
 
     config = ResolvedConfig(
         user="",
@@ -431,7 +432,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         workflow_rule=cfg_in.get("workflow_rule"),
         allow_partial_run=bool(cfg_in.get("allow_partial_run", False)),
         run_mode="partial" if cfg_in.get("workflow_rule") else "full",
-        resource_bundle=resource_bundle,
+        resources={"bundle": bundle_resource},
     )
     runtime_identity = _build_runtime_identity(cfg_in)
     host_metadata = _build_host_runtime_metadata(cfg_in)
@@ -459,7 +460,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         run_mode=config.run_mode,
         capture_label=host_metadata.get("capture_label"),
         arch=host_metadata.get("arch"),
-        resource_bundle=config.resource_bundle,
+        resources=config.resources,
     )
 
 

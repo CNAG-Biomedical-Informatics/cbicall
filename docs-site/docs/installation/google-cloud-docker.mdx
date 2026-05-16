@@ -6,7 +6,7 @@ This page is a practical recipe for running the CBIcall one-sample WES
 reproducibility check on a Google Cloud Compute Engine VM with Docker.
 
 Use this when you want evidence that the same CBIcall checkout, Docker image,
-YAML, workflow registry, and resource bundle resolve and run outside your local
+YAML, workflow registry, and selected bundle resolve and run outside your local
 or institutional environment.
 
 :::info[Scope]
@@ -64,7 +64,7 @@ gcloud services enable compute.googleapis.com
 ```
 
 Create an Ubuntu VM. The disk is intentionally larger than the example data
-because the external resource bundle is the large part of the test.
+because the CBIcall-provided bundle is the large part of the test.
 
 ```bash
 gcloud compute instances create "$VM_NAME" \
@@ -142,10 +142,10 @@ cbicall_docker() {
 }
 ```
 
-Download, assemble, verify, and extract the external resource bundle:
+Download, assemble, verify, and extract the CBIcall-provided bundle:
 
 ```bash
-cbicall_docker python3 scripts/01_download_external_data.py \
+cbicall_docker python3 scripts/download_cbicall_bundle.py \
   --outdir /cbicall-data \
   --catalog resources/cbicall-resource-catalog.json
 ```
@@ -153,7 +153,7 @@ cbicall_docker python3 scripts/01_download_external_data.py \
 If Google Drive throttles or stalls, print the manual download URLs:
 
 ```bash
-cbicall_docker python3 scripts/01_download_external_data.py \
+cbicall_docker python3 scripts/download_cbicall_bundle.py \
   --outdir /cbicall-data \
   --catalog resources/cbicall-resource-catalog.json \
   --print-manual-download
@@ -162,7 +162,7 @@ cbicall_docker python3 scripts/01_download_external_data.py \
 After copying the listed files into `$CBICALL_DATA`, finish setup with:
 
 ```bash
-cbicall_docker python3 scripts/01_download_external_data.py \
+cbicall_docker python3 scripts/download_cbicall_bundle.py \
   --outdir /cbicall-data \
   --catalog resources/cbicall-resource-catalog.json \
   --skip-download
@@ -209,7 +209,7 @@ echo "$RUN_DIR"
 Inspect the compact run report:
 
 ```bash
-grep -E '"status"|"pipeline_version"|"resource_bundle"|"fingerprint"|"workflow_log"' \
+grep -E '"status"|"pipeline_version"|"resources"|"bundle"|"fingerprint"|"workflow_log"' \
   "$RUN_DIR/run-report.json"
 ```
 
@@ -256,7 +256,7 @@ those separately.
 > To directly assess portability, we executed the bundled single-sample WES
 > integration test on a Google Cloud Compute Engine VM using Docker. The cloud
 > run used the same CBIcall checkout, user YAML, workflow registry, Docker image,
-> and resource bundle as the local test. CBIcall resolved the same workflow
-> implementation and resource bundle identity, and the generated VCF matched the
+> and selected bundle as the local test. CBIcall resolved the same workflow
+> implementation and bundle identity, and the generated VCF matched the
 > shipped reference output under the deterministic comparison used by the
 > integration test.

@@ -86,7 +86,7 @@ bin/cbicall validate-resources
 | `bin/cbicall test --wes -t 1` | Fast WES integration test. Run this first. |
 | `bin/cbicall test --mit -t 1` | mtDNA integration test after the WES path is working. |
 | `bin/cbicall test --all -t 1` | Run all bundled integration examples. |
-| `bin/cbicall validate-resources` | Validate the resource bundle catalog and its workflow compatibility keys. |
+| `bin/cbicall validate-resources` | Validate the resource catalog and its workflow compatibility keys. Add `--bundle <key>` to check one bundle entry. |
 
 :::tip[Thread choice]
 For most WES/WGS runs, start with **4 threads per task**. See [Performance](../help/performance) for the benchmark and scaling guidance.

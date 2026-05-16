@@ -39,7 +39,7 @@ This test:
 | --- | --- |
 | `validate-registry` | The workflow registry conforms to its JSON Schema. |
 | `validate-resources` | The resource catalog is well formed and compatible workflow keys exist in the registry. |
-| `doctor` | The YAML resolves to a declared workflow, profile, pipeline implementation version, and resource bundle. |
+| `doctor` | The YAML resolves to a declared workflow, profile, pipeline implementation version, and selected bundle. |
 | `test --wes` | The CLI can execute the bundled WES workflow and reproduce the shipped reference VCF under deterministic comparison rules. |
 
 When it succeeds, the run directory looks like this:

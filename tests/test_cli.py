@@ -42,7 +42,9 @@ def test_write_run_report_creates_compact_summary(tmp_path):
                 "config_file": None,
                 "helpers": {"env": "/cnag-hpc-env.sh"},
             },
-            "resource_bundle": {"key": "cbicall-germline-resources-v1", "fingerprint": "abc"},
+            "resources": {
+                "bundle": {"key": "cbicall-germline-resources-v1", "fingerprint": "abc"}
+            },
         }
     )
 
@@ -58,7 +60,7 @@ def test_write_run_report_creates_compact_summary(tmp_path):
     assert data["status"] == "success"
     assert data["profile"] == "cnag-hpc"
     assert data["elapsed_seconds"] == 12.346
-    assert data["resource_bundle"]["fingerprint"] == "abc"
+    assert data["resources"]["bundle"]["fingerprint"] == "abc"
     assert data["workflow_log"].endswith("workflow.log")
 
 
@@ -201,6 +203,19 @@ def test_validate_resources_command_uses_default_catalog(capsys):
     assert "Resources OK" in out
     assert "cbicall-resource-catalog.json" in out
     assert "Compatible workflows" in out
+
+
+def test_validate_resources_command_can_filter_bundle(capsys):
+    rc = cli_mod._run_validate_resources_command(
+        ["--no-color", "--bundle", "cbicall-germline-resources-v1"]
+    )
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Resources OK" in out
+    assert "Resource key" in out
+    assert "cbicall-germline-resources-v1" in out
+    assert "Bundle resources" in out
 
 
 def test_main_happy_path(monkeypatch, tmp_path):
