@@ -30,7 +30,7 @@ from .resources import validate_resource_catalog
 from .workflow_registry import load_workflow_registry
 from .goodbye import GoodBye
 
-VERSION = "1.0.0"
+VERSION = "1.0.1-beta.1"
 PROMPT = "Info:"
 SPACER = "*" * 41
 ARROW = "=>"
