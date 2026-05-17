@@ -1,26 +1,37 @@
 # Integration Tests
 
-CBIcall ships small integration tests for framework-level validation. They are intended to confirm that the CLI, YAML resolution, workflow registry, resource catalog, bundled workflows, and deterministic output comparison work together.
+CBIcall ships small integration tests that run the bundled example workflows and
+compare their outputs against shipped references.
 
 They do not replace biological or clinical validation of the underlying variant-calling methods.
 
-## Minimal Check
+<div className="cbicallNotePanel">
+  <p><strong>Use this page when the question is:</strong> can this CBIcall installation run the shipped example workflows and reproduce the expected example outputs?</p>
+</div>
+
+This page is about execution tests. If the question is whether a parameters YAML
+resolves before launch, use `validate-param` as described in
+[Configuration Reference](../help/configuration-reference). If the question is
+whether a custom resource catalog or installed resource directory is valid, use
+[Resource Validation](resource-validation).
+
+## Minimal Test
 
 From the repository root:
 
 ```bash
-bin/cbicall validate-registry
-bin/cbicall validate-resources
-bin/cbicall doctor -p examples/input/param.yaml
 bin/cbicall test --wes -t 1
 ```
 
 | Check | What it confirms |
 | --- | --- |
-| `validate-registry` | The workflow registry conforms to its JSON Schema. |
-| `validate-resources` | The resource catalog is well formed and compatible workflow keys exist in the registry. |
-| `doctor` | The YAML resolves to a declared workflow, profile, pipeline implementation version, and selected resource. |
 | `test --wes` | The bundled WES workflow runs and reproduces the shipped reference VCF under deterministic comparison rules. |
+
+:::tip[Where to go next]
+Use this page to run the shipped examples. For parameter-file checks, see
+[Configuration Reference](../help/configuration-reference). For comparing
+repeated runs, see [Run Comparison](run-comparison).
+:::
 
 ## Test Commands
 

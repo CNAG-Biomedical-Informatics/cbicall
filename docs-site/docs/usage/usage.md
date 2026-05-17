@@ -32,7 +32,8 @@ For mtDNA runs, CBIcall expects BAM files from previous WES/WGS single-sample ru
 cbicall run -p <parameters_file.yaml> -t <n_threads> [options]
 ```
 
-Use `run` for normal analysis execution. The other subcommands perform preflight checks, validation, or bundled integration tests.
+Use `run` for normal analysis execution. Other subcommands are documented on
+their dedicated pages.
 
 | Argument | Meaning |
 | --- | --- |
@@ -63,22 +64,6 @@ nohup bin/cbicall run -p parameters.yaml -t 4 > run.log 2>&1 &
 | `-verbose` | You want more CLI output while the workflow starts. |
 | `> run.log 2>&1` | You are saving terminal output to a file. ANSI colors are disabled automatically. |
 | `nohup ... &` | You need a simple long-running background job outside a scheduler. |
-
-## Reproducibility Commands
-
-CBIcall includes dedicated commands for framework-level checks and run comparison.
-
-```bash
-bin/cbicall test --wes -t 1
-bin/cbicall validate-resources
-bin/cbicall compare-runs run_a/ run_b/ run_c/ --output compare-report.txt --html compare-report.html
-```
-
-| Command | Use |
-| --- | --- |
-| `bin/cbicall test --wes -t 1` | Fast bundled integration test. See [Integration Tests](integration-tests). |
-| `bin/cbicall validate-resources` | Validate the resource catalog and workflow compatibility keys. See [Resource Validation](resource-validation). |
-| `bin/cbicall compare-runs run_a/ run_b/ run_c/ --output compare-report.txt --html compare-report.html` | Compare run reports for workflow, resource, and output fingerprint differences. See [Run Comparison](run-comparison). |
 
 :::tip[Thread choice]
 For most WES/WGS runs, start with **4 threads per task**. See [Performance](../help/performance) for the benchmark and scaling guidance.
@@ -162,6 +147,5 @@ CBIcall is designed for multi-core Linux desktop, workstation, server, and HPC e
 ## Next Steps
 
 - First run: [Quickstart](quickstart)
-- Decide workflow choices: [Choose Your Path](choose-your-path)
 - Full YAML reference: [Configuration Reference](../help/configuration-reference)
 - Output files: [Outputs](../help/outputs)

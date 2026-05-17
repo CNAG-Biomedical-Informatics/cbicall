@@ -6,9 +6,10 @@ Revision history for cbicall:
     - Fix mtDNA extraction from hg38 BAMs by selecting chrM instead of MT.
     - Migrate project documentation from MkDocs Material to Docusaurus.
     - Add a resource catalog, CBIcall bundle downloader, and runtime resource identity checks.
+    - Add JSON Schema validation for the resource catalog.
     - Add runtime profiles for site-specific environment files, including CNAG HPC.
     - Add explicit pipeline implementation versions and rename registry shared files from common to helpers.
-    - Add doctor, validate-registry, validate-resources, test, and compare-runs commands.
+    - Add validate-param, validate-registry, validate-resources, test, and compare-runs commands.
     - Add run-report.json audit summaries with CBIcall version, workflow file hashes, resource provenance, and output fingerprints.
     - Add text and HTML run comparison reports for two or more runs.
 

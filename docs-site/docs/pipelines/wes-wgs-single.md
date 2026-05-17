@@ -27,7 +27,9 @@ A user-focused guide to processing whole-exome (WES) and whole-genome (WGS) data
 
 ## Purpose
 
-This pipeline processes **one sample** at a time and produces a high-quality, filtered VCF suitable for downstream analysis. It automatically adapts to:
+This pipeline processes **one sample** at a time and produces a filtered VCF
+and gVCF organized for downstream tools and project QC. It automatically adapts
+to:
 
 - **WES**: restricted to an exome interval list
 - **WGS**: whole genome (no interval restriction)
@@ -117,6 +119,6 @@ This pipeline processes **one sample** at a time and produces a high-quality, fi
 
 ## When to Use This Pipeline
 
-- Standard clinical or research **WES** or **WGS** processing.
+- Standard research **WES** or **WGS** processing.
 - Generating gVCFs for **cohort joint genotyping**.
-- Producing high-quality single-sample VCFs for interpretation.
+- Producing filtered single-sample VCFs for downstream review or interpretation.

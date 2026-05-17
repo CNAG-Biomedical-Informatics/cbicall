@@ -88,17 +88,26 @@ Please see:
 02_browser/README.txt
 ```
 
-The results are reported both as an HTML table and as downloadable files.
+The CBIcall mtDNA variation browser is a standalone HTML report. It embeds the
+browser payload at generation time, so `02_browser/<run-id>.html` can be opened
+directly without a local web server or external static assets.
 
 > **See snapshot**
     ![browser](/img/browser.png)
 
-### Downloadable files:
+### Browser actions
 
-* **mtDNA JSON** A JSON file with the results from `mit_prioritized_variants.txt`.
-* **Report:** A tsv file including all the annotations for each variant. Name of the file `mit_prioritized_variants.txt`.
-* **Haplog:** A tsv file including the predicted [haplogroup](https://en.wikipedia.org/wiki/Human_mitochondrial_DNA_haplogroup) for each sample. Name of the file `mt_classification_best_results.csv`.
-* **VCF:** A text file consisting of all the variants in the VCF format. Name of the file `VCF_file.vcf`.
+The report provides direct buttons for:
+
+* **Report:** `01_mtoolbox/mit_prioritized_variants.txt`, including annotations plus appended `GT`, `DP`, and heteroplasmy values.
+* **Haplogroup:** `01_mtoolbox/mt_classification_best_results.csv`, including the predicted [haplogroup](https://en.wikipedia.org/wiki/Human_mitochondrial_DNA_haplogroup) for each sample.
+* **VCF:** `01_mtoolbox/VCF_file.vcf`, containing the mtDNA variants in VCF format.
+* **Raw JSON:** `01_mtoolbox/mit.raw.json`, containing the unfiltered parsed MToolBox output.
+
+The browser also supports searching by gene, variant, disease term, or rsID;
+filtering by locus; filtering by minimum disease score; showing only variants
+with external evidence; toggling advanced annotation columns; and exporting the
+current table view as CSV.
 
 ### HTML table:
 
@@ -106,13 +115,13 @@ The CBIcall mtDNA variation browser displays a browsable table consisting of the
 
 * **Sample**: The full name of each sample.
 * **Locus**: The location on the mitochondrial chromosome.
-* **Variant_Allele**: The position in the mitochondrial chromosome + the alternative allele format.
+* **Variant allele**: The position in the mitochondrial chromosome + the alternative allele format.
 * **Ref**: The reference allele (mitochondrial reference genome: RSRS).
 * **Alt**: The alternative allele(s).
-* **Aa_change**: The amino acid change if the variant falls in a coding region.
+* **AA change**: The amino acid change if the variant falls in a coding region.
 * **GT**: Genotype. 0:Ref, ≥1:Alt(s).
 * **Depth**: The number of times this position is covered by reads.
-* **Heterop_Frac**: The heteroplasmic fraction. Note that the confidence interval can be retrieved from the downloadable VCF file.
+* **Heteroplasmy**: The heteroplasmic fraction. Note that the confidence interval can be retrieved from the downloadable VCF file.
 * **Other**: For other fields please consult [MToolBox's manual](https://github.com/mitoNGS/MToolBox/wiki/Output-files).
 
 > **Filtered variants**
@@ -202,17 +211,25 @@ Please see:
 02_browser/README.txt
 ```
 
-The results are reported both as an HTML table and as downloadable files.
+The CBIcall mtDNA variation browser is a standalone HTML report. It embeds the
+browser payload at generation time, so `02_browser/<run-id>.html` can be opened
+directly without a local web server or external static assets. The cohort report
+follows the same standalone HTML format as the single-sample report, with
+sample-level fields where applicable.
 
-> **See snapshot**
-    ![browser](/img/browser-cohort.png)
+### Browser actions
 
-### Downloadable files:
+The report provides direct buttons for:
 
-* **mtDNA JSON** A JSON file with the results from `mit_prioritized_variants.txt`.
-* **Report:** A tsv file including all the annotations for each variant. Name of the file `mit_prioritized_variants.txt`.
-* **Haplog:** A tsv file including the predicted [haplogroup](https://en.wikipedia.org/wiki/Human_mitochondrial_DNA_haplogroup) for each sample. Name of the file `mt_classification_best_results.csv`.
-* **VCF:** A text file consisting of all the variants in the VCF format. Name of the file `VCF_file.vcf`.
+* **Report:** `01_mtoolbox/mit_prioritized_variants.txt`, including annotations plus appended per-sample `GT`, `DP`, and heteroplasmy values.
+* **Haplogroup:** `01_mtoolbox/mt_classification_best_results.csv`, including the predicted [haplogroup](https://en.wikipedia.org/wiki/Human_mitochondrial_DNA_haplogroup) for each sample.
+* **VCF:** `01_mtoolbox/VCF_file.vcf`, containing the mtDNA variants in VCF format.
+* **Raw JSON:** `01_mtoolbox/mit.raw.json`, containing the unfiltered parsed MToolBox output.
+
+The browser also supports searching by gene, variant, disease term, or rsID;
+filtering by locus; filtering by minimum disease score; showing only variants
+with external evidence; toggling advanced annotation columns; and exporting the
+current table view as CSV.
 
 ### HTML table:
 
@@ -220,13 +237,13 @@ The CBIcall mtDNA variation browser displays a browsable table consisting of the
 
 * **Sample**: The full name of each sample.
 * **Locus**: The location on the mitochondrial chromosome.
-* **Variant_Allele**: The position in the mitochondrial chromosome + the alternative allele format.
+* **Variant allele**: The position in the mitochondrial chromosome + the alternative allele format.
 * **Ref**: The reference allele (mitochondrial reference genome: RSRS).
 * **Alt**: The alternative allele(s).
-* **Aa_change**: The amino acid change if the variant falls in a coding region.
+* **AA change**: The amino acid change if the variant falls in a coding region.
 * **GT**: Genotype. 0:Ref, ≥1:Alt(s).
 * **Depth**: The number of times this position is covered by reads.
-* **Heterop_Frac**: The heteroplasmic fraction. Note that the confidence interval can be retrieved from the downloadable VCF file.
+* **Heteroplasmy**: The heteroplasmic fraction. Note that the confidence interval can be retrieved from the downloadable VCF file.
 * **Other**: For other fields please consult [MToolBox's manual](https://github.com/mitoNGS/MToolBox/wiki/Output-files).
 
 > **Filtered variants**

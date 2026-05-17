@@ -39,11 +39,6 @@ const sidebars: SidebarsConfig = {
       items: [
         {
           type: 'doc',
-          id: 'usage/choose-your-path',
-          label: 'Choose Your Path',
-        },
-        {
-          type: 'doc',
           id: 'usage/quickstart',
           label: 'Quickstart',
         },
@@ -70,8 +65,8 @@ const sidebars: SidebarsConfig = {
       items: [
         {
           type: 'doc',
-          id: 'usage/run-comparison',
-          label: 'Run Comparison',
+          id: 'usage/resource-validation',
+          label: 'Resource Validation',
         },
         {
           type: 'doc',
@@ -80,8 +75,8 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'doc',
-          id: 'usage/resource-validation',
-          label: 'Resource Validation',
+          id: 'usage/run-comparison',
+          label: 'Run Comparison',
         },
       ],
     },
@@ -108,12 +103,17 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Extend',
+      label: 'Developers',
       items: [
         {
           type: 'doc',
           id: 'technical-details/architecture',
           label: 'Architecture',
+        },
+        {
+          type: 'doc',
+          id: 'technical-details/extending-cbicall',
+          label: 'Developer Overview',
         },
         {
           type: 'doc',

@@ -3,7 +3,7 @@
 CBIcall resources are the external dependency layer used by workflows:
 third-party tools, reference genomes, known-sites files, interval lists, and
 auxiliary databases. The resource catalog can describe different resource
-types; the supported type today is `bundles`.
+types, for example `bundle` today and container-oriented entries in the future.
 
 Most resource additions today therefore mean adding a bundle. That needs two
 pieces:
@@ -29,8 +29,23 @@ resources/cbicall-resource-catalog.json
       type: bundle
 ```
 
-`bundle` is the current resource type. A resource key is the selectable value users put
-in `resource`.
+A resource key is the selectable value users put in `resource`. The shipped
+CBIcall resource uses `type: bundle`; the schema keeps `type` open so additional
+resource models can be introduced without renaming the catalog.
+
+:::note[Resource type templates]
+Non-bundle types can be used as catalog templates for future resource models.
+For example, `type: docker` may describe an image name, tag, and digest for
+provenance or future validation. Current workflows still resolve executable and
+reference paths through their backend configuration, such as Bash `env.sh` or
+Snakemake `config.yaml`.
+:::
+
+The catalog is validated against:
+
+```text
+resources/cbicall-resource-catalog.schema.json
+```
 
 ## What You Are Adding
 
@@ -89,9 +104,10 @@ engine/pipeline/mode/gatk_version/pipeline_version
 
 The workflow keys must exist in `workflows/registry/workflows.yaml`.
 
-The essential contract for a bundle entry is intentionally small: the resource key and
-`compatible_workflows`. Other fields are optional metadata used for human
-description, CBIcall-provided downloads, or lightweight runtime identity checks.
+The essential contract for a bundle entry is intentionally small: the resource
+key, `type`, and `compatible_workflows`. Other fields are optional metadata used
+for human description, CBIcall-provided downloads, or lightweight runtime
+identity checks.
 
 :::tip[Keep the catalog backend-agnostic]
 The catalog should describe resource identity, compatibility, broad layout, and
@@ -194,7 +210,7 @@ This checks that the catalog entry is well formed and that its
 ## 5. Validate One Real Run
 
 Resource catalog validation does not know which profile or runtime directory a user will
-select. Use `doctor` with a concrete parameters file to validate the selected
+select. Use `validate-param` with a concrete parameters file to validate the selected
 workflow and bundle together:
 
 ```yaml
@@ -210,10 +226,10 @@ input_dir: SAMPLE01
 Then run:
 
 ```bash
-bin/cbicall doctor -p my-center-wes.yaml
+bin/cbicall validate-param -p my-center-wes.yaml
 ```
 
-`doctor` resolves the workflow implementation, checks that the selected
+`validate-param` resolves the workflow implementation, checks that the selected
 `resource` is compatible with it, resolves the backend resource location,
 and verifies installed bundle metadata when `cbicall-resource-id.json` or
 `cbicall-resource-installation.json` is present in `DATADIR`.
@@ -226,4 +242,4 @@ and verifies installed bundle metadata when `cbicall-resource-id.json` or
 - [ ] Add archive and identifier checksums for CBIcall-provided downloads.
 - [ ] Keep backend-specific paths in `env.sh` or Snakemake `config.yaml`.
 - [ ] Run `bin/cbicall validate-resources --bundle <resource-key>`.
-- [ ] Run `bin/cbicall doctor -p <parameters.yaml>` with that bundle selected.
+- [ ] Run `bin/cbicall validate-param -p <parameters.yaml>` with that resource selected.

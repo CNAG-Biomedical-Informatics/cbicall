@@ -59,11 +59,6 @@ const config: Config = {
           position: 'left',
         },
         {
-          to: '/docs/usage/choose-your-path',
-          label: 'Choose Path',
-          position: 'left',
-        },
-        {
           type: 'dropdown',
           label: 'Reference',
           position: 'left',

@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 
 import yaml
+from jsonschema import Draft202012Validator
 
 from .errors import ParameterValidationError
 from .models import WorkflowSpec
@@ -12,9 +13,7 @@ from .models import WorkflowSpec
 
 RESOURCE_INSTALL_MANIFEST = "cbicall-resource-installation.json"
 RESOURCE_IDENTIFIER = "cbicall-resource-id.json"
-_HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
-_CHECKSUM_ALGORITHMS = {"md5", "sha1", "sha256", "sha512"}
-_RESOURCE_TYPES = {"bundle"}
+_RESOURCE_CATALOG_SCHEMA = "cbicall-resource-catalog.schema.json"
 
 
 def _catalog_fingerprint(entry: dict) -> str:
@@ -82,6 +81,30 @@ def _catalog_resources(catalog: dict) -> dict:
     return catalog.get("resources", {}) if isinstance(catalog, dict) else {}
 
 
+def _resource_catalog_schema_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "resources" / _RESOURCE_CATALOG_SCHEMA
+
+
+def _load_resource_catalog_schema() -> dict:
+    schema_path = _resource_catalog_schema_path()
+    return json.loads(schema_path.read_text(encoding="utf-8"))
+
+
+def _schema_error_location(error) -> str:
+    return ".".join(str(part) for part in error.path) or "(root)"
+
+
+def _validate_resource_catalog_schema(catalog: dict, path: Path) -> None:
+    schema = _load_resource_catalog_schema()
+    validator = Draft202012Validator(schema)
+    errors = sorted(validator.iter_errors(catalog), key=lambda err: list(err.path))
+    if errors:
+        lines = [f"{path} failed resource catalog schema validation:"]
+        for error in errors[:25]:
+            lines.append(f"- {_schema_error_location(error)}: {error.message}")
+        raise ParameterValidationError("\n".join(lines))
+
+
 def validate_resource_catalog(
     catalog_path: Path,
     workflow_registry: dict = None,
@@ -96,18 +119,10 @@ def validate_resource_catalog(
     except json.JSONDecodeError as exc:
         raise ParameterValidationError(f"Invalid resource catalog JSON: {path}") from exc
 
+    _validate_resource_catalog_schema(catalog, path)
+
     errors = []
-    if not isinstance(catalog, dict):
-        errors.append("catalog root must be a JSON object")
-        catalog = {}
-
-    if catalog.get("schema_version") is None:
-        errors.append("schema_version is required")
-
-    resources = catalog.get("resources")
-    if not isinstance(resources, dict) or not resources:
-        errors.append("resources must be a non-empty object")
-        resources = {}
+    resources = catalog["resources"]
 
     selected_resource_key = str(resource_key).strip() if resource_key is not None else None
     if selected_resource_key:
@@ -126,36 +141,14 @@ def validate_resource_catalog(
         if not isinstance(current_resource_key, str) or not current_resource_key.strip():
             errors.append("resource keys must be non-empty strings")
             continue
-        if not isinstance(entry, dict):
-            errors.append(f"{label} must be an object")
-            continue
 
-        resource_type = entry.get("type")
-        if resource_type not in _RESOURCE_TYPES:
-            allowed = ", ".join(sorted(_RESOURCE_TYPES))
-            errors.append(f"{label}.type must be one of: {allowed}")
-        if resource_type == "bundle":
+        if entry.get("type") == "bundle":
             bundle_count += 1
 
-        for field in ["type", "compatible_workflows"]:
-            if field not in entry:
-                errors.append(f"{label}.{field} is required")
-
-        for field in ["description"]:
-            if field in entry and not str(entry[field]).strip():
-                errors.append(f"{label}.{field} must be non-empty when present")
-
         compatible = entry.get("compatible_workflows")
-        if not isinstance(compatible, list) or not compatible:
-            errors.append(f"{label}.compatible_workflows must be a non-empty array")
-            compatible = []
-
         seen = set()
         for workflow_key in compatible:
             compatible_count += 1
-            if not isinstance(workflow_key, str) or not workflow_key.strip():
-                errors.append(f"{label}.compatible_workflows entries must be non-empty strings")
-                continue
             if workflow_key in seen:
                 errors.append(f"{label}.compatible_workflows contains duplicate entry: {workflow_key}")
             seen.add(workflow_key)
@@ -173,31 +166,13 @@ def validate_resource_catalog(
 
         remote = entry.get("remote_identifier")
         if remote is not None:
-            if not isinstance(remote, dict):
-                errors.append(f"{label}.remote_identifier must be an object when present")
-            else:
-                sha256 = remote.get("sha256")
-                if sha256 is not None and not _HEX64.match(str(sha256)):
-                    errors.append(f"{label}.remote_identifier.sha256 must be a 64-character hex string")
-                expected = remote.get("expected")
-                if expected is not None and not isinstance(expected, dict):
-                    errors.append(f"{label}.remote_identifier.expected must be an object when present")
-                elif isinstance(expected, dict):
-                    expected_resource_key = expected.get("resource_key")
-                    if expected_resource_key is not None and expected_resource_key != current_resource_key:
-                        errors.append(
-                            f"{label}.remote_identifier.expected.resource_key must match the resource key"
-                        )
-
-        archive = entry.get("archive")
-        if archive is not None:
-            if not isinstance(archive, dict):
-                errors.append(f"{label}.archive must be an object when present")
-            else:
-                algorithm = archive.get("checksum_algorithm")
-                if algorithm is not None and str(algorithm) not in _CHECKSUM_ALGORITHMS:
-                    allowed = ", ".join(sorted(_CHECKSUM_ALGORITHMS))
-                    errors.append(f"{label}.archive.checksum_algorithm must be one of: {allowed}")
+            expected = remote.get("expected")
+            if isinstance(expected, dict):
+                expected_resource_key = expected.get("resource_key")
+                if expected_resource_key is not None and expected_resource_key != current_resource_key:
+                    errors.append(
+                        f"{label}.remote_identifier.expected.resource_key must match the resource key"
+                    )
 
     if errors:
         lines = [f"{path} failed resource catalog validation:"]
@@ -206,6 +181,7 @@ def validate_resource_catalog(
 
     return {
         "path": str(path),
+        "schema": str(_resource_catalog_schema_path()),
         "schema_version": catalog.get("schema_version"),
         "resources": len(resources),
         "bundle_resources": bundle_count,

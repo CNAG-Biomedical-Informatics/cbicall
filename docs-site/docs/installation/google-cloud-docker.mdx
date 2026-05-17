@@ -6,8 +6,8 @@ This page is a practical recipe for running the CBIcall one-sample WES
 reproducibility check on a Google Cloud Compute Engine VM with Docker.
 
 Use this when you want evidence that the same CBIcall checkout, Docker image,
-YAML, workflow registry, and selected bundle resolve and run outside your local
-or institutional environment.
+parameters YAML, and selected resource resolve and run outside your local or
+institutional environment.
 
 :::info[Scope]
 This is not a cloud-scale production benchmark. It runs the bundled one-sample
@@ -19,9 +19,8 @@ WES integration test and checks framework portability.
 The recipe runs:
 
 ```bash
-bin/cbicall validate-registry
 bin/cbicall validate-resources
-bin/cbicall doctor -p examples/input/param.yaml
+bin/cbicall validate-param -p examples/input/param.yaml
 bin/cbicall test --wes -t 1
 ```
 
@@ -29,9 +28,8 @@ Expected evidence:
 
 | Evidence | Meaning |
 | --- | --- |
-| `validate-registry` succeeds | The workflow registry is valid. |
 | `validate-resources` succeeds | The resource catalog is well formed and points to declared workflows. |
-| `doctor` resolves the run | The YAML resolves to a concrete workflow, profile, pipeline version, and bundle. |
+| `validate-param` resolves the run | The parameters YAML resolves to a concrete workflow, profile, pipeline version, and resource. |
 | `test --wes` succeeds | The generated WES VCF matches the shipped reference output under the integration-test comparison. |
 | Normalized SHA-256 is printed | The filtered, sorted variant records have a compact reporting fingerprint. |
 | `run-report.json` exists | The cloud run records workflow and resource provenance. |
@@ -182,9 +180,8 @@ sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/co
 ## 6. Run the Reproducibility Check
 
 ```bash
-cbicall_docker bin/cbicall validate-registry
 cbicall_docker bin/cbicall validate-resources
-cbicall_docker bin/cbicall doctor -p examples/input/param.yaml
+cbicall_docker bin/cbicall validate-param -p examples/input/param.yaml
 cbicall_docker bin/cbicall test --wes -t 1
 ```
 
@@ -226,7 +223,7 @@ headers and gzip metadata can differ between otherwise equivalent runs. The
 integration test compares and reports the normalized variant-record stream
 instead.
 
-For a reviewer response, keep:
+For a reproducibility record, keep:
 
 - CBIcall commit: `git rev-parse HEAD`
 - Docker image digest
@@ -255,8 +252,8 @@ those separately.
 
 > To directly assess portability, we executed the bundled single-sample WES
 > integration test on a Google Cloud Compute Engine VM using Docker. The cloud
-> run used the same CBIcall checkout, user YAML, workflow registry, Docker image,
-> and selected bundle as the local test. CBIcall resolved the same workflow
-> implementation and bundle identity, and the generated VCF matched the
+> run used the same CBIcall checkout, parameters YAML, Docker image, and selected
+> resource as the local test. CBIcall resolved the same workflow
+> implementation and resource identity, and the generated VCF matched the
 > shipped reference output under the deterministic comparison used by the
 > integration test.

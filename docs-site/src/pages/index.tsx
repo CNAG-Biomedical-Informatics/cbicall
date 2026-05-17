@@ -24,8 +24,8 @@ export default function Home() {
                 <Link className="button button--primary button--lg" to="/docs/usage/quickstart">
                   Quick Start
                 </Link>
-                <Link className="button button--secondary button--lg" to="/docs/usage/choose-your-path">
-                  Choose Path
+                <Link className="button button--secondary button--lg" to="/docs/overview">
+                  Overview
                 </Link>
               </div>
             </div>
@@ -56,7 +56,7 @@ export default function Home() {
         </section>
         <section className={styles.sections}>
           <div className={styles.grid}>
-            <Link className={styles.card} to="/docs/usage/choose-your-path">
+            <Link className={styles.card} to="/docs/installation/docker">
               <span>Setup</span>
               <h2>Install</h2>
               <p>Docker, Apptainer, and non-containerized setup paths.</p>

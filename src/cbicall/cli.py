@@ -270,12 +270,12 @@ def write_run_report(
     return report_path
 
 
-def _run_doctor_command(argv: List[str]) -> int:
+def _run_validate_param_command(argv: List[str]) -> int:
     parser = argparse.ArgumentParser(
-        prog="cbicall doctor",
-        description="Resolve and check a CBIcall run without starting the workflow.",
+        prog="cbicall validate-param",
+        description="Validate a CBIcall parameters YAML without starting the workflow.",
     )
-    parser.add_argument("-p", "--param", dest="paramfile", required=True, help="Parameters input file (YAML).")
+    parser.add_argument("-p", "--param", dest="paramfile", required=True, help="Parameters YAML file.")
     parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
     args = parser.parse_args(argv)
 
@@ -364,6 +364,7 @@ def _run_validate_resources_command(argv: List[str]) -> int:
 
     _section("Resources OK", GREEN)
     _row("Catalog", _short_path(summary["path"]))
+    _row("Schema", _short_path(summary["schema"]))
     _row("Schema version", summary["schema_version"])
     if summary.get("resource_key"):
         _row("Resource key", summary["resource_key"])
@@ -1087,8 +1088,8 @@ def main() -> int:
 
     if len(sys.argv) > 1 and sys.argv[1] == "run":
         return _run_run_command(sys.argv[2:], start_time=start_time, cbicall_path=cbicall_path)
-    if len(sys.argv) > 1 and sys.argv[1] == "doctor":
-        return _run_doctor_command(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "validate-param":
+        return _run_validate_param_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "validate-registry":
         return _run_validate_registry_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "validate-resources":

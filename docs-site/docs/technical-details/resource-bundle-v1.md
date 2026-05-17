@@ -124,7 +124,7 @@ The mtDNA workflows use MToolBox-related mitochondrial files from the bundle.
 
 ## Provenance in Runs
 
-The selected bundle is stored in `log.json` under `config.resources.bundle`.
+The selected resource bundle is stored in `log.json` under `config.resources.bundle`.
 
 Example:
 

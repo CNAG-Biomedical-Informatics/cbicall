@@ -43,7 +43,7 @@ Applies to `pipeline: wes` or `pipeline: wgs` with `mode: single`.
 
 | File | Use |
 | --- | --- |
-| `02_varcall/<id>.hc.QC.vcf.gz` | Final filtered single-sample VCF. This is the primary variant file for downstream interpretation. |
+| `02_varcall/<id>.hc.QC.vcf.gz` | Final filtered single-sample VCF. This is the primary workflow VCF for downstream tools or review. |
 | `02_varcall/<id>.hc.QC.vcf.gz.tbi` | Tabix index for the final VCF. |
 | `02_varcall/<id>.hc.g.vcf.gz` | Per-sample gVCF. Use this as input for cohort joint genotyping. |
 | `02_varcall/<id>.hc.g.vcf.gz.tbi` | Tabix index for the gVCF. |

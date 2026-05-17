@@ -111,7 +111,7 @@ It extracts mtDNA reads, runs MToolBox, and enriches the prioritized variants wi
 
 - You want a **joint variant table** across multiple individuals.
 - You are analyzing **mtDNA inheritance** within a family.
-- You need cohort-level prioritization or downstream analysis.
+- You need a cohort-level mtDNA table for downstream review or comparison.
 
 ---
 

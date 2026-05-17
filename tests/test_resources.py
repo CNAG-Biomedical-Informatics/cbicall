@@ -25,7 +25,7 @@ def test_validate_resource_catalog_rejects_malformed_catalogs(tmp_path):
     catalog = tmp_path / "catalog.json"
 
     catalog.write_text("[1, 2, 3]", encoding="utf-8")
-    with pytest.raises(ParameterValidationError, match="catalog root must be a JSON object"):
+    with pytest.raises(ParameterValidationError, match="failed resource catalog schema validation"):
         resources_mod.validate_resource_catalog(catalog)
 
     catalog.write_text("{not json", encoding="utf-8")
@@ -66,14 +66,41 @@ def test_validate_resource_catalog_reports_bundle_shape_errors(tmp_path):
         resources_mod.validate_resource_catalog(catalog)
 
     message = str(excinfo.value)
-    assert "description must be non-empty" in message
-    assert "contains duplicate entry" in message
-    assert "entries must be non-empty strings" in message
+    assert "failed resource catalog schema validation" in message
+    assert "description" in message
+    assert "has non-unique elements" in message
+    assert "is too short" in message
+    assert "does not match" in message
+    assert "is not of type 'object'" in message
+    assert "'crc32' is not one of" in message
+
+
+def test_validate_resource_catalog_reports_semantic_errors_after_schema_passes(tmp_path):
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "resources": {
+                    "bundle-v1": {
+                        "type": "bundle",
+                        "compatible_workflows": ["bash/wes/single/gatk-4.6"],
+                        "remote_identifier": {
+                            "expected": {"resource_key": "other-bundle"},
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ParameterValidationError) as excinfo:
+        resources_mod.validate_resource_catalog(catalog)
+
+    message = str(excinfo.value)
     assert "engine/pipeline/mode/gatk_version/pipeline_version" in message
-    assert "sha256 must be a 64-character hex string" in message
-    assert "remote_identifier.expected must be an object" in message
-    assert "checksum_algorithm must be one of" in message
-    assert "resources.not-an-object must be an object" in message
+    assert "expected.resource_key must match the resource key" in message
 
 
 def test_validate_resource_catalog_accepts_legacy_registry_string_keys(tmp_path):
@@ -144,6 +171,30 @@ def test_validate_resource_catalog_can_filter_one_bundle(tmp_path):
 
     with pytest.raises(ParameterValidationError, match="resource key is not defined"):
         resources_mod.validate_resource_catalog(catalog, resource_key="missing")
+
+
+def test_validate_resource_catalog_accepts_non_bundle_resource_type(tmp_path):
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "resources": {
+                    "docker-gatk-v1": {
+                        "type": "docker",
+                        "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    summary = resources_mod.validate_resource_catalog(catalog, resource_key="docker-gatk-v1")
+    assert summary["resource_key"] == "docker-gatk-v1"
+    assert summary["resources"] == 1
+    assert summary["bundle_resources"] == 0
+    assert summary["compatible_workflows"] == 1
 
 
 def test_datadir_parsing_handles_quotes_comments_and_missing_files(tmp_path, monkeypatch):

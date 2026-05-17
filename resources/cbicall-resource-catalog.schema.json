@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cbicall:resource-catalog.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "resources"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "resources": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "#/$defs/resource"
+      }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "compatible_workflows"],
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "description": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "compatible_workflows": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "remote_identifier": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "filename": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "google_drive_file_id": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "expected": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "resource_key": {
+                  "$ref": "#/$defs/nonEmptyString"
+                }
+              }
+            }
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "folder": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "files": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {
+                "$ref": "#/$defs/nonEmptyString"
+              }
+            }
+          }
+        },
+        "archive": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "source_name": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "canonical_name": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "checksum_file": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "checksum_algorithm": {
+              "enum": ["md5", "sha1", "sha256", "sha512"]
+            },
+            "parts": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/nonEmptyString"
+              }
+            }
+          }
+        },
+        "layout": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "datadir": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "dbdir": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "ngsutils": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "expected_top_level": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/nonEmptyString"
+              }
+            }
+          }
+        },
+        "tools": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "version": {
+                "$ref": "#/$defs/nonEmptyString"
+              },
+              "path_hint": {
+                "$ref": "#/$defs/nonEmptyString"
+              }
+            }
+          }
+        },
+        "resource_sets": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "description": {
+                "$ref": "#/$defs/nonEmptyString"
+              },
+              "reference_fasta_hint": {
+                "$ref": "#/$defs/nonEmptyString"
+              },
+              "known_sites_hint": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/$defs/nonEmptyString"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

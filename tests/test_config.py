@@ -542,7 +542,7 @@ def test_validate_resource_catalog_rejects_bad_identifier_metadata(tmp_path):
         encoding="utf-8",
     )
 
-    with pytest.raises(ParameterValidationError, match="sha256.*64-character"):
+    with pytest.raises(ParameterValidationError, match="sha256.*does not match"):
         validate_resource_catalog(catalog)
 
 

@@ -97,19 +97,21 @@ input_dir:       CNAG999_exome/CNAG99901P_ex
 
 ## Bundle Provenance
 
-`resource` pins the external tools and reference data expected for the run. CBIcall resolves this readable resource key against the resource catalog, checks compatibility with the resolved workflow and pipeline implementation version, and writes a compact `resources.bundle` provenance block to `log.json`.
+`resource` selects the external tools and reference data expected for the run.
+CBIcall checks that the selected resource is compatible with the resolved
+workflow and records resource provenance in `log.json` and `run-report.json`.
 
-Two runs used the same declared external dependency set when their `resources.bundle.fingerprint` values match. The fingerprint is computed from the local catalog entry, so changes to tool versions, reference paths, archive naming, or compatibility metadata create a different value.
-
-At preflight/runtime, CBIcall also resolves `DATADIR` from the selected `env.sh` or Snakemake config. If `cbicall-resource-installation.json` or `cbicall-resource-id.json` exists in that directory, CBIcall checks that it matches the selected `resource`. The identifier file is verified by SHA-256 when the catalog pins one, and the installation manifest is checked against the local catalog fingerprint. Older manual installs without these metadata files are reported as `metadata_not_found`.
+Use [Resource Validation](../usage/resource-validation) for resource checks and
+[Run Comparison](../usage/run-comparison) to compare repeated runs.
 
 ## Pipeline Implementation Version
 
-Each registry entry also has a CBIcall pipeline implementation version, currently `v1` for the bundled workflows. This is different from `gatk_version`: `gatk_version` selects the tool family and workflow directory, while the pipeline implementation version identifies the CBIcall script/Snakefile revision selected inside that registry entry.
+Each workflow registry entry has a CBIcall pipeline implementation version,
+currently `v1` for the bundled workflows. Normal YAML files do not need to set
+this; the registry provides the default.
 
-Normal YAML files do not need to set this. The workflow registry provides the default, currently `v1`.
-
-Set `pipeline_version` only when a registry entry exposes more than one implementation and a run must pin a non-default one. The resolved value is written to `log.json` and `run-report.json`.
+Set `pipeline_version` only when a registry entry exposes more than one
+implementation and a run must pin a non-default one.
 
 ## Runtime Profiles
 
@@ -121,35 +123,23 @@ Select a non-default profile in YAML:
 profile: cnag-hpc
 ```
 
-Check the resolved setup without starting the workflow:
+Validate the parameters YAML and resolved setup without starting the workflow:
 
 ```bash
-bin/cbicall doctor -p parameters.yaml
+bin/cbicall validate-param -p parameters.yaml
 ```
 
-During a real run, the resolved `profile` and selected environment file are written to `log.json`. `doctor` prints the same resolved values without creating a run directory or log file.
+During a real run, the resolved `profile` and selected environment file are written to `log.json`. `validate-param` prints the same resolved values without creating a run directory or log file.
 
 ## Command Utilities
 
 | Command | Use |
 | --- | --- |
 | `bin/cbicall run -p parameters.yaml -t 4` | Execute a normal analysis run. |
-| `bin/cbicall doctor -p parameters.yaml` | Dry-run preflight for one concrete run. It resolves the parameter YAML, workflow, profile env file, and bundle without launching the workflow. |
-| `bin/cbicall validate-registry` | Developer check for `workflows/registry/workflows.yaml` against `workflows/schema/workflows.schema.json`. |
-| `bin/cbicall validate-resources` | Developer check for `resources/cbicall-resource-catalog.json` and its workflow compatibility keys. Use `--bundle <key>` to validate one catalog entry. |
-| `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare two or more run directories or `run-report.json` files for workflow, resource, and output fingerprint differences. With three or more runs, the first run is used as the baseline. Add `--output compare-report.txt` to keep a text report and `--html compare-report.html` for a static HTML rendering. |
+| `bin/cbicall validate-param -p parameters.yaml` | Dry-run preflight for one concrete run. It validates the parameters YAML, workflow, profile env file, and selected resource without launching the workflow. |
+| `bin/cbicall validate-resources` | Check the resource catalog and, optionally, one resource key. |
+| `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare two or more run directories or `run-report.json` files. |
 | `bin/cbicall test --wes`, `--mit`, or `--all` | Runs the bundled integration examples without remembering the script path. |
-
-```bash
-bin/cbicall run -p parameters.yaml -t 4
-bin/cbicall doctor -p parameters.yaml
-bin/cbicall validate-registry
-bin/cbicall validate-resources
-bin/cbicall validate-resources --bundle cbicall-germline-resources-v1
-bin/cbicall compare-runs run_a/ run_b/ run_c/ --output compare-report.txt --html compare-report.html
-bin/cbicall test --wes -t 1
-bin/cbicall test --all -t 1
-```
 
 ## Advanced Keys
 

@@ -94,7 +94,8 @@ The best available VCF (VQSR-filtered or raw) is used as input to the next step.
   - QUAL, QD, FS, MQ, MQRankSum, ReadPosRankSum.
 - Output: `cohort.gv.QC.vcf.gz`.
 
-This QC VCF is the recommended cohort VCF for downstream analysis.
+This QC VCF is the primary cohort workflow output for downstream tools and
+project-level review.
 
 ---
 

@@ -2,7 +2,7 @@
 
 CBIcall is a thin orchestration layer around one or more concrete pipelines. Its main responsibilities are:
 
-- Reading a YAML configuration file
+- Reading a parameters YAML file
 - Validating required parameters and paths
 - Resolving the selected pipeline and workflow engine
 - Preparing the project directory structure
@@ -17,7 +17,7 @@ The actual bioinformatics work (alignment, variant calling, QC) is implemented i
 
 ![CBIcall architecture diagram](/img/architecture-diagram.png)
 
-_CBIcall resolves a validated YAML run into a concrete workflow engine and pipeline implementation._
+_CBIcall resolves a validated parameters YAML into a concrete workflow engine and pipeline implementation._
 
 ---
 
@@ -51,7 +51,7 @@ At a high level, CBIcall consists of:
 | Component | Role | Main files or directories |
 | --- | --- | --- |
 | Python execution driver | Reads the YAML configuration, validates parameters, resolves paths, and dispatches execution to the selected workflow. | `src/cbicall/config.py`, `src/cbicall/dnaseq.py` |
-| Workflow registry | Maps `workflow_engine`, `gatk_version`, `pipeline`, `mode`, and pipeline implementation version to concrete workflow scripts. | `workflows/registry/workflows.yaml`, `src/cbicall/workflow_registry.py` |
+| Workflow registry | Developer-facing map that connects parameters YAML choices (`workflow_engine`, `gatk_version`, `pipeline`, `mode`, and pipeline implementation version) to concrete workflow scripts. Validate it with `bin/cbicall validate-registry` after editing. | `workflows/registry/workflows.yaml`, `src/cbicall/workflow_registry.py` |
 | Pipelines | Implement WES, WGS, and mtDNA analyses. A pipeline may provide Bash workflows, Snakemake workflows, or both. | `workflows/bash/`, `workflows/snakemake/` |
 | Workflow engines | Execute the resolved workflow. Bash is transparent and direct; Snakemake adds rule-based orchestration and partial targets. | `BashRunner`, `SnakemakeRunner` in `src/cbicall/dnaseq.py` |
 | Run directory | Stores outputs, logs, and `log.json` for one execution. | `01_bam/`, `02_varcall/`, `03_stats/`, `logs/` |

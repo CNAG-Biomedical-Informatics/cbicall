@@ -1,6 +1,22 @@
 # Resource Validation
 
-Resource validation checks whether the declared external dependency layer is compatible with the selected workflow. It covers catalog structure, compatible workflow keys, and runtime identity checks when local metadata is present.
+In CBIcall, a **resource** is the external dependency layer used by workflows:
+third-party tools, reference genomes, known-sites files, interval lists, and
+auxiliary databases. A run selects one resource key in the parameters YAML:
+
+```yaml
+resource: cbicall-germline-resources-v1
+```
+
+<div className="cbicallNotePanel">
+  <p><strong>Use this page when the question is:</strong> does this resource catalog, selected resource key, or installed resource directory match the workflow I am about to run?</p>
+</div>
+
+Use [Integration Tests](integration-tests) when you want to run the shipped
+example workflows and compare output VCFs.
+
+For the resource model and JSON examples, see [Adding Resources](../technical-details/adding-resources).
+For the current CBIcall-provided bundle, see [Bundle v1](../technical-details/resource-bundle-v1).
 
 ## Validate the Catalog
 
@@ -24,21 +40,24 @@ bin/cbicall validate-resources \
   --bundle my-center-germline-v1
 ```
 
-This confirms that the catalog entry is well formed and that its `compatible_workflows` keys exist in `workflows/registry/workflows.yaml`.
+This checks the catalog shape and confirms that declared workflow compatibility
+keys exist.
 
 ## Validate One Run
 
-Catalog validation is not enough to prove a concrete run is wired correctly. Use `doctor` with the YAML that will be launched:
+Use `validate-param` with the parameters YAML that will be launched:
 
 ```bash
-bin/cbicall doctor -p my-center-wes.yaml
+bin/cbicall validate-param -p my-center-wes.yaml
 ```
 
-`doctor` resolves the workflow implementation, checks that the selected `resource` is compatible with it, resolves the backend resource location, and verifies installed metadata when `cbicall-resource-id.json` or `cbicall-resource-installation.json` is present in `DATADIR`.
+This checks the selected resource against the resolved workflow and installed
+resource metadata when present.
 
 ## Runtime Provenance
 
-Completed runs record resource provenance in `log.json` and `run-report.json`. The compact run report can then be compared across runs:
+Completed runs record resource provenance in `log.json` and `run-report.json`.
+Compare repeated runs with:
 
 ```bash
 bin/cbicall compare-runs run_a/ run_b/ --output compare-report.txt --html compare-report.html

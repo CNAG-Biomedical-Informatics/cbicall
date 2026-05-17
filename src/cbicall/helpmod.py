@@ -16,7 +16,7 @@ def _build_parser(version: str, *, prog: str = "cbicall") -> argparse.ArgumentPa
 
             Commands:
               cbicall run -p parameters.yaml -t THREADS
-              cbicall doctor -p parameters.yaml
+              cbicall validate-param -p parameters.yaml
               cbicall validate-registry
               cbicall validate-resources
               cbicall compare-runs RUN_A RUN_B [RUN_C ...]
