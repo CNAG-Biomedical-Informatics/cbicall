@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>CBIcall Browser - mtDNA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f6f8;
+        --panel: #ffffff;
+        --ink: #17202a;
+        --muted: #697386;
+        --line: #dde3ec;
+        --line-strong: #b8c2d1;
+        --accent: #165d9f;
+        --accent-ink: #ffffff;
+        --accent-soft: #e8f2fc;
+        --green: #138a5b;
+        --green-soft: #e7f6ef;
+        --amber: #b06a00;
+        --amber-soft: #fff2d8;
+        --rose: #b54848;
+        --rose-soft: #ffe6e2;
+        --shadow: 0 16px 40px rgba(28, 39, 56, 0.08);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      a { color: var(--accent); }
+
+      .icon {
+        width: 16px;
+        height: 16px;
+        flex: 0 0 auto;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 7;
+        background: rgba(255, 255, 255, 0.96);
+        border-bottom: 1px solid var(--line);
+        box-shadow: 0 6px 24px rgba(16, 24, 40, 0.05);
+      }
+
+      .topbar-inner,
+      main {
+        width: min(1500px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .topbar-inner {
+        min-height: 74px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 260px;
+      }
+
+      .brand-mark {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        height: 46px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        font-size: 27px;
+      }
+
+      .brand-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      .brand-title {
+        font-size: 20px;
+        font-weight: 780;
+        letter-spacing: 0;
+      }
+
+      main { padding: 22px 0 30px; }
+
+      .summary {
+        display: grid;
+        grid-template-columns: minmax(500px, 1.35fr) repeat(3, minmax(150px, 0.42fr));
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .panel,
+      .metric {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+
+      .run-panel {
+        padding: 11px 14px;
+        box-shadow: var(--shadow);
+      }
+
+      .eyebrow {
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 760;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 1px 0 7px;
+        font-size: 25px;
+        line-height: 1.2;
+        font-weight: 760;
+      }
+
+      .run-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 0;
+      }
+
+      .meta-card {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 7px;
+        min-width: 0;
+        padding: 5px 8px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #f8fafc;
+      }
+
+      .meta-label {
+        display: inline;
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 780;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
+      .meta-value {
+        display: inline;
+        overflow: hidden;
+        color: var(--ink);
+        font-size: 15px;
+        font-weight: 780;
+        line-height: 1.15;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .metric {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 78px;
+        padding: 9px 12px;
+      }
+
+      .metric-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .metric .icon {
+        color: var(--muted);
+      }
+
+      .metric::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: var(--accent);
+      }
+
+      .metric.evidence::before { background: var(--green); }
+      .metric.disease::before { background: var(--rose); }
+
+      .metric.evidence { background: var(--green-soft); }
+      .metric.disease { background: #fff8f7; }
+
+      .metric .eyebrow {
+        color: #4d5968;
+      }
+
+      .metric-value {
+        margin-top: 1px;
+        font-size: 28px;
+        font-weight: 800;
+        line-height: 1.05;
+      }
+
+      .toolbar {
+        position: sticky;
+        top: 74px;
+        z-index: 4;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 14px;
+        align-items: end;
+        padding: 13px 14px;
+        margin-bottom: 14px;
+        box-shadow: 0 12px 28px rgba(28, 39, 56, 0.07);
+      }
+
+      .filters {
+        display: grid;
+        grid-template-columns: minmax(220px, 1.2fr) minmax(160px, 0.55fr)
+          minmax(140px, 0.35fr) auto auto;
+        gap: 9px;
+        align-items: end;
+      }
+
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      input[type="search"],
+      input[type="text"],
+      input[type="number"],
+      select {
+        width: 100%;
+        min-height: 36px;
+        border: 1px solid var(--line-strong);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--ink);
+        padding: 8px 10px;
+        font: inherit;
+      }
+
+      .check-row {
+        min-height: 36px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #f9fbfd;
+        flex-direction: row;
+        align-items: center;
+        color: var(--ink);
+        font-size: 13px;
+      }
+
+      .check-row input { width: 18px; height: 18px; }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      button,
+      .action-button {
+        min-height: 36px;
+        border: 1px solid var(--line-strong);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--ink);
+        padding: 8px 12px;
+        font: inherit;
+        font-weight: 720;
+        text-decoration: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+      }
+
+      button:hover,
+      .action-button:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      button.primary,
+      .action-button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-ink);
+      }
+
+      .table-panel { overflow: hidden; }
+
+      .table-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        padding: 13px 15px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfe;
+      }
+
+      .table-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        max-height: calc(100vh - 300px);
+        background: #fff;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 1320px;
+        font-size: 16px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 12px 14px;
+        text-align: left;
+        vertical-align: middle;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #eef3f8;
+        color: #344255;
+        font-size: 15px;
+        font-weight: 780;
+        white-space: nowrap;
+        border-bottom: 1px solid var(--line-strong);
+      }
+
+      th button {
+        all: unset;
+        cursor: pointer;
+      }
+
+      tbody tr:nth-child(even) td { background: #fafcff; }
+      tbody tr:hover td { background: var(--accent-soft); }
+      td.numeric { font-variant-numeric: tabular-nums; }
+      td.evidence { background: var(--green-soft) !important; }
+      td.high-score { background: var(--rose-soft) !important; }
+
+      .pagination {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        padding: 11px 14px;
+        border-top: 1px solid var(--line);
+        background: #fbfcfe;
+      }
+
+      .muted { color: var(--muted); }
+      .hidden { display: none !important; }
+
+      footer {
+        padding: 18px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 1050px) {
+        .summary {
+          grid-template-columns: 1fr 1fr;
+          max-width: none;
+        }
+        .toolbar { grid-template-columns: 1fr; }
+        .actions { justify-content: flex-start; }
+        .filters { grid-template-columns: 1fr 1fr; }
+        .run-meta { grid-template-columns: 1fr; }
+      }
+
+      @media (max-width: 680px) {
+        .topbar-inner,
+        main { width: min(100% - 20px, 1500px); }
+        .summary,
+        .filters { grid-template-columns: 1fr; }
+        .topbar-inner { align-items: flex-start; flex-direction: column; padding: 12px 0; }
+        .toolbar { top: 0; }
+        .metric-value { font-size: 22px; }
+      }
+    </style>
+  </head>
+  <body>
+    <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+      <symbol id="icon-dna" viewBox="0 0 24 24">
+        <path d="M2 15c6-6 14-6 20-12"></path>
+        <path d="M2 9c6 6 14 6 20 12"></path>
+        <path d="M7 6h10"></path>
+        <path d="M7 18h10"></path>
+        <path d="M4.5 12h15"></path>
+      </symbol>
+      <symbol id="icon-download" viewBox="0 0 24 24">
+        <path d="M12 3v12"></path>
+        <path d="m7 10 5 5 5-5"></path>
+        <path d="M5 21h14"></path>
+      </symbol>
+      <symbol id="icon-list" viewBox="0 0 24 24">
+        <path d="M8 6h13"></path>
+        <path d="M8 12h13"></path>
+        <path d="M8 18h13"></path>
+        <path d="M3 6h.01"></path>
+        <path d="M3 12h.01"></path>
+        <path d="M3 18h.01"></path>
+      </symbol>
+      <symbol id="icon-shield" viewBox="0 0 24 24">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path>
+      </symbol>
+      <symbol id="icon-alert" viewBox="0 0 24 24">
+        <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path>
+        <path d="M12 9v4"></path>
+        <path d="M12 17h.01"></path>
+      </symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.3-4.3"></path>
+      </symbol>
+      <symbol id="icon-refresh" viewBox="0 0 24 24">
+        <path d="M21 12a9 9 0 0 1-15.5 6.2"></path>
+        <path d="M3 12A9 9 0 0 1 18.5 5.8"></path>
+        <path d="M3 19v-6h6"></path>
+        <path d="M21 5v6h-6"></path>
+      </symbol>
+      <symbol id="icon-table" viewBox="0 0 24 24">
+        <path d="M3 5h18v14H3z"></path>
+        <path d="M3 10h18"></path>
+        <path d="M9 5v14"></path>
+        <path d="M15 5v14"></path>
+      </symbol>
+    </svg>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">🧬</div>
+          <div class="brand-copy">
+            <div class="brand-title">CBIcall mtDNA</div>
+          </div>
+        </div>
+        <div class="actions">
+          __DOWNLOAD_BUTTONS__
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="summary" aria-label="Run summary">
+        <div class="panel run-panel">
+          <div class="eyebrow">Variation browser</div>
+          <h1>mtDNA variant prioritization</h1>
+          <div class="run-meta" aria-label="Run identifiers">
+            <div class="meta-card">
+              <span class="meta-label">Project</span>
+              <span class="meta-value" title="__PROJECT_ID__">__PROJECT_ID__</span>
+            </div>
+            <div class="meta-card">
+              <span class="meta-label">Job ID</span>
+              <span class="meta-value" title="__JOB_ID__">__JOB_ID__</span>
+            </div>
+            <div class="meta-card">
+              <span class="meta-label">Source</span>
+              <span class="meta-value" title="__SOURCE_JSON__">__SOURCE_JSON__</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-title">
+            <svg class="icon" aria-hidden="true"><use href="#icon-list"></use></svg>
+            <div class="eyebrow">Variants Listed</div>
+          </div>
+          <div class="metric-value" id="metric-variants">0</div>
+        </div>
+        <div class="metric evidence">
+          <div class="metric-title">
+            <svg class="icon" aria-hidden="true"><use href="#icon-shield"></use></svg>
+            <div class="eyebrow">External Evidence</div>
+          </div>
+          <div class="metric-value" id="metric-evidence">0</div>
+        </div>
+        <div class="metric disease">
+          <div class="metric-title">
+            <svg class="icon" aria-hidden="true"><use href="#icon-alert"></use></svg>
+            <div class="eyebrow">Disease Score >= 0.80</div>
+          </div>
+          <div class="metric-value" id="metric-disease">0</div>
+        </div>
+      </section>
+
+      <section class="panel toolbar" aria-label="Filters and actions">
+        <div class="filters">
+          <label>Search
+            <input id="search" type="search" placeholder="Gene, variant, disease, rsID">
+          </label>
+          <label>Locus
+            <input id="locus-filter" type="text" placeholder="e.g. MT-ND1">
+          </label>
+          <label>Disease score >=
+            <input id="score-filter" type="number" min="0" max="1" step="0.01">
+          </label>
+          <label class="check-row">
+            <input id="evidence-only" type="checkbox">
+            External evidence only
+          </label>
+          <label class="check-row">
+            <input id="show-advanced" type="checkbox">
+            Advanced annotations
+          </label>
+        </div>
+        <div class="actions">
+          <button id="clear-filters" type="button">
+            <svg class="icon" aria-hidden="true"><use href="#icon-refresh"></use></svg>
+            Reset filters
+          </button>
+          <button id="export-csv" type="button" class="primary">
+            <svg class="icon" aria-hidden="true"><use href="#icon-download"></use></svg>
+            Export CSV
+          </button>
+        </div>
+      </section>
+
+      <section class="panel table-panel" aria-label="mtDNA variants table">
+        <div class="table-header">
+          <strong class="table-title">
+            <svg class="icon" aria-hidden="true"><use href="#icon-table"></use></svg>
+            Variant review table
+          </strong>
+          <span class="muted" id="table-status">Showing 0 variants</span>
+        </div>
+        <div class="table-wrap">
+          <table id="variants-table">
+            <thead><tr id="table-head"></tr></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div>
+            <button id="prev-page" type="button">Previous</button>
+            <button id="next-page" type="button">Next</button>
+          </div>
+          <label>Rows
+            <select id="page-size">
+              <option selected>50</option>
+              <option>100</option>
+              <option>250</option>
+              <option>500</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <footer>&copy; 2025-2026 CNAG | Barcelona</footer>
+    </main>
+
+    <script type="application/json" id="mtdna-columns">__COLUMNS_JSON__</script>
+    <script type="application/json" id="mtdna-data">__DATA_JSON__</script>
+    <script>
+      const columns = JSON.parse(document.getElementById("mtdna-columns").textContent);
+      const payload = JSON.parse(document.getElementById("mtdna-data").textContent);
+      const rows = Array.isArray(payload.data) ? payload.data : [];
+      const diseaseThreshold = __DISEASE_THRESHOLD__;
+      const defaultHidden = new Set(__DEFAULT_HIDDEN_JSON__);
+      const evidenceColumns = __EVIDENCE_COLUMNS_JSON__;
+      const numericColumns = new Set([7, 8, 10, 19, 20, 21]);
+
+      let sortIndex = 8;
+      let sortDirection = "desc";
+      let page = 1;
+      let filteredRows = rows;
+
+      const state = {
+        search: document.getElementById("search"),
+        locus: document.getElementById("locus-filter"),
+        score: document.getElementById("score-filter"),
+        evidenceOnly: document.getElementById("evidence-only"),
+        showAdvanced: document.getElementById("show-advanced"),
+        pageSize: document.getElementById("page-size"),
+      };
+
+      function stripHtml(value) {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = value || "";
+        return tmp.textContent || tmp.innerText || "";
+      }
+
+      function rowText(row) {
+        return row.map(stripHtml).join(" ").toLowerCase();
+      }
+
+      function hasEvidence(row) {
+        return evidenceColumns.some((index) => stripHtml(row[index]).trim().length > 0);
+      }
+
+      function diseaseScore(row) {
+        const value = parseFloat(stripHtml(row[10]));
+        return Number.isFinite(value) ? value : null;
+      }
+
+      function compareCells(a, b, index) {
+        const aText = stripHtml(a[index]);
+        const bText = stripHtml(b[index]);
+        if (numericColumns.has(index)) {
+          const aNum = parseFloat(aText);
+          const bNum = parseFloat(bText);
+          if (Number.isFinite(aNum) && Number.isFinite(bNum)) {
+            return aNum - bNum;
+          }
+        }
+        return aText.localeCompare(bText, undefined, { numeric: true, sensitivity: "base" });
+      }
+
+      function visibleColumn(index) {
+        return state.showAdvanced.checked || !defaultHidden.has(index);
+      }
+
+      function updateMetrics() {
+        document.getElementById("metric-variants").textContent = rows.length.toLocaleString();
+        document.getElementById("metric-evidence").textContent =
+          rows.filter(hasEvidence).length.toLocaleString();
+        document.getElementById("metric-disease").textContent =
+          rows.filter((row) => {
+            const score = diseaseScore(row);
+            return score !== null && score >= diseaseThreshold;
+          }).length.toLocaleString();
+      }
+
+      function renderHeader() {
+        const head = document.getElementById("table-head");
+        head.innerHTML = "";
+        columns.forEach((label, index) => {
+          const th = document.createElement("th");
+          th.className = visibleColumn(index) ? "" : "hidden";
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = label + (sortIndex === index ? (sortDirection === "asc" ? " ^" : " v") : "");
+          button.addEventListener("click", () => {
+            if (sortIndex === index) {
+              sortDirection = sortDirection === "asc" ? "desc" : "asc";
+            } else {
+              sortIndex = index;
+              sortDirection = numericColumns.has(index) ? "desc" : "asc";
+            }
+            render();
+          });
+          th.appendChild(button);
+          head.appendChild(th);
+        });
+      }
+
+      function applyFilters() {
+        const q = state.search.value.trim().toLowerCase();
+        const locus = state.locus.value.trim().toLowerCase();
+        const minScore = parseFloat(state.score.value);
+        const useScore = Number.isFinite(minScore);
+
+        filteredRows = rows.filter((row) => {
+          if (q && !rowText(row).includes(q)) return false;
+          if (locus && !stripHtml(row[1]).toLowerCase().includes(locus)) return false;
+          if (state.evidenceOnly.checked && !hasEvidence(row)) return false;
+          if (useScore) {
+            const score = diseaseScore(row);
+            if (score === null || score < minScore) return false;
+          }
+          return true;
+        });
+
+        filteredRows.sort((a, b) => {
+          const cmp = compareCells(a, b, sortIndex);
+          return sortDirection === "asc" ? cmp : -cmp;
+        });
+      }
+
+      function renderBody() {
+        const body = document.getElementById("table-body");
+        body.innerHTML = "";
+
+        const pageSize = parseInt(state.pageSize.value, 10);
+        const pageCount = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+        page = Math.min(page, pageCount);
+        const start = (page - 1) * pageSize;
+        const rowsToRender = filteredRows.slice(start, start + pageSize);
+
+        for (const row of rowsToRender) {
+          const tr = document.createElement("tr");
+          row.forEach((cell, index) => {
+            const td = document.createElement("td");
+            td.className = visibleColumn(index) ? "" : "hidden";
+            if (numericColumns.has(index)) td.classList.add("numeric");
+            if (index === 10) {
+              const score = diseaseScore(row);
+              if (score !== null && score >= diseaseThreshold) td.classList.add("high-score");
+            }
+            if (index === 12 && stripHtml(cell).trim()) td.classList.add("evidence");
+            td.innerHTML = cell || "";
+            tr.appendChild(td);
+          });
+          body.appendChild(tr);
+        }
+
+        const end = Math.min(start + rowsToRender.length, filteredRows.length);
+        document.getElementById("table-status").textContent =
+          "Showing " + (filteredRows.length ? start + 1 : 0).toLocaleString() +
+          "-" + end.toLocaleString() + " of " + filteredRows.length.toLocaleString() +
+          " variants";
+        document.getElementById("prev-page").disabled = page <= 1;
+        document.getElementById("next-page").disabled = page >= pageCount;
+      }
+
+      function render() {
+        applyFilters();
+        renderHeader();
+        renderBody();
+      }
+
+      function csvEscape(value) {
+        const text = String(value).replace(/"/g, '""');
+        return /[",\n]/.test(text) ? '"' + text + '"' : text;
+      }
+
+      function exportCsv() {
+        const visible = columns.map((_, index) => index).filter(visibleColumn);
+        const lines = [
+          visible.map((index) => csvEscape(columns[index])).join(","),
+          ...filteredRows.map((row) =>
+            visible.map((index) => csvEscape(stripHtml(row[index] || ""))).join(",")
+          ),
+        ];
+        const blob = new Blob([lines.join("\n") + "\n"], { type: "text/csv" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "mtdna_variants.csv";
+        link.click();
+        URL.revokeObjectURL(link.href);
+      }
+
+      for (const element of Object.values(state)) {
+        element.addEventListener("input", () => {
+          page = 1;
+          render();
+        });
+        element.addEventListener("change", () => {
+          page = 1;
+          render();
+        });
+      }
+
+      document.getElementById("clear-filters").addEventListener("click", () => {
+        state.search.value = "";
+        state.locus.value = "";
+        state.score.value = "";
+        state.evidenceOnly.checked = false;
+        page = 1;
+        render();
+      });
+      document.getElementById("export-csv").addEventListener("click", exportCsv);
+      document.getElementById("prev-page").addEventListener("click", () => {
+        page -= 1;
+        renderBody();
+      });
+      document.getElementById("next-page").addEventListener("click", () => {
+        page += 1;
+        renderBody();
+      });
+
+      updateMetrics();
+      render();
+    </script>
+  </body>
+</html>

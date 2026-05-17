@@ -2,5 +2,4 @@
 
 ./mtb2html.py --id CNAG99901P-DNA_MIT --json mit.json --out mtdna.html --job-id 176099009134887
 
-chromium --allow-file-access-from-files --disable-web-security mtdna.html 
-
+chromium mtdna.html

@@ -72,7 +72,6 @@ fi
 # Anchor project-relative directories (same as mit_single)
 BINDIRMTB="$BINDIR/../../../mtdna"
 PYBINDIR="$BINDIR/../../../browser"
-ASSETS="$PYBINDIR/assets"
 
 # cohort id (format: <PROJECT>-DNA_MIT)
 cohort="$(echo "$DIR" | awk -F'/' '{print $(NF-1)}' | awk -F'_' '{print $1}' | sed 's/$/-DNA_MIT/')"
@@ -284,13 +283,12 @@ mit_raw_json="mit.raw.json"
 "$PYBINDIR/mtb2json.py" -i "$final_file" -f json > "$mit_raw_json"
 "$PYBINDIR/mtb2json.py" -i "$final_file" -f json4html > "$BROWSERDIR/$mit_json"
 "$PYBINDIR/mtb2html.py" --id "$cohort" --json "$mit_json" --out "$BROWSERDIR/$job_id.html" --job-id "$job_id"
-ln -s "$ASSETS" "$BROWSERDIR/assets" 2>/dev/null || true
 
 cat <<EOF > "$BROWSERDIR/README.txt"
 # To visualize <$job_id.html>:
 
-# Option 1: Open <$job_id.html> directly in Chromium
-chromium --allow-file-access-from-files --disable-web-security $job_id.html
+# Option 1: Open <$job_id.html> directly in a web browser
+xdg-open $job_id.html
 
 # Option 2: Use an HTTP server. Example using Python 3:
 python3 -m http.server

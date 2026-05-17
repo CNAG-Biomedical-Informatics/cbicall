@@ -102,7 +102,7 @@ The results are reported both as an HTML table and as downloadable files.
 
 ### HTML table:
 
-In this tab SG-ADVISER mtDNA displays a browsable table consisting of the most relevant fields relative to the variant annotation:
+The CBIcall mtDNA variation browser displays a browsable table consisting of the most relevant fields relative to the variant annotation:
 
 * **Sample**: The full name of each sample.
 * **Locus**: The location on the mitochondrial chromosome.
@@ -216,7 +216,7 @@ The results are reported both as an HTML table and as downloadable files.
 
 ### HTML table:
 
-In this tab SG-ADVISER mtDNA displays a browsable table consisting of the most relevant fields relative to the variant annotation:
+The CBIcall mtDNA variation browser displays a browsable table consisting of the most relevant fields relative to the variant annotation:
 
 * **Sample**: The full name of each sample.
 * **Locus**: The location on the mitochondrial chromosome.

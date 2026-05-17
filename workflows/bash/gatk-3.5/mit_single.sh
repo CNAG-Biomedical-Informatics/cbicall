@@ -63,7 +63,6 @@ fi
 DIR=$( pwd )
 BINDIRMTB=$BINDIR/../../../mtdna
 PYBINDIR=$BINDIR/../../../browser
-ASSETS=$PYBINDIR/assets
 
 id=$( echo "$DIR" | awk -F'/' '{print $(NF-1)}' | awk -F'_' '{print $1}' )
 # The mtb_id needs to have this format LP6005831-???_???.bam, otherwise MToolBox will fail
@@ -74,7 +73,7 @@ job_id=$( echo "$DIR" | awk -F'_' '{print $NF}' )
 VARCALLDIR=$DIR/01_mtoolbox
 BROWSERDIR=$DIR/02_browser
 mkdir "$VARCALLDIR"
-mkdir $BROWSERDIR
+mkdir "$BROWSERDIR"
 
 # From now on we will work on VARCALL dir
 cd "$VARCALLDIR"
@@ -234,20 +233,19 @@ fi
 paste "$in_file" "$out_file" > "$final_file"
 rm "$out_file"
 
-# HMTL creation
+# HTML creation
 echo "Creating Browser HTML..."
-mit_json=mit.json
-mit_raw_json=mit.raw.json
-$PYBINDIR/mtb2json.py  -i $final_file -f json > $mit_raw_json
-$PYBINDIR/mtb2json.py  -i $final_file -f json4html > $BROWSERDIR/$mit_json
-$PYBINDIR/mtb2html.py --id $id --json $mit_json --out $BROWSERDIR/$job_id.html --job-id $job_id
-ln -s $ASSETS $BROWSERDIR/assets
+mit_json="mit.json"
+mit_raw_json="mit.raw.json"
+"$PYBINDIR/mtb2json.py" -i "$final_file" -f json > "$mit_raw_json"
+"$PYBINDIR/mtb2json.py" -i "$final_file" -f json4html > "$BROWSERDIR/$mit_json"
+"$PYBINDIR/mtb2html.py" --id "$id" --json "$mit_json" --out "$BROWSERDIR/$job_id.html" --job-id "$job_id"
 
-cat<<EOF>$BROWSERDIR/README.txt
+cat <<EOF > "$BROWSERDIR/README.txt"
 # To visualize <$job_id.html>:
 
-# Option 1: Open <176099009134887.html> directly in Chromium
-chromium --allow-file-access-from-files --disable-web-security $job_id.html
+# Option 1: Open <$job_id.html> directly in a web browser
+xdg-open $job_id.html
 
 # Option 2: Use an HTTP server. Example using Python 3:
 python3 -m http.server

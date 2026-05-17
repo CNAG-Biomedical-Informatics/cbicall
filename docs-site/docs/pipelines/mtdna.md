@@ -117,7 +117,7 @@ It extracts mtDNA reads, runs MToolBox, and enriches the prioritized variants wi
 
 ## Background Information
 
-**SG-ADVISER mtDNA** builds on [MToolbox v1.0](https://github.com/mitoNGS/MToolBox) and performs:
+**CBIcall mtDNA** builds on [MToolbox v1.0](https://github.com/mitoNGS/MToolBox) and performs:
 
 ---
 ### 1. Preprocessing (PicardTools)

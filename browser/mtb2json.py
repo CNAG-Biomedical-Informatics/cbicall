@@ -14,9 +14,11 @@ Notes:
 
 import argparse
 import csv
+import html
 import json
 import sys
 from pprint import pprint
+from urllib.parse import quote, urlparse
 
 
 KEYS2REPORT = [
@@ -265,6 +267,49 @@ def build_hash_out(rows, header, hf_cutoff, maf_cutoff, drop_missing_hf=False, d
     return hash_out
 
 
+def _html_link(href, text):
+    return (
+        '<a target="_blank" rel="noopener noreferrer" href="'
+        + html.escape(href, quote=True)
+        + '">'
+        + html.escape(text)
+        + "</a>"
+    )
+
+
+def _is_http_url(value):
+    parsed = urlparse(value)
+    return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
+
+def _html_cell(key, value):
+    tmp = value or ""
+
+    if key == "Mitomap_Associated_Disease(s)" and tmp:
+        tmp = tmp.replace("+", "_plus_")
+
+    if key == "Sample" and tmp:
+        tmp = tmp.replace("-DNA_MIT", "")
+
+    if key in ("GT", "DP", "HF") and tmp:
+        return ",<br />".join(html.escape(part) for part in tmp.split("|"))
+
+    if key == "Locus" and tmp:
+        href = "https://ghr.nlm.nih.gov/gene/" + quote(tmp, safe="") + "#conditions"
+        return _html_link(href, tmp)
+
+    if key == "dbSNP_ID" and tmp:
+        href = "http://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=" + quote(tmp, safe="")
+        return _html_link(href, tmp)
+
+    if key == "OMIM_link" and tmp:
+        if _is_http_url(tmp):
+            return _html_link(tmp, tmp)
+        return html.escape(tmp)
+
+    return html.escape(tmp)
+
+
 def hash2array(hash_out):
     """
     Build AoA for DataTables, with HTML links for Locus, dbSNP_ID, OMIM_link,
@@ -277,43 +322,7 @@ def hash2array(hash_out):
         row = []
 
         for key2 in KEYS4HTML:
-            tmp = record.get(key2, "")
-
-            # LINKS
-            if key2 == "Locus" and tmp:
-                tmp = (
-                    '<a target="_blank" href="https://ghr.nlm.nih.gov/gene/'
-                    + tmp
-                    + '#conditions">'
-                    + tmp
-                    + "</a>"
-                )
-
-            if key2 == "dbSNP_ID" and tmp:
-                tmp = (
-                    '<a target="_blank" href="http://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs='
-                    + tmp
-                    + '">'
-                    + tmp
-                    + "</a>"
-                )
-
-            if key2 == "OMIM_link" and tmp:
-                tmp = '<a target="_blank" href="' + tmp + '">' + tmp + "</a>"
-
-            # Optional: keep the old + -> _plus_ safeguard in Mitomap
-            if key2 == "Mitomap_Associated_Disease(s)" and tmp:
-                tmp = tmp.replace("+", "_plus_")
-
-            # Trim sample suffix
-            if key2 == "Sample" and tmp:
-                tmp = tmp.replace("-DNA_MIT", "")
-
-            # GT/DP/HF: '|' -> ',<br />'
-            if key2 in ("GT", "DP", "HF") and tmp:
-                tmp = tmp.replace("|", ",<br />")
-
-            row.append(tmp)
+            row.append(_html_cell(key2, record.get(key2, "")))
 
         rows.append(row)
 
@@ -364,4 +373,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
