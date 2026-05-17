@@ -9,7 +9,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Installation',
+      label: 'Install',
       items: [
         {
           type: 'doc',
@@ -19,23 +19,23 @@ const sidebars: SidebarsConfig = {
         {
           type: 'doc',
           id: 'installation/google-cloud-docker',
-          label: 'Google Cloud with Docker',
+          label: 'Google Cloud',
         },
         {
           type: 'doc',
           id: 'installation/apptainer',
-          label: 'HPC with Apptainer / Singularity',
+          label: 'Apptainer / Singularity',
         },
         {
           type: 'doc',
           id: 'installation/non-containerized',
-          label: 'Non-containerized',
+          label: 'From Source',
         },
       ],
     },
     {
       type: 'category',
-      label: 'Getting Started',
+      label: 'Run',
       items: [
         {
           type: 'doc',
@@ -50,22 +50,38 @@ const sidebars: SidebarsConfig = {
         {
           type: 'doc',
           id: 'usage/end-to-end-example-wes',
-          label: 'End-to-end Example: WES',
+          label: 'WES Example',
         },
         {
           type: 'doc',
           id: 'usage/end-to-end-example-mit',
-          label: 'End-to-end Example: mtDNA',
+          label: 'mtDNA Example',
         },
         {
           type: 'doc',
           id: 'usage/usage',
           label: 'General Usage',
         },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Reproducibility',
+      items: [
         {
           type: 'doc',
           id: 'usage/run-comparison',
           label: 'Run Comparison',
+        },
+        {
+          type: 'doc',
+          id: 'usage/integration-tests',
+          label: 'Integration Tests',
+        },
+        {
+          type: 'doc',
+          id: 'usage/resource-validation',
+          label: 'Resource Validation',
         },
       ],
     },
@@ -92,7 +108,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Technical Details',
+      label: 'Extend',
       items: [
         {
           type: 'doc',
@@ -110,36 +126,30 @@ const sidebars: SidebarsConfig = {
           label: 'Adding Resources',
         },
         {
-          type: 'category',
-          label: 'Resources',
-          items: [
-            {
-              type: 'doc',
-              id: 'technical-details/resource-bundle-v1',
-              label: 'Bundle v1',
-            },
-          ],
+          type: 'doc',
+          id: 'technical-details/resource-bundle-v1',
+          label: 'Resource Bundle v1',
         },
       ],
     },
     {
       type: 'category',
-      label: 'Help & Reference',
+      label: 'Reference',
       items: [
         {
           type: 'doc',
-          id: 'help/naming-conventions',
-          label: 'Naming Conventions',
-        },
-        {
-          type: 'doc',
           id: 'help/configuration-reference',
-          label: 'Configuration Reference',
+          label: 'Configuration',
         },
         {
           type: 'doc',
           id: 'help/outputs',
           label: 'Outputs',
+        },
+        {
+          type: 'doc',
+          id: 'help/naming-conventions',
+          label: 'Naming Conventions',
         },
         {
           type: 'doc',

@@ -64,30 +64,20 @@ nohup bin/cbicall run -p parameters.yaml -t 4 > run.log 2>&1 &
 | `> run.log 2>&1` | You are saving terminal output to a file. ANSI colors are disabled automatically. |
 | `nohup ... &` | You need a simple long-running background job outside a scheduler. |
 
-## Integration Tests
+## Reproducibility Commands
 
-Use the built-in test command from the repository root. It runs the bundled example workflow and compares outputs against the shipped reference files.
-
-These tests are intended as framework-level integration validation: they exercise
-the normal CLI, parameter YAML resolution, workflow registry dispatch,
-pipeline-version provenance, resource-bundle reporting, workflow execution, and
-deterministic output comparison. They do not replace biological or clinical
-validation of the underlying variant-calling methods.
+CBIcall includes dedicated commands for framework-level checks and run comparison.
 
 ```bash
 bin/cbicall test --wes -t 1
-bin/cbicall test --mit -t 1
-bin/cbicall test --all -t 1
 bin/cbicall validate-resources
 bin/cbicall compare-runs run_a/ run_b/ run_c/ --output compare-report.txt --html compare-report.html
 ```
 
 | Command | Use |
 | --- | --- |
-| `bin/cbicall test --wes -t 1` | Fast WES integration test. Run this first. |
-| `bin/cbicall test --mit -t 1` | mtDNA integration test after the WES path is working. |
-| `bin/cbicall test --all -t 1` | Run all bundled integration examples. |
-| `bin/cbicall validate-resources` | Validate the resource catalog and its workflow compatibility keys. Add `--bundle <key>` to check one bundle entry. |
+| `bin/cbicall test --wes -t 1` | Fast bundled integration test. See [Integration Tests](integration-tests). |
+| `bin/cbicall validate-resources` | Validate the resource catalog and workflow compatibility keys. See [Resource Validation](resource-validation). |
 | `bin/cbicall compare-runs run_a/ run_b/ run_c/ --output compare-report.txt --html compare-report.html` | Compare run reports for workflow, resource, and output fingerprint differences. See [Run Comparison](run-comparison). |
 
 :::tip[Thread choice]

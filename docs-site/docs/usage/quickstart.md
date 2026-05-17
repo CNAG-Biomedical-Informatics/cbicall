@@ -108,6 +108,9 @@ For most WES/WGS runs, start with 4 threads and adjust after checking [Performan
 | Goal | Page |
 | --- | --- |
 | Pick the right workflow | [Choose Your Path](choose-your-path) |
+| Understand the test commands | [Integration Tests](integration-tests) |
+| Validate resource compatibility | [Resource Validation](resource-validation) |
+| Compare repeated runs | [Run Comparison](run-comparison) |
 | Run real WES/WGS data | [End-to-end Example: WES](end-to-end-example-wes) |
 | Run mtDNA analysis | [End-to-end Example: mtDNA](end-to-end-example-mit) |
 | Understand generated files | [Outputs](../help/outputs) |
