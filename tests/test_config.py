@@ -70,7 +70,7 @@ def _minimal_bash_registry_block(gatk_ver: str = "gatk-4.6") -> str:
         "    base_dir: \"workflows/bash\"\n"
         "    versions:\n"
         f"      {gatk_ver}:\n"
-        "        common:\n"
+        "        helpers:\n"
         "          env: \"env.sh\"\n"
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"
@@ -862,7 +862,7 @@ def test_set_config_values_engine_not_in_registry_raises(monkeypatch, tmp_path):
         "    base_dir: \"workflows/bash\"\n"
         "    versions:\n"
         "      gatk-4.6:\n"
-        "        common:\n"
+        "        helpers:\n"
         "          env: \"env.sh\"\n"
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"
@@ -901,7 +901,7 @@ def test_set_config_values_version_not_in_registry_raises(monkeypatch, tmp_path)
         "    base_dir: \"workflows/bash\"\n"
         "    versions:\n"
         "      gatk-3.5:\n"
-        "        common:\n"
+        "        helpers:\n"
         "          env: \"env.sh\"\n"
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"
@@ -934,7 +934,7 @@ def test_set_config_values_pipeline_not_in_registry_raises(monkeypatch, tmp_path
         "    base_dir: \"workflows/bash\"\n"
         "    versions:\n"
         "      gatk-3.5:\n"
-        "        common:\n"
+        "        helpers:\n"
         "          env: \"env.sh\"\n"
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"
@@ -967,7 +967,7 @@ def test_set_config_values_mode_not_in_registry_raises(monkeypatch, tmp_path):
         "    base_dir: \"workflows/bash\"\n"
         "    versions:\n"
         "      gatk-3.5:\n"
-        "        common:\n"
+        "        helpers:\n"
         "          env: \"env.sh\"\n"
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"
@@ -991,20 +991,20 @@ def test_set_config_values_mode_not_in_registry_raises(monkeypatch, tmp_path):
 
 
 # --------------------------------
-# Missing common keys branches
+# Missing helper keys branches
 # --------------------------------
 
-def test_set_config_values_bash_missing_common_keys_raises(monkeypatch, tmp_path):
+def test_set_config_values_bash_missing_helper_keys_raises(monkeypatch, tmp_path):
     root = _mk_fake_root(monkeypatch, tmp_path)
 
-    # Omit coverage/jaccard/vcf2sex/vcf2hash in common
+    # Omit coverage/jaccard/vcf2sex/vcf2hash in helpers
     reg = (
         "workflows:\n"
         "  bash:\n"
         "    base_dir: \"workflows/bash\"\n"
         "    versions:\n"
         "      gatk-3.5:\n"
-        "        common:\n"
+        "        helpers:\n"
         "          env: \"env.sh\"\n"
         "        pipelines:\n"
         "          wes:\n"
@@ -1017,13 +1017,13 @@ def test_set_config_values_bash_missing_common_keys_raises(monkeypatch, tmp_path
     _write_registry_and_schema(root, registry_lines=reg)
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
 
-    with pytest.raises(WorkflowResolutionError, match="missing common keys for bash"):
+    with pytest.raises(WorkflowResolutionError, match="missing helper keys for bash"):
         config_mod.set_config_values(
             {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
         )
 
 
-def test_set_config_values_snakemake_missing_common_config_raises(monkeypatch, tmp_path):
+def test_set_config_values_snakemake_missing_helper_config_raises(monkeypatch, tmp_path):
     root = _mk_fake_root(monkeypatch, tmp_path)
 
     # Include minimal bash section to satisfy schema required=["bash"]
@@ -1034,7 +1034,7 @@ def test_set_config_values_snakemake_missing_common_config_raises(monkeypatch, t
           "    base_dir: \"workflows/snakemake\"\n"
           "    versions:\n"
           "      gatk-4.6:\n"
-          "        common:\n"
+          "        helpers:\n"
           "          something_else: \"x.yaml\"\n"
           "        pipelines:\n"
           "          wgs:\n"
@@ -1054,7 +1054,7 @@ def test_set_config_values_snakemake_missing_common_config_raises(monkeypatch, t
     smk_dir.mkdir(parents=True, exist_ok=True)
     (smk_dir / "wgs_cohort.smk").write_text("# dummy\n", encoding="utf-8")
 
-    with pytest.raises(WorkflowResolutionError, match="missing common key 'config'"):
+    with pytest.raises(WorkflowResolutionError, match="missing helper key 'config'"):
         config_mod.set_config_values(
             {"mode": "cohort", "pipeline": "wgs", "workflow_engine": "snakemake", "gatk_version": "gatk-4.6"}
         )
@@ -1070,7 +1070,7 @@ def test_set_config_values_snakemake_missing_files_triggers_guard(monkeypatch, t
           "    base_dir: \"workflows/snakemake\"\n"
           "    versions:\n"
           "      gatk-4.6:\n"
-          "        common:\n"
+          "        helpers:\n"
           "          config: \"config.yaml\"\n"
           "        pipelines:\n"
           "          wgs:\n"
@@ -1109,7 +1109,7 @@ def test_set_config_values_nextflow_declared_but_not_implemented(monkeypatch, tm
           "    base_dir: \"workflows/nextflow\"\n"
           "    versions:\n"
           "      gatk-4.6:\n"
-          "        common: {}\n"
+          "        helpers: {}\n"
           "        pipelines:\n"
           "          wgs:\n"
           "            single:\n"
@@ -1457,7 +1457,7 @@ def test_set_config_values_missing_workflow_files_raises(monkeypatch, tmp_path):
         "    base_dir: \"workflows/bash\"\n"
         "    versions:\n"
         "      gatk-3.5:\n"
-        "        common:\n"
+        "        helpers:\n"
         "          env: \"env.sh\"\n"
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"
@@ -1493,7 +1493,7 @@ def test_set_config_values_not_executable_bash_raises(monkeypatch, tmp_path):
         "    base_dir: \"workflows/bash\"\n"
         "    versions:\n"
         "      gatk-3.5:\n"
-        "        common:\n"
+        "        helpers:\n"
         "          env: \"env.sh\"\n"
         "          coverage: \"coverage.sh\"\n"
         "          jaccard: \"jaccard.sh\"\n"

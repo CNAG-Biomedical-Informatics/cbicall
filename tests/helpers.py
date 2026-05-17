@@ -56,7 +56,7 @@ def write_workflow_schema(path: Path) -> None:
                 "additionalProperties": False,
                 "required": ["pipelines"],
                 "properties": {
-                    "common": {
+                    "helpers": {
                         "type": "object",
                         "additionalProperties": {"type": "string", "minLength": 1},
                     },
@@ -147,7 +147,7 @@ def write_registry(
             "    base_dir: \"workflows/bash\"",
             "    versions:",
             f"      {gatk_ver}:",
-            "        common:",
+            "        helpers:",
             "          env: \"env.sh\"",
             "          coverage: \"coverage.sh\"",
             "          jaccard: \"jaccard.sh\"",
@@ -171,7 +171,7 @@ def write_registry(
             "    base_dir: \"workflows/snakemake\"",
             "    versions:",
             f"      {gatk_ver}:",
-            "        common:",
+            "        helpers:",
             "          config: \"config.yaml\"",
         ]
         if snakemake_profiles:

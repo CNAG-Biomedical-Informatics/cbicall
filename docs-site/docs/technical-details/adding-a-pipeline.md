@@ -144,7 +144,7 @@ workflows:
     base_dir: "workflows/bash"
     versions:
       gatk-4.6:
-        common:
+        helpers:
           env: "env.sh"
         pipelines:
           mypipe:

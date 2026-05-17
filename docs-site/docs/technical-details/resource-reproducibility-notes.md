@@ -27,7 +27,7 @@ CBIcall separates three layers.
 | --- | --- |
 | Execution layer | Python wrapper, versioned workflow registry, Bash/Snakemake workflow scripts, and optional containers. |
 | External resource layer | Catalogued bundle with third-party tools, reference genomes, known-sites VCFs, interval lists, and MToolBox resources installed under a configured data directory. |
-| Runtime provenance | `log.json` and `run-report.json` record CLI arguments, resolved configuration, selected workflow implementation version, bundle identity, paths, and runtime metadata. Workflow logs capture executed commands and tool paths. Nuclear WES/WGS single-sample Bash workflows also write a VCF SHA-256 fingerprint report under `03_stats`. |
+| Runtime provenance | `log.json` records the resolved configuration. `run-report.json` is the compact audit summary: CBIcall version, selected workflow implementation version, workflow file SHA-256 fingerprints, bundle identity, output fingerprints when available, paths, and runtime metadata. Workflow logs capture executed commands and tool paths. Nuclear WES/WGS single-sample Bash workflows also write a VCF SHA-256 fingerprint report under `03_stats`. |
 
 The connection between CBIcall and the external resource layer is made through workflow-specific configuration files, especially `env.sh`.
 
@@ -47,7 +47,7 @@ For example, `env.sh` maps the external directory layout to variables used by th
 | `INTERVAL_LIST` | WES target interval list. |
 | `MTOOLBOXDIR` / `MTOOLBOXDB` | MToolBox executable and database locations. |
 
-This means the workflow is reproducible when the code version, user parameter file, workflow registry entry, pipeline implementation version, selected bundle, resource layout, and resource contents are all preserved. The current implementation records the selected resource key and catalog fingerprint, and checks local bundle metadata when `cbicall-resource-installation.json` or `cbicall-resource-id.json` is present in `DATADIR`.
+This means the workflow is reproducible when the code version, user parameter file, workflow registry entry, pipeline implementation version, selected bundle, resource layout, and resource contents are all preserved. The current implementation records the selected resource key and catalog fingerprint, hashes the resolved workflow files in `run-report.json`, and checks local bundle metadata when `cbicall-resource-installation.json` or `cbicall-resource-id.json` is present in `DATADIR`.
 
 ## Minimal Reproducibility Check
 
@@ -106,6 +106,26 @@ The Bash WES/WGS single-sample workflows now call `vcf2hash.sh` after the final 
 | `NORMALIZED_SHA256` | Compact fingerprint of the header-stripped, sorted variant-record stream. |
 
 The normalized hash is intended as a reporting fingerprint, not a replacement for the integration-test diff. It avoids unstable VCF headers and gzip metadata while still detecting changes in the variant records.
+
+## Run Comparison
+
+`run-report.json` is also the input for direct run comparison:
+
+```bash
+bin/cbicall compare-runs run_a/ run_b/ run_c/ --output compare-report.txt --html compare-report.html
+```
+
+The comparison reports whether the runs used the same CBIcall version,
+workflow key, pipeline implementation version, workflow file fingerprint,
+bundle resource fingerprint, and normalized VCF output fingerprint when available. With three or more runs, the first run is used as the baseline. A changed
+workflow fingerprint means the resolved workflow files are not byte-identical;
+the per-file manifest identifies which entrypoint, helper, Snakefile, or config
+file changed. CBIcall records this as audit evidence but does not treat it as a
+validation failure. The report includes a legend for `same`, `different`,
+`missing`, and `not available` statuses. The text report is the canonical
+artifact; `--html` writes a static rendering for easier browsing. See
+[Run Comparison](../usage/run-comparison) for the user-facing guide and example
+screenshot.
 
 ## Limitation of Versioning Only Tools
 
@@ -282,6 +302,8 @@ This is preferable to hard-coding one global bundle in the Python wrapper, becau
 
 > We further added a documented Google Cloud Docker recipe for the same one-sample reproducibility check. This provides a concrete portability test outside the local institutional environment. For output-level reporting, the nuclear WES/WGS single-sample Bash workflows now write a VCF hash report containing both the raw file SHA-256 and a normalized SHA-256 over header-stripped, sorted variant records.
 
+> To make workflow implementation drift visible without turning the workflow registry into a checksum manifest, `run-report.json` now records SHA-256 hashes for the resolved workflow entrypoint and helper/config files. We also added `cbicall compare-runs`, which compares two or more run reports across framework version, workflow identity, workflow file fingerprints, resource fingerprints, and normalized output fingerprints when available.
+
 ## Implementation Status
 
 Implemented in the current revision:
@@ -291,9 +313,11 @@ Implemented in the current revision:
 - Added a minimal reproducibility command block to the Quickstart.
 - Added explicit pipeline implementation versions in the workflow registry.
 - Recorded selected bundle provenance in `log.json` and `run-report.json`.
+- Added workflow file SHA-256 fingerprints to `run-report.json`.
+- Recorded the CBIcall framework version in `run-report.json` and `compare-runs`.
 - Added runtime bundle identity checks using local metadata files and lightweight hash validation.
 - Validated bundle compatibility against resolved workflow implementation versions.
-- Added `doctor`, `validate-registry`, `validate-resources`, and `test` commands.
+- Added `doctor`, `validate-registry`, `validate-resources`, `compare-runs`, and `test` commands.
 - Added a Google Cloud Docker recipe for a one-sample portability check.
 - Added `vcf2hash.sh` to the Bash workflow registry and WES/WGS single-sample workflows, writing VCF SHA-256 fingerprint reports under `03_stats`.
 

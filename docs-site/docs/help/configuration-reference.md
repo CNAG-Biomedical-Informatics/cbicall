@@ -137,6 +137,7 @@ During a real run, the resolved `profile` and selected environment file are writ
 | `bin/cbicall doctor -p parameters.yaml` | Dry-run preflight for one concrete run. It resolves the parameter YAML, workflow, profile env file, and bundle without launching the workflow. |
 | `bin/cbicall validate-registry` | Developer check for `workflows/registry/workflows.yaml` against `workflows/schema/workflows.schema.json`. |
 | `bin/cbicall validate-resources` | Developer check for `resources/cbicall-resource-catalog.json` and its workflow compatibility keys. Use `--bundle <key>` to validate one catalog entry. |
+| `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare two or more run directories or `run-report.json` files for workflow, resource, and output fingerprint differences. With three or more runs, the first run is used as the baseline. Add `--output compare-report.txt` to keep a text report and `--html compare-report.html` for a static HTML rendering. |
 | `bin/cbicall test --wes`, `--mit`, or `--all` | Runs the bundled integration examples without remembering the script path. |
 
 ```bash
@@ -145,6 +146,7 @@ bin/cbicall doctor -p parameters.yaml
 bin/cbicall validate-registry
 bin/cbicall validate-resources
 bin/cbicall validate-resources --bundle cbicall-germline-resources-v1
+bin/cbicall compare-runs run_a/ run_b/ run_c/ --output compare-report.txt --html compare-report.html
 bin/cbicall test --wes -t 1
 bin/cbicall test --all -t 1
 ```

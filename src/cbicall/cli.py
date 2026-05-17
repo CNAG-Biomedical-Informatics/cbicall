@@ -1,10 +1,14 @@
 import json
 import os
 import argparse
+import hashlib
+import html
+import io
 import subprocess
 import sys
 import threading
 import time
+from contextlib import redirect_stdout
 from pathlib import Path
 from typing import List
 
@@ -118,6 +122,108 @@ def write_log(resolved_config: dict, arg: dict, params: dict) -> None:
         json.dump(payload, fh, ensure_ascii=False, indent=2, sort_keys=True)
 
 
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while True:
+            chunk = handle.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _workflow_key(workflow) -> str:
+    return "/".join(
+        [
+            str(workflow.engine),
+            str(workflow.pipeline),
+            str(workflow.mode),
+            str(workflow.gatk_version),
+            str(workflow.pipeline_version),
+        ]
+    )
+
+
+def _workflow_file_manifest(workflow) -> dict:
+    candidates = [("entrypoint", workflow.entrypoint)]
+    if workflow.config_file:
+        candidates.append(("config", workflow.config_file))
+    candidates.extend((f"helper:{name}", path) for name, path in sorted(workflow.helpers.items()))
+
+    files = []
+    for role, raw_path in candidates:
+        if not raw_path:
+            continue
+        path = Path(str(raw_path))
+        entry = {
+            "role": role,
+            "path": str(raw_path),
+            "status": "present" if path.is_file() else "missing",
+        }
+        if path.is_file():
+            entry["sha256"] = _sha256_file(path)
+            entry["size_bytes"] = path.stat().st_size
+        else:
+            entry["sha256"] = None
+            entry["size_bytes"] = None
+        files.append(entry)
+
+    fingerprint_entries = [
+        {
+            "role": entry["role"],
+            "status": entry["status"],
+            "sha256": entry["sha256"],
+        }
+        for entry in files
+    ]
+    fingerprint_payload = json.dumps(fingerprint_entries, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return {
+        "fingerprint": hashlib.sha256(fingerprint_payload).hexdigest(),
+        "files": files,
+    }
+
+
+def _workflow_report(workflow) -> dict:
+    report = workflow.to_dict()
+    manifest = _workflow_file_manifest(workflow)
+    report["key"] = _workflow_key(workflow)
+    report["fingerprint"] = manifest["fingerprint"]
+    report["files"] = manifest["files"]
+    return report
+
+
+def _parse_key_value_file(path: Path) -> dict:
+    data = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        data[key.strip().lower()] = value.strip()
+    return data
+
+
+def _collect_output_fingerprints(project_dir: Path) -> dict:
+    reports = []
+    stats_dir = project_dir / "03_stats"
+    if stats_dir.is_dir():
+        for path in sorted(stats_dir.glob("*.vcf.sha256.txt")):
+            parsed = _parse_key_value_file(path)
+            reports.append(
+                {
+                    "path": str(path),
+                    "file": parsed.get("file"),
+                    "algorithm": parsed.get("algorithm"),
+                    "raw_sha256": parsed.get("raw_sha256"),
+                    "normalized_pattern": parsed.get("normalized_pattern"),
+                    "normalized_sort": parsed.get("normalized_sort"),
+                    "normalized_records": parsed.get("normalized_records"),
+                    "normalized_sha256": parsed.get("normalized_sha256"),
+                }
+            )
+    return {"vcf_hash_reports": reports}
+
+
 def write_run_report(
     resolved_config: ResolvedConfig,
     arg: dict,
@@ -136,14 +242,20 @@ def write_run_report(
         "elapsed_seconds": round(elapsed_seconds, 3),
         "workflow_log": str(workflow_log),
         "command_trace": "Detailed workflow stdout/stderr is recorded in the workflow log.",
+        "framework": {
+            "name": "CBIcall",
+            "version": resolved_config.version or VERSION,
+        },
         "profile": resolved_config.profile,
-        "workflow": workflow.to_dict(),
+        "workflow": _workflow_report(workflow),
         "resources": resolved_config.resources,
+        "outputs": _collect_output_fingerprints(project_dir),
         "run": {
             "run_id": resolved_config.run_id,
             "project_dir": resolved_config.project_dir,
             "threads": arg.get("threads"),
             "genome": resolved_config.genome,
+            "run_mode": resolved_config.run_mode,
         },
         "inputs": resolved_config.inputs.to_dict(),
         "parameters": {
@@ -258,6 +370,531 @@ def _run_validate_resources_command(argv: List[str]) -> int:
     _row("Resources", summary["resources"])
     _row("Bundle resources", summary["bundle_resources"])
     _row("Compatible workflows", summary["compatible_workflows"])
+    return 0
+
+
+def _run_report_path(path: str) -> Path:
+    report_path = Path(path)
+    if report_path.is_dir():
+        report_path = report_path / "run-report.json"
+    if not report_path.is_file():
+        raise FileNotFoundError(f"run-report.json not found: {report_path}")
+    return report_path
+
+
+def _load_run_report(path: str) -> dict:
+    report_path = _run_report_path(path)
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid run report JSON: {report_path}") from exc
+    report["_report_path"] = str(report_path)
+    return report
+
+
+def _nested(data: dict, *keys):
+    value = data
+    for key in keys:
+        if not isinstance(value, dict):
+            return None
+        value = value.get(key)
+    return value
+
+
+def _same_text(left, right) -> str:
+    return "same" if left == right else "different"
+
+
+def _run_label(report: dict) -> str:
+    return _short_path(report["_report_path"])
+
+
+def _comparison_value(value):
+    return "(missing)" if value is None else value
+
+
+def _compare_row(label: str, left, right) -> None:
+    if left is None and right is None:
+        _row(label, "not available")
+        return
+    if left is None or right is None:
+        _row(label, f"missing: {_comparison_value(left)} != {_comparison_value(right)}")
+        return
+    status = _same_text(left, right)
+    value = left if left == right else f"{left} != {right}"
+    _row(label, f"{status}: {value}")
+
+
+def _workflow_file_map(report: dict) -> dict:
+    files = _nested(report, "workflow", "files") or []
+    mapped = {}
+    for entry in files:
+        if isinstance(entry, dict) and entry.get("role"):
+            mapped[str(entry["role"])] = entry
+    return mapped
+
+
+def _compare_workflow_files(left: dict, right: dict) -> None:
+    left_files = _workflow_file_map(left)
+    right_files = _workflow_file_map(right)
+    roles = sorted(set(left_files) | set(right_files))
+    if not roles:
+        _row("Files", "not available")
+        return
+    for role in roles:
+        left_entry = left_files.get(role)
+        right_entry = right_files.get(role)
+        if not left_entry or not right_entry:
+            _row(role, "missing")
+            continue
+        same_path = left_entry.get("path") == right_entry.get("path")
+        same_sha = left_entry.get("sha256") == right_entry.get("sha256")
+        status = "same" if same_path and same_sha else "different"
+        details = []
+        if not same_path:
+            details.append("path")
+        if not same_sha:
+            details.append("sha256")
+        _row(role, status if not details else f"{status}: {', '.join(details)}")
+
+
+def _vcf_hash_map(report: dict) -> dict:
+    reports = _nested(report, "outputs", "vcf_hash_reports") or []
+    mapped = {}
+    for item in reports:
+        if not isinstance(item, dict):
+            continue
+        key = item.get("file") or item.get("path")
+        if key:
+            mapped[Path(str(key)).name] = item
+    return mapped
+
+
+def _compare_output_hashes(left: dict, right: dict) -> None:
+    left_hashes = _vcf_hash_map(left)
+    right_hashes = _vcf_hash_map(right)
+    keys = sorted(set(left_hashes) | set(right_hashes))
+    if not keys:
+        _row("VCF hashes", "not available")
+        return
+    for key in keys:
+        left_item = left_hashes.get(key)
+        right_item = right_hashes.get(key)
+        if not left_item or not right_item:
+            _row(_short_path(key), "missing")
+            continue
+        _row(
+            _short_path(key),
+            _same_text(left_item.get("normalized_sha256"), right_item.get("normalized_sha256")),
+        )
+
+
+def _multi_status(label: str, baseline, reports: List[dict], value_fn) -> None:
+    baseline_value = value_fn(baseline)
+    compared = reports[1:]
+    if baseline_value is None and all(value_fn(report) is None for report in compared):
+        _row(label, "not available")
+        return
+
+    missing = []
+    different = []
+    for report in compared:
+        value = value_fn(report)
+        if baseline_value is None or value is None:
+            missing.append(_run_label(report))
+        elif value != baseline_value:
+            different.append(_run_label(report))
+
+    if missing:
+        _row(label, "missing: " + ", ".join(missing))
+    elif different:
+        _row(label, "different: " + ", ".join(different))
+    else:
+        _row(label, "same")
+
+
+def _multi_workflow_file_value(role: str, report: dict):
+    entry = _workflow_file_map(report).get(role)
+    if not entry:
+        return None
+    return (entry.get("path"), entry.get("sha256"))
+
+
+def _multi_vcf_hash_value(key: str, report: dict):
+    entry = _vcf_hash_map(report).get(key)
+    if not entry:
+        return None
+    return entry.get("normalized_sha256")
+
+
+def _print_multi_run_comparison(reports: List[dict]) -> None:
+    baseline = reports[0]
+    compared = reports[1:]
+
+    _section("Run Matrix", CYAN)
+    _row("Runs", len(reports))
+    _row("Baseline", _run_label(baseline))
+    _row("Compared", ", ".join(_run_label(report) for report in compared))
+
+    print()
+    _section("Framework", BLUE)
+    _multi_status("CBIcall ver", baseline, reports, lambda report: _nested(report, "framework", "version"))
+
+    print()
+    _section("Pipeline", BLUE)
+    _multi_status("Workflow key", baseline, reports, lambda report: _nested(report, "workflow", "key"))
+    _multi_status("Pipeline ver", baseline, reports, lambda report: _nested(report, "workflow", "pipeline_version"))
+    _multi_status("Entrypoint", baseline, reports, lambda report: _nested(report, "workflow", "entrypoint"))
+    _multi_status("Workflow hash", baseline, reports, lambda report: _nested(report, "workflow", "fingerprint"))
+
+    print()
+    _section("Workflow Files", BLUE)
+    roles = sorted({role for report in reports for role in _workflow_file_map(report)})
+    if not roles:
+        _row("Files", "not available")
+    for role in roles:
+        _multi_status(role, baseline, reports, lambda report, item=role: _multi_workflow_file_value(item, report))
+
+    print()
+    _section("Resources", BLUE)
+    _multi_status("Resource key", baseline, reports, lambda report: _nested(report, "resources", "bundle", "key"))
+    _multi_status("Resource hash", baseline, reports, lambda report: _nested(report, "resources", "bundle", "fingerprint"))
+
+    print()
+    _section("Outputs", BLUE)
+    keys = sorted({key for report in reports for key in _vcf_hash_map(report)})
+    if not keys:
+        _row("VCF hashes", "not available")
+    for key in keys:
+        _multi_status(_short_path(key), baseline, reports, lambda report, item=key: _multi_vcf_hash_value(item, report))
+    _print_run_comparison_legend()
+
+
+def _print_run_comparison_legend() -> None:
+    print()
+    _section("Legend", BLUE)
+    _row("same", "values or fingerprints match")
+    _row("different", "values or fingerprints exist in both runs but differ")
+    _row("missing", "available in only some runs")
+    _row("not available", "not recorded in either run report")
+
+
+def _print_run_comparison(left: dict, right: dict) -> None:
+    _section("Run Comparison", CYAN)
+    _row("Run A", _short_path(left["_report_path"]))
+    _row("Run B", _short_path(right["_report_path"]))
+
+    print()
+    _section("Framework", BLUE)
+    _compare_row("CBIcall ver", _nested(left, "framework", "version"), _nested(right, "framework", "version"))
+
+    print()
+    _section("Pipeline", BLUE)
+    _compare_row("Workflow key", _nested(left, "workflow", "key"), _nested(right, "workflow", "key"))
+    _compare_row("Pipeline ver", _nested(left, "workflow", "pipeline_version"), _nested(right, "workflow", "pipeline_version"))
+    _compare_row("Entrypoint", _nested(left, "workflow", "entrypoint"), _nested(right, "workflow", "entrypoint"))
+    _compare_row("Workflow hash", _nested(left, "workflow", "fingerprint"), _nested(right, "workflow", "fingerprint"))
+
+    print()
+    _section("Workflow Files", BLUE)
+    _compare_workflow_files(left, right)
+
+    print()
+    _section("Resources", BLUE)
+    _compare_row("Resource key", _nested(left, "resources", "bundle", "key"), _nested(right, "resources", "bundle", "key"))
+    _compare_row(
+        "Resource hash",
+        _nested(left, "resources", "bundle", "fingerprint"),
+        _nested(right, "resources", "bundle", "fingerprint"),
+    )
+
+    print()
+    _section("Outputs", BLUE)
+    _compare_output_hashes(left, right)
+    _print_run_comparison_legend()
+
+
+def _html_status_parts(value: str) -> tuple:
+    stripped = value.strip()
+    lowered = stripped.lower()
+    for status, label in [
+        ("unavailable", "not available"),
+        ("different", "different"),
+        ("missing", "missing"),
+        ("same", "same"),
+    ]:
+        if lowered == label:
+            return status, label, ""
+        prefix = label + ":"
+        if lowered.startswith(prefix):
+            return status, label, stripped[len(prefix):].strip()
+    return "neutral", "", stripped
+
+
+def _render_compare_html(report_text: str) -> str:
+    sections = []
+    current = None
+    for line in report_text.splitlines():
+        if not line.strip():
+            continue
+        if line.startswith("  ") and "=>" in line and current is not None:
+            label, value = line.strip().split("=>", 1)
+            current["rows"].append((label.strip(), value.strip()))
+            continue
+        current = {"title": line.strip(), "rows": []}
+        sections.append(current)
+
+    status_counts = {"same": 0, "different": 0, "missing": 0, "unavailable": 0}
+    section_html = []
+    for section in sections:
+        rows = []
+        for label, value in section["rows"]:
+            status_class, status_label, detail = _html_status_parts(value)
+            if status_class in status_counts:
+                status_counts[status_class] += 1
+            value_html = (
+                f"<span class=\"detail\">{html.escape(detail)}</span>"
+                if status_class == "neutral"
+                else (
+                    f"<span class=\"pill {status_class}\">{html.escape(status_label)}</span>"
+                    + (f"<span class=\"detail\">{html.escape(detail)}</span>" if detail else "")
+                )
+            )
+            rows.append(
+                "<tr>"
+                f"<th>{html.escape(label)}</th>"
+                f"<td>{value_html}</td>"
+                "</tr>"
+            )
+        table = "<table>" + "".join(rows) + "</table>" if rows else ""
+        section_html.append(
+            "<section>"
+            f"<h2>{html.escape(section['title'])}</h2>"
+            f"{table}"
+            "</section>"
+        )
+
+    report_title = sections[0]["title"] if sections else "Run Comparison"
+    summary_html = "".join(
+        "<div class=\"metric\">"
+        f"<span>{html.escape(label)}</span>"
+        f"<strong>{status_counts[key]}</strong>"
+        "</div>"
+        for key, label in [
+            ("same", "Same"),
+            ("different", "Different"),
+            ("missing", "Missing"),
+            ("unavailable", "Not available"),
+        ]
+    )
+
+    return """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CBIcall Run Comparison</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --panel-soft: #fbfcfe;
+      --text: #17202a;
+      --muted: #5f6b7a;
+      --border: #d8dee8;
+      --accent: #2457a6;
+      --same-bg: #e8f5ee;
+      --same-text: #17633a;
+      --diff-bg: #fff2d7;
+      --diff-text: #7a4a00;
+      --missing-bg: #fde8e8;
+      --missing-text: #8a1f1f;
+      --na-bg: #eceff3;
+      --na-text: #475467;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 28px auto 40px;
+    }
+    header {
+      margin-bottom: 20px;
+      padding: 22px 0 2px;
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin: 18px 0 20px;
+    }
+    .metric {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .metric strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin: 14px 0;
+      overflow: hidden;
+    }
+    h2 {
+      margin: 0;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-soft);
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th,
+    td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    tr:last-child th,
+    tr:last-child td {
+      border-bottom: 0;
+    }
+    th {
+      width: 180px;
+      color: var(--muted);
+      font-weight: 650;
+      white-space: nowrap;
+    }
+    td {
+      overflow-wrap: anywhere;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+    .pill {
+      display: inline-block;
+      min-width: 82px;
+      margin-right: 8px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 12px;
+      font-weight: 750;
+      text-align: center;
+    }
+    .detail { color: var(--text); }
+    .same { background: var(--same-bg); color: var(--same-text); }
+    .different { background: var(--diff-bg); color: var(--diff-text); }
+    .missing { background: var(--missing-bg); color: var(--missing-text); }
+    .unavailable { background: var(--na-bg); color: var(--na-text); }
+    @media (max-width: 760px) {
+      main { width: min(100% - 20px, 1120px); }
+      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      th,
+      td {
+        display: block;
+        width: auto;
+      }
+      th {
+        padding-bottom: 2px;
+      }
+      td {
+        padding-top: 2px;
+      }
+      .pill {
+        margin-bottom: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>CBIcall """ + html.escape(report_title) + """</h1>
+      <p>Static rendering of the text report generated by <code>cbicall compare-runs</code>.</p>
+    </header>
+    <div class="summary" aria-label="Status summary">
+      """ + summary_html + """
+    </div>
+    """ + "\n    ".join(section_html) + """
+  </main>
+</body>
+</html>
+"""
+
+
+def _run_compare_runs_command(argv: List[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="cbicall compare-runs",
+        description="Compare CBIcall run-report.json files or run directories.",
+    )
+    parser.add_argument("runs", nargs="+", help="Run directories or run-report.json files. Provide two or more.")
+    parser.add_argument("-o", "--output", help="Write the text comparison report to this file.")
+    parser.add_argument("--html", help="Write a static HTML rendering of the comparison report.")
+    parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
+    args = parser.parse_args(argv)
+
+    if len(args.runs) < 2:
+        parser.error("compare-runs requires at least two run directories or run-report.json files")
+
+    if args.nocolor or args.output or args.html:
+        os.environ["ANSI_COLORS_DISABLED"] = "1"
+    _refresh_colors()
+
+    reports = [_load_run_report(run) for run in args.runs]
+
+    buffer = io.StringIO()
+    with redirect_stdout(buffer):
+        if len(reports) == 2:
+            _print_run_comparison(reports[0], reports[1])
+        else:
+            _print_multi_run_comparison(reports)
+    report_text = buffer.getvalue()
+    print(report_text, end="")
+    if args.output:
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(report_text, encoding="utf-8")
+        _row("Report", output)
+    if args.html:
+        output = Path(args.html)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(_render_compare_html(report_text), encoding="utf-8")
+        _row("HTML", output)
     return 0
 
 
@@ -456,6 +1093,8 @@ def main() -> int:
         return _run_validate_registry_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "validate-resources":
         return _run_validate_resources_command(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "compare-runs":
+        return _run_compare_runs_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "test":
         return _run_test_command(sys.argv[2:])
 

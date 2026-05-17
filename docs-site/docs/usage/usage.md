@@ -79,6 +79,7 @@ bin/cbicall test --wes -t 1
 bin/cbicall test --mit -t 1
 bin/cbicall test --all -t 1
 bin/cbicall validate-resources
+bin/cbicall compare-runs run_a/ run_b/ run_c/ --output compare-report.txt --html compare-report.html
 ```
 
 | Command | Use |
@@ -87,6 +88,7 @@ bin/cbicall validate-resources
 | `bin/cbicall test --mit -t 1` | mtDNA integration test after the WES path is working. |
 | `bin/cbicall test --all -t 1` | Run all bundled integration examples. |
 | `bin/cbicall validate-resources` | Validate the resource catalog and its workflow compatibility keys. Add `--bundle <key>` to check one bundle entry. |
+| `bin/cbicall compare-runs run_a/ run_b/ run_c/ --output compare-report.txt --html compare-report.html` | Compare run reports for workflow, resource, and output fingerprint differences. See [Run Comparison](run-comparison). |
 
 :::tip[Thread choice]
 For most WES/WGS runs, start with **4 threads per task**. See [Performance](../help/performance) for the benchmark and scaling guidance.

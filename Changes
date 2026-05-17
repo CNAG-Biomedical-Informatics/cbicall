@@ -5,15 +5,12 @@ Revision history for cbicall:
     - Fix single-sample workflows to keep one sample name across FASTQs with different prefixes.
     - Fix mtDNA extraction from hg38 BAMs by selecting chrM instead of MT.
     - Migrate project documentation from MkDocs Material to Docusaurus.
-    - Add a resource bundle catalog and record selected bundle provenance in run logs.
-    - Validate resource bundle compatibility against resolved pipeline implementation versions.
-    - Add runtime resource bundle identity checks using local metadata files and lightweight hash validation.
-    - Improve external resource download, verification, extraction, and installation manifests.
+    - Add a resource catalog, CBIcall bundle downloader, and runtime resource identity checks.
     - Add runtime profiles for site-specific environment files, including CNAG HPC.
-    - Rename the workflow registry to workflows/registry/workflows.yaml.
-    - Add explicit pipeline implementation versioning, with registry defaults such as v1 and resolved versions recorded in run provenance.
-    - Add doctor, validate-registry, validate-resources, and test helper commands.
-    - Add compact run-report.json summaries for completed runs.
+    - Add explicit pipeline implementation versions and rename registry shared files from common to helpers.
+    - Add doctor, validate-registry, validate-resources, test, and compare-runs commands.
+    - Add run-report.json audit summaries with CBIcall version, workflow file hashes, resource provenance, and output fingerprints.
+    - Add text and HTML run comparison reports for two or more runs.
 
 1.0.0  2026-03-23
 

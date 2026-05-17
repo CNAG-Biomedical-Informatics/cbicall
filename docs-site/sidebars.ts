@@ -62,6 +62,11 @@ const sidebars: SidebarsConfig = {
           id: 'usage/usage',
           label: 'General Usage',
         },
+        {
+          type: 'doc',
+          id: 'usage/run-comparison',
+          label: 'Run Comparison',
+        },
       ],
     },
     {

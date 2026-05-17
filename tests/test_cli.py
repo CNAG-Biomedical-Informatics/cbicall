@@ -25,6 +25,22 @@ def test_write_log_creates_json(tmp_path):
 
 
 def test_write_run_report_creates_compact_summary(tmp_path):
+    entrypoint = tmp_path / "wes_single.sh"
+    entrypoint.write_text("#!/bin/sh\necho ok\n", encoding="utf-8")
+    env_file = tmp_path / "env.sh"
+    env_file.write_text("DATADIR=/tmp\n", encoding="utf-8")
+    stats_dir = tmp_path / "03_stats"
+    stats_dir.mkdir()
+    (stats_dir / "sample.vcf.sha256.txt").write_text(
+        "FILE=sample.vcf.gz\n"
+        "ALGORITHM=sha256\n"
+        "RAW_SHA256=raw\n"
+        "NORMALIZED_PATTERN=^#\n"
+        "NORMALIZED_SORT=LC_ALL=C\n"
+        "NORMALIZED_RECORDS=10\n"
+        "NORMALIZED_SHA256=normalized\n",
+        encoding="utf-8",
+    )
     resolved = cli_mod.ResolvedConfig.from_mapping(
         {
             "project_dir": str(tmp_path),
@@ -38,13 +54,15 @@ def test_write_run_report_creates_compact_summary(tmp_path):
                 "pipeline": "wes",
                 "mode": "single",
                 "gatk_version": "gatk-4.6",
-                "entrypoint": "/x.sh",
+                "pipeline_version": "v1",
+                "entrypoint": str(entrypoint),
                 "config_file": None,
-                "helpers": {"env": "/cnag-hpc-env.sh"},
+                "helpers": {"env": str(env_file)},
             },
             "resources": {
                 "bundle": {"key": "cbicall-germline-resources-v1", "fingerprint": "abc"}
             },
+            "version": "1.2.3",
         }
     )
 
@@ -59,9 +77,120 @@ def test_write_run_report_creates_compact_summary(tmp_path):
     data = json.loads(report.read_text(encoding="utf-8"))
     assert data["status"] == "success"
     assert data["profile"] == "cnag-hpc"
+    assert data["framework"]["version"] == "1.2.3"
     assert data["elapsed_seconds"] == 12.346
     assert data["resources"]["bundle"]["fingerprint"] == "abc"
     assert data["workflow_log"].endswith("workflow.log")
+    assert data["workflow"]["key"] == "bash/wes/single/gatk-4.6/v1"
+    assert len(data["workflow"]["fingerprint"]) == 64
+    assert [item["role"] for item in data["workflow"]["files"]] == ["entrypoint", "helper:env"]
+    assert all(item["status"] == "present" for item in data["workflow"]["files"])
+    assert data["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] == "normalized"
+
+
+def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
+    run_a = tmp_path / "run_a"
+    run_b = tmp_path / "run_b"
+    run_a.mkdir()
+    run_b.mkdir()
+
+    base = {
+        "status": "success",
+        "framework": {"name": "CBIcall", "version": "1.2.3"},
+        "workflow": {
+            "key": "bash/wes/single/gatk-4.6/v1",
+            "pipeline_version": "v1",
+            "entrypoint": "workflows/bash/gatk-4.6/wes_single.sh",
+            "fingerprint": "workflow-a",
+            "files": [
+                {"role": "entrypoint", "path": "wes_single.sh", "sha256": "aaa"},
+                {"role": "helper:env", "path": "env.sh", "sha256": "env"},
+            ],
+        },
+        "resources": {"bundle": {"key": "cbicall-germline-resources-v1", "fingerprint": "res"}},
+        "outputs": {
+            "vcf_hash_reports": [
+                {"file": "sample.vcf.gz", "normalized_sha256": "vcf"}
+            ]
+        },
+    }
+    changed = json.loads(json.dumps(base))
+    changed["workflow"]["fingerprint"] = "workflow-b"
+    changed["workflow"]["files"][0]["sha256"] = "bbb"
+    changed["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] = "vcf"
+
+    (run_a / "run-report.json").write_text(json.dumps(base), encoding="utf-8")
+    (run_b / "run-report.json").write_text(json.dumps(changed), encoding="utf-8")
+
+    report = tmp_path / "compare-report.txt"
+    html_report = tmp_path / "compare-report.html"
+    assert cli_mod._run_compare_runs_command(
+        [str(run_a), str(run_b), "--no-color", "--output", str(report), "--html", str(html_report)]
+    ) == 0
+    out = capsys.readouterr().out
+    assert "Run Comparison" in out
+    assert "CBIcall ver" in out
+    assert "Workflow hash" in out
+    assert "different" in out
+    assert "entrypoint" in out
+    assert "sha256" in out
+    assert "sample.vcf.gz" in out
+    assert "Legend" in out
+    assert "not available" in out
+    assert "Report" in out
+    assert "HTML" in out
+    report_text = report.read_text(encoding="utf-8")
+    assert "Run Comparison" in report_text
+    assert "Workflow hash" in report_text
+    assert "Legend" in report_text
+    html_text = html_report.read_text(encoding="utf-8")
+    assert "<title>CBIcall Run Comparison</title>" in html_text
+    assert "Run Comparison" in html_text
+    assert "Workflow hash" in html_text
+    assert "Status summary" in html_text
+    assert "class=\"pill different\"" in html_text
+
+
+def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys):
+    runs = [tmp_path / f"run_{idx}" for idx in range(3)]
+    for run in runs:
+        run.mkdir()
+
+    base = {
+        "status": "success",
+        "framework": {"name": "CBIcall", "version": "1.2.3"},
+        "workflow": {
+            "key": "bash/wes/single/gatk-4.6/v1",
+            "pipeline_version": "v1",
+            "entrypoint": "wes_single.sh",
+            "fingerprint": "workflow-a",
+            "files": [
+                {"role": "entrypoint", "path": "wes_single.sh", "sha256": "aaa"},
+            ],
+        },
+        "resources": {"bundle": {"key": "cbicall-germline-resources-v1", "fingerprint": "res"}},
+        "outputs": {
+            "vcf_hash_reports": [
+                {"file": "sample.vcf.gz", "normalized_sha256": "vcf"}
+            ]
+        },
+    }
+    same = json.loads(json.dumps(base))
+    different = json.loads(json.dumps(base))
+    different["workflow"]["fingerprint"] = "workflow-c"
+    different["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] = "vcf-c"
+
+    for run, report in zip(runs, [base, same, different]):
+        (run / "run-report.json").write_text(json.dumps(report), encoding="utf-8")
+
+    assert cli_mod._run_compare_runs_command([str(run) for run in runs] + ["--no-color"]) == 0
+    out = capsys.readouterr().out
+    assert "Run Matrix" in out
+    assert "Baseline" in out
+    assert "Workflow hash" in out
+    assert "different: " in out
+    assert "run_2/run-report.json" in out
+    assert "sample.vcf.gz" in out
 
 
 def test_run_with_spinner_no_spinner_calls_function():

@@ -3,7 +3,7 @@ workflows:
     base_dir: "workflows/bash"
     versions:
       gatk-3.5:
-        common:
+        helpers:
           env: "env.sh"
           coverage: "coverage.sh"
           jaccard: "jaccard.sh"
@@ -37,7 +37,7 @@ workflows:
                   script: "mit_cohort.sh"
 
       gatk-4.6:
-        common:
+        helpers:
           env: "env.sh"
           coverage: "coverage.sh"
           jaccard: "jaccard.sh"
@@ -74,7 +74,7 @@ workflows:
     base_dir: "workflows/snakemake"
     versions:
       gatk-4.6:
-        common:
+        helpers:
           config: "config.yaml"
         pipelines:
           wes:

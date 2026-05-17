@@ -39,7 +39,7 @@
       "additionalProperties": false,
       "required": ["pipelines"],
       "properties": {
-        "common": {
+        "helpers": {
           "type": "object",
           "additionalProperties": false,
           "properties": {

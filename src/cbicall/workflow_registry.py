@@ -49,7 +49,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
         raise WorkflowResolutionError(f"Version not defined for engine '{engine}': {version}")
 
     ver_cfg = versions_cfg[version]
-    common = ver_cfg.get("common", {})
+    helpers = ver_cfg.get("helpers", {})
     pipelines_cfg = ver_cfg["pipelines"]
 
     if pipeline not in pipelines_cfg:
@@ -71,11 +71,11 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
     profiles = _resolve_profiles(ver_cfg.get("profiles", {}), base_dir)
 
     if engine == "bash":
-        needed_common = ["env", "coverage", "jaccard", "vcf2sex", "vcf2hash"]
-        missing_common = [k for k in needed_common if k not in common]
-        if missing_common:
+        needed_helpers = ["env", "coverage", "jaccard", "vcf2sex", "vcf2hash"]
+        missing_helpers = [k for k in needed_helpers if k not in helpers]
+        if missing_helpers:
             raise WorkflowResolutionError(
-                f"Workflow registry is missing common keys for bash/{version}: {missing_common}"
+                f"Workflow registry is missing helper keys for bash/{version}: {missing_helpers}"
             )
         return WorkflowSpec(
             engine=engine,
@@ -85,19 +85,19 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
             pipeline_version=pipeline_version,
             entrypoint=str(base_dir / script_name),
             helpers={
-                "env": str(base_dir / common["env"]),
-                "coverage": str(base_dir / common["coverage"]),
-                "jaccard": str(base_dir / common["jaccard"]),
-                "vcf2sex": str(base_dir / common["vcf2sex"]),
-                "vcf2hash": str(base_dir / common["vcf2hash"]),
+                "env": str(base_dir / helpers["env"]),
+                "coverage": str(base_dir / helpers["coverage"]),
+                "jaccard": str(base_dir / helpers["jaccard"]),
+                "vcf2sex": str(base_dir / helpers["vcf2sex"]),
+                "vcf2hash": str(base_dir / helpers["vcf2hash"]),
             },
             profiles=profiles,
         )
 
     if engine == "snakemake":
-        if "config" not in common:
+        if "config" not in helpers:
             raise WorkflowResolutionError(
-                f"Workflow registry is missing common key 'config' for snakemake/{version}"
+                f"Workflow registry is missing helper key 'config' for snakemake/{version}"
             )
         return WorkflowSpec(
             engine=engine,
@@ -106,7 +106,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
             gatk_version=version,
             pipeline_version=pipeline_version,
             entrypoint=str(base_dir / script_name),
-            config_file=str(base_dir / common["config"]),
+            config_file=str(base_dir / helpers["config"]),
             profiles=profiles,
         )
 
