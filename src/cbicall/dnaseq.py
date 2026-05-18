@@ -254,7 +254,9 @@ class NextflowRunner(BaseRunner):
         cache_dir = str(self.settings.nextflow_singularity_cache_dir)
         return {
             "NXF_SINGULARITY_CACHEDIR": cache_dir,
+            "NXF_SINGULARITY_LIBRARYDIR": cache_dir,
             "NXF_APPTAINER_CACHEDIR": cache_dir,
+            "NXF_APPTAINER_LIBRARYDIR": cache_dir,
         }
 
     def _build_external_nextflow_command(self) -> List[str]:
@@ -285,10 +287,12 @@ class NextflowRunner(BaseRunner):
                     "",
                     "singularity {",
                     f"  cacheDir = {_groovy_single_quote(self.settings.nextflow_singularity_cache_dir)}",
+                    f"  libraryDir = {_groovy_single_quote(self.settings.nextflow_singularity_cache_dir)}",
                     "}",
                     "",
                     "apptainer {",
                     f"  cacheDir = {_groovy_single_quote(self.settings.nextflow_singularity_cache_dir)}",
+                    f"  libraryDir = {_groovy_single_quote(self.settings.nextflow_singularity_cache_dir)}",
                     "}",
                 ]
             )

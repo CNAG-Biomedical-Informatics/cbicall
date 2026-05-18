@@ -436,8 +436,11 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
     assert "singularity {" in config_text
     assert "apptainer {" in config_text
     assert f"cacheDir = '{tmp_path / 'nxf-cache'}'" in config_text
+    assert f"libraryDir = '{tmp_path / 'nxf-cache'}'" in config_text
     assert recorded["env"]["NXF_SINGULARITY_CACHEDIR"] == str(tmp_path / "nxf-cache")
+    assert recorded["env"]["NXF_SINGULARITY_LIBRARYDIR"] == str(tmp_path / "nxf-cache")
     assert recorded["env"]["NXF_APPTAINER_CACHEDIR"] == str(tmp_path / "nxf-cache")
+    assert recorded["env"]["NXF_APPTAINER_LIBRARYDIR"] == str(tmp_path / "nxf-cache")
     assert recorded["cwd"] == project_dir
     assert recorded["engine"] == "nextflow"
 
