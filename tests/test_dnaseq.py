@@ -371,7 +371,7 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
     monkeypatch.setattr(dnaseq.platform, "machine", lambda: "x86_64")
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
-        recorded.update({"cmd": cmd, "cwd": cwd, "engine": engine})
+        recorded.update({"cmd": cmd, "cwd": cwd, "engine": engine, "env": env})
 
     monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
 
@@ -434,7 +434,10 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
     config_text = config_file.read_text(encoding="utf-8")
     assert "resourceLimits = [ cpus: 2 ]" in config_text
     assert "singularity {" in config_text
+    assert "apptainer {" in config_text
     assert f"cacheDir = '{tmp_path / 'nxf-cache'}'" in config_text
+    assert recorded["env"]["NXF_SINGULARITY_CACHEDIR"] == str(tmp_path / "nxf-cache")
+    assert recorded["env"]["NXF_APPTAINER_CACHEDIR"] == str(tmp_path / "nxf-cache")
     assert recorded["cwd"] == project_dir
     assert recorded["engine"] == "nextflow"
 
