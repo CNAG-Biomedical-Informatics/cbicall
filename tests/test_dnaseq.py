@@ -387,6 +387,7 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
         "debug": False,
         "genome": "external",
         "nextflow_profile": "docker",
+        "nextflow_singularity_cache_dir": str(tmp_path / "nxf-cache"),
         "nextflow_args": {
             "input": str(sample_map),
             "genome": "GATK.GRCh38",
@@ -430,7 +431,10 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
     assert "genome: GATK.GRCh38" in params_text
     assert "max_cpus: 2" in params_text
     assert "tools: haplotypecaller" in params_text
-    assert "resourceLimits = [ cpus: 2 ]" in config_file.read_text(encoding="utf-8")
+    config_text = config_file.read_text(encoding="utf-8")
+    assert "resourceLimits = [ cpus: 2 ]" in config_text
+    assert "singularity {" in config_text
+    assert f"cacheDir = '{tmp_path / 'nxf-cache'}'" in config_text
     assert recorded["cwd"] == project_dir
     assert recorded["engine"] == "nextflow"
 

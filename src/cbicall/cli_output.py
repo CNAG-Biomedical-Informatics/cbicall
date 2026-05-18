@@ -114,6 +114,8 @@ def _print_run_summary(
     if workflow.metadata.get("source_type") == "nf-core":
         _row("NF profile", resolved_config.nextflow_profile)
         _row("NF args", ", ".join(sorted(resolved_config.nextflow_args)) or "(none)")
+        if resolved_config.nextflow_singularity_cache_dir:
+            _row("NF cache", _short_path(resolved_config.nextflow_singularity_cache_dir))
     print()
 
     _section("Resolved", colors["blue"], colors["bold"], colors["reset"])

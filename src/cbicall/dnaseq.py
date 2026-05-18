@@ -26,6 +26,10 @@ def _cmd_to_string(
     return " ".join(parts)
 
 
+def _groovy_single_quote(value: str) -> str:
+    return "'" + str(value).replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
 def _run_cmd(
     cmd: List[str],
     cwd: Path,
@@ -266,6 +270,15 @@ class NextflowRunner(BaseRunner):
             f"  resourceLimits = [ cpus: {max_cpus} ]",
             "}",
         ]
+        if self.settings.nextflow_singularity_cache_dir:
+            config_lines.extend(
+                [
+                    "",
+                    "singularity {",
+                    f"  cacheDir = {_groovy_single_quote(self.settings.nextflow_singularity_cache_dir)}",
+                    "}",
+                ]
+            )
         profile_tokens = {
             token.strip()
             for token in str(self.settings.nextflow_profile).split(",")

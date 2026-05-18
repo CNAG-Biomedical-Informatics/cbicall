@@ -339,6 +339,7 @@ def write_run_report(
             "allow_partial_run": resolved_config.allow_partial_run,
             "nextflow_profile": resolved_config.nextflow_profile,
             "nextflow_args": resolved_config.nextflow_args,
+            "nextflow_singularity_cache_dir": resolved_config.nextflow_singularity_cache_dir,
         },
     }
     with report_path.open("w", encoding="utf-8") as fh:
@@ -376,6 +377,8 @@ def _run_validate_param_command(argv: List[str]) -> int:
         _row("Release", workflow.metadata.get("release"))
         _row("NF profile", resolved_config.nextflow_profile)
         _row("NF args", ", ".join(sorted(resolved_config.nextflow_args)) or "(none)")
+        if resolved_config.nextflow_singularity_cache_dir:
+            _row("NF cache", _short_path(resolved_config.nextflow_singularity_cache_dir))
     else:
         _row("Entrypoint", _short_path(workflow.entrypoint))
     if workflow.engine == "bash":
@@ -1139,6 +1142,7 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
             "profile": resolved_config.profile,
             "nextflow_profile": resolved_config.nextflow_profile,
             "nextflow_args": resolved_config.nextflow_args,
+            "nextflow_singularity_cache_dir": resolved_config.nextflow_singularity_cache_dir,
             "genome": resolved_config.genome,
             "cleanup_bam": params.get("cleanup_bam", False),
             "workflow_rule": resolved_config.workflow_rule,

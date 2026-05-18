@@ -1205,6 +1205,7 @@ def test_read_param_file_accepts_sarek_external_nextflow(tmp_path):
         "workflow_version: nf-core\n"
         "resource: nf-core-sarek-managed-resources-v1\n"
         "nextflow_profile: docker\n"
+        "nextflow_singularity_cache_dir: nxf-cache\n"
         "nextflow_args:\n"
         "  input: samplesheet.csv\n"
         "  genome: GATK.GRCh38\n"
@@ -1215,6 +1216,7 @@ def test_read_param_file_accepts_sarek_external_nextflow(tmp_path):
     cfg = config_mod.read_param_file(str(p))
     assert cfg["gatk_version"] == "nf-core"
     assert cfg["genome"] == "external"
+    assert cfg["nextflow_singularity_cache_dir"] == str((tmp_path / "nxf-cache").resolve())
     assert cfg["nextflow_args"]["input"] == str(sample_map.resolve())
     assert cfg["nextflow_args"]["genome"] == "GATK.GRCh38"
 
@@ -1250,6 +1252,21 @@ def test_read_param_file_rejects_nfcore_as_gatk_version(tmp_path):
     )
 
     with pytest.raises(ParameterValidationError, match="Invalid value for 'gatk_version'"):
+        config_mod.read_param_file(str(p))
+
+
+def test_read_param_file_rejects_nfcore_cache_dir_for_native_workflow(tmp_path):
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: single\n"
+        "pipeline: wes\n"
+        "workflow_engine: bash\n"
+        "gatk_version: gatk-4.6\n"
+        "nextflow_singularity_cache_dir: nxf-cache\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ParameterValidationError, match="nextflow_singularity_cache_dir"):
         config_mod.read_param_file(str(p))
 
 
@@ -1302,6 +1319,7 @@ def test_set_config_values_sarek_resolves_external_nfcore_workflow(monkeypatch, 
             "workflow_version": "nf-core",
             "resource": "nf-core-sarek-managed-resources-v1",
             "nextflow_profile": "docker",
+            "nextflow_singularity_cache_dir": str(tmp_path / "nxf-cache"),
             "nextflow_args": {
                 "input": str(tmp_path / "samplesheet.csv"),
                 "genome": "GATK.GRCh38",
@@ -1314,6 +1332,7 @@ def test_set_config_values_sarek_resolves_external_nfcore_workflow(monkeypatch, 
     assert cfg["workflow"]["metadata"]["source_type"] == "nf-core"
     assert cfg["workflow"]["metadata"]["release"] == "3.8.1"
     assert cfg["nextflow_profile"] == "docker"
+    assert cfg["nextflow_singularity_cache_dir"] == str(tmp_path / "nxf-cache")
     assert cfg["nextflow_args"]["tools"] == "haplotypecaller"
     assert cfg["resources"]["bundle"]["type"] == "nextflow-managed"
     assert cfg["resources"]["bundle"]["runtime_check"]["status"] == "not_applicable"

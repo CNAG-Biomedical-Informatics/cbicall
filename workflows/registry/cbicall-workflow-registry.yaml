@@ -142,7 +142,7 @@ workflows:
                 v1:
                   source_type: "nf-core"
                   source: "nf-core/demo"
-                  release: "1.0.0"
+                  release: "1.1.0"
                   default_outdir: "demo"
           sarek:
             cohort:

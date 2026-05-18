@@ -73,6 +73,7 @@ class RunSettings:
     workflow: WorkflowSpec
     nextflow_profile: Optional[str] = None
     nextflow_args: Dict[str, Any] = field(default_factory=dict)
+    nextflow_singularity_cache_dir: Optional[str] = None
     workflow_rule: Optional[str] = None
     allow_partial_run: bool = False
     run_mode: str = "full"
@@ -89,6 +90,7 @@ class RunSettings:
             profile=str(data.get("profile", "local")),
             nextflow_profile=data.get("nextflow_profile"),
             nextflow_args=dict(data.get("nextflow_args", {})),
+            nextflow_singularity_cache_dir=data.get("nextflow_singularity_cache_dir"),
             genome=data.get("genome"),
             cleanup_bam=bool(data.get("cleanup_bam", False)),
             workflow_rule=data.get("workflow_rule"),
@@ -107,6 +109,7 @@ class RunSettings:
             "profile": self.profile,
             "nextflow_profile": self.nextflow_profile,
             "nextflow_args": dict(self.nextflow_args),
+            "nextflow_singularity_cache_dir": self.nextflow_singularity_cache_dir,
             "genome": self.genome,
             "cleanup_bam": self.cleanup_bam,
             "workflow_rule": self.workflow_rule,
@@ -139,6 +142,7 @@ class ResolvedConfig:
     compression_cmd: str
     nextflow_profile: Optional[str] = None
     nextflow_args: Dict[str, Any] = field(default_factory=dict)
+    nextflow_singularity_cache_dir: Optional[str] = None
     workflow_rule: Optional[str] = None
     allow_partial_run: bool = False
     run_mode: str = "full"
@@ -164,6 +168,7 @@ class ResolvedConfig:
             profile=str(data.get("profile", "local")),
             nextflow_profile=data.get("nextflow_profile"),
             nextflow_args=dict(data.get("nextflow_args", {})),
+            nextflow_singularity_cache_dir=data.get("nextflow_singularity_cache_dir"),
             genome=data.get("genome"),
             pipeline=str(pipeline),
             mode=str(mode),
@@ -195,6 +200,7 @@ class ResolvedConfig:
             "profile": self.profile,
             "nextflow_profile": self.nextflow_profile,
             "nextflow_args": dict(self.nextflow_args),
+            "nextflow_singularity_cache_dir": self.nextflow_singularity_cache_dir,
             "genome": self.genome,
             "pipeline": self.pipeline,
             "mode": self.mode,

@@ -111,7 +111,7 @@
     },
     "nf-core-demo-managed-resources-v1": {
       "type": "nextflow-managed",
-      "version": "demo-1.0.0",
+      "version": "demo-1.1.0",
       "description": "nf-core/demo resources managed by Nextflow profile and nf-core parameters",
       "compatible_workflows": [
         "nextflow/demo/single/nf-core/v1"

@@ -60,6 +60,7 @@ _DEFAULTS = {
     "profile": "local",
     "nextflow_profile": None,
     "nextflow_args": {},
+    "nextflow_singularity_cache_dir": None,
     "gatk_version": "gatk-3.5",
     "workflow_version": None,
     "pipeline_version": None,
@@ -260,7 +261,12 @@ def _normalize_workflow_version_settings(cfg: dict) -> None:
 
 
 def _validate_external_nextflow_settings(cfg: dict) -> None:
+    cache_dir = cfg.get("nextflow_singularity_cache_dir")
     if cfg.get("gatk_version") != "nf-core":
+        if cache_dir is not None:
+            raise ParameterValidationError(
+                "nextflow_singularity_cache_dir requires workflow_version='nf-core'."
+            )
         return
     if cfg.get("workflow_engine") != "nextflow":
         raise ParameterValidationError("workflow_version='nf-core' requires workflow_engine='nextflow'.")
@@ -281,6 +287,14 @@ def _validate_external_nextflow_settings(cfg: dict) -> None:
             "nextflow_args cannot set CBIcall-controlled parameters: " + ", ".join(reserved)
         )
     cfg["nextflow_args"] = dict(nextflow_args)
+
+    if cache_dir is not None:
+        cache_dir = str(cache_dir).strip()
+        if not cache_dir:
+            raise ParameterValidationError(
+                "nextflow_singularity_cache_dir must be a non-empty path when provided."
+            )
+        cfg["nextflow_singularity_cache_dir"] = cache_dir
 
 
 def _is_uri(value: str) -> bool:
@@ -358,6 +372,11 @@ def read_param_file(yaml_file: str) -> dict:
         cfg["sample_map"] = str(sm.resolve())
 
     cfg["nextflow_args"] = _resolve_nextflow_arg_paths(cfg.get("nextflow_args", {}), yaml_path.parent)
+    if cfg.get("nextflow_singularity_cache_dir") is not None:
+        cache_dir = Path(cfg["nextflow_singularity_cache_dir"])
+        if not cache_dir.is_absolute():
+            cache_dir = yaml_path.parent / cache_dir
+        cfg["nextflow_singularity_cache_dir"] = str(cache_dir.resolve())
 
     # Validate pipeline-mode combination for selected GATK version
     _validate_combos(cfg)
@@ -523,6 +542,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         profile=cfg_in["profile"],
         nextflow_profile=cfg_in.get("nextflow_profile"),
         nextflow_args=cfg_in.get("nextflow_args", {}),
+        nextflow_singularity_cache_dir=cfg_in.get("nextflow_singularity_cache_dir"),
         genome=cfg_in["genome"],
         pipeline=cfg_in["pipeline"],
         mode=cfg_in["mode"],
@@ -554,6 +574,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         profile=config.profile,
         nextflow_profile=config.nextflow_profile,
         nextflow_args=config.nextflow_args,
+        nextflow_singularity_cache_dir=config.nextflow_singularity_cache_dir,
         genome=config.genome,
         pipeline=config.pipeline,
         mode=config.mode,
