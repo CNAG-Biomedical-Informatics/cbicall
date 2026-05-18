@@ -60,6 +60,15 @@ in the runtime environment before running their backend-specific tests.
 
 The test command prints the run directory, workflow log, `run-report.json`, launcher log, and output file used for comparison.
 
+:::tip[VCF hashes during tests]
+WES tests compute normalized [SHA-256](https://en.wikipedia.org/wiki/SHA-2)
+values directly from the shipped reference
+VCF and the newly generated VCF after removing headers and sorting variant
+records. The test does not rely on stored `03_stats/*.vcf.sha256.txt` files,
+because those sidecar files can be absent or stale; they are kept for audit, run
+reports, and `compare-runs`.
+:::
+
 For WES, the run directory looks like:
 
 ```text

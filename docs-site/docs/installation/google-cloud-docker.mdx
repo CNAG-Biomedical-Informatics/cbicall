@@ -31,8 +31,15 @@ Expected evidence:
 | `validate-resources` succeeds | The resource catalog is well formed and points to declared workflows. |
 | `validate-param` resolves the run | The parameters YAML resolves to a concrete workflow, profile, pipeline version, and resource. |
 | `test --wes-bash` succeeds | The generated WES VCF matches the shipped reference output under the integration-test comparison. |
-| Normalized SHA-256 is printed | The filtered, sorted variant records have a compact reporting fingerprint. |
+| Normalized [SHA-256](https://en.wikipedia.org/wiki/SHA-2) is printed | The test computes this on the fly from the filtered, sorted reference and test VCF records. |
 | `run-report.json` exists | The cloud run records workflow and resource provenance. |
+
+:::note[VCF hash files]
+The shipped reference directory does not need a stored `03_stats/*.vcf.sha256.txt`
+file for `test --wes-bash`. The integration test computes the normalized hashes
+during the comparison. New WES/WGS runs also write `03_stats/*.vcf.sha256.txt`
+as a provenance artifact for later run-report and `compare-runs` workflows.
+:::
 
 ## Prerequisites
 
@@ -187,63 +194,3 @@ cbicall_docker bin/cbicall test --wes-bash -t 1
 
 The final command should print the run directory, workflow log,
 `run-report.json`, launcher log, and the output VCF used for comparison.
-
-## 7. Capture Evidence
-
-Find the newest WES test run:
-
-```bash
-RUN_DIR=$(find examples/input/CNAG999_exome/CNAG99901P_ex \
-  -maxdepth 1 \
-  -type d \
-  -name 'cbicall_bash_wes_single_b37_gatk-4.6_*' \
-  | sort \
-  | tail -n 1)
-
-echo "$RUN_DIR"
-```
-
-Inspect the compact run report:
-
-```bash
-grep -E '"status"|"pipeline_version"|"resources"|"bundle"|"fingerprint"|"workflow_log"' \
-  "$RUN_DIR/run-report.json"
-```
-
-Compute a normalized variant-record hash for the generated VCF:
-
-```bash
-zgrep -v -E '^#' "$RUN_DIR/02_varcall/CNAG99901P.hc.QC.vcf.gz" \
-  | sort \
-  | sha256sum
-```
-
-Do not use the raw `.vcf.gz` file hash for reproducibility reporting. VCF
-headers and gzip metadata can differ between otherwise equivalent runs. The
-integration test compares and reports the normalized variant-record stream
-instead.
-
-For a reproducibility record, keep:
-
-- CBIcall commit: `git rev-parse HEAD`
-- Docker image digest
-- the four command outputs from the reproducibility check
-- `run-report.json`
-- the normalized variant-record SHA-256
-
-## 8. Clean Up
-
-Exit the VM:
-
-```bash
-exit
-```
-
-Delete the VM from your local terminal:
-
-```bash
-gcloud compute instances delete "$VM_NAME" --zone "$ZONE"
-```
-
-If you created a separate disk or copied resources to Cloud Storage, delete
-those separately.

@@ -17,8 +17,8 @@ export default function Home() {
               <img className={styles.heroLogo} src={logoUrl} alt="CBIcall" />
               <h1 className={styles.srOnly}>CBIcall</h1>
               <p className={styles.heroSubtitle}>
-                A configuration-driven workflow dispatcher for reproducible WES,
-                WGS, and mtDNA variant-calling runs.
+                A configuration-driven framework for reproducible WES, WGS,
+                and mtDNA variant-calling workflows.
               </p>
               <div className={styles.actions}>
                 <Link className="button button--primary button--lg" to="/docs/usage/quickstart">
