@@ -1,8 +1,11 @@
 # Developer Overview
 
 Use this section when you are maintaining CBIcall itself: adding workflows,
-editing the workflow registry, or declaring resource entries. Normal users usually
-only need the Run, Pipelines, and Reproducibility sections.
+editing the workflow registry, or declaring resource entries. The **workflow
+registry** maps YAML workflow choices to concrete Bash or Snakemake entrypoints;
+the **resource catalog** lists external resource entries, their versions, and
+their compatibility metadata. Normal users usually only need the Run, Pipelines, and
+Reproducibility sections.
 
 CBIcall can be extended in two main ways:
 
@@ -10,13 +13,13 @@ CBIcall can be extended in two main ways:
   <div className="cbicallCard">
     <span className="cbicallCardLabel">Workflows</span>
     <h3>Add a Pipeline</h3>
-    <p>Add a Bash or Snakemake entrypoint and register it in the workflow registry, <code>workflows/registry/workflows.yaml</code>. Users can then select it from the parameters YAML.</p>
+    <p>Add a Bash or Snakemake entrypoint and register it in the workflow registry, <code>workflows/registry/cbicall-workflow-registry.yaml</code>. Users can then select it from the parameters YAML.</p>
   </div>
 
   <div className="cbicallCard">
     <span className="cbicallCardLabel">Resources</span>
     <h3>Add a Resource</h3>
-    <p>Add a resource catalog entry that declares which workflow keys it supports and how installed resource identity can be checked.</p>
+    <p>Add a resource catalog entry that declares its resource version, which workflow keys it supports, and how installed resource identity can be checked.</p>
   </div>
 </div>
 
@@ -27,9 +30,9 @@ For most additions, the stable contract is:
 
 | Extension point | Main file | Purpose |
 | --- | --- | --- |
-| Workflow registry | `workflows/registry/workflows.yaml` | Developer-facing file that declares available workflow implementations. |
+| Workflow registry | `workflows/registry/cbicall-workflow-registry.yaml` | Developer-facing file that declares available workflow implementations. |
 | Workflow scripts | `workflows/bash/...` or `workflows/snakemake/...` | Implement the actual analysis steps. |
-| Resource catalog | `resources/cbicall-resource-catalog.json` | Declares external resource compatibility and identity metadata. |
+| Resource catalog | `resources/cbicall-resource-catalog.json` | Declares external resource versions, compatibility, and identity metadata. |
 | Parameters YAML | user-provided `*.yaml` | Selects one registered workflow and resource for a run. |
 
 Python changes are usually needed only when introducing a new execution model,

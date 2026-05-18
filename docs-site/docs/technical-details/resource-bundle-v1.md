@@ -8,7 +8,8 @@ The current bundle is selected in the run YAML with:
 resource: "cbicall-germline-resources-v1"
 ```
 
-CBIcall resolves this key against the resource catalog:
+CBIcall resolves this key against the resource catalog, the JSON inventory of
+resource entries and their compatibility metadata:
 
 ```text
 resources/cbicall-resource-catalog.json
@@ -25,9 +26,12 @@ The `scripts/download_cbicall_bundle.py` utility is intentionally scoped to CBIc
 | Field | Value |
 | --- | --- |
 | Resource key | `cbicall-germline-resources-v1` |
+| Version | `v1` |
 
 :::info[Why this is explicit]
-The resource key is the identifier users select with `resource`. `log.json` records this key and a catalog fingerprint, so two runs can be checked for the same declared external dependency set.
+The resource key is the identifier users select with `resource`. `log.json`
+records this key, the resource version, and a catalog fingerprint, so two runs
+can be checked for the same declared external dependency set.
 :::
 
 ## Supported Workflows

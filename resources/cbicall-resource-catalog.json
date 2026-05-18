@@ -3,6 +3,7 @@
   "resources": {
     "cbicall-germline-resources-v1": {
       "type": "bundle",
+      "version": "v1",
       "description": "Default CBIcall external tools and reference resources",
       "compatible_workflows": [
         "bash/wes/single/gatk-3.5/v1",

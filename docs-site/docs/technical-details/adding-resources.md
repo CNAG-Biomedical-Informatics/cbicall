@@ -2,8 +2,11 @@
 
 CBIcall resources are the external dependency layer used by workflows:
 third-party tools, reference genomes, known-sites files, interval lists, and
-auxiliary databases. The resource catalog can describe different resource
-types, for example `bundle` today and container-oriented entries in the future.
+auxiliary databases. The **resource catalog** is
+`resources/cbicall-resource-catalog.json`, the inventory of resource entries
+that records **type**, **version**, **workflow compatibility**, and optional identity
+metadata. It can describe different resource types, for example `bundle` today and
+container-oriented entries in the future.
 
 Most resource additions today therefore mean adding a bundle. That needs two
 pieces:
@@ -27,6 +30,7 @@ resources/cbicall-resource-catalog.json
   resources
     <resource-key>
       type: bundle
+      version: v1
 ```
 
 A resource key is the selectable value users put in `resource`. The shipped
@@ -80,6 +84,7 @@ Add the resource under `resources` and declare its type:
   "resources": {
     "my-center-germline-v1": {
       "type": "bundle",
+      "version": "v1",
       "description": "Institutional germline bundle for b37 and hg38 workflows.",
       "compatible_workflows": [
         "bash/wes/single/gatk-4.6/v1",
@@ -102,18 +107,26 @@ Add the resource under `resources` and declare its type:
 engine/pipeline/mode/gatk_version/pipeline_version
 ```
 
-The workflow keys must exist in `workflows/registry/workflows.yaml`.
+The workflow keys must exist in `workflows/registry/cbicall-workflow-registry.yaml`.
 
-The essential contract for a bundle entry is intentionally small: the resource
-key, `type`, and `compatible_workflows`. Other fields are optional metadata used
-for human description, CBIcall-provided downloads, or lightweight runtime
-identity checks.
+The essential contract for a resource entry is intentionally small: the **resource
+key**, **`type`**, **`version`**, and **`compatible_workflows`**. Other fields are optional
+metadata used for human description, CBIcall-provided downloads, or lightweight
+runtime identity checks.
 
 :::tip[Keep the catalog backend-agnostic]
-The catalog should describe resource identity, compatibility, broad layout, and
+The catalog should describe **resource identity, compatibility, broad layout, and
 optional integrity metadata. Do not put Bash-only environment variable bindings
-in the catalog. Backend-specific paths belong in Bash `env.sh` or Snakemake
-`config.yaml`.
+optional integrity metadata**. Do not put Bash-only environment variable bindings
+in the catalog. Backend-specific paths belong in Bash **`env.sh`** or Snakemake
+**`config.yaml`**.
+:::
+
+:::note[Why JSON here?]
+The workflow registry is **YAML** because it is developer-edited routing
+configuration. The resource catalog is **JSON** because it acts as a
+machine-validated provenance contract for **resource type, version,
+compatibility, and optional integrity metadata**.
 :::
 
 ## 2. Add Integrity Metadata When Available
@@ -190,18 +203,18 @@ Validate the whole catalog:
 bin/cbicall validate-resources
 ```
 
-Validate one non-default bundle entry:
+Validate one non-default resource entry:
 
 ```bash
-bin/cbicall validate-resources --bundle my-center-germline-v1
+bin/cbicall validate-resources --resource my-center-germline-v1
 ```
 
-Validate a bundle from a custom catalog file:
+Validate a resource from a custom catalog file:
 
 ```bash
 bin/cbicall validate-resources \
   --catalog /path/to/cbicall-resource-catalog.json \
-  --bundle my-center-germline-v1
+  --resource my-center-germline-v1
 ```
 
 This checks that the catalog entry is well formed and that its
@@ -241,5 +254,5 @@ and verifies installed bundle metadata when `cbicall-resource-id.json` or
 - [ ] Declare compatible workflow implementation keys.
 - [ ] Add archive and identifier checksums for CBIcall-provided downloads.
 - [ ] Keep backend-specific paths in `env.sh` or Snakemake `config.yaml`.
-- [ ] Run `bin/cbicall validate-resources --bundle <resource-key>`.
+- [ ] Run `bin/cbicall validate-resources --resource <resource-key>`.
 - [ ] Run `bin/cbicall validate-param -p <parameters.yaml>` with that resource selected.

@@ -10,7 +10,7 @@ Revision history for cbicall:
     - Add runtime profiles for site-specific environment files, including CNAG HPC.
     - Add explicit pipeline implementation versions and rename registry shared files from common to helpers.
     - Add validate-param, validate-registry, validate-resources, test, and compare-runs commands.
-    - Add run-report.json audit summaries with CBIcall version, workflow file hashes, resource provenance, and output fingerprints.
+    - Add run-report.json audit summaries with CBIcall version, workflow file hashes, resource provenance, output file inventory hashes, and output fingerprints.
     - Add text and HTML run comparison reports for two or more runs.
 
 1.0.0  2026-03-23

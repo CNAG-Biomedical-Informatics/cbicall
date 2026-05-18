@@ -8,6 +8,10 @@ auxiliary databases. A run selects one resource key in the parameters YAML:
 resource: cbicall-germline-resources-v1
 ```
 
+The **resource catalog** is the JSON inventory of those resource entries:
+`resources/cbicall-resource-catalog.json`. It records **resource type**,
+**resource version**, **workflow compatibility**, and optional identity metadata.
+
 <div className="cbicallNotePanel">
   <p><strong>Use this page when the question is:</strong> does this resource catalog, selected resource key, or installed resource directory match the workflow I am about to run?</p>
 </div>
@@ -29,7 +33,7 @@ bin/cbicall validate-resources
 Validate one resource key:
 
 ```bash
-bin/cbicall validate-resources --bundle cbicall-germline-resources-v1
+bin/cbicall validate-resources --resource cbicall-germline-resources-v1
 ```
 
 Validate a custom catalog:
@@ -37,11 +41,11 @@ Validate a custom catalog:
 ```bash
 bin/cbicall validate-resources \
   --catalog /path/to/cbicall-resource-catalog.json \
-  --bundle my-center-germline-v1
+  --resource my-center-germline-v1
 ```
 
-This checks the catalog shape and confirms that declared workflow compatibility
-keys exist.
+This checks the **catalog shape** and confirms that declared workflow
+compatibility keys exist.
 
 ## Validate One Run
 
@@ -51,8 +55,8 @@ Use `validate-param` with the parameters YAML that will be launched:
 bin/cbicall validate-param -p my-center-wes.yaml
 ```
 
-This checks the selected resource against the resolved workflow and installed
-resource metadata when present.
+This checks the **selected resource** against the resolved workflow and
+installed resource metadata when present.
 
 ## Runtime Provenance
 

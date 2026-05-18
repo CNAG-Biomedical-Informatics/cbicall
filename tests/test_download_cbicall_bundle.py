@@ -138,6 +138,7 @@ def test_load_catalog_entry_fetches_catalog_when_local_catalog_is_missing(tmp_pa
             "resources": {
                 "demo-resources-v1": {
                     "type": "bundle",
+                    "version": "v1",
                     "source": {"files": {}},
                     "archive": {"parts": []},
                 }

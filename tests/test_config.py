@@ -34,8 +34,8 @@ def _write_registry_and_schema(root: Path, *, registry_lines: str) -> None:
     cfg_dir.mkdir(parents=True, exist_ok=True)
     sch_dir.mkdir(parents=True, exist_ok=True)
 
-    (cfg_dir / "workflows.yaml").write_text(registry_lines, encoding="utf-8")
-    write_workflow_schema(sch_dir / "workflows.schema.json")
+    (cfg_dir / "cbicall-workflow-registry.yaml").write_text(registry_lines, encoding="utf-8")
+    write_workflow_schema(sch_dir / "cbicall-workflow-registry.schema.json")
 
 
 def _touch_snakemake_files(root: Path, gatk_ver: str, snakefile_name: str) -> Path:
@@ -294,7 +294,7 @@ def test_set_config_values_registry_missing_raises(monkeypatch, tmp_path):
     # Create schema only, omit registry
     sch_dir = root / "workflows" / "schema"
     sch_dir.mkdir(parents=True, exist_ok=True)
-    write_workflow_schema(sch_dir / "workflows.schema.json")
+    write_workflow_schema(sch_dir / "cbicall-workflow-registry.schema.json")
 
     with pytest.raises(FileNotFoundError, match="Workflow registry not found"):
         config_mod.set_config_values(
@@ -307,7 +307,7 @@ def test_set_config_values_schema_missing_raises(monkeypatch, tmp_path):
 
     cfg_dir = root / "workflows" / "registry"
     cfg_dir.mkdir(parents=True, exist_ok=True)
-    (cfg_dir / "workflows.yaml").write_text("workflows:\n  bash: {}\n", encoding="utf-8")
+    (cfg_dir / "cbicall-workflow-registry.yaml").write_text("workflows:\n  bash: {}\n", encoding="utf-8")
 
     with pytest.raises(FileNotFoundError, match="Workflow schema not found"):
         config_mod.set_config_values(
@@ -378,6 +378,7 @@ def test_set_config_values_records_resources_bundle(monkeypatch, tmp_path):
   "resources": {
     "cbicall-germline-resources-v1": {
       "type": "bundle",
+      "version": "v1",
       "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
       "archive": {"canonical_name": "cbicall-germline-resources-v1.tar.gz"}
     }
@@ -399,6 +400,7 @@ def test_set_config_values_records_resources_bundle(monkeypatch, tmp_path):
 
     bundle = cfg["resources"]["bundle"]
     assert bundle["key"] == "cbicall-germline-resources-v1"
+    assert bundle["version"] == "v1"
     assert bundle["compatible"] is True
     assert bundle["workflow_key"] == "bash/wes/single/gatk-4.6/v1"
     assert len(bundle["fingerprint"]) == 64
@@ -422,6 +424,7 @@ def test_set_config_values_requires_versioned_resource_compatibility(monkeypatch
                 "resources": {
                     "cbicall-germline-resources-v1": {
                         "type": "bundle",
+                        "version": "v1",
                         "compatible_workflows": ["bash/wes/single/gatk-4.6"],
                     }
                 },
@@ -445,6 +448,7 @@ def test_validate_resource_catalog_accepts_registry_workflow_keys(tmp_path):
                 "resources": {
                     "cbicall-germline-resources-v1": {
                         "type": "bundle",
+                        "version": "v1",
                         "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
                         "remote_identifier": {
                             "sha256": "a" * 64,
@@ -491,6 +495,7 @@ def test_validate_resource_catalog_rejects_unknown_workflow_key(tmp_path):
                 "resources": {
                     "cbicall-germline-resources-v1": {
                         "type": "bundle",
+                        "version": "v1",
                         "compatible_workflows": ["bash/wgs/single/gatk-4.6/v1"],
                     }
                 },
@@ -530,6 +535,7 @@ def test_validate_resource_catalog_rejects_bad_identifier_metadata(tmp_path):
                 "resources": {
                     "cbicall-germline-resources-v1": {
                         "type": "bundle",
+                        "version": "v1",
                         "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
                         "remote_identifier": {
                             "sha256": "not-a-sha",
@@ -571,6 +577,7 @@ def test_set_config_values_verifies_installed_resource_identifier(monkeypatch, t
                 "resources": {
                     "cbicall-germline-resources-v1": {
                         "type": "bundle",
+                        "version": "v1",
                         "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
                         "remote_identifier": {"sha256": identifier_sha256},
                     }
@@ -605,6 +612,7 @@ def test_set_config_values_verifies_installation_manifest_fingerprint(monkeypatc
     catalog_entry = {
         "key": "cbicall-germline-resources-v1",
         "type": "bundle",
+        "version": "v1",
         "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
     }
     (datadir / "cbicall-resource-installation.json").write_text(
@@ -621,6 +629,7 @@ def test_set_config_values_verifies_installation_manifest_fingerprint(monkeypatc
                 "resources": {
                     "cbicall-germline-resources-v1": {
                         "type": "bundle",
+                        "version": "v1",
                         "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
                     }
                 },
@@ -805,8 +814,8 @@ def test_load_workflow_registry_schema_validation_fails(monkeypatch, tmp_path):
     bad_registry = "not_workflows:\n  x: 1\n"
     _write_registry_and_schema(root, registry_lines=bad_registry)
 
-    registry_yaml = root / "workflows" / "registry" / "workflows.yaml"
-    schema_json = root / "workflows" / "schema" / "workflows.schema.json"
+    registry_yaml = root / "workflows" / "registry" / "cbicall-workflow-registry.yaml"
+    schema_json = root / "workflows" / "schema" / "cbicall-workflow-registry.schema.json"
 
     with pytest.raises(ParameterValidationError, match="failed schema validation"):
         config_mod.load_workflow_registry(registry_yaml, schema_json)

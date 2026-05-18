@@ -29,9 +29,12 @@
     "resource": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "compatible_workflows"],
+      "required": ["type", "version", "compatible_workflows"],
       "properties": {
         "type": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "version": {
           "$ref": "#/$defs/nonEmptyString"
         },
         "description": {

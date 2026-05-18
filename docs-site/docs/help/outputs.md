@@ -19,13 +19,15 @@ The exact files depend on the selected pipeline and mode. The tables below are d
 | File | Meaning |
 | --- | --- |
 | `log.json` | Structured record of CLI arguments, resolved configuration, selected `profile`, compact `resources.bundle` provenance, and runtime parameters. |
-| `run-report.json` | Compact audit report with CBIcall version, status, elapsed time, workflow file fingerprints, resource fingerprint, output fingerprints when available, and workflow log path. |
+| `run-report.json` | Compact audit report with CBIcall version, status, elapsed time, workflow file fingerprints, resource key/version/fingerprint, output file inventory fingerprint, output fingerprints when available, and workflow log path. |
 | `<engine>_<pipeline>_<mode>_<genome>_<gatk-version>.log` | Main wrapper log for Bash runs. |
 | `logs/*.log` | Per-rule or per-step logs for Snakemake/GATK 4.6 workflows. |
 
 Use `config.resources.bundle.fingerprint` inside `log.json` to check whether two runs used the same declared external dependency set.
 
-Use `workflow.fingerprint` inside `run-report.json` to check whether two runs used the same resolved workflow file contents. If the fingerprint differs, inspect `workflow.files` to see which entrypoint, helper, Snakefile, or config file changed. WES/WGS single-sample runs also include parsed VCF hash reports under `outputs.vcf_hash_reports` when `03_stats/*.vcf.sha256.txt` is present.
+Use `workflow.fingerprint` inside `run-report.json` to check whether two runs used the same resolved workflow file contents. If the fingerprint differs, inspect `workflow.files` to see which entrypoint, helper, Snakefile, or config file changed.
+
+Use `outputs.file_inventory.sha256` to check whether two run directories contain the same relative file layout. This is a manifest hash of file paths, not a content hash. WES/WGS single-sample runs also include parsed VCF hash reports under `outputs.vcf_hash_reports` when `03_stats/*.vcf.sha256.txt` is present.
 
 Two runs can be compared directly:
 
@@ -49,6 +51,7 @@ Applies to `pipeline: wes` or `pipeline: wgs` with `mode: single`.
 | `02_varcall/<id>.hc.g.vcf.gz.tbi` | Tabix index for the gVCF. |
 | `03_stats/<id>.coverage.txt` | Coverage summary. |
 | `03_stats/<id>.sex.txt` | Sex inference result from the final VCF. |
+| `03_stats/<id>.vcf.sha256.txt` | Per-VCF SHA-256 report with raw and normalized VCF fingerprints. |
 
 <details>
 <summary>Intermediate files</summary>

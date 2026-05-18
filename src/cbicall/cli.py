@@ -203,6 +203,29 @@ def _parse_key_value_file(path: Path) -> dict:
     return data
 
 
+def _collect_file_inventory(project_dir: Path) -> dict:
+    excluded = {"run-report.json"}
+    paths = []
+    if project_dir.is_dir():
+        for path in project_dir.rglob("*"):
+            if not path.is_file():
+                continue
+            rel_path = path.relative_to(project_dir).as_posix()
+            if rel_path in excluded:
+                continue
+            paths.append(rel_path)
+    paths.sort()
+    manifest_text = "".join(f"{path}\n" for path in paths).encode("utf-8")
+    return {
+        "algorithm": "sha256",
+        "scope": "run directory relative file paths",
+        "entries": len(paths),
+        "sha256": hashlib.sha256(manifest_text).hexdigest(),
+        "excluded": sorted(excluded),
+        "paths": paths,
+    }
+
+
 def _collect_output_fingerprints(project_dir: Path) -> dict:
     reports = []
     stats_dir = project_dir / "03_stats"
@@ -221,7 +244,10 @@ def _collect_output_fingerprints(project_dir: Path) -> dict:
                     "normalized_sha256": parsed.get("normalized_sha256"),
                 }
             )
-    return {"vcf_hash_reports": reports}
+    return {
+        "file_inventory": _collect_file_inventory(project_dir),
+        "vcf_hash_reports": reports,
+    }
 
 
 def write_run_report(
@@ -301,6 +327,7 @@ def _run_validate_param_command(argv: List[str]) -> int:
     elif workflow.engine == "snakemake":
         _row("Config", _short_path(workflow.config_file))
     _row("Resource key", bundle.get("key"))
+    _row("Resource ver", bundle.get("version"))
     _row("Resource hash", bundle.get("fingerprint"))
     runtime_check = bundle.get("runtime_check", {})
     _row("DATADIR", _short_path(runtime_check.get("datadir")))
@@ -310,8 +337,8 @@ def _run_validate_param_command(argv: List[str]) -> int:
 
 def _run_validate_registry_command(argv: List[str]) -> int:
     root = _project_root()
-    default_registry = root / "workflows" / "registry" / "workflows.yaml"
-    default_schema = root / "workflows" / "schema" / "workflows.schema.json"
+    default_registry = root / "workflows" / "registry" / "cbicall-workflow-registry.yaml"
+    default_schema = root / "workflows" / "schema" / "cbicall-workflow-registry.schema.json"
 
     parser = argparse.ArgumentParser(
         prog="cbicall validate-registry",
@@ -341,15 +368,15 @@ def _run_validate_registry_command(argv: List[str]) -> int:
 def _run_validate_resources_command(argv: List[str]) -> int:
     root = _project_root()
     default_catalog = root / "resources" / "cbicall-resource-catalog.json"
-    default_registry = root / "workflows" / "registry" / "workflows.yaml"
-    default_schema = root / "workflows" / "schema" / "workflows.schema.json"
+    default_registry = root / "workflows" / "registry" / "cbicall-workflow-registry.yaml"
+    default_schema = root / "workflows" / "schema" / "cbicall-workflow-registry.schema.json"
 
     parser = argparse.ArgumentParser(
         prog="cbicall validate-resources",
         description="Validate the resource catalog and workflow compatibility keys.",
     )
     parser.add_argument("--catalog", default=str(default_catalog), help="Resource catalog JSON.")
-    parser.add_argument("--bundle", help="Validate one bundle entry by resource key.")
+    parser.add_argument("-r", "--resource", help="Validate one resource entry by resource key.")
     parser.add_argument("--registry", default=str(default_registry), help="Workflow registry YAML.")
     parser.add_argument("--schema", default=str(default_schema), help="Workflow registry JSON Schema.")
     parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
@@ -360,7 +387,7 @@ def _run_validate_resources_command(argv: List[str]) -> int:
     _refresh_colors()
 
     registry = load_workflow_registry(Path(args.registry), Path(args.schema))
-    summary = validate_resource_catalog(Path(args.catalog), registry, resource_key=args.bundle)
+    summary = validate_resource_catalog(Path(args.catalog), registry, resource_key=args.resource)
 
     _section("Resources OK", GREEN)
     _row("Catalog", _short_path(summary["path"]))
@@ -559,10 +586,13 @@ def _print_multi_run_comparison(reports: List[dict]) -> None:
     print()
     _section("Resources", BLUE)
     _multi_status("Resource key", baseline, reports, lambda report: _nested(report, "resources", "bundle", "key"))
+    _multi_status("Resource ver", baseline, reports, lambda report: _nested(report, "resources", "bundle", "version"))
     _multi_status("Resource hash", baseline, reports, lambda report: _nested(report, "resources", "bundle", "fingerprint"))
 
     print()
     _section("Outputs", BLUE)
+    _multi_status("File count", baseline, reports, lambda report: _nested(report, "outputs", "file_inventory", "entries"))
+    _multi_status("File inventory", baseline, reports, lambda report: _nested(report, "outputs", "file_inventory", "sha256"))
     keys = sorted({key for report in reports for key in _vcf_hash_map(report)})
     if not keys:
         _row("VCF hashes", "not available")
@@ -603,6 +633,7 @@ def _print_run_comparison(left: dict, right: dict) -> None:
     print()
     _section("Resources", BLUE)
     _compare_row("Resource key", _nested(left, "resources", "bundle", "key"), _nested(right, "resources", "bundle", "key"))
+    _compare_row("Resource ver", _nested(left, "resources", "bundle", "version"), _nested(right, "resources", "bundle", "version"))
     _compare_row(
         "Resource hash",
         _nested(left, "resources", "bundle", "fingerprint"),
@@ -611,6 +642,8 @@ def _print_run_comparison(left: dict, right: dict) -> None:
 
     print()
     _section("Outputs", BLUE)
+    _compare_row("File count", _nested(left, "outputs", "file_inventory", "entries"), _nested(right, "outputs", "file_inventory", "entries"))
+    _compare_row("File inventory", _nested(left, "outputs", "file_inventory", "sha256"), _nested(right, "outputs", "file_inventory", "sha256"))
     _compare_output_hashes(left, right)
     _print_run_comparison_legend()
 

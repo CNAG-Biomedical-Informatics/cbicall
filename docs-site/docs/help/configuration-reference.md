@@ -29,12 +29,15 @@ genome:          b37
 | `workflow_engine` | `bash` | `bash`, `snakemake` | Selects the execution backend supported by the current workflows. |
 | `profile` | `local` | `local`, `cnag-hpc` | Selects the runtime environment file. `cnag-hpc` uses `cnag-hpc-env.sh` instead of the default `env.sh` for Bash workflows. |
 | `gatk_version` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the workflow version. Use `gatk-4.6` for current WES/WGS workflows. |
-| `resource` | `cbicall-germline-resources-v1` | resource key | Selects one bundle entry from `resources/cbicall-resource-catalog.json`. |
+| `resource` | `cbicall-germline-resources-v1` | resource key | Selects one entry from `resources/cbicall-resource-catalog.json`. |
 | `genome` | inferred | `b37`, `hg38`, `rsrs` | Reference genome. If omitted, CBIcall uses `b37` for WES/WGS and `rsrs` for mtDNA. |
 | `input_dir` | `null` | path | Input sample or project directory. Relative paths are resolved from the YAML file location. |
 | `sample_map` | `null` | path | Cohort-mode TSV containing sample IDs and gVCF paths. Relative paths are resolved from the YAML file location. |
 | `project_dir` | `cbicall` | path or prefix | Prefix for the generated run directory. |
 | `cleanup_bam` | `false` | `true`, `false` | Deletes intermediate BAM and BAI files after successful WES/WGS single-sample runs. |
+
+The resource catalog is the inventory of selectable resource entries and their
+workflow compatibility metadata.
 
 ## Compatibility Matrix
 
@@ -99,7 +102,8 @@ input_dir:       CNAG999_exome/CNAG99901P_ex
 
 `resource` selects the external tools and reference data expected for the run.
 CBIcall checks that the selected resource is compatible with the resolved
-workflow and records resource provenance in `log.json` and `run-report.json`.
+workflow and records resource key, version, and fingerprint provenance in
+`log.json` and `run-report.json`.
 
 Use [Resource Validation](../usage/resource-validation) for resource checks and
 [Run Comparison](../usage/run-comparison) to compare repeated runs.

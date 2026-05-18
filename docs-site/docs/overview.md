@@ -16,9 +16,9 @@ CBIcall is an orchestrator. It does not re-implement alignment or variant
 calling algorithms; it runs curated workflows built from established tools such
 as BWA, GATK, and MToolBox.
 
-- validates the parameters YAML before launch
-- dispatches Bash or Snakemake workflows
-- records logs, provenance, run reports, and output fingerprints when available
+- validates the **parameters YAML** before launch
+- dispatches **Bash** or **Snakemake** workflows
+- records **logs, provenance, run reports, and output fingerprints** when available
 
 ## Installation at a Glance
 

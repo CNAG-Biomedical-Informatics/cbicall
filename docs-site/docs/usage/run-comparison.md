@@ -4,11 +4,11 @@
 `run-report.json` files. It is intended for reproducibility checks across
 repeated local runs, HPC runs, container runs, or cloud runs.
 
-The command does not try to prove that two biological analyses are equivalent.
+The command **does not try to prove that two biological analyses are equivalent**.
 It gives an audit trail for the framework layer: which CBIcall version ran,
 which registered pipeline was resolved, which workflow files were executed,
 which resource identity was selected, and whether normalized VCF output
-fingerprints match when available.
+fingerprints and output file inventories match when available.
 
 ## Minimal Audit
 
@@ -49,7 +49,15 @@ bin/cbicall compare-runs baseline_run/ repeat_1/ repeat_2/ repeat_3/ \
 | Pipeline | Workflow key, pipeline implementation version, entrypoint, and workflow fingerprint. |
 | Workflow files | Entrypoint and helper/config file paths plus their SHA-256 values. |
 | Resources | Resource key and resource fingerprint from the selected resource catalog entry. |
-| Outputs | Normalized VCF fingerprints when `03_stats/*.vcf.sha256.txt` is present. |
+| Outputs | Run-directory file inventory fingerprint and normalized VCF fingerprints when `03_stats/*.vcf.sha256.txt` is present. |
+
+:::note[Runtime fingerprints]
+Workflow and resource fingerprints are **computed at runtime** from the files and
+catalog entries actually resolved for the run. CBIcall deliberately does not
+store expected workflow hashes in the workflow registry or resource catalog:
+otherwise every harmless comment or formatting edit in a workflow script would
+force metadata churn before the next run.
+:::
 
 The workflow fingerprint is computed from the resolved workflow files. Any byte
 change in the entrypoint, helpers, Snakefile, or config files changes this
@@ -57,9 +65,14 @@ fingerprint, including comment-only edits. This is deliberate: it tells the
 auditor that the implementation used for the second run was not exactly the same
 implementation used for the first run.
 
-The output fingerprint is different. It is computed from normalized VCF records,
+The output fingerprint is different. It is computed from **normalized VCF records**,
 not from the raw VCF file bytes. This avoids reporting false differences caused
 only by VCF header timestamps, command lines, or compression metadata.
+
+The file inventory fingerprint is also path-based, not content-based. It hashes
+the sorted list of relative file paths in the run directory, excluding
+`run-report.json` itself. It is useful for spotting layout differences, including
+expected differences caused by settings such as `cleanup_bam`.
 
 The status vocabulary is intentionally small:
 
@@ -81,7 +94,9 @@ Use this order when auditing two runs:
    fingerprints to locate the changed file.
 3. Check **Resources**. A different resource key or hash means the selected
    external dependency set was not the same.
-4. Check **Outputs**. Matching normalized VCF fingerprints indicate that the
+4. Check **Outputs**. A different file inventory means the run directories do
+   not contain the same relative file layout. Matching normalized VCF
+   fingerprints indicate that the
    compared variant records match under CBIcall's deterministic VCF comparison
    rules.
 
@@ -105,5 +120,7 @@ byte-identical. That is audit evidence, not automatically a failed analysis. For
 example, editing a comment in a Bash workflow changes the workflow hash but may
 leave the normalized VCF fingerprint unchanged.
 
-For output reproducibility, prioritize the normalized VCF fingerprint. For
-implementation provenance, inspect the workflow and helper file fingerprints.
+For output reproducibility, prioritize the **normalized VCF fingerprint**. Use
+the **file inventory fingerprint** to audit whether the run directory layout
+matches. For
+implementation provenance, inspect the **workflow and helper file fingerprints**.

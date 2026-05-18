@@ -3,7 +3,8 @@
 CBIcall is built so most new workflows can be added with two things:
 
 1. Workflow script(s)
-2. A registry entry in `workflows/registry/workflows.yaml`
+2. A workflow registry entry in `workflows/registry/cbicall-workflow-registry.yaml`, the file
+   that maps YAML workflow choices to concrete scripts
 
 :::tip[Most additions do not need Python changes]
 If the new pipeline fits the existing concepts of `pipeline`, `mode`, `workflow_engine`, `gatk_version`, `input_dir`, and `sample_map`, start with workflow scripts and the registry only.
@@ -54,12 +55,12 @@ The main implementation layers are:
 | `src/cbicall/config.py` | Parameter defaults, semantic validation, runtime metadata. |
 | `src/cbicall/workflow_registry.py` | Registry loading, workflow resolution, referenced-file validation. |
 | `src/cbicall/dnaseq.py` | Engine-specific execution through `BashRunner` and `SnakemakeRunner`. |
-| `workflows/registry/workflows.yaml` | Declares available workflow scripts. |
-| `workflows/schema/workflows.schema.json` | Validates the registry structure. |
+| `workflows/registry/cbicall-workflow-registry.yaml` | Declares available workflow scripts. |
+| `workflows/schema/cbicall-workflow-registry.schema.json` | Validates the registry structure. |
 
 :::tip[What is the registry?]
 The workflow registry is CBIcall's developer-facing workflow map:
-`workflows/registry/workflows.yaml`. It tells CBIcall which Bash or Snakemake
+`workflows/registry/cbicall-workflow-registry.yaml`. It tells CBIcall which Bash or Snakemake
 file to launch when a parameters YAML selects values such as `workflow_engine`,
 `gatk_version`, `pipeline`, `mode`, and `pipeline_version` in the parameters
 YAML.
@@ -72,7 +73,7 @@ bin/cbicall validate-registry
 ```
 
 This checks that the workflow registry is structurally valid against
-`workflows/schema/workflows.schema.json`; it does not run a workflow.
+`workflows/schema/cbicall-workflow-registry.schema.json`; it does not run a workflow.
 :::
 
 ## 1. Add the Workflow Entrypoint
@@ -151,7 +152,7 @@ CBIcall launches Snakemake with:
 Edit:
 
 ```text
-workflows/registry/workflows.yaml
+workflows/registry/cbicall-workflow-registry.yaml
 ```
 
 Add the pipeline under the correct engine and version.
@@ -292,7 +293,7 @@ Adding an engine is different from adding a pipeline. Prefer adding a new runner
 - [ ] Inspect the closest existing workflow in `workflows/{bash|snakemake}/{gatk-version}/`.
 - [ ] Add workflow entrypoint scripts.
 - [ ] Make Bash scripts executable.
-- [ ] Register scripts in `workflows/registry/workflows.yaml`.
+- [ ] Register scripts in `workflows/registry/cbicall-workflow-registry.yaml`.
 - [ ] Update Python validation if the pipeline name or compatibility matrix changes.
 - [ ] Add a minimal YAML example.
 - [ ] Run CBIcall and inspect `log.json`, `logs/`, and expected outputs.

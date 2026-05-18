@@ -84,6 +84,7 @@ def test_validate_resource_catalog_reports_semantic_errors_after_schema_passes(t
                 "resources": {
                     "bundle-v1": {
                         "type": "bundle",
+                        "version": "v1",
                         "compatible_workflows": ["bash/wes/single/gatk-4.6"],
                         "remote_identifier": {
                             "expected": {"resource_key": "other-bundle"},
@@ -112,6 +113,7 @@ def test_validate_resource_catalog_accepts_legacy_registry_string_keys(tmp_path)
                 "resources": {
                     "bundle-v1": {
                         "type": "bundle",
+                        "version": "v1",
                         "compatible_workflows": ["bash/wes/single/gatk-4.6"],
                     }
                 },
@@ -152,10 +154,12 @@ def test_validate_resource_catalog_can_filter_one_bundle(tmp_path):
                 "resources": {
                     "bundle-a": {
                         "type": "bundle",
+                        "version": "v1",
                         "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
                     },
                     "bundle-b": {
                         "type": "bundle",
+                        "version": "v1",
                         "compatible_workflows": ["bash/wes/cohort/gatk-4.6/v1"],
                     },
                 },
@@ -182,6 +186,7 @@ def test_validate_resource_catalog_accepts_non_bundle_resource_type(tmp_path):
                 "resources": {
                     "docker-gatk-v1": {
                         "type": "docker",
+                        "version": "v1",
                         "compatible_workflows": ["bash/wes/single/gatk-4.6/v1"],
                     },
                 },

@@ -198,6 +198,7 @@ def build_bundle_resource_metadata(cfg_in: dict, project_root: Path, workflow: W
         entry = {"compatible_workflows": []}
         return {
             "key": selected_resource_key,
+            "version": None,
             "catalog": None,
             "fingerprint": _catalog_fingerprint(_catalog_entry_for_fingerprint(entry)),
             "compatible": None,
@@ -230,6 +231,7 @@ def build_bundle_resource_metadata(cfg_in: dict, project_root: Path, workflow: W
 
     return {
         "key": selected_resource_key,
+        "version": entry.get("version"),
         "catalog": str(catalog_path),
         "fingerprint": _catalog_fingerprint(_catalog_entry_for_fingerprint(entry)),
         "compatible": compatible,

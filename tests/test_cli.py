@@ -60,7 +60,7 @@ def test_write_run_report_creates_compact_summary(tmp_path):
                 "helpers": {"env": str(env_file)},
             },
             "resources": {
-                "bundle": {"key": "cbicall-germline-resources-v1", "fingerprint": "abc"}
+                "bundle": {"key": "cbicall-germline-resources-v1", "version": "v1", "fingerprint": "abc"}
             },
             "version": "1.2.3",
         }
@@ -79,12 +79,21 @@ def test_write_run_report_creates_compact_summary(tmp_path):
     assert data["profile"] == "cnag-hpc"
     assert data["framework"]["version"] == "1.2.3"
     assert data["elapsed_seconds"] == 12.346
+    assert data["resources"]["bundle"]["version"] == "v1"
     assert data["resources"]["bundle"]["fingerprint"] == "abc"
     assert data["workflow_log"].endswith("workflow.log")
     assert data["workflow"]["key"] == "bash/wes/single/gatk-4.6/v1"
     assert len(data["workflow"]["fingerprint"]) == 64
     assert [item["role"] for item in data["workflow"]["files"]] == ["entrypoint", "helper:env"]
     assert all(item["status"] == "present" for item in data["workflow"]["files"])
+    inventory = data["outputs"]["file_inventory"]
+    assert inventory["algorithm"] == "sha256"
+    assert inventory["scope"] == "run directory relative file paths"
+    assert inventory["entries"] == 3
+    assert inventory["excluded"] == ["run-report.json"]
+    assert "run-report.json" not in inventory["paths"]
+    assert inventory["paths"] == ["03_stats/sample.vcf.sha256.txt", "env.sh", "wes_single.sh"]
+    assert len(inventory["sha256"]) == 64
     assert data["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] == "normalized"
 
 
@@ -107,8 +116,9 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
                 {"role": "helper:env", "path": "env.sh", "sha256": "env"},
             ],
         },
-        "resources": {"bundle": {"key": "cbicall-germline-resources-v1", "fingerprint": "res"}},
+        "resources": {"bundle": {"key": "cbicall-germline-resources-v1", "version": "v1", "fingerprint": "res"}},
         "outputs": {
+            "file_inventory": {"entries": 3, "sha256": "manifest-a"},
             "vcf_hash_reports": [
                 {"file": "sample.vcf.gz", "normalized_sha256": "vcf"}
             ]
@@ -117,6 +127,7 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     changed = json.loads(json.dumps(base))
     changed["workflow"]["fingerprint"] = "workflow-b"
     changed["workflow"]["files"][0]["sha256"] = "bbb"
+    changed["outputs"]["file_inventory"]["sha256"] = "manifest-b"
     changed["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] = "vcf"
 
     (run_a / "run-report.json").write_text(json.dumps(base), encoding="utf-8")
@@ -131,6 +142,8 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     assert "Run Comparison" in out
     assert "CBIcall ver" in out
     assert "Workflow hash" in out
+    assert "Resource ver" in out
+    assert "File inventory" in out
     assert "different" in out
     assert "entrypoint" in out
     assert "sha256" in out
@@ -168,8 +181,9 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
                 {"role": "entrypoint", "path": "wes_single.sh", "sha256": "aaa"},
             ],
         },
-        "resources": {"bundle": {"key": "cbicall-germline-resources-v1", "fingerprint": "res"}},
+        "resources": {"bundle": {"key": "cbicall-germline-resources-v1", "version": "v1", "fingerprint": "res"}},
         "outputs": {
+            "file_inventory": {"entries": 3, "sha256": "manifest-a"},
             "vcf_hash_reports": [
                 {"file": "sample.vcf.gz", "normalized_sha256": "vcf"}
             ]
@@ -178,6 +192,8 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     same = json.loads(json.dumps(base))
     different = json.loads(json.dumps(base))
     different["workflow"]["fingerprint"] = "workflow-c"
+    different["outputs"]["file_inventory"]["entries"] = 4
+    different["outputs"]["file_inventory"]["sha256"] = "manifest-c"
     different["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] = "vcf-c"
 
     for run, report in zip(runs, [base, same, different]):
@@ -188,6 +204,8 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     assert "Run Matrix" in out
     assert "Baseline" in out
     assert "Workflow hash" in out
+    assert "Resource ver" in out
+    assert "File inventory" in out
     assert "different: " in out
     assert "run_2/run-report.json" in out
     assert "sample.vcf.gz" in out
@@ -320,8 +338,8 @@ def test_validate_registry_command_uses_default_registry(capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert "Registry OK" in out
-    assert "workflows.yaml" in out
-    assert "workflows.schema.json" in out
+    assert "cbicall-workflow-registry.yaml" in out
+    assert "cbicall-workflow-registry.schema.json" in out
 
 
 def test_validate_resources_command_uses_default_catalog(capsys):
@@ -334,9 +352,9 @@ def test_validate_resources_command_uses_default_catalog(capsys):
     assert "Compatible workflows" in out
 
 
-def test_validate_resources_command_can_filter_bundle(capsys):
+def test_validate_resources_command_can_filter_resource(capsys):
     rc = cli_mod._run_validate_resources_command(
-        ["--no-color", "--bundle", "cbicall-germline-resources-v1"]
+        ["--no-color", "--resource", "cbicall-germline-resources-v1"]
     )
 
     assert rc == 0
@@ -345,6 +363,17 @@ def test_validate_resources_command_can_filter_bundle(capsys):
     assert "Resource key" in out
     assert "cbicall-germline-resources-v1" in out
     assert "Bundle resources" in out
+
+
+def test_validate_resources_command_accepts_short_resource_flag(capsys):
+    rc = cli_mod._run_validate_resources_command(
+        ["--no-color", "-r", "cbicall-germline-resources-v1"]
+    )
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Resource key" in out
+    assert "cbicall-germline-resources-v1" in out
 
 
 def test_main_happy_path(monkeypatch, tmp_path):

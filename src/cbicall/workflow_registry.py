@@ -215,6 +215,6 @@ def _validate_with_schema(data: dict, schema: dict, label: str) -> None:
 
 
 def _registry_paths(project_root: Path) -> Tuple[Path, Path]:
-    registry_yaml = (project_root / "workflows" / "registry" / "workflows.yaml").resolve()
-    schema_json = (project_root / "workflows" / "schema" / "workflows.schema.json").resolve()
+    registry_yaml = (project_root / "workflows" / "registry" / "cbicall-workflow-registry.yaml").resolve()
+    schema_json = (project_root / "workflows" / "schema" / "cbicall-workflow-registry.schema.json").resolve()
     return registry_yaml, schema_json

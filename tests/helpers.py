@@ -15,13 +15,13 @@ def make_executable(path: Path) -> None:
 
 def write_workflow_schema(path: Path) -> None:
     """
-    Schema for workflows/registry/workflows.yaml.
+    Schema for workflows/registry/cbicall-workflow-registry.yaml.
 
     Key rule: pipeline modes must define at least one of {single, cohort}.
     """
     schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "cbicall:workflows.schema.json",
+        "$id": "cbicall:workflow-registry.schema.json",
         "type": "object",
         "additionalProperties": False,
         "required": ["workflows"],
@@ -212,7 +212,7 @@ def fake_project(
     cfg_dir.mkdir(parents=True, exist_ok=True)
     sch_dir.mkdir(parents=True, exist_ok=True)
 
-    write_registry(cfg_dir / "workflows.yaml", gatk_ver=gatk_ver, **registry_kwargs)
-    write_workflow_schema(sch_dir / "workflows.schema.json")
+    write_registry(cfg_dir / "cbicall-workflow-registry.yaml", gatk_ver=gatk_ver, **registry_kwargs)
+    write_workflow_schema(sch_dir / "cbicall-workflow-registry.schema.json")
 
     return root
