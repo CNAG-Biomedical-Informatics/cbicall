@@ -23,7 +23,7 @@ title: About
   <article className="about-card">
     <span className="about-kicker">Documentation</span>
     <h3>Project docs</h3>
-    <p>Published with <a href="https://docusaurus.io">Docusaurus</a> and aligned with the supported Bash and Snakemake workflows.</p>
+    <p>Published with <a href="https://docusaurus.io">Docusaurus</a> and aligned with the supported Bash, Snakemake, and Nextflow workflows.</p>
   </article>
 </div>
 

@@ -36,18 +36,16 @@ can be checked for the same declared external dependency set.
 
 ## Supported Workflows
 
-| Engine | Pipeline | Mode | GATK version |
+This bundle is compatible with the packaged workflows below.
+
+| Engine | WES | WGS | mtDNA |
 | --- | --- | --- | --- |
-| `bash` | `wes` | `single` | `gatk-3.5` |
-| `bash` | `wes` | `cohort` | `gatk-3.5` |
-| `bash` | `wes` | `single` | `gatk-4.6` |
-| `bash` | `wes` | `cohort` | `gatk-4.6` |
-| `bash` | `wgs` | `single` | `gatk-4.6` |
-| `bash` | `wgs` | `cohort` | `gatk-4.6` |
-| `bash` | `mit` | `single` | `gatk-3.5` |
-| `bash` | `mit` | `cohort` | `gatk-3.5` |
-| `snakemake` | `wes` | `single` | `gatk-4.6` |
-| `snakemake` | `wes` | `cohort` | `gatk-4.6` |
+| `bash` | `single`, `cohort` with `gatk-3.5` or `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-3.5` |
+| `snakemake` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | Not supported |
+| `nextflow` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | Not supported |
+
+CBIcall checks the exact workflow key internally, for example
+`nextflow/wgs/cohort/gatk-4.6/v1`.
 
 ## Downloaded Files
 

@@ -90,7 +90,7 @@ def test_write_run_report_creates_compact_summary(tmp_path):
     assert inventory["algorithm"] == "sha256"
     assert inventory["scope"] == "run directory relative file paths"
     assert inventory["entries"] == 3
-    assert inventory["excluded"] == ["run-report.json"]
+    assert inventory["excluded"] == [".nextflow", ".nextflow*", "run-report.json", "work"]
     assert "run-report.json" not in inventory["paths"]
     assert inventory["paths"] == ["03_stats/sample.vcf.sha256.txt", "env.sh", "wes_single.sh"]
     assert len(inventory["sha256"]) == 64
@@ -704,7 +704,7 @@ def test_main_partial_run_warning_and_metadata(monkeypatch, tmp_path, capsys):
     assert seen["settings"].run_mode == "partial"
 
 
-def test_run_test_command_all_selects_optional_snakemake_and_skips_missing(monkeypatch, tmp_path):
+def test_run_test_command_all_selects_optional_engines_and_skips_missing(monkeypatch, tmp_path):
     script = tmp_path / "examples" / "input" / "run_tests.sh"
     script.parent.mkdir(parents=True)
     script.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
@@ -726,7 +726,14 @@ def test_run_test_command_all_selects_optional_snakemake_and_skips_missing(monke
     monkeypatch.setattr(cli_mod.subprocess, "run", fake_run)
 
     assert cli_mod._run_test_command(["--all", "-t", "2"]) == 0
-    assert seen["cmd"] == ["bash", str(script), "--wes-bash", "--wes-snakemake", "--mit-bash"]
+    assert seen["cmd"] == [
+        "bash",
+        str(script),
+        "--wes-bash",
+        "--wes-snakemake",
+        "--wes-nextflow",
+        "--mit-bash",
+    ]
     assert seen["cwd"] == str(script.parent)
     assert seen["env"]["THREADS"] == "2"
     assert seen["env"]["CBICALL_TEST_SKIP_MISSING_OPTIONAL"] == "1"
@@ -754,6 +761,30 @@ def test_run_test_command_explicit_snakemake_requires_engine(monkeypatch, tmp_pa
 
     assert cli_mod._run_test_command(["--wes-snakemake"]) == 7
     assert seen["cmd"] == ["bash", str(script), "--wes-snakemake"]
+    assert "CBICALL_TEST_SKIP_MISSING_OPTIONAL" not in seen["env"]
+
+
+def test_run_test_command_explicit_nextflow_requires_engine(monkeypatch, tmp_path):
+    script = tmp_path / "examples" / "input" / "run_tests.sh"
+    script.parent.mkdir(parents=True)
+    script.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+
+    seen = {}
+
+    def fake_run(cmd, cwd, env, check):
+        seen["cmd"] = cmd
+        seen["env"] = env
+
+        class Proc:
+            returncode = 8
+
+        return Proc()
+
+    monkeypatch.setattr(cli_mod, "_project_root", lambda: tmp_path)
+    monkeypatch.setattr(cli_mod.subprocess, "run", fake_run)
+
+    assert cli_mod._run_test_command(["--wes-nextflow"]) == 8
+    assert seen["cmd"] == ["bash", str(script), "--wes-nextflow"]
     assert "CBICALL_TEST_SKIP_MISSING_OPTIONAL" not in seen["env"]
 
 

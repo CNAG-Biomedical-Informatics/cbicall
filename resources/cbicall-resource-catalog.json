@@ -17,7 +17,11 @@
         "snakemake/wes/single/gatk-4.6/v1",
         "snakemake/wes/cohort/gatk-4.6/v1",
         "snakemake/wgs/single/gatk-4.6/v1",
-        "snakemake/wgs/cohort/gatk-4.6/v1"
+        "snakemake/wgs/cohort/gatk-4.6/v1",
+        "nextflow/wes/single/gatk-4.6/v1",
+        "nextflow/wes/cohort/gatk-4.6/v1",
+        "nextflow/wgs/single/gatk-4.6/v1",
+        "nextflow/wgs/cohort/gatk-4.6/v1"
       ],
       "remote_identifier": {
         "filename": "cbicall-resource-id.json",

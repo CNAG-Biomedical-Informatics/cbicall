@@ -16,7 +16,7 @@ Before editing files, define the shape of the workflow.
 
 | Decision | Options | Why it matters |
 | --- | --- | --- |
-| Engine | `bash`, `snakemake` | Determines where the entrypoint lives and how CBIcall launches it. |
+| Engine | `bash`, `snakemake`, `nextflow` | Determines where the entrypoint lives and how CBIcall launches it. |
 | Version | `gatk-3.5`, `gatk-4.6` | Determines the workflow subdirectory and shared helper files. |
 | Pipeline name | e.g. `mypipe` | Becomes the value users set as `pipeline: mypipe`. |
 | Mode | `single`, `cohort`, or both | Determines which entrypoint filenames are needed. |
@@ -54,13 +54,13 @@ The main implementation layers are:
 | --- | --- |
 | `src/cbicall/config.py` | Parameter defaults, semantic validation, runtime metadata. |
 | `src/cbicall/workflow_registry.py` | Registry loading, workflow resolution, referenced-file validation. |
-| `src/cbicall/dnaseq.py` | Engine-specific execution through `BashRunner` and `SnakemakeRunner`. |
+| `src/cbicall/dnaseq.py` | Engine-specific execution through `BashRunner`, `SnakemakeRunner`, and `NextflowRunner`. |
 | `workflows/registry/cbicall-workflow-registry.yaml` | Declares available workflow scripts. |
 | `workflows/schema/cbicall-workflow-registry.schema.json` | Validates the registry structure. |
 
 :::tip[What is the registry?]
 The workflow registry is CBIcall's developer-facing workflow map:
-`workflows/registry/cbicall-workflow-registry.yaml`. It tells CBIcall which Bash or Snakemake
+`workflows/registry/cbicall-workflow-registry.yaml`. It tells CBIcall which Bash, Snakemake, or Nextflow
 file to launch when a parameters YAML selects values such as `workflow_engine`,
 `gatk_version`, `pipeline`, `mode`, and `pipeline_version` in the parameters
 YAML.

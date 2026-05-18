@@ -99,3 +99,36 @@ workflows:
               versions:
                 v1:
                   script: "wgs_cohort.smk"
+
+  nextflow:
+    base_dir: "workflows/nextflow"
+    versions:
+      gatk-4.6:
+        helpers:
+          config: "config.yaml"
+          coverage: "../../bash/gatk-4.6/coverage.sh"
+          vcf2sex: "../../bash/gatk-4.6/vcf2sex.sh"
+          vcf2hash: "../../bash/gatk-4.6/vcf2hash.sh"
+        pipelines:
+          wes:
+            single:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wes_wgs_single.nf"
+            cohort:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wes_wgs_cohort.nf"
+          wgs:
+            single:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wes_wgs_single.nf"
+            cohort:
+              default: "v1"
+              versions:
+                v1:
+                  script: "wes_wgs_cohort.nf"

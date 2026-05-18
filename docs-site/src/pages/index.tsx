@@ -48,6 +48,7 @@ export default function Home() {
               <div className={styles.tokens}>
                 <span>bash</span>
                 <span>snakemake</span>
+                <span>nextflow</span>
                 <span>GATK</span>
                 <span>MToolBox</span>
               </div>

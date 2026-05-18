@@ -244,6 +244,155 @@ def test_dnaseq_builds_snakemake_partial_rule_command(tmp_path, monkeypatch):
     assert recorded["cmd"][:3] == ["snakemake", "--forceall", "call_variants"]
 
 
+def test_dnaseq_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
+    recorded = {}
+
+    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
+        recorded.update({"cmd": cmd, "engine": engine})
+
+    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    workflow = str(tmp_path / "wes_wgs_single.nf")
+    config = str(tmp_path / "config.yaml")
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 8,
+        "run_id": "RIDNF",
+        "debug": False,
+        "genome": "hg38",
+        "inputs": {"input_dir": None, "sample_map": None},
+        "workflow_rule": None,
+        "allow_partial_run": False,
+        "run_mode": "full",
+        "cleanup_bam": True,
+        "workflow": {
+            "engine": "nextflow",
+            "pipeline": "wgs",
+            "mode": "single",
+            "gatk_version": "gatk-4.6",
+            "entrypoint": workflow,
+            "config_file": config,
+            "helpers": {
+                "coverage": str(tmp_path / "coverage.sh"),
+                "vcf2sex": str(tmp_path / "vcf2sex.sh"),
+                "vcf2hash": str(tmp_path / "vcf2hash.sh"),
+            },
+        },
+    }
+
+    assert dnaseq.DNAseq(settings).variant_calling() is True
+    cmd = recorded["cmd"]
+    assert cmd[:3] == ["nextflow", "run", workflow]
+    assert "-params-file" in cmd
+    assert config in cmd
+    assert "--pipeline" in cmd and "wgs" in cmd
+    assert "--genome" in cmd and "hg38" in cmd
+    assert "--cleanup_bam" in cmd and "true" in cmd
+    assert "--vcf2hash_script" in cmd
+    assert recorded["engine"] == "nextflow"
+
+
+def test_dnaseq_builds_nextflow_cohort_command_with_sample_map(tmp_path, monkeypatch):
+    recorded = {}
+
+    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
+        recorded.update({"cmd": cmd, "engine": engine})
+
+    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    sample_map = tmp_path / "sample_map.tsv"
+    sample_map.write_text("S1\t/s1.g.vcf.gz\n", encoding="utf-8")
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 4,
+        "run_id": "RIDNFCOHORT",
+        "debug": False,
+        "genome": "b37",
+        "inputs": {"input_dir": None, "sample_map": str(sample_map)},
+        "workflow_rule": None,
+        "allow_partial_run": False,
+        "run_mode": "full",
+        "cleanup_bam": False,
+        "workflow": {
+            "engine": "nextflow",
+            "pipeline": "wes",
+            "mode": "cohort",
+            "gatk_version": "gatk-4.6",
+            "entrypoint": str(tmp_path / "wes_wgs_cohort.nf"),
+            "config_file": str(tmp_path / "config.yaml"),
+            "helpers": {"vcf2hash": str(tmp_path / "vcf2hash.sh")},
+        },
+    }
+
+    assert dnaseq.DNAseq(settings).variant_calling() is True
+    cmd = recorded["cmd"]
+    assert "--sample_map" in cmd and str(sample_map) in cmd
+    assert "--workspace" in cmd and "cohort.genomicsdb.RIDNFCOHORT" in cmd
+    assert "--vcf2hash_script" in cmd
+
+
+def test_dnaseq_nextflow_cohort_requires_sample_map(tmp_path):
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 4,
+        "run_id": "RIDNFCOHORT",
+        "debug": False,
+        "genome": "b37",
+        "inputs": {"input_dir": None, "sample_map": None},
+        "workflow_rule": None,
+        "allow_partial_run": False,
+        "run_mode": "full",
+        "workflow": {
+            "engine": "nextflow",
+            "pipeline": "wes",
+            "mode": "cohort",
+            "gatk_version": "gatk-4.6",
+            "entrypoint": str(tmp_path / "wes_wgs_cohort.nf"),
+            "config_file": str(tmp_path / "config.yaml"),
+            "helpers": {},
+        },
+    }
+
+    with pytest.raises(WorkflowResolutionError, match="sample_map is required"):
+        dnaseq.DNAseq(settings).variant_calling()
+
+
+def test_nextflow_partial_run_raises(tmp_path):
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 2,
+        "run_id": "RIDNFPART",
+        "debug": False,
+        "genome": "b37",
+        "inputs": {"input_dir": None, "sample_map": None},
+        "workflow_rule": "call_variants",
+        "allow_partial_run": True,
+        "run_mode": "partial",
+        "workflow": {
+            "engine": "nextflow",
+            "pipeline": "wes",
+            "mode": "single",
+            "gatk_version": "gatk-4.6",
+            "entrypoint": str(tmp_path / "main.nf"),
+            "config_file": str(tmp_path / "config.yaml"),
+            "helpers": {},
+        },
+    }
+    with pytest.raises(WorkflowResolutionError, match="nextflow"):
+        dnaseq.DNAseq(settings).variant_calling()
+
+
 def test_bash_partial_run_raises(tmp_path):
     project_dir = tmp_path / "proj"
     project_dir.mkdir()

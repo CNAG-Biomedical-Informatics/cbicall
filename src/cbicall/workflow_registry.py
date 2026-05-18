@@ -111,7 +111,27 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
         )
 
     if engine == "nextflow":
-        raise WorkflowResolutionError("workflow_engine='nextflow' is declared but not implemented.")
+        needed_helpers = ["config", "coverage", "vcf2sex", "vcf2hash"]
+        missing_helpers = [k for k in needed_helpers if k not in helpers]
+        if missing_helpers:
+            raise WorkflowResolutionError(
+                f"Workflow registry is missing helper keys for nextflow/{version}: {missing_helpers}"
+            )
+        return WorkflowSpec(
+            engine=engine,
+            pipeline=pipeline,
+            mode=mode,
+            gatk_version=version,
+            pipeline_version=pipeline_version,
+            entrypoint=str(base_dir / script_name),
+            config_file=str(base_dir / helpers["config"]),
+            helpers={
+                "coverage": str(base_dir / helpers["coverage"]),
+                "vcf2sex": str(base_dir / helpers["vcf2sex"]),
+                "vcf2hash": str(base_dir / helpers["vcf2hash"]),
+            },
+            profiles=profiles,
+        )
 
     raise WorkflowResolutionError(f"Unsupported workflow_engine: {engine}")
 
@@ -120,8 +140,10 @@ def validate_resolved_workflow_files(workflow: WorkflowSpec) -> None:
     must_exist = [("workflow.entrypoint", workflow.entrypoint)]
     if workflow.engine == "bash":
         must_exist.extend((f"workflow.helpers.{name}", path) for name, path in workflow.helpers.items())
-    elif workflow.engine == "snakemake":
+    elif workflow.engine in {"snakemake", "nextflow"}:
         must_exist.append(("workflow.config_file", workflow.config_file))
+        if workflow.engine == "nextflow":
+            must_exist.extend((f"workflow.helpers.{name}", path) for name, path in workflow.helpers.items())
 
     missing_files = [(label, path) for label, path in must_exist if path and not Path(path).exists()]
     if missing_files:
@@ -137,6 +159,14 @@ def validate_resolved_workflow_files(workflow: WorkflowSpec) -> None:
         if not_exe:
             raise WorkflowResolutionError(
                 "Missing +x on one or more workflow scripts: "
+                + ", ".join(f"{label} -> {path}" for label, path in not_exe)
+            )
+    elif workflow.engine == "nextflow":
+        exe_paths = [(f"workflow.helpers.{name}", path) for name, path in workflow.helpers.items()]
+        not_exe = [(label, path) for label, path in exe_paths if path and not os.access(path, os.X_OK)]
+        if not_exe:
+            raise WorkflowResolutionError(
+                "Missing +x on one or more Nextflow helper scripts: "
                 + ", ".join(f"{label} -> {path}" for label, path in not_exe)
             )
 

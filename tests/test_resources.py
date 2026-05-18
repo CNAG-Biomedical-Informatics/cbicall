@@ -238,6 +238,13 @@ def test_snakemake_datadir_parsing_and_unresolved_runtime_check(tmp_path):
     assert result["status"] == "datadir_unresolved"
     assert result["source_key"] == "workflow.config_file"
 
+    nextflow_result = resources_mod.validate_installed_bundle_resource(
+        {"key": "bundle-v1"},
+        _workflow("nextflow", config_file=no_datadir),
+    )
+    assert nextflow_result["status"] == "datadir_unresolved"
+    assert nextflow_result["source_key"] == "workflow.config_file"
+
 
 def test_validate_installed_bundle_resource_missing_and_metadata_not_found(tmp_path):
     env = tmp_path / "env.sh"

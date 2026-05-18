@@ -43,13 +43,13 @@ in production environments.
 
 CBIcall orchestrates germline variant calling workflows for Illumina sequencing data.
 It does **not** implement variant calling algorithms itself. Instead, it validates
-parameters, resolves workflows from a versioned registry, dispatches curated Bash
-or Snakemake pipelines, and captures logs and structured metadata for traceability.
+parameters, resolves workflows from a versioned registry, dispatches curated Bash,
+Snakemake, or Nextflow pipelines, and captures logs and structured metadata for traceability.
 
 Key points:
 
 - Configuration-driven execution from a YAML parameter file
-- Curated Bash and Snakemake workflow support
+- Curated Bash, Snakemake, and Nextflow workflow support
 - Support for WES, WGS, and mtDNA analysis modes
 - Structured run logging and traceable runtime metadata
 - Optional partial workflow starts for supported engines
@@ -80,4 +80,3 @@ Written by Manuel Rueda (mrueda). GitHub repository: [https://github.com/CNAG-Bi
 # Copyright and license
 
 Please see the included LICENSE file for distribution and usage terms.
-

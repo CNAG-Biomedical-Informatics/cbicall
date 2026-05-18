@@ -26,7 +26,7 @@ genome:          b37
 | --- | --- | --- | --- |
 | `mode` | `single` | `single`, `cohort` | Selects one-sample processing or cohort-level processing. |
 | `pipeline` | `wes` | `wes`, `wgs`, `mit` | Selects the analysis type. |
-| `workflow_engine` | `bash` | `bash`, `snakemake` | Selects the execution backend supported by the current workflows. |
+| `workflow_engine` | `bash` | `bash`, `snakemake`, `nextflow` | Selects the execution backend supported by the current workflows. |
 | `profile` | `local` | `local`, `cnag-hpc` | Selects the runtime environment file. `cnag-hpc` uses `cnag-hpc-env.sh` instead of the default `env.sh` for Bash workflows. |
 | `gatk_version` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the workflow version. Use `gatk-4.6` for current WES/WGS workflows. |
 | `resource` | `cbicall-germline-resources-v1` | resource key | Selects one entry from `resources/cbicall-resource-catalog.json`. |
@@ -47,10 +47,12 @@ workflow compatibility metadata.
 | `gatk-4.6` + `bash` + `wgs single/cohort` | Yes |
 | `gatk-4.6` + `snakemake` + `wes single/cohort` | Yes |
 | `gatk-4.6` + `snakemake` + `wgs single/cohort` | Yes |
+| `gatk-4.6` + `nextflow` + `wes single/cohort` | Yes |
+| `gatk-4.6` + `nextflow` + `wgs single/cohort` | Yes |
 | `gatk-3.5` + `bash` + `wes single/cohort` | Legacy |
 | `gatk-3.5` + `bash` + `mit single/cohort` | Yes, x86_64 only |
-| `mit` + `snakemake` | No |
-| `gatk-3.5` + `snakemake` | No |
+| `mit` + `snakemake` or `nextflow` | No |
+| `gatk-3.5` + `snakemake` or `nextflow` | No |
 
 :::info[Genome rules]
 - `pipeline: mit` always uses `genome: rsrs`.
@@ -143,7 +145,7 @@ During a real run, the resolved `profile` and selected environment file are writ
 | `bin/cbicall validate-param -p parameters.yaml` | Dry-run preflight for one concrete run. It validates the parameters YAML, workflow, profile env file, and selected resource without launching the workflow. |
 | `bin/cbicall validate-resources` | Check the resource catalog and, optionally, one resource key. |
 | `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare two or more run directories or `run-report.json` files. |
-| `bin/cbicall test --wes-bash`, `--wes-snakemake`, `--mit-bash`, or `--all` | Runs the bundled integration examples without remembering the script path. `--wes-bash` is the required baseline test; the Snakemake test requires `snakemake` on `PATH`. |
+| `bin/cbicall test --wes-bash`, `--wes-snakemake`, `--wes-nextflow`, `--mit-bash`, or `--all` | Runs the bundled integration examples without remembering the script path. `--wes-bash` is the required baseline test; Snakemake and Nextflow tests require their engines on `PATH`. |
 
 ## Advanced Keys
 

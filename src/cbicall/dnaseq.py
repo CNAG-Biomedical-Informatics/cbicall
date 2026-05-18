@@ -237,6 +237,65 @@ class SnakemakeRunner(BaseRunner):
         return cmd
 
 
+class NextflowRunner(BaseRunner):
+    def build_command(self) -> List[str]:
+        if self.workflow_rule:
+            raise WorkflowResolutionError(
+                "Partial workflow runs are not supported for workflow_engine='nextflow'."
+            )
+
+        script = self.workflow.entrypoint
+        if not script:
+            raise WorkflowResolutionError(f"Missing Nextflow workflow for pipeline/mode '{self.suffix}'")
+
+        config_file = self.workflow.config_file
+        if not config_file:
+            raise WorkflowResolutionError(f"Missing Nextflow params file for pipeline/mode '{self.suffix}'")
+
+        cmd: List[str] = [
+            "nextflow",
+            "run",
+            str(script),
+            "-params-file",
+            str(config_file),
+            "-ansi-log",
+            "false",
+            "--pipeline",
+            self.pipeline,
+            "--genome",
+            self.genome,
+            "--threads",
+            str(int(self.settings.threads)),
+            "--cleanup_bam",
+            "true" if bool(self.settings.cleanup_bam) else "false",
+        ]
+
+        sample_map = self.inputs.sample_map
+        if self.mode == "cohort":
+            if not sample_map:
+                raise WorkflowResolutionError(
+                    "sample_map is required for workflow_engine='nextflow' with mode='cohort'."
+                )
+            cmd += [
+                "--sample_map",
+                str(sample_map),
+                "--workspace",
+                f"cohort.genomicsdb.{self.settings.run_id}",
+            ]
+
+        helper_params = {
+            "coverage": "coverage_script",
+            "vcf2sex": "vcf2sex_script",
+            "vcf2hash": "vcf2hash_script",
+        }
+        for helper_name, param_name in helper_params.items():
+            helper_path = self.workflow.helpers.get(helper_name)
+            if helper_path:
+                cmd += [f"--{param_name}", str(helper_path)]
+
+        return cmd
+
+
 class DNAseq:
     """
     Dispatcher for engine-specific workflow runners.
@@ -258,6 +317,13 @@ class DNAseq:
 
         if engine == "snakemake":
             return SnakemakeRunner(
+                settings,
+                run_cmd=self._run_cmd,
+                cmd_to_string=self._cmd_to_string,
+            )
+
+        if engine == "nextflow":
+            return NextflowRunner(
                 settings,
                 run_cmd=self._run_cmd,
                 cmd_to_string=self._cmd_to_string,

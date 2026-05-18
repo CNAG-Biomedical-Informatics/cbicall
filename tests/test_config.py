@@ -46,6 +46,20 @@ def _touch_snakemake_files(root: Path, gatk_ver: str, snakefile_name: str) -> Pa
     return smk_dir
 
 
+def _touch_nextflow_files(root: Path, gatk_ver: str, workflow_name: str) -> Path:
+    nf_dir = root / "workflows" / "nextflow" / gatk_ver
+    nf_dir.mkdir(parents=True, exist_ok=True)
+    (nf_dir / workflow_name).write_text("// dummy\n", encoding="utf-8")
+    (nf_dir / "config.yaml").write_text("datadir: /tmp\n", encoding="utf-8")
+    bash_dir = root / "workflows" / "bash" / gatk_ver
+    bash_dir.mkdir(parents=True, exist_ok=True)
+    for name in ["coverage.sh", "vcf2sex.sh", "vcf2hash.sh"]:
+        p = bash_dir / name
+        p.write_text("#!/bin/sh\n", encoding="utf-8")
+        make_executable(p)
+    return nf_dir
+
+
 def _touch_bash_files(root: Path, gatk_ver: str, script_name: str, *, make_exec: bool = True) -> Path:
     bash_dir = root / "workflows" / "bash" / gatk_ver
     bash_dir.mkdir(parents=True, exist_ok=True)
@@ -1108,7 +1122,7 @@ def test_set_config_values_snakemake_missing_files_triggers_guard(monkeypatch, t
 # nextflow branch
 # --------------------------
 
-def test_set_config_values_nextflow_declared_but_not_implemented(monkeypatch, tmp_path):
+def test_set_config_values_nextflow_single_gatk46_resolves(monkeypatch, tmp_path):
     root = _mk_fake_root(monkeypatch, tmp_path)
 
     reg = (
@@ -1118,22 +1132,66 @@ def test_set_config_values_nextflow_declared_but_not_implemented(monkeypatch, tm
           "    base_dir: \"workflows/nextflow\"\n"
           "    versions:\n"
           "      gatk-4.6:\n"
-          "        helpers: {}\n"
+          "        helpers:\n"
+          "          config: \"config.yaml\"\n"
+          "          coverage: \"../../bash/gatk-4.6/coverage.sh\"\n"
+          "          vcf2sex: \"../../bash/gatk-4.6/vcf2sex.sh\"\n"
+          "          vcf2hash: \"../../bash/gatk-4.6/vcf2hash.sh\"\n"
           "        pipelines:\n"
           "          wgs:\n"
           "            single:\n"
           "              default: \"v1\"\n"
           "              versions:\n"
           "                v1:\n"
-          "                  script: \"main.nf\"\n"
+          "                  script: \"wes_wgs_single.nf\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+    _touch_nextflow_files(root, "gatk-4.6", "wes_wgs_single.nf")
 
-    with pytest.raises(WorkflowResolutionError, match="declared but not implemented"):
-        config_mod.set_config_values(
-            {"mode": "single", "pipeline": "wgs", "workflow_engine": "nextflow", "gatk_version": "gatk-4.6", "genome": "b37"}
-        )
+    cfg = config_mod.set_config_values(
+        {"mode": "single", "pipeline": "wgs", "workflow_engine": "nextflow", "gatk_version": "gatk-4.6", "genome": "hg38"}
+    )
+
+    assert cfg["workflow"]["engine"] == "nextflow"
+    assert cfg["workflow"]["entrypoint"].endswith("wes_wgs_single.nf")
+    assert cfg["workflow"]["config_file"].endswith("config.yaml")
+    assert cfg["workflow"]["helpers"]["vcf2hash"].endswith("vcf2hash.sh")
+
+
+def test_set_config_values_nextflow_cohort_gatk46_resolves(monkeypatch, tmp_path):
+    root = _mk_fake_root(monkeypatch, tmp_path)
+
+    reg = (
+        "workflows:\n"
+        + _minimal_bash_registry_block("gatk-4.6")
+        + "  nextflow:\n"
+          "    base_dir: \"workflows/nextflow\"\n"
+          "    versions:\n"
+          "      gatk-4.6:\n"
+          "        helpers:\n"
+          "          config: \"config.yaml\"\n"
+          "          coverage: \"../../bash/gatk-4.6/coverage.sh\"\n"
+          "          vcf2sex: \"../../bash/gatk-4.6/vcf2sex.sh\"\n"
+          "          vcf2hash: \"../../bash/gatk-4.6/vcf2hash.sh\"\n"
+          "        pipelines:\n"
+          "          wgs:\n"
+          "            cohort:\n"
+          "              default: \"v1\"\n"
+          "              versions:\n"
+          "                v1:\n"
+          "                  script: \"wes_wgs_cohort.nf\"\n"
+    )
+    _write_registry_and_schema(root, registry_lines=reg)
+    _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
+    _touch_nextflow_files(root, "gatk-4.6", "wes_wgs_cohort.nf")
+
+    cfg = config_mod.set_config_values(
+        {"mode": "cohort", "pipeline": "wgs", "workflow_engine": "nextflow", "gatk_version": "gatk-4.6", "genome": "hg38"}
+    )
+
+    assert cfg["workflow"]["engine"] == "nextflow"
+    assert cfg["workflow"]["entrypoint"].endswith("wes_wgs_cohort.nf")
 
 
 # --------------------------

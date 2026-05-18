@@ -24,7 +24,7 @@ Keep these files from each completed run:
 | --- | --- |
 | `run-report.json` | Compact provenance report used by `compare-runs`. |
 | `log.json` | Full resolved configuration, runtime parameters, and resource details. |
-| Workflow log | Execution log for the selected Bash or Snakemake backend. |
+| Workflow log | Execution log for the selected Bash, Snakemake, or Nextflow backend. |
 | `03_stats/*.vcf.sha256.txt` | Normalized VCF fingerprint report when produced by the workflow. |
 
 For a concise methods audit, archive `compare-report.txt` together with the two

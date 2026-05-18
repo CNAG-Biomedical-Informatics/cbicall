@@ -6,7 +6,7 @@ CBIcall is a thin orchestration layer around one or more concrete pipelines. Its
 - Validating required parameters and paths
 - Resolving the selected pipeline and workflow engine
 - Preparing the project directory structure
-- Calling the appropriate workflow scripts (Bash or Snakemake)
+- Calling the appropriate workflow scripts (Bash, Snakemake, or Nextflow)
 - Managing logs and collecting results in a standard layout
 
 The actual bioinformatics work (alignment, variant calling, QC) is implemented in modular pipelines that can be extended or replaced.
@@ -52,8 +52,8 @@ At a high level, CBIcall consists of:
 | --- | --- | --- |
 | Python execution driver | Reads the YAML configuration, validates parameters, resolves paths, and dispatches execution to the selected workflow. | `src/cbicall/config.py`, `src/cbicall/dnaseq.py` |
 | Workflow registry | Developer-facing map that connects parameters YAML choices (`workflow_engine`, `gatk_version`, `pipeline`, `mode`, and pipeline implementation version) to concrete workflow scripts. Validate it with `bin/cbicall validate-registry` after editing. | `workflows/registry/cbicall-workflow-registry.yaml`, `src/cbicall/workflow_registry.py` |
-| Pipelines | Implement WES, WGS, and mtDNA analyses. A pipeline may provide Bash workflows, Snakemake workflows, or both. | `workflows/bash/`, `workflows/snakemake/` |
-| Workflow engines | Execute the resolved workflow. Bash is transparent and direct; Snakemake adds rule-based orchestration and partial targets. | `BashRunner`, `SnakemakeRunner` in `src/cbicall/dnaseq.py` |
+| Pipelines | Implement WES, WGS, and mtDNA analyses. A pipeline may provide Bash, Snakemake, or Nextflow workflows. | `workflows/bash/`, `workflows/snakemake/`, `workflows/nextflow/` |
+| Workflow engines | Execute the resolved workflow. Bash is transparent and direct; Snakemake and Nextflow add engine-managed orchestration for bundled workflows. | `BashRunner`, `SnakemakeRunner`, `NextflowRunner` in `src/cbicall/dnaseq.py` |
 | Run directory | Stores outputs, logs, and `log.json` for one execution. | `01_bam/`, `02_varcall/`, `03_stats/`, `logs/` |
 | External data | Provides third-party tools, reference genomes, known-sites resources, and accessory databases. | `DATADIR`, `NGSUTILS`, `Databases` |
 
@@ -91,9 +91,10 @@ The workflow engine is selected in the YAML:
 
 - `workflow_engine: bash`
 - `workflow_engine: snakemake`
+- `workflow_engine: nextflow`
 
 <div className="cbicallNotePanel">
-  <p><strong>Rule of thumb:</strong> Bash workflows are direct and transparent. Snakemake workflows are better when rule-based orchestration or partial targets matter.</p>
+  <p><strong>Rule of thumb:</strong> Bash workflows are direct and transparent. Snakemake and Nextflow workflows provide engine-managed orchestration for bundled CBIcall workflows.</p>
 </div>
 
 ---
@@ -108,6 +109,8 @@ The workflow engine is selected in the YAML:
 | **WGS** | `cohort` | `b37` (default), `hg38` | `gatk-4.6` | ✓ Supported |
 | **MIT** (mtDNA) | `single` | `rsrs` (fixed) | `gatk-3.5` | ⚠ Not supported on ARM / aarch64 |
 | **MIT** (mtDNA) | `cohort` | `rsrs` (fixed) | `gatk-3.5` | ⚠ Not supported on ARM / aarch64 |
+
+Nextflow support currently covers GATK 4.6 WES/WGS single-sample workflows.
 
 ✓ Fully supported configuration
 ⚠ Platform limitation

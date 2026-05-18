@@ -48,7 +48,7 @@ Notes:
 
 - `mode` selects single-sample or cohort (joint genotyping).  
 - `pipeline` switches between WES, WGS or mtDNA.  
-- `workflow_engine` chooses the backend (bash or snakemake).  
+- `workflow_engine` chooses the backend (bash, snakemake, or nextflow).
 - See [Configuration Reference](../help/configuration-reference) for all YAML keys and supported combinations.
 
 > **How can I perform WGS?**

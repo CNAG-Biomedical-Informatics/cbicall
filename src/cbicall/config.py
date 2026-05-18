@@ -126,6 +126,16 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
             "The combination pipeline='mit' with workflow_engine='snakemake' is not supported."
         )
 
+    if cfg.get("workflow_engine") == "nextflow":
+        if cfg.get("gatk_version") != "gatk-4.6":
+            raise ParameterValidationError(
+                "workflow_engine='nextflow' is supported only for gatk_version='gatk-4.6'."
+            )
+        if cfg.get("pipeline") == "mit":
+            raise ParameterValidationError(
+                "The combination pipeline='mit' with workflow_engine='nextflow' is not supported."
+            )
+
     # If genome omitted, assign effective defaults
     # - MIT defaults to rsrs
     # - everything else defaults to b37

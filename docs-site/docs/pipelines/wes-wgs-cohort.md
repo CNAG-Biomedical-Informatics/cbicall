@@ -3,7 +3,7 @@
 A user-oriented guide for multi-sample joint genotyping using GenomicsDB, GenotypeGVCFs, and VQSR.
 
 
-**Source:** [View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/bash/gatk-4.6/wes_cohort.sh)
+**Sources:** [Bash](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/bash/gatk-4.6/wes_cohort.sh), [Snakemake](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/snakemake/gatk-4.6/wes_cohort.smk), [Nextflow](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/nextflow/gatk-4.6/wes_wgs_cohort.nf)
 
 ---
 
@@ -27,7 +27,7 @@ Use this when:
 
 ## Inputs
 
-- **Sample map file** (`--sample-map`):  
+- **Sample map file** (`sample_map` in the CBIcall YAML):
   TSV used by `GenomicsDBImport` (sample name → gVCF path).
 - **Per-sample gVCFs** from the single-sample pipeline.
 - **Reference genome** (`REF` from `env.sh`).

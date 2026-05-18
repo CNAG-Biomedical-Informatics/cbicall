@@ -29,6 +29,12 @@ PIPELINE = config.get("pipeline", "wes").lower()
 if PIPELINE not in ("wes", "wgs"):
     raise ValueError("config[pipeline] must be 'wes' or 'wgs'")
 
+GENOME = config.get("genome", "b37").lower()
+if GENOME not in config.get("resources", {}):
+    raise ValueError(f"config[resources] has no entry for genome '{GENOME}'")
+if PIPELINE == "wes" and GENOME == "hg38":
+    raise ValueError("genome='hg38' is only supported for pipeline='wgs'")
+
 CLEANUP_BAM = bool(config.get("cleanup_bam", False))
 
 THREADS = workflow.cores or int(config.get("threads", 4))
@@ -48,19 +54,20 @@ GATK4 = config["gatk4_cmd"].format(ngsutils=NGSUTILS, mem=MEM)
 COV     = str(snakefile_dir / "coverage.sh")
 VCF2SEX = str(snakefile_dir / "vcf2sex.sh")
 
-bundle       = config["bundle"].format(dbdir=DBDIR)
-REF          = config["ref"].format(bundle=bundle)
-REFGZ        = config["refgz"].format(bundle=bundle)
-dbSNP        = config["dbsnp"].format(dbdir=DBDIR)
-MILLS_INDELS = config["mills_indels"].format(bundle=bundle)
-KG_INDELS    = config["kg_indels"].format(bundle=bundle)
-HAPMAP       = config["hapmap"].format(bundle=bundle)
-OMNI         = config["omni"].format(bundle=bundle)
+resource_cfg  = config["resources"][GENOME]
+bundle        = resource_cfg["bundle"].format(dbdir=DBDIR)
+REF           = resource_cfg["ref"].format(bundle=bundle)
+REFGZ         = resource_cfg["refgz"].format(bundle=bundle)
+dbSNP         = resource_cfg["dbsnp"].format(dbdir=DBDIR)
+MILLS_INDELS  = resource_cfg["mills_indels"].format(bundle=bundle)
+KG_INDELS     = resource_cfg["kg_indels"].format(bundle=bundle)
+HAPMAP        = resource_cfg["hapmap"].format(bundle=bundle)
+OMNI          = resource_cfg["omni"].format(bundle=bundle)
 
-SNP_RES   = config["snp_res"].format(hapmap=HAPMAP, omni=OMNI, dbsnp=dbSNP)
-INDEL_RES = config["indel_res"].format(mills_indels=MILLS_INDELS)
+SNP_RES   = resource_cfg["snp_res"].format(hapmap=HAPMAP, omni=OMNI, dbsnp=dbSNP)
+INDEL_RES = resource_cfg["indel_res"].format(mills_indels=MILLS_INDELS)
 
-INTERVAL_LIST = config["interval_list"].format(bundle=bundle)
+INTERVAL_LIST = resource_cfg.get("interval_list", "").format(bundle=bundle)
 INTERVAL_ARG  = f"-L {shlex.quote(INTERVAL_LIST)}" if PIPELINE == "wes" else ""
 
 MIN_SNP_FOR_VQSR   = int(config.get("min_snp_for_vqsr", 1000))

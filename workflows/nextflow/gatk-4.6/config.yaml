@@ -1,8 +1,5 @@
-# Shared config for bundled GATK 4.6 Snakemake WES/WGS workflows.
+# Nextflow config for bundled GATK 4.6 WES/WGS single-sample workflows.
 
-# -----------------------
-# Base directories
-# -----------------------
 datadir: "/media/mrueda/2TBS"
 #datadir: "/cbicall-data"
 dbdir: "{datadir}/Databases"
@@ -15,20 +12,13 @@ threads: 8
 cleanup_bam: false
 min_snp_for_vqsr: 1000
 min_indel_for_vqsr: 8000
-
 mem: "8G"
 mem_genotype: "64G"
 
-# -----------------------
-# Java paths for different architectures
-# -----------------------
 java:
   aarch64: "/usr/lib/jvm/java-8-openjdk-arm64/bin/java"
   amd64: "/usr/lib/jvm/java-8-openjdk-amd64/bin/java"
 
-# -----------------------
-# Tool binaries per architecture
-# -----------------------
 tools:
   aarch64:
     bwa: "{ngsutils}/bwa-0.7.18_arm64/bwa"

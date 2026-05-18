@@ -93,6 +93,17 @@ genome:          b37
 sample_map:      ./sample_map.tsv
 ```
 
+### WGS Single-Sample With Nextflow
+
+```yaml
+mode:            single
+pipeline:        wgs
+workflow_engine: nextflow
+gatk_version:    gatk-4.6
+input_dir:       CNAG999_genome/CNAG99901P_wg
+genome:          hg38
+```
+
 ### mtDNA Single-Sample
 
 ```yaml
@@ -142,7 +153,7 @@ CBIcall is designed for multi-core Linux desktop, workstation, server, and HPC e
 | CPU | At least 4 cores |
 | RAM | At least 8 GB for single-sample runs; more for cohort joint genotyping |
 | Disk | At least 250 GB, depending on input size and whether BAM cleanup is enabled |
-| Source installation | Python 3.8+, Java 8, Snakemake when using Snakemake workflows |
+| Source installation | Python 3.8+, Java 8, plus Snakemake or Nextflow when using those workflow engines |
 
 ## Next Steps
 

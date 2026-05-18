@@ -205,13 +205,19 @@ def _parse_key_value_file(path: Path) -> dict:
 
 def _collect_file_inventory(project_dir: Path) -> dict:
     excluded = {"run-report.json"}
+    excluded_roots = {"work", ".nextflow"}
     paths = []
     if project_dir.is_dir():
         for path in project_dir.rglob("*"):
             if not path.is_file():
                 continue
             rel_path = path.relative_to(project_dir).as_posix()
+            rel_parts = path.relative_to(project_dir).parts
             if rel_path in excluded:
+                continue
+            if rel_parts and rel_parts[0] in excluded_roots:
+                continue
+            if path.name.startswith(".nextflow"):
                 continue
             paths.append(rel_path)
     paths.sort()
@@ -221,7 +227,7 @@ def _collect_file_inventory(project_dir: Path) -> dict:
         "scope": "run directory relative file paths",
         "entries": len(paths),
         "sha256": hashlib.sha256(manifest_text).hexdigest(),
-        "excluded": sorted(excluded),
+        "excluded": sorted(excluded | excluded_roots | {".nextflow*"}),
         "paths": paths,
     }
 
@@ -324,7 +330,7 @@ def _run_validate_param_command(argv: List[str]) -> int:
     _row("Entrypoint", _short_path(workflow.entrypoint))
     if workflow.engine == "bash":
         _row("Env file", _short_path(workflow.helpers.get("env")))
-    elif workflow.engine == "snakemake":
+    elif workflow.engine in {"snakemake", "nextflow"}:
         _row("Config", _short_path(workflow.config_file))
     _row("Resource key", bundle.get("key"))
     _row("Resource ver", bundle.get("version"))
@@ -943,6 +949,11 @@ def _run_test_command(argv: List[str]) -> int:
         action="store_true",
         help="Run the Snakemake WES integration test. Requires snakemake on PATH.",
     )
+    parser.add_argument(
+        "--wes-nextflow",
+        action="store_true",
+        help="Run the Nextflow WES integration test. Requires nextflow on PATH.",
+    )
     parser.add_argument("--mit-bash", action="store_true", help="Run the Bash mitochondrial integration test.")
     parser.add_argument(
         "--all",
@@ -960,10 +971,12 @@ def _run_test_command(argv: List[str]) -> int:
         selected.append("--wes-bash")
     if args.all or args.wes_snakemake:
         selected.append("--wes-snakemake")
+    if args.all or args.wes_nextflow:
+        selected.append("--wes-nextflow")
     if args.all or args.mit_bash:
         selected.append("--mit-bash")
     if not selected:
-        parser.error("select at least one test with --wes-bash, --wes-snakemake, --mit-bash, or --all")
+        parser.error("select at least one test with --wes-bash, --wes-snakemake, --wes-nextflow, --mit-bash, or --all")
 
     root = _project_root()
     script = root / "examples" / "input" / "run_tests.sh"

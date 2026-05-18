@@ -120,6 +120,9 @@ def _print_run_summary(
     elif workflow.engine == "snakemake":
         _row("Snakefile", _short_path(workflow.entrypoint))
         _row("Config", _short_path(workflow.config_file))
+    elif workflow.engine == "nextflow":
+        _row("Nextflow", _short_path(workflow.entrypoint))
+        _row("Config", _short_path(workflow.config_file))
 
     log_name = f"{workflow.engine}_{workflow.pipeline}_{workflow.mode}_{genome}_{workflow.gatk_version}.log"
     _row("Log", Path(resolved_config.project_dir) / log_name)

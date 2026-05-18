@@ -13,6 +13,7 @@ LAUNCHER_LOG_DIR=${LAUNCHER_LOG_DIR:-$(pwd -P)}
 
 RUN_WES_BASH=0
 RUN_WES_SNAKEMAKE=0
+RUN_WES_NEXTFLOW=0
 RUN_MIT_BASH=0
 SKIP_MISSING_OPTIONAL=${CBICALL_TEST_SKIP_MISSING_OPTIONAL:-0}
 
@@ -31,11 +32,13 @@ launcher log, and outputs used for comparison.
 You MUST specify at least one of:
   --wes-bash       Run the Bash WES test.
   --wes-snakemake  Run the Snakemake WES test.
+  --wes-nextflow   Run the Nextflow WES test.
   --mit-bash       Run the Bash MIT test.
 
 Options:
   --wes-bash       Run the Bash WES test.
   --wes-snakemake  Run the Snakemake WES test. Requires snakemake on PATH.
+  --wes-nextflow   Run the Nextflow WES test. Requires nextflow on PATH.
   --mit-bash       Run the Bash MIT test.
   -h, --help       Show this help message and exit.
 
@@ -58,6 +61,10 @@ while [ "$#" -gt 0 ]; do
       RUN_WES_SNAKEMAKE=1
       shift
       ;;
+    --wes-nextflow)
+      RUN_WES_NEXTFLOW=1
+      shift
+      ;;
     --mit-bash)
       RUN_MIT_BASH=1
       shift
@@ -75,8 +82,8 @@ while [ "$#" -gt 0 ]; do
 done
 
 # Require at least one test to be selected
-if [ "$RUN_WES_BASH" -eq 0 ] && [ "$RUN_WES_SNAKEMAKE" -eq 0 ] && [ "$RUN_MIT_BASH" -eq 0 ]; then
-  echo "Error: you must specify at least one of --wes-bash, --wes-snakemake, or --mit-bash." >&2
+if [ "$RUN_WES_BASH" -eq 0 ] && [ "$RUN_WES_SNAKEMAKE" -eq 0 ] && [ "$RUN_WES_NEXTFLOW" -eq 0 ] && [ "$RUN_MIT_BASH" -eq 0 ]; then
+  echo "Error: you must specify at least one of --wes-bash, --wes-snakemake, --wes-nextflow, or --mit-bash." >&2
   usage >&2
   exit 1
 fi
@@ -407,6 +414,100 @@ EOF
 else
   echo "Skipping WES Snakemake test (not requested)."
   append_summary "WES Snakemake" "skipped"
+fi
+
+############################################
+# TEST 1C: WES Nextflow                    #
+############################################
+
+if [ "$RUN_WES_NEXTFLOW" -eq 1 ]; then
+  echo "========================================"
+  echo "TEST: WES Nextflow"
+  echo "========================================"
+
+  REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_wes_single_b37_gatk-4.6_765963065360466/02_varcall/CNAG99901P.hc.QC.vcf.gz'
+  BASE_DIR='CNAG999_exome/CNAG99901P_ex'
+  RUN_GLOB='cbicall_nextflow_wes_single_b37_gatk-4.6_*'
+  WORKFLOW_LOG_NAME='nextflow_wes_single_b37_gatk-4.6.log'
+
+  check_ref_dir "$REF_VCF"
+
+  if ! command -v nextflow >/dev/null 2>&1; then
+    if [ "$SKIP_MISSING_OPTIONAL" -eq 1 ]; then
+      echo "SKIP: Nextflow is not installed; install it to run Nextflow backend integration tests."
+      append_summary "WES Nextflow" "skipped" "nextflow not found"
+    else
+      echo "ERROR: Nextflow is not installed; install it or omit --wes-nextflow." >&2
+      append_summary "WES Nextflow" "failed" "nextflow not found"
+      overall_status=1
+    fi
+  else
+    echo "Running WES Nextflow integration test..."
+    WES_NF_STATUS=0
+    WES_NF_BEFORE=$(mktemp)
+    WES_NF_AFTER=$(mktemp)
+    WES_NF_PARAM=$(mktemp -p "$LAUNCHER_LOG_DIR" cbicall-wes-nextflow.XXXXXX.yaml)
+    WES_NF_LAUNCHER_LOG=$(mktemp -p "$LAUNCHER_LOG_DIR" cbicall-test-wes-nextflow.XXXXXX.log)
+    list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_NF_BEFORE"
+
+    cat > "$WES_NF_PARAM" <<EOF
+mode: single
+pipeline: wes
+workflow_engine: nextflow
+profile: local
+gatk_version: gatk-4.6
+resource: "cbicall-germline-resources-v1"
+input_dir: CNAG999_exome/CNAG99901P_ex
+EOF
+
+    if ! "$CBICALL" run -p "$WES_NF_PARAM" -t "$THREADS" > "$WES_NF_LAUNCHER_LOG" 2>&1; then
+      list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_NF_AFTER"
+      WES_NF_RUN_DIR=$(run_dir_from_launcher_log "$WES_NF_LAUNCHER_LOG")
+      if [ -z "${WES_NF_RUN_DIR:-}" ]; then
+        WES_NF_RUN_DIR=$(new_run_dir "$WES_NF_BEFORE" "$WES_NF_AFTER" || true)
+      fi
+      echo "ERROR: WES Nextflow cbicall command failed. Last launcher log lines:"
+      tail -n 40 "$WES_NF_LAUNCHER_LOG" || true
+      if [ -n "${WES_NF_RUN_DIR:-}" ]; then
+        print_run_artifacts "WES Nextflow" "$WES_NF_RUN_DIR" "$WES_NF_RUN_DIR/$WORKFLOW_LOG_NAME" "$WES_NF_RUN_DIR/run-report.json" "$WES_NF_LAUNCHER_LOG"
+      else
+        echo "Launcher log: $WES_NF_LAUNCHER_LOG"
+      fi
+      WES_NF_STATUS=1
+      append_summary "WES Nextflow" "failed" "$WES_NF_LAUNCHER_LOG"
+    else
+      list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_NF_AFTER"
+      WES_NF_RUN_DIR=$(run_dir_from_launcher_log "$WES_NF_LAUNCHER_LOG")
+      if [ -z "${WES_NF_RUN_DIR:-}" ]; then
+        WES_NF_RUN_DIR=$(new_run_dir "$WES_NF_BEFORE" "$WES_NF_AFTER" || true)
+      fi
+
+      if [ -z "${WES_NF_RUN_DIR:-}" ]; then
+        echo "ERROR: WES Nextflow command finished but no new run directory was found."
+        echo "Launcher log: $WES_NF_LAUNCHER_LOG"
+        WES_NF_STATUS=1
+        append_summary "WES Nextflow" "failed" "no new run directory"
+      else
+        TEST_RESULT_WES_NF="$WES_NF_RUN_DIR/02_varcall/CNAG99901P.hc.QC.vcf.gz"
+        print_run_artifacts "WES Nextflow" "$WES_NF_RUN_DIR" "$WES_NF_RUN_DIR/$WORKFLOW_LOG_NAME" "$WES_NF_RUN_DIR/run-report.json" "$WES_NF_LAUNCHER_LOG" "$TEST_RESULT_WES_NF"
+
+        if compare_files "$REF_VCF" "$TEST_RESULT_WES_NF" zgrep; then
+          append_summary "WES Nextflow" "passed" "$WES_NF_RUN_DIR"
+        else
+          WES_NF_STATUS=1
+          append_summary "WES Nextflow" "failed" "$WES_NF_RUN_DIR"
+        fi
+      fi
+    fi
+
+    if [ "$WES_NF_STATUS" -ne 0 ]; then
+      overall_status=1
+    fi
+    rm -f "$WES_NF_BEFORE" "$WES_NF_AFTER" "$WES_NF_PARAM"
+  fi
+else
+  echo "Skipping WES Nextflow test (not requested)."
+  append_summary "WES Nextflow" "skipped"
 fi
 
 ############################################

@@ -7,7 +7,7 @@
 **CBIcall** (**C**NAG **B**iomedical **I**nformatics framework for variant **call**ing) gives users a single command-line entry point for curated WES, WGS, and mtDNA workflows, while keeping run configuration, logs, and outputs traceable.
 
 :::tip[In one sentence]
-CBIcall validates a parameters YAML file, resolves the requested workflow, creates a run directory, and launches the matching Bash or Snakemake pipeline.
+CBIcall validates a parameters YAML file, resolves the requested workflow, creates a run directory, and launches the matching Bash, Snakemake, or Nextflow pipeline.
 :::
 
 ## What CBIcall Does
@@ -17,7 +17,7 @@ calling algorithms; it runs curated workflows built from established tools such
 as BWA, GATK, and MToolBox.
 
 - validates the **parameters YAML** before launch
-- dispatches **Bash** or **Snakemake** workflows
+- dispatches **Bash**, **Snakemake**, or **Nextflow** workflows
 - records **logs, provenance, run reports, and output fingerprints** when available
 
 ## Installation at a Glance

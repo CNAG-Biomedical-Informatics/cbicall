@@ -38,6 +38,7 @@ repeated runs, see [Run Comparison](run-comparison).
 ```bash
 bin/cbicall test --wes-bash -t 1
 bin/cbicall test --wes-snakemake -t 1
+bin/cbicall test --wes-nextflow -t 1
 bin/cbicall test --mit-bash -t 1
 bin/cbicall test --all -t 1
 ```
@@ -46,12 +47,13 @@ bin/cbicall test --all -t 1
 | --- | --- |
 | `bin/cbicall test --wes-bash -t 1` | Required Bash WES integration test. Run this first. |
 | `bin/cbicall test --wes-snakemake -t 1` | Optional Snakemake WES test. Requires `snakemake` on `PATH` and compares the resulting VCF to the same Bash reference VCF. |
+| `bin/cbicall test --wes-nextflow -t 1` | Optional Nextflow WES test. Requires `nextflow` on `PATH` and compares the resulting VCF to the same Bash reference VCF. |
 | `bin/cbicall test --mit-bash -t 1` | Optional mtDNA Bash integration test after the WES path is working. |
 | `bin/cbicall test --all -t 1` | Run all bundled integration examples. Optional engine tests are skipped when their engine is not installed. |
 
 :::note[Workflow engine dependencies]
-Snakemake is not part of the CBIcall resource bundle. Install it in the runtime
-environment before running `bin/cbicall test --wes-snakemake`.
+Snakemake and Nextflow are not part of the CBIcall resource bundle. Install them
+in the runtime environment before running their backend-specific tests.
 :::
 
 ## Outputs
@@ -70,6 +72,9 @@ CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_*/
 
 The optional Snakemake WES test uses the same input and expected VCF records, but
 the run directory starts with `cbicall_snakemake_wes_single_b37_gatk-4.6_*`.
+
+The optional Nextflow WES test uses the same input and expected VCF records, but
+the run directory starts with `cbicall_nextflow_wes_single_b37_gatk-4.6_*`.
 
 For mtDNA, the run directory looks like:
 
