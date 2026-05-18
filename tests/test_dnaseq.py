@@ -366,6 +366,129 @@ def test_dnaseq_nextflow_cohort_requires_sample_map(tmp_path):
         dnaseq.DNAseq(settings).variant_calling()
 
 
+def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatch):
+    recorded = {}
+    monkeypatch.setattr(dnaseq.platform, "machine", lambda: "x86_64")
+
+    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
+        recorded.update({"cmd": cmd, "cwd": cwd, "engine": engine})
+
+    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    sample_map = tmp_path / "samplesheet.csv"
+    sample_map.write_text("patient,sample,lane,fastq_1,fastq_2\n", encoding="utf-8")
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 2,
+        "run_id": "RIDSAREK",
+        "debug": False,
+        "genome": "external",
+        "nextflow_profile": "docker",
+        "nextflow_args": {
+            "input": str(sample_map),
+            "genome": "GATK.GRCh38",
+            "tools": "haplotypecaller",
+        },
+        "inputs": {"input_dir": None, "sample_map": None},
+        "workflow_rule": None,
+        "allow_partial_run": False,
+        "run_mode": "full",
+        "workflow": {
+            "engine": "nextflow",
+            "pipeline": "sarek",
+            "mode": "cohort",
+            "gatk_version": "nf-core",
+            "pipeline_version": "v1",
+            "entrypoint": "nf-core/sarek",
+            "config_file": None,
+            "helpers": {},
+            "metadata": {
+                "source_type": "nf-core",
+                "source": "nf-core/sarek",
+                "release": "3.8.1",
+                "default_outdir": "sarek",
+            },
+        },
+    }
+
+    assert dnaseq.DNAseq(settings).variant_calling() is True
+    cmd = recorded["cmd"]
+    assert cmd[:5] == ["nextflow", "run", "nf-core/sarek", "-r", "3.8.1"]
+    assert "-profile" in cmd and "docker" in cmd
+    assert "-c" in cmd and str(project_dir / "cbicall_external_nextflow.config") in cmd
+    assert "-work-dir" in cmd and str(project_dir / "work") in cmd
+    params_file = project_dir / "cbicall_external_nextflow.params.yaml"
+    config_file = project_dir / "cbicall_external_nextflow.config"
+    assert params_file.is_file()
+    assert config_file.is_file()
+    params_text = params_file.read_text(encoding="utf-8")
+    assert f"input: {sample_map}" in params_text
+    assert f"outdir: {project_dir / 'sarek'}" in params_text
+    assert "genome: GATK.GRCh38" in params_text
+    assert "max_cpus: 2" in params_text
+    assert "tools: haplotypecaller" in params_text
+    assert "resourceLimits = [ cpus: 2 ]" in config_file.read_text(encoding="utf-8")
+    assert recorded["cwd"] == project_dir
+    assert recorded["engine"] == "nextflow"
+
+
+def test_dnaseq_nfcore_sarek_pins_amd64_docker_platform_on_arm64(tmp_path, monkeypatch):
+    recorded = {}
+    monkeypatch.setattr(dnaseq.platform, "machine", lambda: "aarch64")
+
+    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
+        recorded.update({"cmd": cmd, "cwd": cwd, "engine": engine})
+
+    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    sample_map = tmp_path / "samplesheet.csv"
+    sample_map.write_text("patient,sample,lane,fastq_1,fastq_2\n", encoding="utf-8")
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 6,
+        "run_id": "RIDSAREKARM",
+        "debug": False,
+        "genome": "external",
+        "nextflow_profile": "docker",
+        "nextflow_args": {
+            "input": str(sample_map),
+            "genome": "GATK.GRCh38",
+            "tools": "haplotypecaller",
+        },
+        "inputs": {"input_dir": None, "sample_map": None},
+        "workflow_rule": None,
+        "allow_partial_run": False,
+        "run_mode": "full",
+        "workflow": {
+            "engine": "nextflow",
+            "pipeline": "sarek",
+            "mode": "cohort",
+            "gatk_version": "nf-core",
+            "pipeline_version": "v1",
+            "entrypoint": "nf-core/sarek",
+            "config_file": None,
+            "helpers": {},
+            "metadata": {
+                "source_type": "nf-core",
+                "source": "nf-core/sarek",
+                "release": "3.8.1",
+                "default_outdir": "sarek",
+            },
+        },
+    }
+
+    assert dnaseq.DNAseq(settings).variant_calling() is True
+    config_text = (project_dir / "cbicall_external_nextflow.config").read_text(encoding="utf-8")
+    assert "resourceLimits = [ cpus: 6 ]" in config_text
+    assert "runOptions = '--platform linux/amd64'" in config_text
+
+
 def test_nextflow_partial_run_raises(tmp_path):
     project_dir = tmp_path / "proj"
     project_dir.mkdir()

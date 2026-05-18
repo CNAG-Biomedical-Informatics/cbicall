@@ -917,3 +917,112 @@ def test_main_passes_wgs_cohort_workflow_keys(monkeypatch, tmp_path):
     assert seen["settings"].workflow.entrypoint == "/x_wgs_cohort.sh"
     assert seen["settings"].workflow.config_file == "/x_config.yaml"
     assert seen["settings"].inputs.sample_map == str(tmp_path / "sample_map.tsv")
+
+
+def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
+    param_file = tmp_path / "sarek.yaml"
+    sample_map = tmp_path / "sarek_samplesheet.csv"
+    param_file.write_text("pipeline: sarek\n", encoding="utf-8")
+    sample_map.write_text("patient,sample,lane,fastq_1,fastq_2\n", encoding="utf-8")
+
+    params = {
+        "pipeline": "sarek",
+        "mode": "cohort",
+        "input_dir": None,
+        "sample_map": str(sample_map),
+        "workflow_engine": "nextflow",
+        "workflow_version": "nf-core",
+        "gatk_version": "nf-core",
+        "resource": "nf-core-sarek-managed-resources-v1",
+        "nextflow_profile": "docker",
+        "nextflow_args": {
+            "input": str(sample_map),
+            "genome": "GATK.GRCh38",
+            "tools": "haplotypecaller",
+        },
+        "cleanup_bam": False,
+    }
+
+    monkeypatch.setattr(cli_mod.config_mod, "read_param_file", lambda _: params)
+    monkeypatch.setattr(
+        cli_mod.config_mod,
+        "set_config_values",
+        lambda _: {
+            "project_dir": str(tmp_path / "proj_sarek"),
+            "run_id": "IDSAREK",
+            "workflow_engine": "nextflow",
+            "profile": "local",
+            "nextflow_profile": "docker",
+            "genome": "external",
+            "pipeline": "sarek",
+            "mode": "cohort",
+            "gatk_version": "nf-core",
+            "pipeline_version": "v1",
+            "nextflow_args": {
+                "input": str(sample_map),
+                "genome": "GATK.GRCh38",
+                "tools": "haplotypecaller",
+            },
+            "inputs": {"input_dir": None, "sample_map": str(sample_map)},
+            "workflow": {
+                "engine": "nextflow",
+                "pipeline": "sarek",
+                "mode": "cohort",
+                "gatk_version": "nf-core",
+                "pipeline_version": "v1",
+                "entrypoint": "nf-core/sarek",
+                "config_file": None,
+                "helpers": {},
+                "metadata": {
+                    "source_type": "nf-core",
+                    "source": "nf-core/sarek",
+                    "release": "3.8.1",
+                    "default_outdir": "sarek",
+                },
+            },
+            "resources": {
+                "bundle": {
+                    "key": "nf-core-sarek-managed-resources-v1",
+                    "type": "nextflow-managed",
+                    "version": "sarek-3.8.1",
+                    "fingerprint": "abc",
+                    "runtime_check": {"status": "not_applicable"},
+                }
+            },
+        },
+    )
+
+    seen = {}
+    monkeypatch.setattr(cli_mod, "write_log", lambda cfg, arg, param: None)
+
+    class FakeDNAseq:
+        def __init__(self, settings):
+            seen["settings"] = settings
+
+        def variant_calling(self):
+            return True
+
+    monkeypatch.setattr(cli_mod, "DNAseq", FakeDNAseq)
+
+    class FakeGoodBye:
+        def say_goodbye(self):
+            return "Bye"
+
+    monkeypatch.setattr(cli_mod, "GoodBye", FakeGoodBye)
+
+    rc = cli_mod._run_analysis(
+        {
+            "threads": 2,
+            "paramfile": str(param_file),
+            "debug": 0,
+            "verbose": False,
+            "nocolor": True,
+        },
+        start_time=time.time(),
+        cbicall_path=tmp_path / "bin" / "cbicall",
+    )
+
+    assert rc == 0
+    assert seen["settings"].nextflow_profile == "docker"
+    assert seen["settings"].nextflow_args["genome"] == "GATK.GRCh38"
+    assert seen["settings"].nextflow_args["tools"] == "haplotypecaller"

@@ -29,6 +29,7 @@ class WorkflowSpec:
     config_file: Optional[str] = None
     helpers: Dict[str, str] = field(default_factory=dict)
     profiles: Dict[str, Dict[str, str]] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "WorkflowSpec":
@@ -42,6 +43,7 @@ class WorkflowSpec:
             config_file=data.get("config_file"),
             helpers=dict(data.get("helpers", {})),
             profiles={str(k): dict(v) for k, v in data.get("profiles", {}).items()},
+            metadata=dict(data.get("metadata", {})),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -54,6 +56,7 @@ class WorkflowSpec:
             "entrypoint": self.entrypoint,
             "config_file": self.config_file,
             "helpers": dict(self.helpers),
+            "metadata": dict(self.metadata),
         }
 
 
@@ -68,6 +71,8 @@ class RunSettings:
     cleanup_bam: bool
     inputs: InputsSpec
     workflow: WorkflowSpec
+    nextflow_profile: Optional[str] = None
+    nextflow_args: Dict[str, Any] = field(default_factory=dict)
     workflow_rule: Optional[str] = None
     allow_partial_run: bool = False
     run_mode: str = "full"
@@ -82,6 +87,8 @@ class RunSettings:
             threads=int(data["threads"]),
             debug=bool(data["debug"]),
             profile=str(data.get("profile", "local")),
+            nextflow_profile=data.get("nextflow_profile"),
+            nextflow_args=dict(data.get("nextflow_args", {})),
             genome=data.get("genome"),
             cleanup_bam=bool(data.get("cleanup_bam", False)),
             workflow_rule=data.get("workflow_rule"),
@@ -98,6 +105,8 @@ class RunSettings:
             "threads": self.threads,
             "debug": self.debug,
             "profile": self.profile,
+            "nextflow_profile": self.nextflow_profile,
+            "nextflow_args": dict(self.nextflow_args),
             "genome": self.genome,
             "cleanup_bam": self.cleanup_bam,
             "workflow_rule": self.workflow_rule,
@@ -128,6 +137,8 @@ class ResolvedConfig:
     host_threads: int
     host_threads_minus_one: int
     compression_cmd: str
+    nextflow_profile: Optional[str] = None
+    nextflow_args: Dict[str, Any] = field(default_factory=dict)
     workflow_rule: Optional[str] = None
     allow_partial_run: bool = False
     run_mode: str = "full"
@@ -151,6 +162,8 @@ class ResolvedConfig:
             user=str(data.get("user", "")),
             workflow_engine=str(workflow_engine),
             profile=str(data.get("profile", "local")),
+            nextflow_profile=data.get("nextflow_profile"),
+            nextflow_args=dict(data.get("nextflow_args", {})),
             genome=data.get("genome"),
             pipeline=str(pipeline),
             mode=str(mode),
@@ -180,6 +193,8 @@ class ResolvedConfig:
             "user": self.user,
             "workflow_engine": self.workflow_engine,
             "profile": self.profile,
+            "nextflow_profile": self.nextflow_profile,
+            "nextflow_args": dict(self.nextflow_args),
             "genome": self.genome,
             "pipeline": self.pipeline,
             "mode": self.mode,

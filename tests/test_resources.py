@@ -202,6 +202,51 @@ def test_validate_resource_catalog_accepts_non_bundle_resource_type(tmp_path):
     assert summary["compatible_workflows"] == 1
 
 
+def test_build_resource_metadata_accepts_non_bundle_resource_type(tmp_path):
+    catalog_dir = tmp_path / "resources"
+    catalog_dir.mkdir()
+    (catalog_dir / "cbicall-resource-catalog.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "resources": {
+                    "nf-core-sarek-managed-resources-v1": {
+                        "type": "nextflow-managed",
+                        "version": "sarek-3.8.1",
+                        "compatible_workflows": ["nextflow/sarek/cohort/nf-core/v1"],
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    workflow = WorkflowSpec(
+        engine="nextflow",
+        pipeline="sarek",
+        mode="cohort",
+        gatk_version="nf-core",
+        pipeline_version="v1",
+        entrypoint="nf-core/sarek",
+        metadata={"source_type": "nf-core"},
+    )
+
+    metadata = resources_mod.build_bundle_resource_metadata(
+        {
+            "resource": "nf-core-sarek-managed-resources-v1",
+            "workflow_engine": "nextflow",
+            "pipeline": "sarek",
+            "mode": "cohort",
+            "gatk_version": "nf-core",
+        },
+        tmp_path,
+        workflow,
+    )
+
+    assert metadata["type"] == "nextflow-managed"
+    assert metadata["compatible"] is True
+    assert metadata["runtime_check"]["status"] == "not_applicable"
+
+
 def test_datadir_parsing_handles_quotes_comments_and_missing_files(tmp_path, monkeypatch):
     datadir = tmp_path / "data dir"
     monkeypatch.setenv("CBICALL_TEST_DATA", str(datadir))

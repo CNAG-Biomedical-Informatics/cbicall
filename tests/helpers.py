@@ -102,8 +102,17 @@ def write_workflow_schema(path: Path) -> None:
             "pipelineImplementation": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["script"],
-                "properties": {"script": {"type": "string", "minLength": 1}},
+                "oneOf": [
+                    {"required": ["script"]},
+                    {"required": ["source_type", "source", "release"]},
+                ],
+                "properties": {
+                    "script": {"type": "string", "minLength": 1},
+                    "source_type": {"enum": ["nf-core"]},
+                    "source": {"type": "string", "minLength": 1},
+                    "release": {"type": "string", "minLength": 1},
+                    "default_outdir": {"type": "string", "minLength": 1},
+                },
             },
         },
     }

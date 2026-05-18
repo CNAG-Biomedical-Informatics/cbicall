@@ -109,8 +109,11 @@ def _print_run_summary(
     _row("Param file", _short_path(arg.get("paramfile")))
     _row("Input dir", _short_path(resolved_config.inputs.input_dir))
     _row("Sample map", _short_path(resolved_config.inputs.sample_map))
-    _row("GATK", workflow.gatk_version)
+    _row("Workflow ver", workflow.gatk_version)
     _row("Pipeline ver", workflow.pipeline_version)
+    if workflow.metadata.get("source_type") == "nf-core":
+        _row("NF profile", resolved_config.nextflow_profile)
+        _row("NF args", ", ".join(sorted(resolved_config.nextflow_args)) or "(none)")
     print()
 
     _section("Resolved", colors["blue"], colors["bold"], colors["reset"])
@@ -121,8 +124,13 @@ def _print_run_summary(
         _row("Snakefile", _short_path(workflow.entrypoint))
         _row("Config", _short_path(workflow.config_file))
     elif workflow.engine == "nextflow":
-        _row("Nextflow", _short_path(workflow.entrypoint))
-        _row("Config", _short_path(workflow.config_file))
+        if workflow.metadata.get("source_type") == "nf-core":
+            _row("Nextflow", workflow.metadata.get("source"))
+            _row("Release", workflow.metadata.get("release"))
+            _row("Outdir", Path(resolved_config.project_dir) / workflow.metadata.get("default_outdir", workflow.pipeline))
+        else:
+            _row("Nextflow", _short_path(workflow.entrypoint))
+            _row("Config", _short_path(workflow.config_file))
 
     log_name = f"{workflow.engine}_{workflow.pipeline}_{workflow.mode}_{genome}_{workflow.gatk_version}.log"
     _row("Log", Path(resolved_config.project_dir) / log_name)

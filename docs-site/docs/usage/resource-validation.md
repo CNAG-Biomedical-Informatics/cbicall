@@ -36,6 +36,13 @@ Validate one resource key:
 bin/cbicall validate-resources --resource cbicall-germline-resources-v1
 ```
 
+For external nf-core adapters:
+
+```bash
+bin/cbicall validate-resources --resource nf-core-demo-managed-resources-v1
+bin/cbicall validate-resources --resource nf-core-sarek-managed-resources-v1
+```
+
 Validate a custom catalog:
 
 ```bash
@@ -56,7 +63,10 @@ bin/cbicall validate-param -p my-center-wes.yaml
 ```
 
 This checks the **selected resource** against the resolved workflow and
-installed resource metadata when present.
+installed resource metadata when present. Bundle resources can be checked
+against `DATADIR` metadata; externally managed resources, such as nf-core/Sarek,
+record catalog identity and compatibility but do not use CBIcall bundle
+installation checks.
 
 ## Runtime Provenance
 

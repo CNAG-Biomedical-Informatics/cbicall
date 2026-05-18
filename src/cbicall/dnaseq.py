@@ -1,8 +1,11 @@
 import os
+import platform
 import shlex
 import subprocess
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Union
+
+import yaml
 
 from .errors import WorkflowExecutionError, WorkflowResolutionError
 from .models import RunSettings
@@ -238,11 +241,73 @@ class SnakemakeRunner(BaseRunner):
 
 
 class NextflowRunner(BaseRunner):
+    def _is_nfcore_workflow(self) -> bool:
+        return self.workflow.metadata.get("source_type") == "nf-core"
+
+    def _build_external_nextflow_command(self) -> List[str]:
+        source = self.workflow.metadata.get("source") or self.workflow.entrypoint
+        release = self.workflow.metadata.get("release")
+        if not source or not release:
+            raise WorkflowResolutionError("nf-core workflow registry entry must define source and release.")
+
+        if not self.settings.nextflow_profile:
+            raise WorkflowResolutionError("nextflow_profile is required for external Nextflow workflows.")
+
+        outdir_name = self.workflow.metadata.get("default_outdir", self.pipeline)
+        params_file = self.workdir / "cbicall_external_nextflow.params.yaml"
+        config_file = self.workdir / "cbicall_external_nextflow.config"
+        max_cpus = int(self.settings.threads)
+        params = dict(self.settings.nextflow_args)
+        params["outdir"] = str((self.workdir / outdir_name).resolve())
+        params["max_cpus"] = max_cpus
+        params_file.write_text(yaml.safe_dump(params, sort_keys=True), encoding="utf-8")
+        config_lines = [
+            "process {",
+            f"  resourceLimits = [ cpus: {max_cpus} ]",
+            "}",
+        ]
+        profile_tokens = {
+            token.strip()
+            for token in str(self.settings.nextflow_profile).split(",")
+            if token.strip()
+        }
+        if platform.machine() in {"aarch64", "arm64"} and "docker" in profile_tokens:
+            config_lines.extend(
+                [
+                    "",
+                    "docker {",
+                    "  runOptions = '--platform linux/amd64'",
+                    "}",
+                ]
+            )
+        config_file.write_text("\n".join(config_lines) + "\n", encoding="utf-8")
+
+        return [
+            "nextflow",
+            "run",
+            str(source),
+            "-r",
+            str(release),
+            "-profile",
+            str(self.settings.nextflow_profile),
+            "-c",
+            str(config_file),
+            "-params-file",
+            str(params_file),
+            "-work-dir",
+            str(self.workdir / "work"),
+            "-ansi-log",
+            "false",
+        ]
+
     def build_command(self) -> List[str]:
         if self.workflow_rule:
             raise WorkflowResolutionError(
                 "Partial workflow runs are not supported for workflow_engine='nextflow'."
             )
+
+        if self._is_nfcore_workflow():
+            return self._build_external_nextflow_command()
 
         script = self.workflow.entrypoint
         if not script:

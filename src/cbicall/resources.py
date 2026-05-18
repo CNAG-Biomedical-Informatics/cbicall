@@ -215,11 +215,6 @@ def build_bundle_resource_metadata(cfg_in: dict, project_root: Path, workflow: W
     entry = resources.get(selected_resource_key)
     if entry is None:
         raise ParameterValidationError(f"Resource key '{selected_resource_key}' is not defined in {catalog_path}")
-    if entry.get("type") != "bundle":
-        raise ParameterValidationError(
-            f"Resource key '{selected_resource_key}' is not a bundle resource in {catalog_path}"
-        )
-
     workflow_key = _workflow_key(cfg_in, workflow)
     compatible_workflows = entry.get("compatible_workflows", [])
     compatible = workflow_key in compatible_workflows if compatible_workflows else None
@@ -231,12 +226,19 @@ def build_bundle_resource_metadata(cfg_in: dict, project_root: Path, workflow: W
 
     return {
         "key": selected_resource_key,
+        "type": entry.get("type"),
         "version": entry.get("version"),
         "catalog": str(catalog_path),
         "fingerprint": _catalog_fingerprint(_catalog_entry_for_fingerprint(entry)),
         "compatible": compatible,
         "workflow_key": workflow_key,
         "identifier_sha256": entry.get("remote_identifier", {}).get("sha256"),
+        "runtime_check": {
+            "status": "not_applicable",
+            "reason": "resource type does not use DATADIR bundle checks",
+        }
+        if entry.get("type") != "bundle"
+        else None,
     }
 
 

@@ -25,12 +25,13 @@ genome:          b37
 | Key | Default | Values | Use |
 | --- | --- | --- | --- |
 | `mode` | `single` | `single`, `cohort` | Selects one-sample processing or cohort-level processing. |
-| `pipeline` | `wes` | `wes`, `wgs`, `mit` | Selects the analysis type. |
+| `pipeline` | `wes` | `wes`, `wgs`, `mit`; external names are registry-defined | Selects the analysis type. For `workflow_version: nf-core`, the value is resolved through the workflow registry. |
 | `workflow_engine` | `bash` | `bash`, `snakemake`, `nextflow` | Selects the execution backend supported by the current workflows. |
 | `profile` | `local` | `local`, `cnag-hpc` | Selects the runtime environment file. `cnag-hpc` uses `cnag-hpc-env.sh` instead of the default `env.sh` for Bash workflows. |
-| `gatk_version` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the workflow version. Use `gatk-4.6` for current WES/WGS workflows. |
+| `gatk_version` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the GATK release for CBIcall-native workflows. Use `gatk-4.6` for current bundled WES/WGS workflows. |
+| `workflow_version` | `null` | `gatk-3.5`, `gatk-4.6`, `nf-core` | Selects the workflow family when it is not just a GATK release. Use `workflow_version: nf-core` for external nf-core workflows. |
 | `resource` | `cbicall-germline-resources-v1` | resource key | Selects one entry from `resources/cbicall-resource-catalog.json`. |
-| `genome` | inferred | `b37`, `hg38`, `rsrs` | Reference genome. If omitted, CBIcall uses `b37` for WES/WGS and `rsrs` for mtDNA. |
+| `genome` | inferred | `b37`, `hg38`, `rsrs`, `external` | Reference genome. If omitted, CBIcall uses `b37` for WES/WGS, `rsrs` for mtDNA, and `external` for nf-core/Sarek. |
 | `input_dir` | `null` | path | Input sample or project directory. Relative paths are resolved from the YAML file location. |
 | `sample_map` | `null` | path | Cohort-mode TSV containing sample IDs and gVCF paths. Relative paths are resolved from the YAML file location. |
 | `project_dir` | `cbicall` | path or prefix | Prefix for the generated run directory. |
@@ -49,6 +50,8 @@ workflow compatibility metadata.
 | `gatk-4.6` + `snakemake` + `wgs single/cohort` | Yes |
 | `gatk-4.6` + `nextflow` + `wes single/cohort` | Yes |
 | `gatk-4.6` + `nextflow` + `wgs single/cohort` | Yes |
+| `nf-core` + `nextflow` + `demo single` | External nf-core smoke test |
+| `nf-core` + `nextflow` + `sarek cohort` | External nf-core/Sarek adapter |
 | `gatk-3.5` + `bash` + `wes single/cohort` | Legacy |
 | `gatk-3.5` + `bash` + `mit single/cohort` | Yes, x86_64 only |
 | `mit` + `snakemake` or `nextflow` | No |
@@ -56,6 +59,7 @@ workflow compatibility metadata.
 
 :::info[Genome rules]
 - `pipeline: mit` always uses `genome: rsrs`.
+- External nf-core pipelines use `genome: external`; the reference is selected by the nf-core parameters in `nextflow_args`.
 - `genome: hg38` is supported only with `pipeline: wgs`.
 - `pipeline: wes` currently uses `b37`.
 :::
@@ -99,6 +103,53 @@ workflow_engine: bash
 gatk_version:    gatk-3.5
 input_dir:       CNAG999_exome/CNAG99901P_ex
 ```
+
+### nf-core/demo
+
+`nf-core/demo` is useful for testing CBIcall's external nf-core wrapper without
+modeling a full biological workflow. It uses the nf-core `test` profile.
+
+```yaml
+mode:             single
+pipeline:         demo
+workflow_engine:  nextflow
+workflow_version: nf-core
+resource:         nf-core-demo-managed-resources-v1
+nextflow_profile: test,conda
+nextflow_args:    {}
+```
+
+Use `test,conda` for a macOS/Apple Silicon smoke test when Conda or Mamba is
+available. Use `test,docker` on x86_64 Docker hosts.
+
+### nf-core/Sarek
+
+Sarek is launched as an external nf-core Nextflow workflow. CBIcall validates the
+YAML, pins the registered nf-core release, writes a small params file in the run
+directory, and leaves Sarek outputs in their native layout under `sarek/`.
+
+```yaml
+mode:             cohort
+pipeline:         sarek
+workflow_engine:  nextflow
+workflow_version: nf-core
+resource:         nf-core-sarek-managed-resources-v1
+nextflow_profile: docker
+nextflow_args:
+  input: samplesheet.csv
+  genome: GATK.GRCh38
+  tools: haplotypecaller
+```
+
+CBIcall does not interpret Sarek-specific parameters. Values under
+`nextflow_args` are passed to the generated nf-core params file. Use the
+samplesheet format and parameter names expected by the selected Sarek release.
+
+For nf-core/Sarek, the CLI thread value is written to the generated params file
+as `max_cpus`. For example, `bin/cbicall run -p sarek.yaml -t 6` passes
+`max_cpus: 6` to Sarek and writes a small Nextflow config with
+`process.resourceLimits` so individual processes do not request more than six
+CPUs.
 
 ## Bundle Provenance
 
@@ -152,6 +203,8 @@ During a real run, the resolved `profile` and selected environment file are writ
 | Key | Default | Use |
 | --- | --- | --- |
 | `pipeline_version` | Registry default, currently `v1` | Advanced pin for a specific CBIcall pipeline implementation. Leave unset for normal runs. |
+| `nextflow_profile` | `null` | Nextflow profile passed to external nf-core workflows, for example `docker`, `singularity`, or `conda`. |
+| `nextflow_args` | `{}` | Pass-through nf-core/Nextflow parameters written to the generated params file. CBIcall controls `outdir` and `max_cpus`. |
 | `workflow_rule` | `null` | Snakemake target for a partial run. Leave unset for normal full runs. |
 | `allow_partial_run` | `false` | Must be `true` when `workflow_rule` is set. This prevents accidental partial starts. |
 | `organism` | `Homo sapiens` | Metadata field. |

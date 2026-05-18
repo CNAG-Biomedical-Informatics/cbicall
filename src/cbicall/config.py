@@ -43,7 +43,8 @@ ORGANISM_VALUES = {"Homo sapiens", "Mus musculus"}
 TECHNOLOGY_VALUES = {"Illumina HiSeq", "NovaSeq"}
 WORKFLOW_ENGINE_VALUES = {"bash", "nextflow", "snakemake"}
 GATK_VALUES = {"gatk-3.5", "gatk-4.6"}
-GENOME_VALUES = {"b37", "hg38", "rsrs"}
+WORKFLOW_VERSION_VALUES = GATK_VALUES | {"nf-core"}
+GENOME_VALUES = {"b37", "hg38", "rsrs", "external"}
 
 
 # Defaults
@@ -57,7 +58,10 @@ _DEFAULTS = {
     "technology": "Illumina HiSeq",
     "workflow_engine": "bash",
     "profile": "local",
+    "nextflow_profile": None,
+    "nextflow_args": {},
     "gatk_version": "gatk-3.5",
+    "workflow_version": None,
     "pipeline_version": None,
     "project_dir": "cbicall",
     "cleanup_bam": False,
@@ -93,6 +97,8 @@ def _validate_enum(name, value, allowed):
 def _validate_combos(cfg: dict) -> None:
     """Validate pipeline/mode combo for selected GATK version."""
     version = cfg["gatk_version"]
+    if version == "nf-core":
+        return
     pipeline = cfg["pipeline"]
     mode = cfg["mode"]
 
@@ -127,14 +133,25 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
         )
 
     if cfg.get("workflow_engine") == "nextflow":
-        if cfg.get("gatk_version") != "gatk-4.6":
+        if cfg.get("gatk_version") not in {"gatk-4.6", "nf-core"}:
             raise ParameterValidationError(
-                "workflow_engine='nextflow' is supported only for gatk_version='gatk-4.6'."
+                "workflow_engine='nextflow' is supported only for workflow versions 'gatk-4.6' or 'nf-core'."
             )
         if cfg.get("pipeline") == "mit":
             raise ParameterValidationError(
                 "The combination pipeline='mit' with workflow_engine='nextflow' is not supported."
             )
+
+    if cfg.get("gatk_version") == "nf-core":
+        if cfg.get("workflow_engine") != "nextflow":
+            raise ParameterValidationError("workflow_version='nf-core' requires workflow_engine='nextflow'.")
+        if user_provided_genome and cfg.get("genome") != "external":
+            raise ParameterValidationError(
+                "For workflow_version='nf-core', genome is managed by the external Nextflow workflow. "
+                "Remove 'genome' from the YAML or set genome='external'."
+            )
+        cfg["genome"] = "external"
+        return
 
     # If genome omitted, assign effective defaults
     # - MIT defaults to rsrs
@@ -158,11 +175,17 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
 
 def _validate_enums_except_genome(cfg: dict) -> None:
     _validate_enum("mode", cfg["mode"], MODE_VALUES)
-    _validate_enum("pipeline", cfg["pipeline"], PIPELINE_VALUES)
+    if cfg.get("workflow_version") == "nf-core":
+        pipeline = cfg.get("pipeline")
+        if pipeline is None or not str(pipeline).strip():
+            raise ParameterValidationError("pipeline must be a non-empty value.")
+        cfg["pipeline"] = str(pipeline).strip()
+    else:
+        _validate_enum("pipeline", cfg["pipeline"], PIPELINE_VALUES)
+        _validate_enum("gatk_version", cfg["gatk_version"], GATK_VALUES)
     _validate_enum("organism", cfg["organism"], ORGANISM_VALUES)
     _validate_enum("technology", cfg["technology"], TECHNOLOGY_VALUES)
     _validate_enum("workflow_engine", cfg["workflow_engine"], WORKFLOW_ENGINE_VALUES)
-    _validate_enum("gatk_version", cfg["gatk_version"], GATK_VALUES)
 
 
 def _validate_partial_run_settings(cfg: dict) -> None:
@@ -216,6 +239,70 @@ def _validate_pipeline_version_settings(cfg: dict) -> None:
     cfg["pipeline_version"] = cfg["pipeline_version"].strip()
 
 
+def _normalize_workflow_version_settings(cfg: dict) -> None:
+    workflow_version = cfg.get("workflow_version")
+    if workflow_version is None:
+        return
+    workflow_version = str(workflow_version).strip()
+    if not workflow_version:
+        raise ParameterValidationError("workflow_version must be a non-empty value when provided.")
+    _validate_enum("workflow_version", workflow_version, WORKFLOW_VERSION_VALUES)
+    if (
+        cfg.get("gatk_version") != _DEFAULTS["gatk_version"]
+        and cfg.get("gatk_version") != workflow_version
+    ):
+        raise ParameterValidationError(
+            "workflow_version and gatk_version refer to the same workflow family version; "
+            "set only one of them or use matching values."
+        )
+    cfg["workflow_version"] = workflow_version
+    cfg["gatk_version"] = workflow_version
+
+
+def _validate_external_nextflow_settings(cfg: dict) -> None:
+    if cfg.get("gatk_version") != "nf-core":
+        return
+    if cfg.get("workflow_engine") != "nextflow":
+        raise ParameterValidationError("workflow_version='nf-core' requires workflow_engine='nextflow'.")
+
+    profile = cfg.get("nextflow_profile")
+    if profile is None or not str(profile).strip():
+        raise ParameterValidationError("workflow_version='nf-core' requires 'nextflow_profile'.")
+    cfg["nextflow_profile"] = str(profile).strip()
+
+    nextflow_args = cfg.get("nextflow_args")
+    if nextflow_args is None:
+        nextflow_args = {}
+    if not isinstance(nextflow_args, dict):
+        raise ParameterValidationError("nextflow_args must be a mapping of nf-core/Nextflow parameters.")
+    reserved = sorted(set(nextflow_args) & {"outdir", "max_cpus"})
+    if reserved:
+        raise ParameterValidationError(
+            "nextflow_args cannot set CBIcall-controlled parameters: " + ", ".join(reserved)
+        )
+    cfg["nextflow_args"] = dict(nextflow_args)
+
+
+def _is_uri(value: str) -> bool:
+    return "://" in value or value.startswith(("s3:", "gs:"))
+
+
+def _resolve_nextflow_arg_paths(value, base_dir: Path):
+    if isinstance(value, dict):
+        return {key: _resolve_nextflow_arg_paths(item, base_dir) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_resolve_nextflow_arg_paths(item, base_dir) for item in value]
+    if not isinstance(value, str) or not value.strip() or _is_uri(value):
+        return value
+    path = Path(value)
+    if path.is_absolute():
+        return str(path)
+    candidate = base_dir / path
+    if candidate.exists():
+        return str(candidate.resolve())
+    return value
+
+
 def _validate_with_schema(data: dict, schema: dict, label: str) -> None:
     _registry_validate_with_schema(data, schema, label)
 
@@ -241,11 +328,13 @@ def read_param_file(yaml_file: str) -> dict:
         cfg[key] = value
 
     # Validate enums (except genome; it may be None until rules apply)
+    _normalize_workflow_version_settings(cfg)
     _validate_enums_except_genome(cfg)
     _validate_profile_settings(cfg)
     _validate_pipeline_version_settings(cfg)
     _validate_partial_run_settings(cfg)
     _validate_resource_settings(cfg)
+    _validate_external_nextflow_settings(cfg)
 
     # Apply shared genome rules
     user_provided_genome = "genome" in params
@@ -268,6 +357,8 @@ def read_param_file(yaml_file: str) -> dict:
             sm = yaml_path.parent / sm
         cfg["sample_map"] = str(sm.resolve())
 
+    cfg["nextflow_args"] = _resolve_nextflow_arg_paths(cfg.get("nextflow_args", {}), yaml_path.parent)
+
     # Validate pipeline-mode combination for selected GATK version
     _validate_combos(cfg)
 
@@ -279,11 +370,13 @@ def _merge_and_validate_param_values(params: dict) -> dict:
     cfg_in = copy.deepcopy(_DEFAULTS)
     cfg_in.update(params)
     # Validate enums (except genome), then apply genome rules, then validate genome
+    _normalize_workflow_version_settings(cfg_in)
     _validate_enums_except_genome(cfg_in)
     _validate_profile_settings(cfg_in)
     _validate_pipeline_version_settings(cfg_in)
     _validate_partial_run_settings(cfg_in)
     _validate_resource_settings(cfg_in)
+    _validate_external_nextflow_settings(cfg_in)
     _apply_genome_rules(cfg_in, user_provided_genome=("genome" in params))
     _validate_enum("genome", cfg_in["genome"], GENOME_VALUES)
     _validate_combos(cfg_in)
@@ -355,7 +448,7 @@ def _build_host_runtime_metadata(cfg_in: dict) -> dict:
     else:
         metadata["compression_cmd"] = "/bin/gunzip"
 
-    if cfg_in["pipeline"] != "wgs":
+    if cfg_in["gatk_version"] != "nf-core" and cfg_in["pipeline"] != "wgs":
         if cfg_in["pipeline"] == "mit":
             metadata["capture_label"] = f"MToolBox_{cfg_in['genome']}"
         elif cfg_in["gatk_version"] == "gatk-3.5":
@@ -402,6 +495,7 @@ def _apply_runtime_profile(cfg_in: dict, workflow: WorkflowSpec) -> WorkflowSpec
         config_file=workflow.config_file,
         helpers=helpers,
         profiles=workflow.profiles,
+        metadata=workflow.metadata,
     )
 
 
@@ -415,12 +509,20 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
     workflow = _apply_runtime_profile(cfg_in, workflow)
     validate_resolved_workflow_files(workflow)
     bundle_resource = build_bundle_resource_metadata(cfg_in, project_root, workflow)
-    bundle_resource["runtime_check"] = validate_installed_bundle_resource(bundle_resource, workflow)
+    if bundle_resource.get("type") in {None, "bundle"}:
+        bundle_resource["runtime_check"] = validate_installed_bundle_resource(bundle_resource, workflow)
+    else:
+        bundle_resource.setdefault(
+            "runtime_check",
+            {"status": "not_applicable", "reason": "resource type does not use DATADIR bundle checks"},
+        )
 
     config = ResolvedConfig(
         user="",
         workflow_engine=cfg_in["workflow_engine"],
         profile=cfg_in["profile"],
+        nextflow_profile=cfg_in.get("nextflow_profile"),
+        nextflow_args=cfg_in.get("nextflow_args", {}),
         genome=cfg_in["genome"],
         pipeline=cfg_in["pipeline"],
         mode=cfg_in["mode"],
@@ -450,6 +552,8 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         user=runtime_identity["user"],
         workflow_engine=config.workflow_engine,
         profile=config.profile,
+        nextflow_profile=config.nextflow_profile,
+        nextflow_args=config.nextflow_args,
         genome=config.genome,
         pipeline=config.pipeline,
         mode=config.mode,

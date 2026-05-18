@@ -79,11 +79,11 @@
     "pipelineModes": {
       "type": "object",
       "additionalProperties": false,
+      "minProperties": 1,
       "properties": {
         "single": { "$ref": "#/$defs/pipelineImplementationSet" },
         "cohort": { "$ref": "#/$defs/pipelineImplementationSet" }
-      },
-      "required": ["single"]
+      }
     },
     "pipelineImplementationSet": {
       "type": "object",
@@ -101,9 +101,16 @@
     "pipelineImplementation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["script"],
+      "oneOf": [
+        { "required": ["script"] },
+        { "required": ["source_type", "source", "release"] }
+      ],
       "properties": {
-        "script": { "$ref": "#/$defs/pathString" }
+        "script": { "$ref": "#/$defs/pathString" },
+        "source_type": { "enum": ["nf-core"] },
+        "source": { "$ref": "#/$defs/pathString" },
+        "release": { "$ref": "#/$defs/pathString" },
+        "default_outdir": { "$ref": "#/$defs/pathString" }
       }
     }
   }

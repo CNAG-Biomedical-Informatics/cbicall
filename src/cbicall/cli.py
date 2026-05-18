@@ -146,6 +146,25 @@ def _workflow_key(workflow) -> str:
 
 
 def _workflow_file_manifest(workflow) -> dict:
+    if workflow.metadata.get("source_type") == "nf-core":
+        source = workflow.metadata.get("source") or workflow.entrypoint
+        release = workflow.metadata.get("release")
+        payload = f"{source}@{release}".encode("utf-8")
+        files = [
+            {
+                "role": "external:nf-core",
+                "path": source,
+                "status": "external",
+                "sha256": hashlib.sha256(payload).hexdigest(),
+                "size_bytes": None,
+                "release": release,
+            }
+        ]
+        return {
+            "fingerprint": files[0]["sha256"],
+            "files": files,
+        }
+
     candidates = [("entrypoint", workflow.entrypoint)]
     if workflow.config_file:
         candidates.append(("config", workflow.config_file))
@@ -256,6 +275,26 @@ def _collect_output_fingerprints(project_dir: Path) -> dict:
     }
 
 
+def _external_nextflow_outputs(resolved_config: ResolvedConfig, project_dir: Path) -> dict:
+    workflow = resolved_config.workflow
+    if workflow.metadata.get("source_type") != "nf-core":
+        return {}
+
+    params_file = project_dir / "cbicall_external_nextflow.params.yaml"
+    config_file = project_dir / "cbicall_external_nextflow.config"
+    output_dir = project_dir / workflow.metadata.get("default_outdir", workflow.pipeline)
+    payload = {
+        "native_output_dir": str(output_dir),
+        "params_file": str(params_file),
+        "config_file": str(config_file),
+    }
+    if params_file.is_file():
+        payload["params_sha256"] = _sha256_file(params_file)
+    if config_file.is_file():
+        payload["config_sha256"] = _sha256_file(config_file)
+    return payload
+
+
 def write_run_report(
     resolved_config: ResolvedConfig,
     arg: dict,
@@ -281,7 +320,10 @@ def write_run_report(
         "profile": resolved_config.profile,
         "workflow": _workflow_report(workflow),
         "resources": resolved_config.resources,
-        "outputs": _collect_output_fingerprints(project_dir),
+        "outputs": {
+            **_collect_output_fingerprints(project_dir),
+            **_external_nextflow_outputs(resolved_config, project_dir),
+        },
         "run": {
             "run_id": resolved_config.run_id,
             "project_dir": resolved_config.project_dir,
@@ -295,6 +337,8 @@ def write_run_report(
             "cleanup_bam": params.get("cleanup_bam", False),
             "workflow_rule": resolved_config.workflow_rule,
             "allow_partial_run": resolved_config.allow_partial_run,
+            "nextflow_profile": resolved_config.nextflow_profile,
+            "nextflow_args": resolved_config.nextflow_args,
         },
     }
     with report_path.open("w", encoding="utf-8") as fh:
@@ -324,13 +368,19 @@ def _run_validate_param_command(argv: List[str]) -> int:
     _row("Param file", _short_path(args.paramfile))
     _row("Profile", resolved_config.profile)
     _row("Workflow", f"{workflow.engine} -> {workflow.pipeline} -> {workflow.mode}")
-    _row("GATK", workflow.gatk_version)
+    _row("Workflow ver", workflow.gatk_version)
     _row("Pipeline ver", workflow.pipeline_version)
     _row("Genome", resolved_config.genome or "b37")
-    _row("Entrypoint", _short_path(workflow.entrypoint))
+    if workflow.metadata.get("source_type") == "nf-core":
+        _row("Source", workflow.metadata.get("source"))
+        _row("Release", workflow.metadata.get("release"))
+        _row("NF profile", resolved_config.nextflow_profile)
+        _row("NF args", ", ".join(sorted(resolved_config.nextflow_args)) or "(none)")
+    else:
+        _row("Entrypoint", _short_path(workflow.entrypoint))
     if workflow.engine == "bash":
         _row("Env file", _short_path(workflow.helpers.get("env")))
-    elif workflow.engine in {"snakemake", "nextflow"}:
+    elif workflow.engine in {"snakemake", "nextflow"} and not workflow.metadata.get("source_type"):
         _row("Config", _short_path(workflow.config_file))
     _row("Resource key", bundle.get("key"))
     _row("Resource ver", bundle.get("version"))
@@ -1087,6 +1137,8 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
             "threads": arg["threads"],
             "debug": arg["debug"],
             "profile": resolved_config.profile,
+            "nextflow_profile": resolved_config.nextflow_profile,
+            "nextflow_args": resolved_config.nextflow_args,
             "genome": resolved_config.genome,
             "cleanup_bam": params.get("cleanup_bam", False),
             "workflow_rule": resolved_config.workflow_rule,

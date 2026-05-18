@@ -5,8 +5,8 @@ third-party tools, reference genomes, known-sites files, interval lists, and
 auxiliary databases. The **resource catalog** is
 `resources/cbicall-resource-catalog.json`, the inventory of resource entries
 that records **type**, **version**, **workflow compatibility**, and optional identity
-metadata. It can describe different resource types, for example `bundle` today and
-container-oriented entries in the future.
+metadata. It can describe different resource types, including local bundles and
+externally managed workflow resources.
 
 Most resource additions today therefore mean adding a bundle. That needs two
 pieces:
@@ -29,20 +29,23 @@ The current resource catalog structure is:
 resources/cbicall-resource-catalog.json
   resources
     <resource-key>
-      type: bundle
+      type: bundle | nextflow-managed | docker | ...
       version: v1
 ```
 
 A resource key is the selectable value users put in `resource`. The shipped
-CBIcall resource uses `type: bundle`; the schema keeps `type` open so additional
-resource models can be introduced without renaming the catalog.
+CBIcall-provided germline resources use `type: bundle`. The nf-core/Sarek entry
+uses `type: nextflow-managed` because references and containers are managed by
+Nextflow/nf-core rather than by CBIcall's `DATADIR` bundle. The schema keeps
+`type` open so additional resource models can be introduced without renaming the
+catalog.
 
 :::note[Resource type templates]
 Non-bundle types can be used as catalog templates for future resource models.
 For example, `type: docker` may describe an image name, tag, and digest for
-provenance or future validation. Current workflows still resolve executable and
+provenance or future validation. Bundle workflows still resolve executable and
 reference paths through their backend configuration, such as Bash `env.sh` or
-Snakemake `config.yaml`.
+Snakemake/Nextflow `config.yaml`.
 :::
 
 The catalog is validated against:
@@ -53,22 +56,22 @@ resources/cbicall-resource-catalog.schema.json
 
 ## What You Are Adding
 
-Before editing files, define the bundle entry.
+Before editing files, define the resource entry.
 
 | Decision | Example | Why it matters |
 | --- | --- | --- |
 | Resource key | `my-center-germline-v1` | The value users set as `resource`. |
 | Compatible workflows | `bash/wes/single/gatk-4.6/v1` | Prevents incompatible workflow/resource combinations. |
-| Runtime location | `DATADIR` or Snakemake `datadir` | Tells the selected backend where files are installed. |
+| Runtime location | `DATADIR`, Snakemake/Nextflow `datadir`, or external engine profile | Tells the selected backend where files are installed or managed. |
 | Integrity metadata | archive checksum or resource identifier | Lets CBIcall verify downloaded or installed bundle identity. |
 
-For a custom bundle, users select it in the run YAML:
+For a custom resource, users select it in the run YAML:
 
 ```yaml
 resource: my-center-germline-v1
 ```
 
-## 1. Add the Bundle Entry
+## 1. Add the Resource Entry
 
 Edit:
 
@@ -116,7 +119,6 @@ runtime identity checks.
 
 :::tip[Keep the catalog backend-agnostic]
 The catalog should describe **resource identity, compatibility, broad layout, and
-optional integrity metadata. Do not put Bash-only environment variable bindings
 optional integrity metadata**. Do not put Bash-only environment variable bindings
 in the catalog. Backend-specific paths belong in Bash **`env.sh`** or Snakemake
 **`config.yaml`**.
@@ -195,7 +197,7 @@ datadir: /path/to/my-center-resources
 The run provenance records the selected resource key and fingerprint. Workflow
 logs record the concrete executable and reference paths used during execution.
 
-## 4. Validate the Bundle Entry
+## 4. Validate the Resource Entry
 
 Validate the whole catalog:
 

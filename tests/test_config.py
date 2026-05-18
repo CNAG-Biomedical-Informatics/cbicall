@@ -1194,6 +1194,132 @@ def test_set_config_values_nextflow_cohort_gatk46_resolves(monkeypatch, tmp_path
     assert cfg["workflow"]["entrypoint"].endswith("wes_wgs_cohort.nf")
 
 
+def test_read_param_file_accepts_sarek_external_nextflow(tmp_path):
+    sample_map = tmp_path / "samplesheet.csv"
+    sample_map.write_text("patient,sample,lane,fastq_1,fastq_2\n", encoding="utf-8")
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: cohort\n"
+        "pipeline: sarek\n"
+        "workflow_engine: nextflow\n"
+        "workflow_version: nf-core\n"
+        "resource: nf-core-sarek-managed-resources-v1\n"
+        "nextflow_profile: docker\n"
+        "nextflow_args:\n"
+        "  input: samplesheet.csv\n"
+        "  genome: GATK.GRCh38\n"
+        "  tools: haplotypecaller\n",
+        encoding="utf-8",
+    )
+
+    cfg = config_mod.read_param_file(str(p))
+    assert cfg["gatk_version"] == "nf-core"
+    assert cfg["genome"] == "external"
+    assert cfg["nextflow_args"]["input"] == str(sample_map.resolve())
+    assert cfg["nextflow_args"]["genome"] == "GATK.GRCh38"
+
+
+def test_read_param_file_sarek_requires_nextflow_profile(tmp_path):
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: cohort\n"
+        "pipeline: sarek\n"
+        "workflow_engine: nextflow\n"
+        "workflow_version: nf-core\n"
+        "resource: nf-core-sarek-managed-resources-v1\n"
+        "nextflow_args:\n"
+        "  input: samplesheet.csv\n"
+        "  genome: GATK.GRCh38\n"
+        "  tools: haplotypecaller\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ParameterValidationError, match="nextflow_profile"):
+        config_mod.read_param_file(str(p))
+
+
+def test_read_param_file_rejects_nfcore_as_gatk_version(tmp_path):
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: cohort\n"
+        "pipeline: wes\n"
+        "workflow_engine: nextflow\n"
+        "gatk_version: nf-core\n"
+        "resource: nf-core-sarek-managed-resources-v1\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ParameterValidationError, match="Invalid value for 'gatk_version'"):
+        config_mod.read_param_file(str(p))
+
+
+def test_set_config_values_sarek_resolves_external_nfcore_workflow(monkeypatch, tmp_path):
+    root = _mk_fake_root(monkeypatch, tmp_path)
+
+    reg = (
+        "workflows:\n"
+        + _minimal_bash_registry_block("gatk-4.6")
+        + "  nextflow:\n"
+          "    base_dir: \"workflows/nextflow\"\n"
+          "    versions:\n"
+          "      nf-core:\n"
+          "        pipelines:\n"
+          "          sarek:\n"
+          "            cohort:\n"
+          "              default: \"v1\"\n"
+          "              versions:\n"
+          "                v1:\n"
+          "                  source_type: \"nf-core\"\n"
+          "                  source: \"nf-core/sarek\"\n"
+          "                  release: \"3.8.1\"\n"
+          "                  default_outdir: \"sarek\"\n"
+    )
+    _write_registry_and_schema(root, registry_lines=reg)
+
+    resources = root / "resources"
+    resources.mkdir()
+    (resources / "cbicall-resource-catalog.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "resources": {
+                    "nf-core-sarek-managed-resources-v1": {
+                        "type": "nextflow-managed",
+                        "version": "sarek-3.8.1",
+                        "compatible_workflows": ["nextflow/sarek/cohort/nf-core/v1"],
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = config_mod.set_config_values(
+        {
+            "mode": "cohort",
+            "pipeline": "sarek",
+            "workflow_engine": "nextflow",
+            "workflow_version": "nf-core",
+            "resource": "nf-core-sarek-managed-resources-v1",
+            "nextflow_profile": "docker",
+            "nextflow_args": {
+                "input": str(tmp_path / "samplesheet.csv"),
+                "genome": "GATK.GRCh38",
+                "tools": "haplotypecaller",
+            },
+        }
+    )
+
+    assert cfg["workflow"]["entrypoint"] == "nf-core/sarek"
+    assert cfg["workflow"]["metadata"]["source_type"] == "nf-core"
+    assert cfg["workflow"]["metadata"]["release"] == "3.8.1"
+    assert cfg["nextflow_profile"] == "docker"
+    assert cfg["nextflow_args"]["tools"] == "haplotypecaller"
+    assert cfg["resources"]["bundle"]["type"] == "nextflow-managed"
+    assert cfg["resources"]["bundle"]["runtime_check"]["status"] == "not_applicable"
+    assert cfg["capture_label"] is None
+
+
 # --------------------------
 # “Normal” branches
 # --------------------------

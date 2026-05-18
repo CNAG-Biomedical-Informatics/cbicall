@@ -26,6 +26,11 @@ For WES/WGS cohort runs, `sample_map` points to a TSV containing sample IDs and 
 
 For mtDNA runs, CBIcall expects BAM files from previous WES/WGS single-sample runs. mtDNA workflows do not start from FASTQ files.
 
+For external nf-core workflows, workflow-specific inputs are passed in
+`nextflow_args`. For example, Sarek expects its samplesheet under
+`nextflow_args.input`. CBIcall launches the registered Nextflow workflow and
+leaves its native output directory layout unchanged.
+
 ## CLI Synopsis
 
 ```text
@@ -114,6 +119,37 @@ gatk_version:    gatk-3.5
 input_dir:       CNAG999_exome/CNAG99901P_ex
 ```
 
+### nf-core/Sarek Through CBIcall
+
+```yaml
+mode:             cohort
+pipeline:         sarek
+workflow_engine:  nextflow
+workflow_version: nf-core
+resource:         nf-core-sarek-managed-resources-v1
+nextflow_profile: docker
+nextflow_args:
+  input: samplesheet.csv
+  genome: GATK.GRCh38
+  tools: haplotypecaller
+```
+
+### nf-core/demo Smoke Test
+
+```yaml
+mode:             single
+pipeline:         demo
+workflow_engine:  nextflow
+workflow_version: nf-core
+resource:         nf-core-demo-managed-resources-v1
+nextflow_profile: test,conda
+nextflow_args:    {}
+```
+
+This example uses nf-core's built-in test profile. The `conda` profile avoids
+Linux AMD64 container image issues on macOS/Apple Silicon when Conda or Mamba is
+available.
+
 ## Partial Runs
 
 Partial runs are intended for targeted Snakemake execution and restarts. Leave `workflow_rule` unset for a normal full run.
@@ -137,6 +173,10 @@ Each run creates a directory containing:
 - the main workflow log
 - `log.json` with CLI arguments, resolved configuration, and YAML parameters
 - workflow outputs such as VCFs, BAMs, statistics, and browser reports
+
+External workflows can keep their own native output layout. For nf-core/Sarek,
+CBIcall writes `cbicall_external_nextflow.params.yaml` and Sarek writes under
+`sarek/` inside the CBIcall run directory.
 
 See [Outputs](../help/outputs) for the file reference.
 

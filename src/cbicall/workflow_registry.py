@@ -1,7 +1,7 @@
 import json
 import os
 from pathlib import Path
-from typing import Tuple
+from typing import Any, Tuple
 
 import yaml
 from jsonschema import Draft202012Validator
@@ -60,7 +60,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
         )
 
     base_dir = (project_root / eng_cfg["base_dir"] / version).resolve()
-    pipeline_version, script_name = _resolve_pipeline_implementation(
+    pipeline_version, implementation = _resolve_pipeline_implementation(
         pipelines_cfg[pipeline][mode],
         requested_pipeline_version,
         engine=engine,
@@ -68,6 +68,10 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
         pipeline=pipeline,
         mode=mode,
     )
+    if isinstance(implementation, dict):
+        script_name = implementation.get("script")
+    else:
+        script_name = implementation
     profiles = _resolve_profiles(ver_cfg.get("profiles", {}), base_dir)
 
     if engine == "bash":
@@ -111,6 +115,25 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
         )
 
     if engine == "nextflow":
+        if isinstance(implementation, dict) and implementation.get("source_type") == "nf-core":
+            return WorkflowSpec(
+                engine=engine,
+                pipeline=pipeline,
+                mode=mode,
+                gatk_version=version,
+                pipeline_version=pipeline_version,
+                entrypoint=str(implementation["source"]),
+                config_file=None,
+                helpers={},
+                profiles=profiles,
+                metadata={
+                    "source_type": str(implementation["source_type"]),
+                    "source": str(implementation["source"]),
+                    "release": str(implementation["release"]),
+                    "default_outdir": str(implementation.get("default_outdir", pipeline)),
+                },
+            )
+
         needed_helpers = ["config", "coverage", "vcf2sex", "vcf2hash"]
         missing_helpers = [k for k in needed_helpers if k not in helpers]
         if missing_helpers:
@@ -137,6 +160,9 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
 
 
 def validate_resolved_workflow_files(workflow: WorkflowSpec) -> None:
+    if workflow.metadata.get("source_type") == "nf-core":
+        return
+
     must_exist = [("workflow.entrypoint", workflow.entrypoint)]
     if workflow.engine == "bash":
         must_exist.extend((f"workflow.helpers.{name}", path) for name, path in workflow.helpers.items())
@@ -194,7 +220,7 @@ def _resolve_pipeline_implementation(
     gatk_version: str,
     pipeline: str,
     mode: str,
-) -> Tuple[str, str]:
+) -> Tuple[str, Any]:
     label = f"{engine}/{gatk_version}/{pipeline}/{mode}"
     if isinstance(mode_cfg, str):
         if requested_pipeline_version:
@@ -226,10 +252,18 @@ def _resolve_pipeline_implementation(
     implementation = implementations[selected_version]
     if isinstance(implementation, str):
         return selected_version, implementation
-    if isinstance(implementation, dict) and implementation.get("script"):
-        return selected_version, str(implementation["script"])
+    if isinstance(implementation, dict):
+        if implementation.get("script"):
+            return selected_version, str(implementation["script"])
+        if implementation.get("source_type") == "nf-core":
+            missing = [key for key in ("source", "release") if not implementation.get(key)]
+            if missing:
+                raise WorkflowResolutionError(
+                    f"Implementation {selected_version!r} for {label} is missing keys: {missing}"
+                )
+            return selected_version, implementation
     raise WorkflowResolutionError(
-        f"Implementation {selected_version!r} for {label} must define a script path."
+        f"Implementation {selected_version!r} for {label} must define a script path or external source."
     )
 
 
