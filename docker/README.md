@@ -90,6 +90,11 @@ wget https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/main/
 
 Then build the container:
 
+The Dockerfile installs the CBIcall Python dependencies, including
+Snakemake, and a pinned Nextflow launcher. Bash workflows do not need either
+engine, but the image can run the packaged Snakemake and Nextflow WES/WGS
+workflows without extra engine installation.
+
 - **For Docker version 19.03 and above (supports buildx):**
 
   ```bash

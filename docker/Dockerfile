@@ -7,14 +7,22 @@ LABEL org.opencontainers.image.authors="Manuel Rueda <manuel.rueda@cnag.eu>"
 ENV DEBIAN_FRONTEND=noninteractive
 # Ensure that system sbin directories are in PATH
 ENV PATH="/usr/local/sbin:/usr/sbin:/sbin:${PATH}"
+ARG NEXTFLOW_VERSION=25.10.4
 
 # Install Linux tools (use --no-install-recommends and headless JRE)
 RUN apt-get update && \
     apt-get install -y \
       gcc make git vim sudo \
       libncurses5 libtinfo5 \
-      python3-pip openjdk-17-jre-headless ca-certificates && \
+      python3-pip openjdk-17-jre-headless ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*
+
+# Install Nextflow. Ubuntu 22.04 does not provide a suitable default apt
+# package, so the Docker image pins the official launcher version explicitly.
+RUN curl -fsSL https://get.nextflow.io | NXF_VER="${NEXTFLOW_VERSION}" bash && \
+    mv nextflow /usr/local/bin/nextflow && \
+    chmod 0755 /usr/local/bin/nextflow && \
+    nextflow -version
 
 # Download CBICall
 WORKDIR /usr/share/
@@ -26,7 +34,7 @@ RUN rm -rf cbicall/.git cbicall/.github cbicall/.gitattributes cbicall/.gitignor
 # Remove documentation sources from the runtime image
 RUN rm -rf cbicall/docs-site/
 
-# Install Python packages
+# Install Python packages, including Snakemake.
 RUN pip3 install -r /usr/share/cbicall/requirements.txt
 
 # Add user "dockeruser"
