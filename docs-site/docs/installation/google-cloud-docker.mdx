@@ -21,7 +21,7 @@ The recipe runs:
 ```bash
 bin/cbicall validate-resources
 bin/cbicall validate-param -p examples/input/param.yaml
-bin/cbicall test --wes -t 1
+bin/cbicall test --wes-bash -t 1
 ```
 
 Expected evidence:
@@ -30,7 +30,7 @@ Expected evidence:
 | --- | --- |
 | `validate-resources` succeeds | The resource catalog is well formed and points to declared workflows. |
 | `validate-param` resolves the run | The parameters YAML resolves to a concrete workflow, profile, pipeline version, and resource. |
-| `test --wes` succeeds | The generated WES VCF matches the shipped reference output under the integration-test comparison. |
+| `test --wes-bash` succeeds | The generated WES VCF matches the shipped reference output under the integration-test comparison. |
 | Normalized SHA-256 is printed | The filtered, sorted variant records have a compact reporting fingerprint. |
 | `run-report.json` exists | The cloud run records workflow and resource provenance. |
 
@@ -182,7 +182,7 @@ sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/co
 ```bash
 cbicall_docker bin/cbicall validate-resources
 cbicall_docker bin/cbicall validate-param -p examples/input/param.yaml
-cbicall_docker bin/cbicall test --wes -t 1
+cbicall_docker bin/cbicall test --wes-bash -t 1
 ```
 
 The final command should print the run directory, workflow log,

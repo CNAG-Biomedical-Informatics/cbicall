@@ -11,8 +11,10 @@ THREADS=${THREADS:-1}
 PATTERN=${PATTERN:-'^#'}
 LAUNCHER_LOG_DIR=${LAUNCHER_LOG_DIR:-$(pwd -P)}
 
-RUN_WES=0
-RUN_MIT=0
+RUN_WES_BASH=0
+RUN_WES_SNAKEMAKE=0
+RUN_MIT_BASH=0
+SKIP_MISSING_OPTIONAL=${CBICALL_TEST_SKIP_MISSING_OPTIONAL:-0}
 
 ############################################
 # Usage / argument parsing                 #
@@ -27,29 +29,37 @@ Each requested test prints the new run directory, workflow log, run report,
 launcher log, and outputs used for comparison.
 
 You MUST specify at least one of:
-  --wes      Run the WES test.
-  --mit      Run the MIT test.
+  --wes-bash       Run the Bash WES test.
+  --wes-snakemake  Run the Snakemake WES test.
+  --mit-bash       Run the Bash MIT test.
 
 Options:
-  --wes        Run the WES test.
-  --mit        Run the MIT test.
-  -h, --help   Show this help message and exit.
+  --wes-bash       Run the Bash WES test.
+  --wes-snakemake  Run the Snakemake WES test. Requires snakemake on PATH.
+  --mit-bash       Run the Bash MIT test.
+  -h, --help       Show this help message and exit.
 
 Environment variables:
-  CBICALL   Path to cbicall executable (default: ../../bin/cbicall)
-  THREADS   Number of threads to use (default: 1)
-  PATTERN   Regex pattern to filter out lines before comparison (default: '^#')
+  CBICALL                         Path to cbicall executable (default: ../../bin/cbicall)
+  THREADS                         Number of threads to use (default: 1)
+  PATTERN                         Regex pattern to filter out lines before comparison (default: '^#')
+  CBICALL_TEST_SKIP_MISSING_OPTIONAL
+                                  Skip optional engine tests when dependencies are missing.
 EOF
 }
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --wes)
-      RUN_WES=1
+    --wes-bash)
+      RUN_WES_BASH=1
       shift
       ;;
-    --mit)
-      RUN_MIT=1
+    --wes-snakemake)
+      RUN_WES_SNAKEMAKE=1
+      shift
+      ;;
+    --mit-bash)
+      RUN_MIT_BASH=1
       shift
       ;;
     -h|--help)
@@ -65,8 +75,8 @@ while [ "$#" -gt 0 ]; do
 done
 
 # Require at least one test to be selected
-if [ "$RUN_WES" -eq 0 ] && [ "$RUN_MIT" -eq 0 ]; then
-  echo "Error: you must specify at least one of --wes or --mit." >&2
+if [ "$RUN_WES_BASH" -eq 0 ] && [ "$RUN_WES_SNAKEMAKE" -eq 0 ] && [ "$RUN_MIT_BASH" -eq 0 ]; then
+  echo "Error: you must specify at least one of --wes-bash, --wes-snakemake, or --mit-bash." >&2
   usage >&2
   exit 1
 fi
@@ -235,9 +245,9 @@ summary=""
 # TEST 1: WES                              #
 ############################################
 
-if [ "$RUN_WES" -eq 1 ]; then
+if [ "$RUN_WES_BASH" -eq 1 ]; then
   echo "========================================"
-  echo "TEST: WES"
+  echo "TEST: WES Bash"
   echo "========================================"
 
   REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_wes_single_b37_gatk-4.6_765963065360466/02_varcall/CNAG99901P.hc.QC.vcf.gz'
@@ -262,15 +272,15 @@ if [ "$RUN_WES" -eq 1 ]; then
     if [ -z "${WES_RUN_DIR:-}" ]; then
       WES_RUN_DIR=$(new_run_dir "$WES_BEFORE" "$WES_AFTER" || true)
     fi
-    echo "ERROR: WES cbicall command failed. Last launcher log lines:"
+    echo "ERROR: WES Bash cbicall command failed. Last launcher log lines:"
     tail -n 40 "$WES_LAUNCHER_LOG" || true
     if [ -n "${WES_RUN_DIR:-}" ]; then
-      print_run_artifacts "WES" "$WES_RUN_DIR" "$WES_RUN_DIR/$WORKFLOW_LOG_NAME" "$WES_RUN_DIR/run-report.json" "$WES_LAUNCHER_LOG"
+      print_run_artifacts "WES Bash" "$WES_RUN_DIR" "$WES_RUN_DIR/$WORKFLOW_LOG_NAME" "$WES_RUN_DIR/run-report.json" "$WES_LAUNCHER_LOG"
     else
       echo "Launcher log: $WES_LAUNCHER_LOG"
     fi
     WES_STATUS=1
-    append_summary "WES" "failed" "$WES_LAUNCHER_LOG"
+    append_summary "WES Bash" "failed" "$WES_LAUNCHER_LOG"
   else
     list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_AFTER"
     WES_RUN_DIR=$(run_dir_from_launcher_log "$WES_LAUNCHER_LOG")
@@ -279,19 +289,19 @@ if [ "$RUN_WES" -eq 1 ]; then
     fi
 
     if [ -z "${WES_RUN_DIR:-}" ]; then
-      echo "ERROR: WES command finished but no new run directory was found."
+      echo "ERROR: WES Bash command finished but no new run directory was found."
       echo "Launcher log: $WES_LAUNCHER_LOG"
       WES_STATUS=1
-      append_summary "WES" "failed" "no new run directory"
+      append_summary "WES Bash" "failed" "no new run directory"
     else
       TEST_RESULT_WES="$WES_RUN_DIR/02_varcall/CNAG99901P.hc.QC.vcf.gz"
-      print_run_artifacts "WES" "$WES_RUN_DIR" "$WES_RUN_DIR/$WORKFLOW_LOG_NAME" "$WES_RUN_DIR/run-report.json" "$WES_LAUNCHER_LOG" "$TEST_RESULT_WES"
+      print_run_artifacts "WES Bash" "$WES_RUN_DIR" "$WES_RUN_DIR/$WORKFLOW_LOG_NAME" "$WES_RUN_DIR/run-report.json" "$WES_LAUNCHER_LOG" "$TEST_RESULT_WES"
 
       if compare_files "$REF_VCF" "$TEST_RESULT_WES" zgrep; then
-        append_summary "WES" "passed" "$WES_RUN_DIR"
+        append_summary "WES Bash" "passed" "$WES_RUN_DIR"
       else
         WES_STATUS=1
-        append_summary "WES" "failed" "$WES_RUN_DIR"
+        append_summary "WES Bash" "failed" "$WES_RUN_DIR"
       fi
     fi
   fi
@@ -301,17 +311,111 @@ if [ "$RUN_WES" -eq 1 ]; then
   fi
   rm -f "$WES_BEFORE" "$WES_AFTER"
 else
-  echo "Skipping WES test (not requested)."
-  append_summary "WES" "skipped"
+  echo "Skipping WES Bash test (not requested)."
+  append_summary "WES Bash" "skipped"
+fi
+
+############################################
+# TEST 1B: WES Snakemake                   #
+############################################
+
+if [ "$RUN_WES_SNAKEMAKE" -eq 1 ]; then
+  echo "========================================"
+  echo "TEST: WES Snakemake"
+  echo "========================================"
+
+  REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_wes_single_b37_gatk-4.6_765963065360466/02_varcall/CNAG99901P.hc.QC.vcf.gz'
+  BASE_DIR='CNAG999_exome/CNAG99901P_ex'
+  RUN_GLOB='cbicall_snakemake_wes_single_b37_gatk-4.6_*'
+  WORKFLOW_LOG_NAME='snakemake_wes_single_b37_gatk-4.6.log'
+
+  check_ref_dir "$REF_VCF"
+
+  if ! command -v snakemake >/dev/null 2>&1; then
+    if [ "$SKIP_MISSING_OPTIONAL" -eq 1 ]; then
+      echo "SKIP: Snakemake is not installed; install it to run Snakemake backend integration tests."
+      append_summary "WES Snakemake" "skipped" "snakemake not found"
+    else
+      echo "ERROR: Snakemake is not installed; install it or omit --wes-snakemake." >&2
+      append_summary "WES Snakemake" "failed" "snakemake not found"
+      overall_status=1
+    fi
+  else
+    echo "Running WES Snakemake integration test..."
+    WES_SMK_STATUS=0
+    WES_SMK_BEFORE=$(mktemp)
+    WES_SMK_AFTER=$(mktemp)
+    WES_SMK_PARAM=$(mktemp -p "$LAUNCHER_LOG_DIR" cbicall-wes-snakemake.XXXXXX.yaml)
+    WES_SMK_LAUNCHER_LOG=$(mktemp -p "$LAUNCHER_LOG_DIR" cbicall-test-wes-snakemake.XXXXXX.log)
+    list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_SMK_BEFORE"
+
+    cat > "$WES_SMK_PARAM" <<EOF
+mode: single
+pipeline: wes
+workflow_engine: snakemake
+profile: local
+gatk_version: gatk-4.6
+resource: "cbicall-germline-resources-v1"
+input_dir: CNAG999_exome/CNAG99901P_ex
+EOF
+
+    if ! "$CBICALL" run -p "$WES_SMK_PARAM" -t "$THREADS" > "$WES_SMK_LAUNCHER_LOG" 2>&1; then
+      list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_SMK_AFTER"
+      WES_SMK_RUN_DIR=$(run_dir_from_launcher_log "$WES_SMK_LAUNCHER_LOG")
+      if [ -z "${WES_SMK_RUN_DIR:-}" ]; then
+        WES_SMK_RUN_DIR=$(new_run_dir "$WES_SMK_BEFORE" "$WES_SMK_AFTER" || true)
+      fi
+      echo "ERROR: WES Snakemake cbicall command failed. Last launcher log lines:"
+      tail -n 40 "$WES_SMK_LAUNCHER_LOG" || true
+      if [ -n "${WES_SMK_RUN_DIR:-}" ]; then
+        print_run_artifacts "WES Snakemake" "$WES_SMK_RUN_DIR" "$WES_SMK_RUN_DIR/$WORKFLOW_LOG_NAME" "$WES_SMK_RUN_DIR/run-report.json" "$WES_SMK_LAUNCHER_LOG"
+      else
+        echo "Launcher log: $WES_SMK_LAUNCHER_LOG"
+      fi
+      WES_SMK_STATUS=1
+      append_summary "WES Snakemake" "failed" "$WES_SMK_LAUNCHER_LOG"
+    else
+      list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_SMK_AFTER"
+      WES_SMK_RUN_DIR=$(run_dir_from_launcher_log "$WES_SMK_LAUNCHER_LOG")
+      if [ -z "${WES_SMK_RUN_DIR:-}" ]; then
+        WES_SMK_RUN_DIR=$(new_run_dir "$WES_SMK_BEFORE" "$WES_SMK_AFTER" || true)
+      fi
+
+      if [ -z "${WES_SMK_RUN_DIR:-}" ]; then
+        echo "ERROR: WES Snakemake command finished but no new run directory was found."
+        echo "Launcher log: $WES_SMK_LAUNCHER_LOG"
+        WES_SMK_STATUS=1
+        append_summary "WES Snakemake" "failed" "no new run directory"
+      else
+        TEST_RESULT_WES_SMK="$WES_SMK_RUN_DIR/02_varcall/CNAG99901P.hc.QC.vcf.gz"
+        print_run_artifacts "WES Snakemake" "$WES_SMK_RUN_DIR" "$WES_SMK_RUN_DIR/$WORKFLOW_LOG_NAME" "$WES_SMK_RUN_DIR/run-report.json" "$WES_SMK_LAUNCHER_LOG" "$TEST_RESULT_WES_SMK"
+
+        if compare_files "$REF_VCF" "$TEST_RESULT_WES_SMK" zgrep; then
+          append_summary "WES Snakemake" "passed" "$WES_SMK_RUN_DIR"
+        else
+          WES_SMK_STATUS=1
+          append_summary "WES Snakemake" "failed" "$WES_SMK_RUN_DIR"
+        fi
+      fi
+    fi
+
+    if [ "$WES_SMK_STATUS" -ne 0 ]; then
+      overall_status=1
+    fi
+    rm -f "$WES_SMK_BEFORE" "$WES_SMK_AFTER" "$WES_SMK_PARAM"
+  fi
+else
+  echo "Skipping WES Snakemake test (not requested)."
+  append_summary "WES Snakemake" "skipped"
 fi
 
 ############################################
 # TEST 2: MIT                              #
 ############################################
 
-if [ "$RUN_MIT" -eq 1 ]; then
+if [ "$RUN_MIT_BASH" -eq 1 ]; then
   echo "========================================"
-  echo "TEST: MIT"
+  echo "TEST: MIT Bash"
   echo "========================================"
 
   REF_MIT='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_mit_single_rsrs_gatk-3.5_649547582283533/01_mtoolbox/mit_prioritized_variants.txt'
@@ -338,15 +442,15 @@ if [ "$RUN_MIT" -eq 1 ]; then
     if [ -z "${MIT_RUN_DIR:-}" ]; then
       MIT_RUN_DIR=$(new_run_dir "$MIT_BEFORE" "$MIT_AFTER" || true)
     fi
-    echo "ERROR: MIT cbicall command failed. Last launcher log lines:"
+    echo "ERROR: MIT Bash cbicall command failed. Last launcher log lines:"
     tail -n 40 "$MIT_LAUNCHER_LOG" || true
     if [ -n "${MIT_RUN_DIR:-}" ]; then
-      print_run_artifacts "MIT" "$MIT_RUN_DIR" "$MIT_RUN_DIR/$WORKFLOW_LOG_NAME" "$MIT_RUN_DIR/run-report.json" "$MIT_LAUNCHER_LOG"
+      print_run_artifacts "MIT Bash" "$MIT_RUN_DIR" "$MIT_RUN_DIR/$WORKFLOW_LOG_NAME" "$MIT_RUN_DIR/run-report.json" "$MIT_LAUNCHER_LOG"
     else
       echo "Launcher log: $MIT_LAUNCHER_LOG"
     fi
     MIT_STATUS=1
-    append_summary "MIT" "failed" "$MIT_LAUNCHER_LOG"
+    append_summary "MIT Bash" "failed" "$MIT_LAUNCHER_LOG"
   else
     list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$MIT_AFTER"
     MIT_RUN_DIR=$(run_dir_from_launcher_log "$MIT_LAUNCHER_LOG")
@@ -355,14 +459,14 @@ if [ "$RUN_MIT" -eq 1 ]; then
     fi
 
     if [ -z "${MIT_RUN_DIR:-}" ]; then
-      echo "ERROR: MIT command finished but no new run directory was found."
+      echo "ERROR: MIT Bash command finished but no new run directory was found."
       echo "Launcher log: $MIT_LAUNCHER_LOG"
       MIT_STATUS=1
-      append_summary "MIT" "failed" "no new run directory"
+      append_summary "MIT Bash" "failed" "no new run directory"
     else
       TEST_RESULT_MIT="$MIT_RUN_DIR/01_mtoolbox/mit_prioritized_variants.txt"
       TEST_RESULT_MIT_JSON="$MIT_RUN_DIR/01_mtoolbox/mit.raw.json"
-      print_run_artifacts "MIT" "$MIT_RUN_DIR" "$MIT_RUN_DIR/$WORKFLOW_LOG_NAME" "$MIT_RUN_DIR/run-report.json" "$MIT_LAUNCHER_LOG" "$TEST_RESULT_MIT" "$TEST_RESULT_MIT_JSON"
+      print_run_artifacts "MIT Bash" "$MIT_RUN_DIR" "$MIT_RUN_DIR/$WORKFLOW_LOG_NAME" "$MIT_RUN_DIR/run-report.json" "$MIT_LAUNCHER_LOG" "$TEST_RESULT_MIT" "$TEST_RESULT_MIT_JSON"
 
       if ! compare_files "$REF_MIT" "$TEST_RESULT_MIT" grep; then
         MIT_STATUS=1
@@ -380,9 +484,9 @@ if [ "$RUN_MIT" -eq 1 ]; then
       fi
 
       if [ "$MIT_STATUS" -eq 0 ]; then
-        append_summary "MIT" "passed" "$MIT_RUN_DIR"
+        append_summary "MIT Bash" "passed" "$MIT_RUN_DIR"
       else
-        append_summary "MIT" "failed" "$MIT_RUN_DIR"
+        append_summary "MIT Bash" "failed" "$MIT_RUN_DIR"
       fi
     fi
   fi
@@ -393,8 +497,8 @@ if [ "$RUN_MIT" -eq 1 ]; then
   rm -f "$MIT_BEFORE" "$MIT_AFTER"
 
 else
-  echo "Skipping MIT test (not requested)."
-  append_summary "MIT" "skipped"
+  echo "Skipping MIT Bash test (not requested)."
+  append_summary "MIT Bash" "skipped"
 fi
 
 echo "========================================"

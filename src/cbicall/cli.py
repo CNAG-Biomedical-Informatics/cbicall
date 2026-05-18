@@ -937,9 +937,18 @@ def _run_test_command(argv: List[str]) -> int:
         prog="cbicall test",
         description="Run the bundled CBIcall integration tests from examples/input.",
     )
-    parser.add_argument("--wes", action="store_true", help="Run the WES integration test.")
-    parser.add_argument("--mit", action="store_true", help="Run the mitochondrial integration test.")
-    parser.add_argument("--all", action="store_true", help="Run all bundled integration tests.")
+    parser.add_argument("--wes-bash", action="store_true", help="Run the Bash WES integration test.")
+    parser.add_argument(
+        "--wes-snakemake",
+        action="store_true",
+        help="Run the Snakemake WES integration test. Requires snakemake on PATH.",
+    )
+    parser.add_argument("--mit-bash", action="store_true", help="Run the Bash mitochondrial integration test.")
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Run all bundled integration tests. Optional engine tests are skipped if their engine is not installed.",
+    )
     parser.add_argument("-t", "--threads", type=int, default=1, help="Number of threads to use.")
     args = parser.parse_args(argv)
 
@@ -947,12 +956,14 @@ def _run_test_command(argv: List[str]) -> int:
         parser.error("--threads requires a positive integer")
 
     selected = []
-    if args.all or args.wes:
-        selected.append("--wes")
-    if args.all or args.mit:
-        selected.append("--mit")
+    if args.all or args.wes_bash:
+        selected.append("--wes-bash")
+    if args.all or args.wes_snakemake:
+        selected.append("--wes-snakemake")
+    if args.all or args.mit_bash:
+        selected.append("--mit-bash")
     if not selected:
-        parser.error("select at least one test with --wes, --mit, or --all")
+        parser.error("select at least one test with --wes-bash, --wes-snakemake, --mit-bash, or --all")
 
     root = _project_root()
     script = root / "examples" / "input" / "run_tests.sh"
@@ -962,6 +973,8 @@ def _run_test_command(argv: List[str]) -> int:
     env = os.environ.copy()
     env["CBICALL"] = str(root / "bin" / "cbicall")
     env["THREADS"] = str(args.threads)
+    if args.all and not args.wes_snakemake:
+        env["CBICALL_TEST_SKIP_MISSING_OPTIONAL"] = "1"
     return subprocess.run(
         ["bash", str(script), *selected],
         cwd=str(script.parent),

@@ -20,12 +20,12 @@ whether a custom resource catalog or installed resource directory is valid, use
 From the repository root:
 
 ```bash
-bin/cbicall test --wes -t 1
+bin/cbicall test --wes-bash -t 1
 ```
 
 | Check | What it confirms |
 | --- | --- |
-| `test --wes` | The bundled WES workflow runs and reproduces the shipped reference VCF under deterministic comparison rules. |
+| `test --wes-bash` | The required bundled Bash WES workflow runs and reproduces the shipped reference VCF under deterministic comparison rules. |
 
 :::tip[Where to go next]
 Use this page to run the shipped examples. For parameter-file checks, see
@@ -36,16 +36,23 @@ repeated runs, see [Run Comparison](run-comparison).
 ## Test Commands
 
 ```bash
-bin/cbicall test --wes -t 1
-bin/cbicall test --mit -t 1
+bin/cbicall test --wes-bash -t 1
+bin/cbicall test --wes-snakemake -t 1
+bin/cbicall test --mit-bash -t 1
 bin/cbicall test --all -t 1
 ```
 
 | Command | Use |
 | --- | --- |
-| `bin/cbicall test --wes -t 1` | Fast WES integration test. Run this first. |
-| `bin/cbicall test --mit -t 1` | mtDNA integration test after the WES path is working. |
-| `bin/cbicall test --all -t 1` | Run all bundled integration examples. |
+| `bin/cbicall test --wes-bash -t 1` | Required Bash WES integration test. Run this first. |
+| `bin/cbicall test --wes-snakemake -t 1` | Optional Snakemake WES test. Requires `snakemake` on `PATH` and compares the resulting VCF to the same Bash reference VCF. |
+| `bin/cbicall test --mit-bash -t 1` | Optional mtDNA Bash integration test after the WES path is working. |
+| `bin/cbicall test --all -t 1` | Run all bundled integration examples. Optional engine tests are skipped when their engine is not installed. |
+
+:::note[Workflow engine dependencies]
+Snakemake is not part of the CBIcall resource bundle. Install it in the runtime
+environment before running `bin/cbicall test --wes-snakemake`.
+:::
 
 ## Outputs
 
@@ -60,6 +67,9 @@ CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_*/
   03_stats/
   logs/
 ```
+
+The optional Snakemake WES test uses the same input and expected VCF records, but
+the run directory starts with `cbicall_snakemake_wes_single_b37_gatk-4.6_*`.
 
 For mtDNA, the run directory looks like:
 

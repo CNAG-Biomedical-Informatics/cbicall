@@ -20,11 +20,11 @@ You should see the command help and the installed CBIcall version.
 From the repository root:
 
 ```bash
-bin/cbicall test --wes -t 1
+bin/cbicall test --wes-bash -t 1
 ```
 
-This runs the bundled WES example and compares the generated VCF with the
-shipped reference output.
+This runs the required bundled Bash WES example and compares the generated VCF
+with the shipped reference output.
 
 :::tip[Need deeper checks?]
 Use [Integration Tests](integration-tests) for bundled WES/mtDNA test details,
@@ -38,7 +38,7 @@ the selected resource entry.
 Run this after the WES test works:
 
 ```bash
-bin/cbicall test --mit -t 1
+bin/cbicall test --mit-bash -t 1
 ```
 
 :::info[Architecture]

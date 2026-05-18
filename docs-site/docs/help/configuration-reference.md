@@ -143,7 +143,7 @@ During a real run, the resolved `profile` and selected environment file are writ
 | `bin/cbicall validate-param -p parameters.yaml` | Dry-run preflight for one concrete run. It validates the parameters YAML, workflow, profile env file, and selected resource without launching the workflow. |
 | `bin/cbicall validate-resources` | Check the resource catalog and, optionally, one resource key. |
 | `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare two or more run directories or `run-report.json` files. |
-| `bin/cbicall test --wes`, `--mit`, or `--all` | Runs the bundled integration examples without remembering the script path. |
+| `bin/cbicall test --wes-bash`, `--wes-snakemake`, `--mit-bash`, or `--all` | Runs the bundled integration examples without remembering the script path. `--wes-bash` is the required baseline test; the Snakemake test requires `snakemake` on `PATH`. |
 
 ## Advanced Keys
 
