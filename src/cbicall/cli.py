@@ -367,19 +367,19 @@ def _normalized_vcf_hash(path: Path) -> dict:
     }
 
 
-def _canonical_output_reports(workflow, native_output_dir: Path) -> tuple:
+def _canonical_output_reports(workflow, workflow_output_dir: Path) -> tuple:
     reports = []
     vcf_reports = []
     for item in workflow.metadata.get("canonical_outputs", []):
         name = str(item.get("name"))
         output_type = str(item.get("type"))
         pattern = str(item.get("pattern"))
-        matches = sorted(native_output_dir.glob(pattern))
+        matches = sorted(workflow_output_dir.glob(pattern))
         report = {
             "name": name,
             "type": output_type,
             "pattern": pattern,
-            "root": str(native_output_dir),
+            "root": str(workflow_output_dir),
             "matches": [str(path) for path in matches],
             "status": "present" if matches else "missing",
         }
@@ -399,6 +399,48 @@ def _canonical_output_reports(workflow, native_output_dir: Path) -> tuple:
     return reports, vcf_reports
 
 
+def _first_glob(root: Path, pattern: str) -> Optional[str]:
+    matches = sorted(root.glob(pattern))
+    return str(matches[0]) if matches else None
+
+
+def _external_nextflow_summary(workflow_output_dir: Path, canonical_outputs: List[dict]) -> dict:
+    summary = {}
+
+    pipeline_info = workflow_output_dir / "pipeline_info"
+    if pipeline_info.is_dir():
+        info = {"dir": str(pipeline_info)}
+        for key, pattern in {
+            "params": "params_*.json",
+            "trace": "execution_trace_*.txt",
+            "report": "execution_report_*.html",
+            "timeline": "execution_timeline_*.html",
+            "dag": "pipeline_dag_*.html",
+            "manifest": "manifest_*.json",
+            "software_versions": "*software*versions*.yml",
+        }.items():
+            match = _first_glob(pipeline_info, pattern)
+            if match:
+                info[key] = match
+        summary["pipeline_info"] = info
+
+    multiqc_dir = workflow_output_dir / "multiqc"
+    if multiqc_dir.is_dir():
+        multiqc = {"dir": str(multiqc_dir)}
+        report = multiqc_dir / "multiqc_report.html"
+        data_dir = multiqc_dir / "multiqc_data"
+        if report.is_file():
+            multiqc["report"] = str(report)
+        if data_dir.is_dir():
+            multiqc["data_dir"] = str(data_dir)
+        summary["multiqc"] = multiqc
+
+    if canonical_outputs:
+        summary["canonical_outputs"] = canonical_outputs
+
+    return summary
+
+
 def _external_nextflow_outputs(resolved_config: ResolvedConfig, project_dir: Path) -> dict:
     workflow = resolved_config.workflow
     if workflow.metadata.get("source_type") != "nf-core":
@@ -408,11 +450,12 @@ def _external_nextflow_outputs(resolved_config: ResolvedConfig, project_dir: Pat
     config_file = project_dir / "cbicall_external_nextflow.config"
     output_dir = project_dir / workflow.metadata.get("default_outdir", workflow.pipeline)
     payload = {
-        "native_output_dir": str(output_dir),
+        "workflow_output_dir": str(output_dir),
         "params_file": str(params_file),
         "config_file": str(config_file),
     }
     canonical_outputs, vcf_hash_reports = _canonical_output_reports(workflow, output_dir)
+    payload["external_summary"] = _external_nextflow_summary(output_dir, canonical_outputs)
     if canonical_outputs:
         payload["canonical_outputs"] = canonical_outputs
     if vcf_hash_reports:
@@ -422,6 +465,38 @@ def _external_nextflow_outputs(resolved_config: ResolvedConfig, project_dir: Pat
     if config_file.is_file():
         payload["config_sha256"] = _sha256_file(config_file)
     return payload
+
+
+def _print_external_output_pointers(report: dict) -> None:
+    summary = _nested(report, "outputs", "external_summary") or {}
+    if not summary:
+        return
+
+    print()
+    _section("nf-core outputs", BLUE)
+    workflow_output = _nested(report, "outputs", "workflow_output_dir")
+    if workflow_output:
+        _row("Workflow out", _short_path(workflow_output))
+
+    pipeline_info = summary.get("pipeline_info") or {}
+    if pipeline_info.get("dir"):
+        _row("Pipeline", _short_path(pipeline_info["dir"]))
+    if pipeline_info.get("trace"):
+        _row("Trace", _short_path(pipeline_info["trace"]))
+
+    multiqc = summary.get("multiqc") or {}
+    if multiqc.get("report"):
+        _row("MultiQC", _short_path(multiqc["report"]))
+
+    canonical_outputs = summary.get("canonical_outputs") or []
+    shown = 0
+    for item in canonical_outputs:
+        matches = item.get("matches") or []
+        if not matches:
+            continue
+        label = "Canonical" if shown == 0 else f"Canonical {shown + 1}"
+        _row(label, _short_path(matches[0]))
+        shown += 1
 
 
 def write_run_report(
@@ -639,8 +714,22 @@ def _run_label(report: dict) -> str:
     return _short_path(report["_report_path"])
 
 
+def _short_hash(value: str) -> str:
+    text = str(value)
+    if len(text) >= 32 and all(ch in "0123456789abcdefABCDEF" for ch in text):
+        return f"{text[:12]}...{text[-8:]}"
+    return text
+
+
 def _comparison_value(value):
-    return "(missing)" if value is None else value
+    if value is None:
+        return "(missing)"
+    if isinstance(value, (list, tuple)):
+        return ", ".join(_comparison_value(item) for item in value if item is not None)
+    text = str(value)
+    if "/" in text:
+        text = _short_path(text)
+    return _short_hash(text)
 
 
 def _compare_row(label: str, left, right) -> None:
@@ -651,7 +740,7 @@ def _compare_row(label: str, left, right) -> None:
         _row(label, f"missing: {_comparison_value(left)} != {_comparison_value(right)}")
         return
     status = _same_text(left, right)
-    value = left if left == right else f"{left} != {right}"
+    value = _comparison_value(left) if left == right else f"{_comparison_value(left)} != {_comparison_value(right)}"
     _row(label, f"{status}: {value}")
 
 
@@ -685,7 +774,10 @@ def _compare_workflow_files(left: dict, right: dict) -> None:
             details.append("path")
         if not same_sha:
             details.append("sha256")
-        _row(role, status if not details else f"{status}: {', '.join(details)}")
+        if details:
+            _row(role, f"{status}: {', '.join(details)}")
+        else:
+            _row(role, f"same: {_comparison_value((left_entry.get('path'), left_entry.get('sha256')))}")
 
 
 def _vcf_hash_map(report: dict) -> dict:
@@ -713,9 +805,10 @@ def _compare_output_hashes(left: dict, right: dict) -> None:
         if not left_item or not right_item:
             _row(_short_path(key), "missing")
             continue
-        _row(
+        _compare_row(
             _short_path(key),
-            _same_text(left_item.get("normalized_sha256"), right_item.get("normalized_sha256")),
+            left_item.get("normalized_sha256"),
+            right_item.get("normalized_sha256"),
         )
 
 
@@ -738,9 +831,16 @@ def _multi_status(label: str, baseline, reports: List[dict], value_fn) -> None:
     if missing:
         _row(label, "missing: " + ", ".join(missing))
     elif different:
-        _row(label, "different: " + ", ".join(different))
+        details = []
+        if baseline_value is not None:
+            details.append(f"baseline={_comparison_value(baseline_value)}")
+        for report in compared:
+            value = value_fn(report)
+            if value is not None and value != baseline_value:
+                details.append(f"{_run_label(report)}={_comparison_value(value)}")
+        _row(label, "different: " + "; ".join(details or different))
     else:
-        _row(label, "same")
+        _row(label, f"same: {_comparison_value(baseline_value)}")
 
 
 def _multi_workflow_file_value(role: str, report: dict):
@@ -807,7 +907,7 @@ def _print_multi_run_comparison(reports: List[dict]) -> None:
 
 def _print_run_comparison_legend() -> None:
     print()
-    _section("Legend", BLUE)
+    _section("Legend", YELLOW)
     _row("same", "values or fingerprints match")
     _row("different", "values or fingerprints exist in both runs but differ")
     _row("missing", "available in only some runs")
@@ -1331,6 +1431,9 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
     )
     _row("Log", workflow_log)
     _row("Report", report_path)
+    if workflow.metadata.get("source_type") == "nf-core":
+        report_data = json.loads(report_path.read_text(encoding="utf-8"))
+        _print_external_output_pointers(report_data)
     if arg.get("verbose"):
         _row("Date", time.ctime())
 

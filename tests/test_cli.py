@@ -146,6 +146,14 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
         "run",
         lambda *args, **kwargs: SimpleNamespace(returncode=0, stdout="Nextflow version 25.10.2\n", stderr=""),
     )
+    pipeline_info = tmp_path / "sarek" / "pipeline_info"
+    pipeline_info.mkdir(parents=True)
+    (pipeline_info / "params_2026-05-19_12-21-13.json").write_text("{}\n", encoding="utf-8")
+    (pipeline_info / "execution_trace_2026-05-19_12-20-22.txt").write_text("task\n", encoding="utf-8")
+    (pipeline_info / "execution_report_2026-05-19_12-20-22.html").write_text("<html></html>\n", encoding="utf-8")
+    multiqc_dir = tmp_path / "sarek" / "multiqc" / "multiqc_data"
+    multiqc_dir.mkdir(parents=True)
+    (tmp_path / "sarek" / "multiqc" / "multiqc_report.html").write_text("<html></html>\n", encoding="utf-8")
     vcf_dir = tmp_path / "sarek" / "variant_calling" / "haplotypecaller" / "CNAG99901P_ex"
     vcf_dir.mkdir(parents=True)
     vcf_path = vcf_dir / "CNAG99901P_ex.haplotypecaller.vcf.gz"
@@ -202,15 +210,57 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
     )
     data = json.loads(report.read_text(encoding="utf-8"))
 
+    assert data["outputs"]["workflow_output_dir"] == str(tmp_path / "sarek")
+    summary = data["outputs"]["external_summary"]
+    assert summary["pipeline_info"]["dir"] == str(pipeline_info)
+    assert summary["pipeline_info"]["params"].endswith("params_2026-05-19_12-21-13.json")
+    assert summary["pipeline_info"]["trace"].endswith("execution_trace_2026-05-19_12-20-22.txt")
+    assert summary["multiqc"]["report"].endswith("multiqc_report.html")
+    assert summary["multiqc"]["data_dir"] == str(multiqc_dir)
     canonical = data["outputs"]["canonical_outputs"][0]
     assert canonical["name"] == "haplotypecaller_vcf"
     assert canonical["status"] == "present"
     assert canonical["matches"] == [str(vcf_path)]
+    assert summary["canonical_outputs"] == data["outputs"]["canonical_outputs"]
     vcf_report = data["outputs"]["vcf_hash_reports"][0]
     assert vcf_report["source"] == "registry_canonical_output"
     assert vcf_report["name"] == "haplotypecaller_vcf"
     assert vcf_report["normalized_records"] == 1
     assert len(vcf_report["normalized_sha256"]) == 64
+
+
+def test_print_external_output_pointers(capsys, tmp_path):
+    report = {
+        "outputs": {
+            "workflow_output_dir": str(tmp_path / "run" / "sarek"),
+            "external_summary": {
+                "pipeline_info": {
+                    "dir": str(tmp_path / "run" / "sarek" / "pipeline_info"),
+                    "trace": str(tmp_path / "run" / "sarek" / "pipeline_info" / "execution_trace.txt"),
+                },
+                "multiqc": {
+                    "report": str(tmp_path / "run" / "sarek" / "multiqc" / "multiqc_report.html"),
+                },
+                "canonical_outputs": [
+                    {
+                        "matches": [
+                            str(tmp_path / "run" / "sarek" / "variant_calling" / "haplotypecaller" / "sample.vcf.gz")
+                        ]
+                    }
+                ],
+            },
+        }
+    }
+
+    cli_mod._print_external_output_pointers(report)
+    out = capsys.readouterr().out
+    assert "nf-core outputs" in out
+    assert "Workflow out" in out
+    assert "Pipeline" in out
+    assert "Trace" in out
+    assert "MultiQC" in out
+    assert "Canonical" in out
+    assert "sample.vcf.gz" in out
 
 
 def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
@@ -339,6 +389,9 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     assert "different: " in out
     assert "run_2/run-report.json" in out
     assert "sample.vcf.gz" in out
+    assert "same: 1.2.3" in out
+    assert "baseline=vcf" in out
+    assert "vcf-c" in out
 
 
 def test_run_with_spinner_no_spinner_calls_function():

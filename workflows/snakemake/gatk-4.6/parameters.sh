@@ -1,1 +1,0 @@
-../../bash/gatk-4.6/parameters.sh

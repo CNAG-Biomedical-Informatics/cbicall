@@ -19,20 +19,20 @@ function usage {
 
 MA00024_exome  <-- ID taken from here
 ├── MA0002401P_ex
-│   └── cbicall_bash_wes_single_146723488708442
-│       ├── 01_bam
-│       ├── 02_varcall
-│       └── 03_stats
+│  └── cbicall_bash_wes_single_146723488708442
+│      ├── 01_bam
+│      ├── 02_varcall
+│      └── 03_stats
 ├── MA0002402M_ex
-│   └── cbicall_bash_wes_single_146727114980481
-│       ├── 01_bam
-│       ├── 02_varcall
-│       └── 03_stats
+│  └── cbicall_bash_wes_single_146727114980481
+│      ├── 01_bam
+│      ├── 02_varcall
+│      └── 03_stats
 ├── MA0002402P_ex
-│   └── cbicall_bash_wes_single_146730170886696
-│       ├── 01_bam
-│       ├── 02_varcall
-│       └── 03_stats
+│  └── cbicall_bash_wes_single_146730170886696
+│      ├── 01_bam
+│      ├── 02_varcall
+│      └── 03_stats
 └── cbicall_bash_wes_cohort_146774466308431 <- The script expects that you are submitting the job from inside this directory
     ├── 01_varcall
     └── 02_stats

@@ -8,6 +8,14 @@ cbicall_<engine>_<pipeline>_<mode>_<genome>_<gatk-version>_<run-id>/
 
 The exact files depend on the selected pipeline and mode. The tables below are derived from the workflow output definitions and the checked-in example runs.
 
+:::note[Where run directories are created]
+Native CBIcall pipelines (`wes`, `wgs`, and `mit`) create the run directory
+under the discovered sample/input directory. External nf-core workflows are
+different: because their inputs are supplied through `nextflow_args` and may
+point anywhere, CBIcall creates the run directory in the directory where
+`cbicall run` is launched.
+:::
+
 :::tip[Most users only need these]
 - WES/WGS: use the final QC VCF in `02_varcall/`.
 - WES/WGS single-sample runs: keep the gVCF if you plan cohort joint genotyping.
@@ -51,7 +59,7 @@ layout native:
 | `nextflow_<pipeline>_<mode>_external_nf-core.log` | Main Nextflow launcher log. |
 
 `run-report.json` records the nf-core source, pinned release, Nextflow profile,
-generated params/config-file hashes, and native Sarek output directory.
+generated params/config-file hashes, and workflow output directory.
 The generated params file also records `max_cpus` from the CBIcall `-t/--threads`
 value. nf-core parameters such as `max_memory` can be passed through
 `nextflow_args`. The generated Nextflow config applies the CPU value, and

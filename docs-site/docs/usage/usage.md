@@ -147,12 +147,13 @@ pipeline:         demo
 workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-demo-managed-resources-v1
-nextflow_profile: test,docker
+nextflow_profile: test,singularity
 nextflow_args:    {}
 ```
 
-This example uses nf-core's built-in test profile with Docker. On HPC, use the
-Apptainer/Singularity profile described in the nf-core backend page.
+This example uses nf-core's built-in test profile with Singularity/Apptainer,
+which is the recommended profile on HPC. On an x86_64 Docker workstation,
+`test,docker` is also possible.
 
 For workstation and cluster runs with nf-core workflows, see
 [nf-core Workflows](../backends/nf-core).

@@ -9,6 +9,13 @@ nf-core is an external workflow adapter in CBIcall, not one of the shipped
 WES/WGS/mtDNA analysis pipelines. Use this page when testing registered nf-core
 examples on a workstation or on a cluster.
 
+:::note[Run directory location]
+External nf-core run directories are created where `cbicall run` is launched,
+for example `cbicall_nextflow_sarek_cohort_external_nf-core_<run-id>/`.
+This differs from native CBIcall WES/WGS/mtDNA pipelines, whose run directories
+are created under the discovered sample/input directory.
+:::
+
 ## How CBIcall Complements nf-core
 
 CBIcall is not a replacement for nf-core. nf-core provides community-maintained
@@ -24,11 +31,13 @@ selected workflows.
 | Provenance | Nextflow reports and logs | `log.json`, `run-report.json`, fingerprints, VCF hashes |
 | Offline/HPC use | Requires staged code, containers, references, and caches | Records the resolved runtime/resource contract |
 
-## Workstation Smoke Test
+## Demo Smoke Test
 
-Use `nf-core/demo` as a lightweight external Nextflow smoke test.
+Use `nf-core/demo` as a lightweight external Nextflow smoke test. The
+checked-in `examples/input/demo.yaml` uses `test,singularity` because that is
+the practical profile on HPC systems where Docker is not available.
 
-For an x86_64 workstation with Docker:
+For an HPC or Apptainer/Singularity test:
 
 ```yaml
 mode:             single
@@ -36,7 +45,7 @@ pipeline:         demo
 workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-demo-managed-resources-v1
-nextflow_profile: test,docker
+nextflow_profile: test,singularity
 nextflow_args:    {}
 ```
 
@@ -44,13 +53,27 @@ Run it from the directory containing `demo.yaml`:
 
 ```bash
 ../../bin/cbicall validate-param -p demo.yaml --no-color
-../../bin/cbicall run -p demo.yaml -t 6 --no-color
+../../bin/cbicall run -p demo.yaml -t 4 --no-color
 ```
 
-:::tip[Apple Silicon and Linux ARM64]
-Some nf-core containers are published primarily for AMD64. On Apple Silicon or
-Linux ARM64, Docker may require container emulation. On HPC, prefer the
-Apptainer/Singularity profile.
+:::note[How nf-core profiles combine]
+The `test` profile provides nf-core's built-in test inputs and smoke-test
+settings. It does not select the software runtime by itself. Combine it with a
+runtime profile such as `singularity`, `docker`, or `conda`: for example,
+`test,singularity`. If `nextflow_args.input` is set, that explicit input
+overrides the input supplied by the `test` profile.
+:::
+
+:::tip[Workstation Docker alternative]
+On an x86_64 workstation with Docker, change `nextflow_profile` to
+`test,docker`. On HPC, prefer `test,singularity`; Docker is usually unavailable
+inside cluster jobs.
+:::
+
+:::note[CPU requirement]
+`nf-core/demo` includes steps that request more than one CPU. Use at least
+`-t 4` and request matching scheduler CPUs. The tiny Sarek chr22 smoke test can
+run with `-t 1`, but demo generally cannot.
 :::
 
 ## Sarek Example
@@ -100,6 +123,8 @@ sarek/variant_calling/haplotypecaller/*/*.haplotypecaller.vcf.gz
 
 When this file exists, `run-report.json` records a normalized VCF hash so
 `cbicall compare-runs` can audit repeated Sarek runs.
+
+![Screenshot of a CBIcall HTML run comparison report for repeated nf-core/Sarek runs, showing matching framework, pipeline, resource, and canonical HaplotypeCaller VCF fingerprints.](/img/compare-runs-nfcore-html-report.png)
 
 For germline HaplotypeCaller testing, the Sarek samplesheet must include a
 header and mark the sample as normal:
@@ -172,7 +197,8 @@ Process requirement exceeds available CPUs -- req: 4; avail: 1
 ```
 
 the scheduler job was started with too few CPUs. Request at least four CPUs for
-the nf-core/demo smoke test.
+the nf-core/demo smoke test. The tiny Sarek chr22 smoke test can run with
+`-t 1`, but demo generally needs more than one CPU.
 
 :::info[Nextflow syntax parser]
 If Nextflow 26.04 or newer fails while parsing an older nf-core config, run with:
