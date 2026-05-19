@@ -127,11 +127,16 @@ pipeline:         sarek
 workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-sarek-managed-resources-v1
-nextflow_profile: docker
+nextflow_profile: singularity
+nextflow_singularity_cache_dir: nxf-singularity-cache
 nextflow_args:
-  input: samplesheet.csv
+  input: sarek_samplesheet.csv
   genome: GATK.GRCh38
   tools: haplotypecaller
+  skip_tools: haplotypecaller_filter
+  wes: true
+  intervals: ../../workflows/nf-core/sarek/grch38_chr22_test.bed
+  max_memory: 30.GB
 ```
 
 ### nf-core/demo Smoke Test

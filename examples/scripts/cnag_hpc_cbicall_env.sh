@@ -14,6 +14,7 @@ if command -v module >/dev/null 2>&1; then
 fi
 
 # Set these to a user- or project-owned directory when running nf-core with
-# Apptainer/Singularity to avoid unreadable shared-cache images.
+# Apptainer/Singularity to avoid unreadable shared-cache images. These are
+# shell/HPC concerns; CBIcall inherits them but does not create them.
 # export NXF_SINGULARITY_CACHEDIR=/path/to/singularity/cache
 # export NXF_SINGULARITY_LIBRARYDIR=/path/to/singularity/library

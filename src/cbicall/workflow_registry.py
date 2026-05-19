@@ -131,6 +131,14 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
                     "source": str(implementation["source"]),
                     "release": str(implementation["release"]),
                     "default_outdir": str(implementation.get("default_outdir", pipeline)),
+                    "canonical_outputs": [
+                        {
+                            "name": str(item["name"]),
+                            "type": str(item["type"]),
+                            "pattern": str(item["pattern"]),
+                        }
+                        for item in implementation.get("canonical_outputs", [])
+                    ],
                 },
             )
 

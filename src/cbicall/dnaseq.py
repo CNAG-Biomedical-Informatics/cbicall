@@ -1,5 +1,6 @@
 import os
 import platform
+import re
 import shlex
 import subprocess
 from pathlib import Path
@@ -28,6 +29,13 @@ def _cmd_to_string(
 
 def _groovy_single_quote(value: str) -> str:
     return "'" + str(value).replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
+def _groovy_memory_value(value: object) -> str:
+    text = str(value).strip()
+    if re.fullmatch(r"\d+(?:\.\d+)?\.(?:B|KB|MB|GB|TB|KiB|MiB|GiB|TiB)", text):
+        return text
+    return _groovy_single_quote(text)
 
 
 def _run_cmd(
@@ -248,17 +256,6 @@ class NextflowRunner(BaseRunner):
     def _is_nfcore_workflow(self) -> bool:
         return self.workflow.metadata.get("source_type") == "nf-core"
 
-    def env_overrides(self) -> Optional[Dict[str, str]]:
-        if not self.settings.nextflow_singularity_cache_dir:
-            return None
-        cache_dir = str(self.settings.nextflow_singularity_cache_dir)
-        return {
-            "NXF_SINGULARITY_CACHEDIR": cache_dir,
-            "NXF_SINGULARITY_LIBRARYDIR": cache_dir,
-            "NXF_APPTAINER_CACHEDIR": cache_dir,
-            "NXF_APPTAINER_LIBRARYDIR": cache_dir,
-        }
-
     def _build_external_nextflow_command(self) -> List[str]:
         source = self.workflow.metadata.get("source") or self.workflow.entrypoint
         release = self.workflow.metadata.get("release")
@@ -276,9 +273,12 @@ class NextflowRunner(BaseRunner):
         params["outdir"] = str((self.workdir / outdir_name).resolve())
         params["max_cpus"] = max_cpus
         params_file.write_text(yaml.safe_dump(params, sort_keys=True), encoding="utf-8")
+        resource_limits = [f"cpus: {max_cpus}"]
+        if params.get("max_memory"):
+            resource_limits.append(f"memory: {_groovy_memory_value(params['max_memory'])}")
         config_lines = [
             "process {",
-            f"  resourceLimits = [ cpus: {max_cpus} ]",
+            f"  resourceLimits = [ {', '.join(resource_limits)} ]",
             "}",
         ]
         if self.settings.nextflow_singularity_cache_dir:

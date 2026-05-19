@@ -54,11 +54,21 @@ layout native:
 generated params/config-file hashes, and native Sarek output directory.
 The generated params file also records `max_cpus` from the CBIcall `-t/--threads`
 value. nf-core parameters such as `max_memory` can be passed through
-`nextflow_args`. The generated Nextflow config applies the CPU value through
-`process.resourceLimits`.
+`nextflow_args`. The generated Nextflow config applies the CPU value, and
+`max_memory` when present, through `process.resourceLimits`.
+When `nextflow_singularity_cache_dir` is set, CBIcall writes a user/project-owned
+Singularity and Apptainer cache/library path to the generated Nextflow config.
+Environment variables such as `NXF_SINGULARITY_CACHEDIR` belong in the shell or
+SLURM bootstrap, not in CBIcall's Python runner.
 On ARM64 hosts using the Docker profile, the generated config also pins Docker
 to `linux/amd64` because many nf-core containers are published primarily for
 AMD64.
+
+For registered external workflows, the workflow registry can declare canonical
+outputs. The Sarek entry declares the HaplotypeCaller VCF pattern under
+`sarek/variant_calling/haplotypecaller/`. When a matching VCF exists, CBIcall
+records it under `outputs.canonical_outputs` and adds a normalized VCF hash to
+`outputs.vcf_hash_reports` for `compare-runs`.
 
 ## WES/WGS Single-Sample
 

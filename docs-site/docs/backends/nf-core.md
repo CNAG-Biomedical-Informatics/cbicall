@@ -65,16 +65,41 @@ workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-sarek-managed-resources-v1
 nextflow_profile: singularity
-nextflow_singularity_cache_dir: /path/to/project/nxf-singularity-cache
+nextflow_singularity_cache_dir: nxf-singularity-cache
 nextflow_args:
   input: sarek_samplesheet.csv
   genome: GATK.GRCh38
   tools: haplotypecaller
+  skip_tools: haplotypecaller_filter
+  wes: true
+  intervals: ../../workflows/nf-core/sarek/grch38_chr22_test.bed
   max_memory: 30.GB
 ```
 
-Use `max_memory` to cap nf-core/Sarek process memory requests. CBIcall passes it
-through as an nf-core parameter; it is not a CBIcall-specific resource field.
+Use `max_memory` to cap nf-core/Sarek process memory requests. CBIcall writes it
+to the generated nf-core params file and mirrors it in Nextflow
+`process.resourceLimits`, so the scheduler sees the same memory ceiling.
+The example interval file is a tiny GRCh38 chr22 BED stored with the registered
+Sarek workflow support files.
+The example also skips Sarek's HaplotypeCaller filtering step because tiny
+single-chromosome smoke tests may not contain enough overlapping resource
+variants for GATK `FilterVariantTranches`.
+
+`nextflow_singularity_cache_dir` is important on HPC systems where a module or
+site config points Nextflow to a shared image library that may contain unreadable
+images. CBIcall writes this path into the generated Nextflow config. If the HPC
+module also exports `NXF_*` variables, they should be set in the shell bootstrap
+before CBIcall starts; CBIcall inherits and forwards the shell environment
+unchanged.
+
+The Sarek registry entry also declares its canonical HaplotypeCaller VCF output:
+
+```text
+sarek/variant_calling/haplotypecaller/*/*.haplotypecaller.vcf.gz
+```
+
+When this file exists, `run-report.json` records a normalized VCF hash so
+`cbicall compare-runs` can audit repeated Sarek runs.
 
 For germline HaplotypeCaller testing, the Sarek samplesheet must include a
 header and mark the sample as normal:
@@ -198,16 +223,15 @@ export NXF_SINGULARITY_LIBRARYDIR=/path/to/project/nxf-singularity-cache
 Then rerun the same CBIcall command. This lets Nextflow pull readable container
 images for the current user.
 
-You can also pin this cache in the CBIcall YAML so it is written into the
-generated Nextflow config as both the cache and library lookup directory:
+You can also pin this cache in the CBIcall YAML so the run records the same
+cache/library path in `cbicall_external_nextflow.config`:
 
 ```yaml
 nextflow_singularity_cache_dir: /path/to/project/nxf-singularity-cache
 ```
 
-CBIcall writes this as Singularity and Apptainer cache/library settings in
-`cbicall_external_nextflow.config`, which is useful when a site-level Nextflow
-configuration otherwise points to a shared cache with unreadable images.
+CBIcall does not create `NXF_*` environment variables itself. Define those in
+the shell or SLURM bootstrap when the HPC module recommends them.
 
 ## Logs
 

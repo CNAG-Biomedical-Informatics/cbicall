@@ -49,7 +49,7 @@ bin/cbicall compare-runs baseline_run/ repeat_1/ repeat_2/ repeat_3/ \
 | Pipeline | Workflow key, pipeline implementation version, entrypoint, and workflow fingerprint. |
 | Workflow files | Entrypoint and helper/config file paths plus their SHA-256 values. |
 | Resources | Resource key and resource fingerprint from the selected resource catalog entry. |
-| Outputs | Run-directory file inventory fingerprint and normalized VCF fingerprints when `03_stats/*.vcf.sha256.txt` is present. |
+| Outputs | Run-directory file inventory fingerprint and normalized VCF fingerprints from native `03_stats/*.vcf.sha256.txt` files or registry-declared canonical external VCFs. |
 
 :::note[Runtime fingerprints]
 Workflow and resource fingerprints are **computed at runtime** from the files and
@@ -68,6 +68,11 @@ implementation used for the first run.
 The output fingerprint is different. It is computed from **normalized VCF records**,
 not from the raw VCF file bytes. This avoids reporting false differences caused
 only by VCF header timestamps, command lines, or compression metadata.
+
+For external nf-core workflows, CBIcall uses canonical output patterns declared
+in the workflow registry. For example, the Sarek registry entry points to the
+HaplotypeCaller VCF under `sarek/variant_calling/haplotypecaller/`, so repeated
+Sarek runs can be audited without hard-coding Sarek paths in `compare-runs`.
 
 The file inventory fingerprint is also path-based, not content-based. It hashes
 the sorted list of relative file paths in the run directory, excluding

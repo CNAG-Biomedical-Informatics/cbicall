@@ -137,11 +137,15 @@ pipeline:         sarek
 workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-sarek-managed-resources-v1
-nextflow_profile: docker
+nextflow_profile: singularity
+nextflow_singularity_cache_dir: nxf-singularity-cache
 nextflow_args:
-  input: samplesheet.csv
+  input: sarek_samplesheet.csv
   genome: GATK.GRCh38
   tools: haplotypecaller
+  skip_tools: haplotypecaller_filter
+  wes: true
+  intervals: ../../workflows/nf-core/sarek/grch38_chr22_test.bed
   max_memory: 30.GB
 ```
 
@@ -153,8 +157,16 @@ For nf-core/Sarek, the CLI thread value is written to the generated params file
 as `max_cpus`. For example, `bin/cbicall run -p sarek.yaml -t 6` passes
 `max_cpus: 6` to Sarek and writes a small Nextflow config with
 `process.resourceLimits` so individual processes do not request more than six
-CPUs. Memory caps stay in `nextflow_args`, for example `max_memory: 30.GB`,
-because that is an nf-core/Sarek parameter.
+CPUs. Memory caps stay in `nextflow_args`, for example `max_memory: 30.GB`;
+CBIcall writes the same value to Nextflow `process.resourceLimits.memory`.
+On HPC, set `nextflow_singularity_cache_dir` to a user- or project-owned
+directory so the generated Nextflow config points away from unreadable
+site-level container libraries. If the HPC module exports `NXF_*` variables,
+keep those exports in the shell or SLURM bootstrap before invoking CBIcall.
+For the tiny chr22 smoke test, `skip_tools: haplotypecaller_filter` avoids a
+GATK `FilterVariantTranches` failure caused by too few overlapping resource
+variants. Remove it for production Sarek runs if you want Sarek's default
+HaplotypeCaller filtering.
 
 ## Bundle Provenance
 

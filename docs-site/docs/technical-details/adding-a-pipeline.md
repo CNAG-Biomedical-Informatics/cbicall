@@ -177,6 +177,10 @@ workflows:
                   source: "nf-core/sarek"
                   release: "3.8.1"
                   default_outdir: "sarek"
+                  canonical_outputs:
+                    - name: "haplotypecaller_vcf"
+                      type: "vcf"
+                      pattern: "variant_calling/haplotypecaller/*/*.haplotypecaller.vcf.gz"
 ```
 
 CBIcall validates the selected YAML, pins the registered release, writes a
@@ -184,9 +188,15 @@ params file in the run directory, and runs `nextflow run <source>`. The
 workflow keeps its native output layout; CBIcall does not force it into
 `01_*`, `02_*`, or `03_*` directories.
 
+Use `canonical_outputs` for external workflows that produce final deliverables
+in backend-native directories. CBIcall resolves these patterns under the native
+output directory, records matches in `run-report.json`, and computes normalized
+VCF hashes for `compare-runs`.
+
 When adding another nf-core workflow, add a registry entry with `source_type`,
-`source`, `release`, and `default_outdir`, then add a compatible resource
-catalog entry if users should be able to select it through the `resource` key.
+`source`, `release`, `default_outdir`, and any canonical final outputs, then add
+a compatible resource catalog entry if users should be able to select it through
+the `resource` key.
 For nf-core workflows where references and containers are managed by the
 Nextflow profile, use a lightweight `type: nextflow-managed` resource entry.
 See [Adding Resources](adding-resources) for the resource catalog contract.

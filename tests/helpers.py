@@ -112,6 +112,21 @@ def write_workflow_schema(path: Path) -> None:
                     "source": {"type": "string", "minLength": 1},
                     "release": {"type": "string", "minLength": 1},
                     "default_outdir": {"type": "string", "minLength": 1},
+                    "canonical_outputs": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {"$ref": "#/$defs/canonicalOutput"},
+                    },
+                },
+            },
+            "canonicalOutput": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["name", "type", "pattern"],
+                "properties": {
+                    "name": {"type": "string", "minLength": 1},
+                    "type": {"enum": ["vcf"]},
+                    "pattern": {"type": "string", "minLength": 1},
                 },
             },
         },

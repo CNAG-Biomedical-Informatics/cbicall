@@ -1276,6 +1276,10 @@ def test_set_config_values_sarek_resolves_external_nfcore_workflow(monkeypatch, 
           "                  source: \"nf-core/sarek\"\n"
           "                  release: \"3.8.1\"\n"
           "                  default_outdir: \"sarek\"\n"
+          "                  canonical_outputs:\n"
+          "                    - name: \"haplotypecaller_vcf\"\n"
+          "                      type: \"vcf\"\n"
+          "                      pattern: \"variant_calling/haplotypecaller/*/*.haplotypecaller.vcf.gz\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
 
@@ -1317,6 +1321,7 @@ def test_set_config_values_sarek_resolves_external_nfcore_workflow(monkeypatch, 
     assert cfg["workflow"]["entrypoint"] == "nf-core/sarek"
     assert cfg["workflow"]["metadata"]["source_type"] == "nf-core"
     assert cfg["workflow"]["metadata"]["release"] == "3.8.1"
+    assert cfg["workflow"]["metadata"]["canonical_outputs"][0]["name"] == "haplotypecaller_vcf"
     assert cfg["nextflow_profile"] == "docker"
     assert cfg["nextflow_singularity_cache_dir"] == str(tmp_path / "nxf-cache")
     assert cfg["nextflow_args"]["tools"] == "haplotypecaller"

@@ -392,6 +392,7 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
             "input": str(sample_map),
             "genome": "GATK.GRCh38",
             "tools": "haplotypecaller",
+            "max_memory": "30.GB",
         },
         "inputs": {"input_dir": None, "sample_map": None},
         "workflow_rule": None,
@@ -430,17 +431,18 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
     assert f"outdir: {project_dir / 'sarek'}" in params_text
     assert "genome: GATK.GRCh38" in params_text
     assert "max_cpus: 2" in params_text
+    assert "max_memory: 30.GB" in params_text
     assert "tools: haplotypecaller" in params_text
     config_text = config_file.read_text(encoding="utf-8")
-    assert "resourceLimits = [ cpus: 2 ]" in config_text
+    assert "resourceLimits = [ cpus: 2, memory: 30.GB ]" in config_text
     assert "singularity {" in config_text
     assert "apptainer {" in config_text
     assert f"cacheDir = '{tmp_path / 'nxf-cache'}'" in config_text
     assert f"libraryDir = '{tmp_path / 'nxf-cache'}'" in config_text
-    assert recorded["env"]["NXF_SINGULARITY_CACHEDIR"] == str(tmp_path / "nxf-cache")
-    assert recorded["env"]["NXF_SINGULARITY_LIBRARYDIR"] == str(tmp_path / "nxf-cache")
-    assert recorded["env"]["NXF_APPTAINER_CACHEDIR"] == str(tmp_path / "nxf-cache")
-    assert recorded["env"]["NXF_APPTAINER_LIBRARYDIR"] == str(tmp_path / "nxf-cache")
+    assert "NXF_SINGULARITY_CACHEDIR" not in recorded["env"]
+    assert "NXF_SINGULARITY_LIBRARYDIR" not in recorded["env"]
+    assert "NXF_APPTAINER_CACHEDIR" not in recorded["env"]
+    assert "NXF_APPTAINER_LIBRARYDIR" not in recorded["env"]
     assert recorded["cwd"] == project_dir
     assert recorded["engine"] == "nextflow"
 

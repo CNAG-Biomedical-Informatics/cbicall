@@ -153,3 +153,7 @@ workflows:
                   source: "nf-core/sarek"
                   release: "3.8.1"
                   default_outdir: "sarek"
+                  canonical_outputs:
+                    - name: "haplotypecaller_vcf"
+                      type: "vcf"
+                      pattern: "variant_calling/haplotypecaller/*/*.haplotypecaller.vcf.gz"

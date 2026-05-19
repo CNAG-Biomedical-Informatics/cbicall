@@ -110,7 +110,22 @@
         "source_type": { "enum": ["nf-core"] },
         "source": { "$ref": "#/$defs/pathString" },
         "release": { "$ref": "#/$defs/pathString" },
-        "default_outdir": { "$ref": "#/$defs/pathString" }
+        "default_outdir": { "$ref": "#/$defs/pathString" },
+        "canonical_outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/canonicalOutput" }
+        }
+      }
+    },
+    "canonicalOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "pattern"],
+      "properties": {
+        "name": { "$ref": "#/$defs/pathString" },
+        "type": { "enum": ["vcf"] },
+        "pattern": { "$ref": "#/$defs/pathString" }
       }
     }
   }

@@ -1,6 +1,7 @@
 import json
 import os
 import argparse
+import gzip
 import hashlib
 import html
 import io
@@ -342,6 +343,62 @@ def _collect_output_fingerprints(project_dir: Path) -> dict:
     }
 
 
+def _normalized_vcf_hash(path: Path) -> dict:
+    digest = hashlib.sha256()
+    opener = gzip.open if path.suffix == ".gz" else open
+    records = 0
+    with opener(path, "rb") as handle:
+        for line in handle:
+            if line.startswith(b"#"):
+                continue
+            line = line.rstrip(b"\r\n")
+            if not line:
+                continue
+            digest.update(line)
+            digest.update(b"\n")
+            records += 1
+    return {
+        "algorithm": "sha256",
+        "raw_sha256": _sha256_file(path),
+        "normalized_pattern": "^#",
+        "normalized_sort": "none",
+        "normalized_records": records,
+        "normalized_sha256": digest.hexdigest(),
+    }
+
+
+def _canonical_output_reports(workflow, native_output_dir: Path) -> tuple:
+    reports = []
+    vcf_reports = []
+    for item in workflow.metadata.get("canonical_outputs", []):
+        name = str(item.get("name"))
+        output_type = str(item.get("type"))
+        pattern = str(item.get("pattern"))
+        matches = sorted(native_output_dir.glob(pattern))
+        report = {
+            "name": name,
+            "type": output_type,
+            "pattern": pattern,
+            "root": str(native_output_dir),
+            "matches": [str(path) for path in matches],
+            "status": "present" if matches else "missing",
+        }
+        reports.append(report)
+        if output_type == "vcf":
+            for path in matches:
+                vcf_reports.append(
+                    {
+                        "path": str(path),
+                        "file": path.name,
+                        "source": "registry_canonical_output",
+                        "name": name,
+                        "pattern": pattern,
+                        **_normalized_vcf_hash(path),
+                    }
+                )
+    return reports, vcf_reports
+
+
 def _external_nextflow_outputs(resolved_config: ResolvedConfig, project_dir: Path) -> dict:
     workflow = resolved_config.workflow
     if workflow.metadata.get("source_type") != "nf-core":
@@ -355,6 +412,11 @@ def _external_nextflow_outputs(resolved_config: ResolvedConfig, project_dir: Pat
         "params_file": str(params_file),
         "config_file": str(config_file),
     }
+    canonical_outputs, vcf_hash_reports = _canonical_output_reports(workflow, output_dir)
+    if canonical_outputs:
+        payload["canonical_outputs"] = canonical_outputs
+    if vcf_hash_reports:
+        payload["vcf_hash_reports"] = vcf_hash_reports
     if params_file.is_file():
         payload["params_sha256"] = _sha256_file(params_file)
     if config_file.is_file():
@@ -375,6 +437,11 @@ def write_run_report(
     project_dir.mkdir(parents=True, exist_ok=True)
     report_path = project_dir / "run-report.json"
     workflow = resolved_config.workflow
+    output_fingerprints = _collect_output_fingerprints(project_dir)
+    external_outputs = _external_nextflow_outputs(resolved_config, project_dir)
+    if external_outputs.get("vcf_hash_reports"):
+        output_fingerprints["vcf_hash_reports"].extend(external_outputs.pop("vcf_hash_reports"))
+    output_fingerprints.update(external_outputs)
     payload = {
         "status": "success",
         "elapsed_seconds": round(elapsed_seconds, 3),
@@ -388,10 +455,7 @@ def write_run_report(
         "profile": resolved_config.profile,
         "workflow": _workflow_report(workflow),
         "resources": resolved_config.resources,
-        "outputs": {
-            **_collect_output_fingerprints(project_dir),
-            **_external_nextflow_outputs(resolved_config, project_dir),
-        },
+        "outputs": output_fingerprints,
         "run": {
             "run_id": resolved_config.run_id,
             "project_dir": resolved_config.project_dir,

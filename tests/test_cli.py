@@ -1,4 +1,5 @@
 import io
+import gzip
 import json
 import sys
 import time
@@ -136,6 +137,80 @@ def test_runtime_report_marks_missing_backend(monkeypatch):
     assert report["engine"]["name"] == "snakemake"
     assert report["engine"]["status"] == "not_found"
     assert report["engine"]["version"] is None
+
+
+def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
+    monkeypatch.setattr(cli_mod.shutil, "which", lambda command: f"/usr/bin/{command}")
+    monkeypatch.setattr(
+        cli_mod.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=0, stdout="Nextflow version 25.10.2\n", stderr=""),
+    )
+    vcf_dir = tmp_path / "sarek" / "variant_calling" / "haplotypecaller" / "CNAG99901P_ex"
+    vcf_dir.mkdir(parents=True)
+    vcf_path = vcf_dir / "CNAG99901P_ex.haplotypecaller.vcf.gz"
+    with gzip.open(vcf_path, "wt", encoding="utf-8") as handle:
+        handle.write("##fileformat=VCFv4.2\n")
+        handle.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
+        handle.write("chr22\t100\t.\tA\tG\t60\tPASS\t.\n")
+
+    resolved = cli_mod.ResolvedConfig.from_mapping(
+        {
+            "project_dir": str(tmp_path),
+            "run_id": "RIDNFCORE",
+            "workflow_engine": "nextflow",
+            "profile": "local",
+            "genome": "external",
+            "nextflow_profile": "singularity",
+            "inputs": {"input_dir": None, "sample_map": None},
+            "workflow": {
+                "engine": "nextflow",
+                "pipeline": "sarek",
+                "mode": "cohort",
+                "gatk_version": "nf-core",
+                "pipeline_version": "v1",
+                "entrypoint": "nf-core/sarek",
+                "config_file": None,
+                "helpers": {},
+                "metadata": {
+                    "source_type": "nf-core",
+                    "source": "nf-core/sarek",
+                    "release": "3.8.1",
+                    "default_outdir": "sarek",
+                    "canonical_outputs": [
+                        {
+                            "name": "haplotypecaller_vcf",
+                            "type": "vcf",
+                            "pattern": "variant_calling/haplotypecaller/*/*.haplotypecaller.vcf.gz",
+                        }
+                    ],
+                },
+            },
+            "resources": {
+                "bundle": {"key": "nf-core-sarek-managed-resources-v1", "version": "sarek-3.8.1"}
+            },
+            "version": "1.2.3",
+        }
+    )
+
+    report = cli_mod.write_run_report(
+        resolved,
+        {"threads": 2, "paramfile": "sarek.yaml"},
+        {"cleanup_bam": False},
+        elapsed_seconds=1.0,
+        workflow_log=tmp_path / "nextflow.log",
+    )
+    data = json.loads(report.read_text(encoding="utf-8"))
+
+    canonical = data["outputs"]["canonical_outputs"][0]
+    assert canonical["name"] == "haplotypecaller_vcf"
+    assert canonical["status"] == "present"
+    assert canonical["matches"] == [str(vcf_path)]
+    vcf_report = data["outputs"]["vcf_hash_reports"][0]
+    assert vcf_report["source"] == "registry_canonical_output"
+    assert vcf_report["name"] == "haplotypecaller_vcf"
+    assert vcf_report["normalized_records"] == 1
+    assert len(vcf_report["normalized_sha256"]) == 64
 
 
 def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
