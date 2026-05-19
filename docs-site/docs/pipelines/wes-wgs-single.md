@@ -94,8 +94,20 @@ to:
 
 ### 9. Generate Final QC VCF
 
-- Run `VariantFiltration` with recommended hard filters on annotations.
+- Run `VariantFiltration` with the GATK 4.6 hard filters below.
 - Output: `<id>.hc.QC.vcf.gz` (final QC VCF).
+
+| Filter name | Expression |
+| --- | --- |
+| `LowQUAL` | `QUAL < 30.0` |
+| `QD2` | `QD < 2.0` |
+| `FS60` | `FS > 60.0` |
+| `MQ40` | `MQ < 40.0` |
+| `MQRS-12.5` | `MQRankSum < -12.5` |
+| `RPRS-8` | `ReadPosRankSum < -8.0` |
+| `QD2_indel` | `QD < 2.0` |
+| `FS200` | `FS > 200.0` |
+| `RPRS-20` | `ReadPosRankSum < -20.0` |
 
 ### 10. Coverage & Sex Determination
 

@@ -55,8 +55,8 @@ For CBIcall mtDNA reports, **`GT=1` means an ALT allele was detected in that sam
 
 Biological interpretation should use:
 
-- **`HF`**: heteroplasmy fraction, or molecules supporting ALT
-- **`DP`**: read depth, or total support
+- **`HF`**: fraction of reads supporting the ALT allele
+- **`DP`**: total read depth at the variant position
 
 :::tip
 

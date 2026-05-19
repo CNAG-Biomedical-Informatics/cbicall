@@ -4,13 +4,15 @@ import argparse
 import hashlib
 import html
 import io
+import re
+import shutil
 import subprocess
 import sys
 import threading
 import time
 from contextlib import redirect_stdout
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from . import config as config_mod
 from .cli_output import (
@@ -212,6 +214,71 @@ def _workflow_report(workflow) -> dict:
     return report
 
 
+def _parse_version_text(text: str) -> Optional[str]:
+    match = re.search(r"\b\d+(?:\.\d+)+(?:[-+._A-Za-z0-9]*)?\b", text)
+    return match.group(0) if match else None
+
+
+def _command_version(command: str, args: List[str]) -> dict:
+    path = shutil.which(command)
+    report = {
+        "name": command,
+        "path": path,
+        "command": " ".join([command, *args]),
+        "status": "not_found" if path is None else "unknown",
+        "version": None,
+    }
+    if path is None:
+        return report
+
+    try:
+        completed = subprocess.run(
+            [path, *args],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except Exception as exc:
+        report["status"] = "error"
+        report["error"] = str(exc)
+        return report
+
+    output = "\n".join(part for part in [completed.stdout, completed.stderr] if part).strip()
+    first_line = next((line.strip() for line in output.splitlines() if line.strip()), "")
+    report["status"] = "ok" if completed.returncode == 0 else "nonzero_exit"
+    report["returncode"] = completed.returncode
+    report["version"] = _parse_version_text(output)
+    if first_line:
+        report["detail"] = first_line[:200]
+    return report
+
+
+def _runtime_report(engine: str) -> dict:
+    commands = {
+        "bash": ("bash", ["--version"]),
+        "snakemake": ("snakemake", ["--version"]),
+        "nextflow": ("nextflow", ["-version"]),
+    }
+    payload = {
+        "python": {
+            "executable": sys.executable,
+            "version": sys.version.split()[0],
+        }
+    }
+    if engine in commands:
+        command, args = commands[engine]
+        payload["engine"] = _command_version(command, args)
+    else:
+        payload["engine"] = {
+            "name": engine,
+            "path": None,
+            "status": "unsupported",
+            "version": None,
+        }
+    return payload
+
+
 def _parse_key_value_file(path: Path) -> dict:
     data = {}
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -317,6 +384,7 @@ def write_run_report(
             "name": "CBIcall",
             "version": resolved_config.version or VERSION,
         },
+        "runtime": _runtime_report(workflow.engine),
         "profile": resolved_config.profile,
         "workflow": _workflow_report(workflow),
         "resources": resolved_config.resources,
@@ -347,12 +415,22 @@ def write_run_report(
     return report_path
 
 
+def _apply_cli_runtime_overrides(params: dict, arg: dict) -> dict:
+    params = dict(params)
+    if arg.get("profile") is not None:
+        params["profile"] = arg["profile"]
+    else:
+        params["profile"] = "local"
+    return params
+
+
 def _run_validate_param_command(argv: List[str]) -> int:
     parser = argparse.ArgumentParser(
         prog="cbicall validate-param",
         description="Validate a CBIcall parameters YAML without starting the workflow.",
     )
     parser.add_argument("-p", "--param", dest="paramfile", required=True, help="Parameters YAML file.")
+    parser.add_argument("--profile", default="local", help="CBIcall runtime profile for native workflows.")
     parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
     args = parser.parse_args(argv)
 
@@ -361,6 +439,7 @@ def _run_validate_param_command(argv: List[str]) -> int:
     _refresh_colors()
 
     params = config_mod.read_param_file(args.paramfile)
+    params = _apply_cli_runtime_overrides(params, vars(args))
     resolved_config = ResolvedConfig.from_mapping({**config_mod.set_config_values(params), "version": VERSION})
 
     _section("Configuration OK", GREEN)
@@ -626,6 +705,8 @@ def _print_multi_run_comparison(reports: List[dict]) -> None:
     print()
     _section("Framework", BLUE)
     _multi_status("CBIcall ver", baseline, reports, lambda report: _nested(report, "framework", "version"))
+    _multi_status("Python ver", baseline, reports, lambda report: _nested(report, "runtime", "python", "version"))
+    _multi_status("Engine ver", baseline, reports, lambda report: _nested(report, "runtime", "engine", "version"))
 
     print()
     _section("Pipeline", BLUE)
@@ -677,6 +758,8 @@ def _print_run_comparison(left: dict, right: dict) -> None:
     print()
     _section("Framework", BLUE)
     _compare_row("CBIcall ver", _nested(left, "framework", "version"), _nested(right, "framework", "version"))
+    _compare_row("Python ver", _nested(left, "runtime", "python", "version"), _nested(right, "runtime", "python", "version"))
+    _compare_row("Engine ver", _nested(left, "runtime", "engine", "version"), _nested(right, "runtime", "engine", "version"))
 
     print()
     _section("Pipeline", BLUE)
@@ -1106,6 +1189,7 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
 
     # Read parameters and build config (Config::read_param_file + set_config_values)
     params = config_mod.read_param_file(arg["paramfile"])
+    params = _apply_cli_runtime_overrides(params, arg)
     resolved_config = ResolvedConfig.from_mapping({**config_mod.set_config_values(params), "version": VERSION})
 
     if params.get("genome") is None and resolved_config.genome is not None:

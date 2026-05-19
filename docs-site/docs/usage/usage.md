@@ -142,13 +142,15 @@ pipeline:         demo
 workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-demo-managed-resources-v1
-nextflow_profile: test,conda
+nextflow_profile: test,docker
 nextflow_args:    {}
 ```
 
-This example uses nf-core's built-in test profile. The `conda` profile avoids
-Linux AMD64 container image issues on macOS/Apple Silicon when Conda or Mamba is
-available.
+This example uses nf-core's built-in test profile with Docker. On HPC, use the
+Apptainer/Singularity profile described in the nf-core backend page.
+
+For workstation and cluster runs with nf-core workflows, see
+[nf-core Workflows](../backends/nf-core).
 
 ## Partial Runs
 

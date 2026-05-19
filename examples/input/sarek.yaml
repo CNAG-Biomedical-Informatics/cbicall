@@ -1,0 +1,14 @@
+  mode:             cohort
+  pipeline:         sarek
+  workflow_engine:  nextflow
+  workflow_version: nf-core
+  resource:         nf-core-sarek-managed-resources-v1
+
+  nextflow_profile: singularity
+  nextflow_args:
+    input: sarek_samplesheet.csv
+    genome: GATK.GRCh38
+    tools: haplotypecaller
+    wes: true
+    intervals: grch38_chr22_test.bed
+    max_memory: 30.GB

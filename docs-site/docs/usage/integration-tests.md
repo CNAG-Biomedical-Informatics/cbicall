@@ -54,6 +54,11 @@ bin/cbicall test --all -t 1
 :::note[Workflow engine dependencies]
 Snakemake and Nextflow are not part of the CBIcall resource bundle. Install them
 in the runtime environment before running their backend-specific tests.
+On CNAG HPC, load Nextflow first:
+
+```bash
+module load Nextflow/25.10.2
+```
 :::
 
 ## Outputs

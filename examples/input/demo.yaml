@@ -1,0 +1,8 @@
+mode:             single
+pipeline:         demo
+workflow_engine:  nextflow
+workflow_version: nf-core
+resource:         nf-core-demo-managed-resources-v1
+
+nextflow_profile: test,docker
+nextflow_args:    {}

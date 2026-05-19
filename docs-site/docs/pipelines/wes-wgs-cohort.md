@@ -90,9 +90,20 @@ The best available VCF (VQSR-filtered or raw) is used as input to the next step.
 
 ### 7. Hard Filtering and QC VCF
 
-- Run `VariantFiltration` with a set of hard filters on:
-  - QUAL, QD, FS, MQ, MQRankSum, ReadPosRankSum.
+- Run `VariantFiltration` with the GATK 4.6 hard filters below.
 - Output: `cohort.gv.QC.vcf.gz`.
+
+| Filter name | Expression |
+| --- | --- |
+| `LowQUAL` | `QUAL < 30.0` |
+| `QD2` | `QD < 2.0` |
+| `FS60` | `FS > 60.0` |
+| `MQ40` | `MQ < 40.0` |
+| `MQRS-12.5` | `MQRankSum < -12.5` |
+| `RPRS-8` | `ReadPosRankSum < -8.0` |
+| `QD2_indel` | `QD < 2.0` |
+| `FS200` | `FS > 200.0` |
+| `RPRS-20` | `ReadPosRankSum < -20.0` |
 
 This QC VCF is the primary cohort workflow output for downstream tools and
 project-level review.

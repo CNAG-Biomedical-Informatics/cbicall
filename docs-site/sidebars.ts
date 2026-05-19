@@ -61,6 +61,48 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Workflow Backends',
+      items: [
+        {
+          type: 'doc',
+          id: 'backends/native',
+          label: 'Native',
+        },
+        {
+          type: 'doc',
+          id: 'backends/nf-core',
+          label: 'nf-core',
+        },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Included Pipelines',
+      items: [
+        {
+          type: 'doc',
+          id: 'pipelines/overview',
+          label: 'Overview',
+        },
+        {
+          type: 'doc',
+          id: 'pipelines/wes-wgs-single',
+          label: 'WES/WGS Single-Sample',
+        },
+        {
+          type: 'doc',
+          id: 'pipelines/wes-wgs-cohort',
+          label: 'WES/WGS Cohort',
+        },
+        {
+          type: 'doc',
+          id: 'pipelines/mtdna',
+          label: 'mtDNA',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Reproducibility',
       items: [
         {
@@ -77,27 +119,6 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
           id: 'usage/run-comparison',
           label: 'Run Comparison',
-        },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Pipelines',
-      items: [
-        {
-          type: 'doc',
-          id: 'pipelines/wes-wgs-single',
-          label: 'WES/WGS Single-Sample',
-        },
-        {
-          type: 'doc',
-          id: 'pipelines/wes-wgs-cohort',
-          label: 'WES/WGS Cohort',
-        },
-        {
-          type: 'doc',
-          id: 'pipelines/mtdna',
-          label: 'mtDNA',
         },
       ],
     },

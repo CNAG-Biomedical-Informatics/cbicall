@@ -270,7 +270,7 @@ def test_read_param_file_rejects_removed_resource_bundle_key(tmp_path):
         config_mod.read_param_file(str(p))
 
 
-def test_read_param_file_accepts_profile(tmp_path):
+def test_read_param_file_rejects_profile_runtime_option(tmp_path):
     p = tmp_path / "params.yaml"
     p.write_text(
         "mode: single\n"
@@ -280,21 +280,7 @@ def test_read_param_file_accepts_profile(tmp_path):
         "profile: cnag-hpc\n",
         encoding="utf-8",
     )
-    cfg = config_mod.read_param_file(str(p))
-    assert cfg["profile"] == "cnag-hpc"
-
-
-def test_read_param_file_rejects_empty_profile(tmp_path):
-    p = tmp_path / "params.yaml"
-    p.write_text(
-        "mode: single\n"
-        "pipeline: wes\n"
-        "workflow_engine: bash\n"
-        "gatk_version: gatk-4.6\n"
-        "profile: ''\n",
-        encoding="utf-8",
-    )
-    with pytest.raises(ParameterValidationError, match="profile must be a non-empty value"):
+    with pytest.raises(ParameterValidationError, match="use --profile"):
         config_mod.read_param_file(str(p))
 
 

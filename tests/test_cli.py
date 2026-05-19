@@ -2,6 +2,7 @@ import io
 import json
 import sys
 import time
+from types import SimpleNamespace
 
 import pytest
 
@@ -24,7 +25,13 @@ def test_write_log_creates_json(tmp_path):
     assert data["param"]["pipeline"] == "wes"
 
 
-def test_write_run_report_creates_compact_summary(tmp_path):
+def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
+    monkeypatch.setattr(cli_mod.shutil, "which", lambda command: f"/usr/bin/{command}")
+    monkeypatch.setattr(
+        cli_mod.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=0, stdout="GNU bash, version 5.2.21\n", stderr=""),
+    )
     entrypoint = tmp_path / "wes_single.sh"
     entrypoint.write_text("#!/bin/sh\necho ok\n", encoding="utf-8")
     env_file = tmp_path / "env.sh"
@@ -78,6 +85,8 @@ def test_write_run_report_creates_compact_summary(tmp_path):
     assert data["status"] == "success"
     assert data["profile"] == "cnag-hpc"
     assert data["framework"]["version"] == "1.2.3"
+    assert data["runtime"]["python"]["version"] == sys.version.split()[0]
+    assert data["runtime"]["engine"]["name"] == "bash"
     assert data["elapsed_seconds"] == 12.346
     assert data["resources"]["bundle"]["version"] == "v1"
     assert data["resources"]["bundle"]["fingerprint"] == "abc"
@@ -97,6 +106,38 @@ def test_write_run_report_creates_compact_summary(tmp_path):
     assert data["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] == "normalized"
 
 
+def test_runtime_report_records_python_and_backend_version(monkeypatch):
+    monkeypatch.setattr(cli_mod.shutil, "which", lambda command: f"/usr/bin/{command}")
+
+    def fake_run(command, capture_output, text, timeout, check):
+        assert command == ["/usr/bin/nextflow", "-version"]
+        assert capture_output is True
+        assert text is True
+        assert timeout == 10
+        assert check is False
+        return SimpleNamespace(returncode=0, stdout="Nextflow version 25.10.2\n", stderr="")
+
+    monkeypatch.setattr(cli_mod.subprocess, "run", fake_run)
+
+    report = cli_mod._runtime_report("nextflow")
+
+    assert report["python"]["version"] == sys.version.split()[0]
+    assert report["engine"]["name"] == "nextflow"
+    assert report["engine"]["path"] == "/usr/bin/nextflow"
+    assert report["engine"]["version"] == "25.10.2"
+    assert report["engine"]["status"] == "ok"
+
+
+def test_runtime_report_marks_missing_backend(monkeypatch):
+    monkeypatch.setattr(cli_mod.shutil, "which", lambda command: None)
+
+    report = cli_mod._runtime_report("snakemake")
+
+    assert report["engine"]["name"] == "snakemake"
+    assert report["engine"]["status"] == "not_found"
+    assert report["engine"]["version"] is None
+
+
 def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     run_a = tmp_path / "run_a"
     run_b = tmp_path / "run_b"
@@ -106,6 +147,10 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     base = {
         "status": "success",
         "framework": {"name": "CBIcall", "version": "1.2.3"},
+        "runtime": {
+            "python": {"version": "3.12.3"},
+            "engine": {"name": "bash", "version": "5.2.21"},
+        },
         "workflow": {
             "key": "bash/wes/single/gatk-4.6/v1",
             "pipeline_version": "v1",
@@ -125,6 +170,7 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
         },
     }
     changed = json.loads(json.dumps(base))
+    changed["runtime"]["python"]["version"] = "3.12.4"
     changed["workflow"]["fingerprint"] = "workflow-b"
     changed["workflow"]["files"][0]["sha256"] = "bbb"
     changed["outputs"]["file_inventory"]["sha256"] = "manifest-b"
@@ -141,6 +187,8 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "Run Comparison" in out
     assert "CBIcall ver" in out
+    assert "Python ver" in out
+    assert "Engine ver" in out
     assert "Workflow hash" in out
     assert "Resource ver" in out
     assert "File inventory" in out
@@ -172,6 +220,10 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     base = {
         "status": "success",
         "framework": {"name": "CBIcall", "version": "1.2.3"},
+        "runtime": {
+            "python": {"version": "3.12.3"},
+            "engine": {"name": "bash", "version": "5.2.21"},
+        },
         "workflow": {
             "key": "bash/wes/single/gatk-4.6/v1",
             "pipeline_version": "v1",
@@ -191,6 +243,7 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     }
     same = json.loads(json.dumps(base))
     different = json.loads(json.dumps(base))
+    different["runtime"]["engine"]["version"] = "5.2.22"
     different["workflow"]["fingerprint"] = "workflow-c"
     different["outputs"]["file_inventory"]["entries"] = 4
     different["outputs"]["file_inventory"]["sha256"] = "manifest-c"
@@ -204,6 +257,8 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     assert "Run Matrix" in out
     assert "Baseline" in out
     assert "Workflow hash" in out
+    assert "Python ver" in out
+    assert "Engine ver" in out
     assert "Resource ver" in out
     assert "File inventory" in out
     assert "different: " in out
@@ -450,7 +505,11 @@ def test_main_happy_path(monkeypatch, tmp_path):
 def test_main_run_subcommand_happy_path(monkeypatch, tmp_path):
     param_file = tmp_path / "params.yaml"
     param_file.write_text("pipeline: wes\nmode: single\n", encoding="utf-8")
-    monkeypatch.setattr(sys, "argv", ["cbicall", "run", "-t", "4", "-p", str(param_file), "--no-color"])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["cbicall", "run", "-t", "4", "-p", str(param_file), "--profile", "cnag-hpc", "--no-color"],
+    )
 
     fake_param = {
         "pipeline": "wes",
@@ -463,12 +522,14 @@ def test_main_run_subcommand_happy_path(monkeypatch, tmp_path):
     }
 
     monkeypatch.setattr(cli_mod.config_mod, "read_param_file", lambda _: fake_param)
-    monkeypatch.setattr(
-        cli_mod.config_mod,
-        "set_config_values",
-        lambda _: {
+    captured = {}
+
+    def fake_set_config_values(params):
+        captured["params"] = params
+        return {
             "project_dir": str(tmp_path / "proj_run"),
             "run_id": "IDRUN",
+            "profile": params["profile"],
             "genome": "b37",
             "inputs": {"input_dir": None, "sample_map": None},
             "workflow": {
@@ -480,8 +541,9 @@ def test_main_run_subcommand_happy_path(monkeypatch, tmp_path):
                 "config_file": None,
                 "helpers": {},
             },
-        },
-    )
+        }
+
+    monkeypatch.setattr(cli_mod.config_mod, "set_config_values", fake_set_config_values)
 
     logs = {}
     monkeypatch.setattr(
@@ -507,7 +569,9 @@ def test_main_run_subcommand_happy_path(monkeypatch, tmp_path):
     assert cli_mod.main() == 0
     assert logs["arg"]["threads"] == 4
     assert logs["arg"]["paramfile"] == str(param_file)
+    assert captured["params"]["profile"] == "cnag-hpc"
     assert logs["settings"].run_id == "IDRUN"
+    assert logs["settings"].profile == "cnag-hpc"
     assert logs["settings"].workflow.entrypoint == "/x_run.sh"
 
 

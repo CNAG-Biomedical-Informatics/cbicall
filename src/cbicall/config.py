@@ -72,6 +72,10 @@ _DEFAULTS = {
     "resource": "cbicall-germline-resources-v1",
 }
 
+_RUNTIME_ONLY_KEYS = {
+    "profile": "profile is a runtime option; use --profile instead of setting it in the parameters YAML.",
+}
+
 
 # Allowed pipeline-mode combinations per GATK version
 _ALLOWED_COMBOS = {
@@ -337,6 +341,8 @@ def read_param_file(yaml_file: str) -> dict:
 
     # Merge provided parameters and validate keys
     for key, value in params.items():
+        if key in _RUNTIME_ONLY_KEYS:
+            raise ParameterValidationError(_RUNTIME_ONLY_KEYS[key])
         if key not in cfg:
             raise ParameterValidationError(f"Parameter '{key}' does not exist (typo?)")
         cfg[key] = value

@@ -54,13 +54,11 @@ cat > "${JOB_SCRIPT}" <<EOF
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=manuel.rueda@cnag.eu
 
-# Load Python + modules
-module load Python/3.10.8-GCCcore-12.2.0
-export PYTHONPATH="/software/biomed/cbi_py3/lib/python3.10/site-packages:${PYTHONPATH}"
-
 # Set CBICALL exe
 CBICALL_DIR="/software/biomed/cbicall"
 CBICALL="\$CBICALL_DIR/bin/cbicall"
+
+source "\$CBICALL_DIR/examples/scripts/cnag_hpc_cbicall_env.sh"
 
 cd \$SLURM_SUBMIT_DIR
 
@@ -70,7 +68,6 @@ cat <<YAML > "\${YAML_FILE}"
 mode: single
 pipeline: ${PIPELINE}
 workflow_engine: bash
-profile: cnag-hpc
 gatk_version: gatk-4.6
 resource: "cbicall-germline-resources-v1"
 input_dir: ${WORKDIR}
@@ -81,6 +78,7 @@ YAML
 srun "\$CBICALL" \\
      run \\
      -p "\$YAML_FILE" \\
+     --profile cnag-hpc \\
      -t $THREADS
 EOF
 

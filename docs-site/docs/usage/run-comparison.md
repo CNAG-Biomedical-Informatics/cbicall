@@ -45,7 +45,7 @@ bin/cbicall compare-runs baseline_run/ repeat_1/ repeat_2/ repeat_3/ \
 
 | Layer | Fields |
 | --- | --- |
-| Framework | CBIcall version recorded in `run-report.json`. |
+| Framework | CBIcall version, Python version, and workflow engine version recorded in `run-report.json`. |
 | Pipeline | Workflow key, pipeline implementation version, entrypoint, and workflow fingerprint. |
 | Workflow files | Entrypoint and helper/config file paths plus their SHA-256 values. |
 | Resources | Resource key and resource fingerprint from the selected resource catalog entry. |
@@ -88,7 +88,8 @@ The status vocabulary is intentionally small:
 Use this order when auditing two runs:
 
 1. Check **Framework**. A different CBIcall version means the execution driver
-   changed between runs.
+   changed between runs. A different Python or workflow engine version means
+   the runtime stack changed.
 2. Check **Pipeline** and **Workflow files**. A different workflow fingerprint
    means the resolved workflow implementation changed. Inspect the listed file
    fingerprints to locate the changed file.

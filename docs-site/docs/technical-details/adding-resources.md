@@ -35,10 +35,10 @@ resources/cbicall-resource-catalog.json
 
 A resource key is the selectable value users put in `resource`. The shipped
 CBIcall-provided germline resources use `type: bundle`. The nf-core/Sarek entry
-uses `type: nextflow-managed` because references and containers are managed by
-Nextflow/nf-core rather than by CBIcall's `DATADIR` bundle. The schema keeps
-`type` open so additional resource models can be introduced without renaming the
-catalog.
+and other external nf-core entries use `type: nextflow-managed` because
+references and containers are managed by Nextflow/nf-core rather than by
+CBIcall's `DATADIR` bundle. The schema keeps `type` open so additional resource
+models can be introduced without renaming the catalog.
 
 :::note[Resource type templates]
 Non-bundle types can be used as catalog templates for future resource models.

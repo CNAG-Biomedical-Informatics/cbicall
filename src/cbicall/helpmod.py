@@ -50,6 +50,11 @@ def _build_parser(version: str, *, prog: str = "cbicall") -> argparse.ArgumentPa
         help="Parameters input file (YAML; required)",
     )
     parser.add_argument(
+        "--profile",
+        default="local",
+        help="CBIcall runtime profile for native workflows (default: local)",
+    )
+    parser.add_argument(
         "-nc",
         "--no-color",
         dest="nocolor",

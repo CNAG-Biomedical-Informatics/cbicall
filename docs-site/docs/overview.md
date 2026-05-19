@@ -20,6 +20,20 @@ as BWA, GATK, and MToolBox.
 - dispatches **Bash**, **Snakemake**, or **Nextflow** workflows
 - records **logs, provenance, run reports, and output fingerprints** when available
 
+## Pipelines and Backends
+
+CBIcall separates the **analysis pipeline** from the **workflow backend** that
+executes it.
+
+| Layer | Current scope |
+| --- | --- |
+| Out-of-box analysis pipelines | WES, WGS, and mtDNA variant calling |
+| Workflow backends | Bash, Snakemake, and Nextflow |
+| External workflow adapter | Registered nf-core workflows launched through Nextflow |
+
+Use [Included Pipelines](pipelines/overview) for the shipped analyses and
+[Native Backends](backends/native) for how those workflows are dispatched.
+
 ## Installation at a Glance
 
 | Use case | Method |
@@ -36,5 +50,7 @@ as BWA, GATK, and MToolBox.
 | Run the shipped test data | [Quickstart](usage/quickstart) |
 | Run WES/WGS data | [WES Example](usage/end-to-end-example-wes) |
 | Run mtDNA analysis | [mtDNA Example](usage/end-to-end-example-mit) |
+| See included pipelines | [Included Pipelines](pipelines/overview) |
+| Understand workflow backends | [Native Backends](backends/native) |
 | Understand output files | [Outputs](help/outputs) |
 | See the system design | [Architecture](technical-details/architecture) |

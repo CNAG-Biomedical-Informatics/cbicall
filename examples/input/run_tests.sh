@@ -360,7 +360,6 @@ if [ "$RUN_WES_SNAKEMAKE" -eq 1 ]; then
 mode: single
 pipeline: wes
 workflow_engine: snakemake
-profile: local
 gatk_version: gatk-4.6
 resource: "cbicall-germline-resources-v1"
 input_dir: CNAG999_exome/CNAG99901P_ex
@@ -454,7 +453,6 @@ if [ "$RUN_WES_NEXTFLOW" -eq 1 ]; then
 mode: single
 pipeline: wes
 workflow_engine: nextflow
-profile: local
 gatk_version: gatk-4.6
 resource: "cbicall-germline-resources-v1"
 input_dir: CNAG999_exome/CNAG99901P_ex

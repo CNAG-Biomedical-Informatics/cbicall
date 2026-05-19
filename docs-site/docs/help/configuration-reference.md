@@ -1,13 +1,15 @@
 # Configuration Reference
 
-CBIcall runs from a YAML parameters file plus the CLI thread setting.
+CBIcall runs from a YAML parameters file plus CLI runtime settings.
 
 ```bash
 bin/cbicall run -p parameters.yaml -t 4
 ```
 
 Unknown YAML keys are rejected, so misspellings fail early instead of being ignored.
-Run configuration is defined in YAML. The CLI supplies runtime controls such as the parameter file, thread count, color output, and validation/test commands; it does not override YAML analysis keys.
+Analysis configuration is defined in YAML. Runtime controls such as thread count,
+color output, validation commands, and the CBIcall native runtime profile are
+selected on the CLI.
 
 :::tip[Minimal WES single-sample run]
 ```yaml
@@ -27,7 +29,6 @@ genome:          b37
 | `mode` | `single` | `single`, `cohort` | Selects one-sample processing or cohort-level processing. |
 | `pipeline` | `wes` | `wes`, `wgs`, `mit`; external names are registry-defined | Selects the analysis type. For `workflow_version: nf-core`, the value is resolved through the workflow registry. |
 | `workflow_engine` | `bash` | `bash`, `snakemake`, `nextflow` | Selects the execution backend supported by the current workflows. |
-| `profile` | `local` | `local`, `cnag-hpc` | Selects the runtime environment file. `cnag-hpc` uses `cnag-hpc-env.sh` instead of the default `env.sh` for Bash workflows. |
 | `gatk_version` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the GATK release for CBIcall-native workflows. Use `gatk-4.6` for current bundled WES/WGS workflows. |
 | `workflow_version` | `null` | `gatk-3.5`, `gatk-4.6`, `nf-core` | Selects the workflow family when it is not just a GATK release. Use `workflow_version: nf-core` for external nf-core workflows. |
 | `resource` | `cbicall-germline-resources-v1` | resource key | Selects one entry from `resources/cbicall-resource-catalog.json`. |
@@ -115,12 +116,14 @@ pipeline:         demo
 workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-demo-managed-resources-v1
-nextflow_profile: test,conda
+nextflow_profile: test,docker
 nextflow_args:    {}
 ```
 
-Use `test,conda` for a macOS/Apple Silicon smoke test when Conda or Mamba is
-available. Use `test,docker` on x86_64 Docker hosts.
+Use `test,docker` on x86_64 Docker hosts. On HPC, use the Apptainer/Singularity
+profile described in [nf-core Workflows](../backends/nf-core).
+For workstation and cluster runs, see
+[nf-core Workflows](../backends/nf-core).
 
 ### nf-core/Sarek
 
@@ -139,6 +142,7 @@ nextflow_args:
   input: samplesheet.csv
   genome: GATK.GRCh38
   tools: haplotypecaller
+  max_memory: 30.GB
 ```
 
 CBIcall does not interpret Sarek-specific parameters. Values under
@@ -149,7 +153,8 @@ For nf-core/Sarek, the CLI thread value is written to the generated params file
 as `max_cpus`. For example, `bin/cbicall run -p sarek.yaml -t 6` passes
 `max_cpus: 6` to Sarek and writes a small Nextflow config with
 `process.resourceLimits` so individual processes do not request more than six
-CPUs.
+CPUs. Memory caps stay in `nextflow_args`, for example `max_memory: 30.GB`,
+because that is an nf-core/Sarek parameter.
 
 ## Bundle Provenance
 
@@ -172,39 +177,50 @@ implementation and a run must pin a non-default one.
 
 ## Runtime Profiles
 
-Profiles select the environment mapping used by a workflow. The default profile is `local`; additional profiles can be declared in the workflow registry when the same workflow needs more than one `env.sh` layout, for example on a shared HPC system.
+CBIcall native profiles select the environment mapping used by a workflow. The
+default profile is `local`; additional profiles can be declared in the workflow
+registry when the same workflow needs more than one `env.sh` layout, for example
+on a shared HPC system.
 
-Select a non-default profile in YAML:
+Select a non-default CBIcall profile on the CLI:
 
-```yaml
-profile: cnag-hpc
+```bash
+bin/cbicall run -p parameters.yaml -t 4 --profile cnag-hpc
 ```
 
 Validate the parameters YAML and resolved setup without starting the workflow:
 
 ```bash
-bin/cbicall validate-param -p parameters.yaml
+bin/cbicall validate-param -p parameters.yaml --profile cnag-hpc
 ```
 
-During a real run, the resolved `profile` and selected environment file are written to `log.json`. `validate-param` prints the same resolved values without creating a run directory or log file.
+The `profile` key is not accepted in the parameters YAML. During a real run, the
+resolved profile and selected environment file are written to `log.json`.
+`validate-param` prints the same resolved values without creating a run
+directory or log file.
 
 ## Command Utilities
 
 | Command | Use |
 | --- | --- |
-| `bin/cbicall run -p parameters.yaml -t 4` | Execute a normal analysis run. |
-| `bin/cbicall validate-param -p parameters.yaml` | Dry-run preflight for one concrete run. It validates the parameters YAML, workflow, profile env file, and selected resource without launching the workflow. |
+| `bin/cbicall run -p parameters.yaml -t 4 [--profile cnag-hpc]` | Execute a normal analysis run. |
+| `bin/cbicall validate-param -p parameters.yaml [--profile cnag-hpc]` | Dry-run preflight for one concrete run. It validates the parameters YAML, workflow, runtime profile env file, and selected resource without launching the workflow. |
 | `bin/cbicall validate-resources` | Check the resource catalog and, optionally, one resource key. |
 | `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare two or more run directories or `run-report.json` files. |
 | `bin/cbicall test --wes-bash`, `--wes-snakemake`, `--wes-nextflow`, `--mit-bash`, or `--all` | Runs the bundled integration examples without remembering the script path. `--wes-bash` is the required baseline test; Snakemake and Nextflow tests require their engines on `PATH`. |
+
+For a higher-level explanation of included pipelines versus execution backends,
+see [Included Pipelines](../pipelines/overview) and
+[Native Backends](../backends/native).
 
 ## Advanced Keys
 
 | Key | Default | Use |
 | --- | --- | --- |
 | `pipeline_version` | Registry default, currently `v1` | Advanced pin for a specific CBIcall pipeline implementation. Leave unset for normal runs. |
-| `nextflow_profile` | `null` | Nextflow profile passed to external nf-core workflows, for example `docker`, `singularity`, or `conda`. |
+| `nextflow_profile` | `null` | Nextflow profile passed to external nf-core workflows, for example `docker` or `singularity`. |
 | `nextflow_args` | `{}` | Pass-through nf-core/Nextflow parameters written to the generated params file. CBIcall controls `outdir` and `max_cpus`. |
+| `nextflow_singularity_cache_dir` | `null` | Optional Singularity/Apptainer image cache directory for external nf-core workflows. CBIcall writes it to the generated Nextflow config as cache and library directories. |
 | `workflow_rule` | `null` | Snakemake target for a partial run. Leave unset for normal full runs. |
 | `allow_partial_run` | `false` | Must be `true` when `workflow_rule` is set. This prevents accidental partial starts. |
 | `organism` | `Homo sapiens` | Metadata field. |

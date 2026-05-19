@@ -1,7 +1,6 @@
 mode: cohort
 pipeline: wes
 workflow_engine: bash
-profile: local
 gatk_version: gatk-3.5
 resource: "cbicall-germline-resources-v1"
 input_dir: CNAG999_exome

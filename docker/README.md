@@ -2,7 +2,7 @@
 
 ## Downloading Required Databases and Software
 
-> Note: this process can be lenghty.
+> Note: this process can be lengthy.
 
 Begin by downloading the required databases and software. Save the data outside the container; this preserves it across container restarts and lets you update the software without downloading the data again.
 
@@ -127,7 +127,7 @@ Inside the container, confirm that CBIcall sees the mounted resources:
 
 ```bash
 bin/cbicall validate-resources
-bin/cbicall doctor -p examples/input/param.yaml
+bin/cbicall validate-param -p examples/input/param.yaml
 ```
 
 ## Performing integration tests
@@ -137,13 +137,13 @@ Inside the container, from the CBIcall repository root:
 **WES**
 
 ```bash
-bin/cbicall test --wes -t 1
+bin/cbicall test --wes-bash -t 1
 ```
 
 **mtDNA**
 
 ```bash
-bin/cbicall test --mit -t 1
+bin/cbicall test --mit-bash -t 1
 ```
 
 ## System requirements

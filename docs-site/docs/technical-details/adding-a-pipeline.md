@@ -166,7 +166,7 @@ workflows:
                 v1:
                   source_type: "nf-core"
                   source: "nf-core/demo"
-                  release: "1.0.0"
+                  release: "1.1.0"
                   default_outdir: "demo"
           sarek:
             cohort:
@@ -183,6 +183,13 @@ CBIcall validates the selected YAML, pins the registered release, writes a
 params file in the run directory, and runs `nextflow run <source>`. The
 workflow keeps its native output layout; CBIcall does not force it into
 `01_*`, `02_*`, or `03_*` directories.
+
+When adding another nf-core workflow, add a registry entry with `source_type`,
+`source`, `release`, and `default_outdir`, then add a compatible resource
+catalog entry if users should be able to select it through the `resource` key.
+For nf-core workflows where references and containers are managed by the
+Nextflow profile, use a lightweight `type: nextflow-managed` resource entry.
+See [Adding Resources](adding-resources) for the resource catalog contract.
 
 ## 2. Register the Pipeline
 

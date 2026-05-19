@@ -89,7 +89,6 @@ cat <<YAML > "\${YAML_FILE}"
 mode: single
 pipeline: ${PIPELINE}
 workflow_engine: bash
-profile: cnag-hpc
 gatk_version: gatk-4.6
 resource: "cbicall-germline-resources-v1"
 input_dir: ${WORKDIR}
@@ -112,6 +111,7 @@ srun apptainer exec \\
   "\${CBICALL_IN_CONTAINER}" \\
     run \\
     -p "\${YAML_FILE}" \\
+    --profile cnag-hpc \\
     -t ${THREADS}
 EOF
 
