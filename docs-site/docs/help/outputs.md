@@ -28,12 +28,13 @@ point anywhere, CBIcall creates the run directory in the directory where
 | --- | --- |
 | `log.json` | Structured record of CLI arguments, resolved configuration, selected runtime profile, compact `resources.bundle` provenance, and runtime parameters. |
 | `run-report.json` | Compact audit report with CBIcall version, Python version, workflow engine version, status, elapsed time, workflow file fingerprints, resource key/version/fingerprint, output file inventory fingerprint, output fingerprints when available, and workflow log path. |
+| `run-report.html` | Human-readable rendering of `run-report.json` for browsing a completed run without reading JSON directly. |
 | `<engine>_<pipeline>_<mode>_<genome>_<workflow-version>.log` | Main workflow log for the selected backend. |
 | `logs/*.log` | Per-rule or per-step logs for Snakemake/GATK 4.6 workflows. |
 
 Use `config.resources.bundle.fingerprint` inside `log.json` to check whether two runs used the same declared external dependency set.
 
-Use `workflow.fingerprint` inside `run-report.json` to check whether two runs used the same resolved workflow file contents. If the fingerprint differs, inspect `workflow.files` to see which entrypoint, helper, Snakefile, or config file changed.
+Use `workflow.fingerprint` inside `run-report.json` to check whether two runs used the same resolved workflow file contents. If the fingerprint differs, inspect `workflow.files` to see which entrypoint, helper, Snakefile, or config file changed. The matching `run-report.html` file presents the same core audit fields in a browser-friendly view.
 
 Use `outputs.file_inventory.sha256` to check whether two run directories contain the same relative file layout. This is a manifest hash of file paths, not a content hash. WES/WGS single-sample runs also include parsed VCF hash reports under `outputs.vcf_hash_reports` when `03_stats/*.vcf.sha256.txt` is present.
 

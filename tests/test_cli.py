@@ -100,11 +100,20 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     assert inventory["algorithm"] == "sha256"
     assert inventory["scope"] == "run directory relative file paths"
     assert inventory["entries"] == 3
-    assert inventory["excluded"] == [".nextflow", ".nextflow*", "run-report.json", "work"]
+    assert inventory["excluded"] == [".nextflow", ".nextflow*", "run-report.html", "run-report.json", "work"]
     assert "run-report.json" not in inventory["paths"]
     assert inventory["paths"] == ["03_stats/sample.vcf.sha256.txt", "env.sh", "wes_single.sh"]
     assert len(inventory["sha256"]) == 64
     assert data["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] == "normalized"
+    html_report = cli_mod._write_run_report_html(report, data)
+    assert html_report.is_file()
+    html_text = html_report.read_text(encoding="utf-8")
+    assert "<title>CBIcall Run Report</title>" in html_text
+    assert "Human-readable summary generated from" in html_text
+    assert "bash/wes/single/gatk-4.6/v1" in html_text
+    assert "normalized" in html_text
+    assert "03_stats/sample.vcf.sha256.txt" in html_text
+    assert "href=\"03_stats/sample.vcf.sha256.txt\"" in html_text
 
 
 def test_runtime_report_records_python_and_backend_version(monkeypatch):
@@ -227,6 +236,11 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
     assert vcf_report["name"] == "haplotypecaller_vcf"
     assert vcf_report["normalized_records"] == 1
     assert len(vcf_report["normalized_sha256"]) == 64
+    html_report = cli_mod._write_run_report_html(report, data)
+    html_text = html_report.read_text(encoding="utf-8")
+    assert "nf-core/sarek" in html_text
+    assert "haplotypecaller_vcf" in html_text
+    assert "CNAG99901P_ex.haplotypecaller.vcf.gz" in html_text
 
 
 def test_print_external_output_pointers(capsys, tmp_path):
@@ -630,7 +644,7 @@ def test_main_happy_path(monkeypatch, tmp_path):
     assert logs["settings"].workflow.entrypoint == "/x.sh"
 
 
-def test_main_run_subcommand_happy_path(monkeypatch, tmp_path):
+def test_main_run_subcommand_happy_path(monkeypatch, tmp_path, capsys):
     param_file = tmp_path / "params.yaml"
     param_file.write_text("pipeline: wes\nmode: single\n", encoding="utf-8")
     monkeypatch.setattr(
@@ -701,6 +715,14 @@ def test_main_run_subcommand_happy_path(monkeypatch, tmp_path):
     assert logs["settings"].run_id == "IDRUN"
     assert logs["settings"].profile == "cnag-hpc"
     assert logs["settings"].workflow.entrypoint == "/x_run.sh"
+    out = capsys.readouterr().out
+    assert "Report" in out
+    assert "HTML" in out
+    assert str(tmp_path / "proj_run" / "run-report.html") in out
+    assert "Bye" in out
+    assert "Goodbye" not in out
+    assert out.rstrip().endswith("Bye")
+    assert (tmp_path / "proj_run" / "run-report.html").is_file()
 
 
 def test_main_verbose_prints(monkeypatch, tmp_path, capsys):

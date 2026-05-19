@@ -107,7 +107,9 @@ Completed
   Status       => Finished successfully
   Elapsed      => 1m 30s
   Log          => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_177447031761843/bash_wes_single_b37_gatk-4.6.log
-Completed
+  Report       => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_177447031761843/run-report.json
+  HTML         => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_177447031761843/run-report.html
+Do Widzenia
 ```
 ---
 

@@ -12,6 +12,7 @@ import sys
 import threading
 import time
 from contextlib import redirect_stdout
+from urllib.parse import quote
 from pathlib import Path
 from typing import List, Optional
 
@@ -291,7 +292,7 @@ def _parse_key_value_file(path: Path) -> dict:
 
 
 def _collect_file_inventory(project_dir: Path) -> dict:
-    excluded = {"run-report.json"}
+    excluded = {"run-report.json", "run-report.html"}
     excluded_roots = {"work", ".nextflow"}
     paths = []
     if project_dir.is_dir():
@@ -497,6 +498,344 @@ def _print_external_output_pointers(report: dict) -> None:
         label = "Canonical" if shown == 0 else f"Canonical {shown + 1}"
         _row(label, _short_path(matches[0]))
         shown += 1
+
+
+def _html_row(label: str, value) -> str:
+    if value is None or value == "":
+        value = "(undef)"
+    return _html_row_raw(label, html.escape(str(value)))
+
+
+def _html_row_raw(label: str, value_html: str) -> str:
+    return (
+        "<tr>"
+        f"<th>{html.escape(str(label))}</th>"
+        f"<td>{value_html}</td>"
+        "</tr>"
+    )
+
+
+def _html_section(title: str, rows: List[tuple]) -> str:
+    body = "".join(_html_row(label, value) for label, value in rows)
+    return _html_section_raw(title, body)
+
+
+def _html_section_raw(title: str, body_html: str) -> str:
+    return (
+        "<section>"
+        f"<h2>{html.escape(title)}</h2>"
+        f"<table>{body_html}</table>"
+        "</section>"
+    )
+
+
+def _display_path(path: str, base_dir: Path) -> str:
+    raw_path = Path(str(path))
+    if raw_path.is_absolute():
+        try:
+            return raw_path.relative_to(base_dir).as_posix()
+        except ValueError:
+            return str(raw_path)
+    return raw_path.as_posix()
+
+
+def _file_link(path: str, base_dir: Path, label: Optional[str] = None) -> str:
+    display = label or _display_path(path, base_dir)
+    raw_path = Path(str(path))
+    if raw_path.is_absolute():
+        try:
+            href_path = raw_path.relative_to(base_dir).as_posix()
+        except ValueError:
+            href_path = raw_path.as_posix()
+    else:
+        href_path = raw_path.as_posix()
+    href = quote(href_path)
+    return f'<a href="{html.escape(href)}">{html.escape(display)}</a>'
+
+
+def _is_essential_output(rel_path: str) -> bool:
+    if rel_path.startswith(("02_varcall/", "03_stats/", "02_browser/", "01_mtoolbox/")):
+        return True
+    return rel_path.endswith((".vcf", ".vcf.gz", ".g.vcf.gz", ".html", ".txt")) and not rel_path.startswith("01_bam/")
+
+
+def _output_rows_html(payload: dict, base_dir: Path) -> str:
+    rows = []
+    seen = set()
+
+    for item in payload.get("outputs", {}).get("canonical_outputs", []):
+        matches = item.get("matches") or []
+        if not matches:
+            continue
+        links = []
+        for match in matches:
+            seen.add(_display_path(match, base_dir))
+            links.append(_file_link(match, base_dir))
+        rows.append(_html_row_raw(item.get("name", "Canonical output"), "<br>".join(links)))
+
+    for item in payload.get("outputs", {}).get("vcf_hash_reports", []):
+        file_path = item.get("file") or item.get("path")
+        if not file_path:
+            continue
+        display = _display_path(file_path, base_dir)
+        seen.add(display)
+        detail = _file_link(file_path, base_dir)
+        normalized_hash = item.get("normalized_sha256")
+        if normalized_hash:
+            detail += f'<br><span class="muted">normalized SHA-256: {html.escape(str(normalized_hash))}</span>'
+        rows.append(_html_row_raw("VCF", detail))
+
+    for rel_path in _nested(payload, "outputs", "file_inventory", "paths") or []:
+        if rel_path in seen or not _is_essential_output(str(rel_path)):
+            continue
+        seen.add(str(rel_path))
+        rows.append(_html_row_raw("Output", _file_link(str(rel_path), base_dir)))
+
+    if not rows:
+        rows.append(_html_row("Outputs", "No essential output files were recorded. See run-report.json for the full inventory."))
+    return "".join(rows)
+
+
+def _run_report_html(payload: dict) -> str:
+    base_dir = Path(str(_nested(payload, "run", "project_dir") or "."))
+    workflow_files = payload.get("workflow", {}).get("files", [])
+    workflow_rows = [
+        (item.get("role", "file"), f"{item.get('status', 'unknown')} | {item.get('path')} | {item.get('sha256')}")
+        for item in workflow_files
+    ]
+
+    sections = [
+        _html_section(
+            "Run",
+            [
+                ("Status", payload.get("status")),
+                ("Run ID", _nested(payload, "run", "run_id")),
+                ("Project", _nested(payload, "run", "project_dir")),
+                ("Elapsed", _format_duration(float(payload.get("elapsed_seconds", 0) or 0))),
+                ("Workflow log", payload.get("workflow_log")),
+            ],
+        ),
+        _html_section(
+            "Analysis",
+            [
+                ("Engine", _nested(payload, "workflow", "engine")),
+                ("Pipeline", _nested(payload, "workflow", "pipeline")),
+                ("Mode", _nested(payload, "workflow", "mode")),
+                ("Genome", _nested(payload, "run", "genome")),
+                ("GATK / workflow version", _nested(payload, "workflow", "gatk_version")),
+                ("Pipeline version", _nested(payload, "workflow", "pipeline_version")),
+                ("Profile", payload.get("profile")),
+                ("Threads", _nested(payload, "run", "threads")),
+            ],
+        ),
+        _html_section(
+            "Runtime",
+            [
+                ("CBIcall", _nested(payload, "framework", "version")),
+                ("Python", _nested(payload, "runtime", "python", "version")),
+                ("Python executable", _nested(payload, "runtime", "python", "executable")),
+                ("Workflow engine", _nested(payload, "runtime", "engine", "name")),
+                ("Engine version", _nested(payload, "runtime", "engine", "version")),
+                ("Engine path", _nested(payload, "runtime", "engine", "path")),
+            ],
+        ),
+        _html_section(
+            "Workflow",
+            [
+                ("Key", _nested(payload, "workflow", "key")),
+                ("Entrypoint", _nested(payload, "workflow", "entrypoint")),
+                ("Fingerprint", _nested(payload, "workflow", "fingerprint")),
+            ]
+            + workflow_rows,
+        ),
+        _html_section(
+            "Resources",
+            [
+                ("Resource key", _nested(payload, "resources", "bundle", "key")),
+                ("Resource version", _nested(payload, "resources", "bundle", "version")),
+                ("Resource fingerprint", _nested(payload, "resources", "bundle", "fingerprint")),
+            ],
+        ),
+        _html_section_raw(
+            "Outputs",
+            _output_rows_html(payload, base_dir),
+        ),
+    ]
+
+    return """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CBIcall Run Report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --panel-soft: #fbfcfe;
+      --text: #17202a;
+      --muted: #5f6b7a;
+      --border: #d8dee8;
+      --ok-bg: #e8f5ee;
+      --ok-text: #17633a;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 28px auto 40px;
+    }
+    header {
+      margin-bottom: 20px;
+      padding: 22px 0 2px;
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin: 18px 0 20px;
+    }
+    .metric {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .metric strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 20px;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+    a {
+      color: #2457a6;
+      text-decoration: none;
+      font-weight: 650;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .muted {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    .pill {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: var(--ok-bg);
+      color: var(--ok-text);
+      font-size: 13px;
+      font-weight: 750;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin: 14px 0;
+      overflow: hidden;
+    }
+    h2 {
+      margin: 0;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-soft);
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th,
+    td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    tr:last-child th,
+    tr:last-child td {
+      border-bottom: 0;
+    }
+    th {
+      width: 210px;
+      color: var(--muted);
+      font-weight: 650;
+      white-space: nowrap;
+    }
+    td {
+      overflow-wrap: anywhere;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+    @media (max-width: 760px) {
+      main { width: min(100% - 20px, 1120px); }
+      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      th,
+      td {
+        display: block;
+        width: auto;
+      }
+      th {
+        padding-bottom: 2px;
+      }
+      td {
+        padding-top: 2px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>CBIcall Run Report</h1>
+      <p>Human-readable summary generated from <code>run-report.json</code>.</p>
+    </header>
+    <div class="summary" aria-label="Run summary">
+      <div class="metric"><span>Status</span><strong><span class="pill">""" + html.escape(str(payload.get("status", "unknown"))) + """</span></strong></div>
+      <div class="metric"><span>Pipeline</span><strong>""" + html.escape(str(_nested(payload, "workflow", "pipeline") or "(undef)")) + """</strong></div>
+      <div class="metric"><span>Engine</span><strong>""" + html.escape(str(_nested(payload, "workflow", "engine") or "(undef)")) + """</strong></div>
+      <div class="metric"><span>Run ID</span><strong>""" + html.escape(str(_nested(payload, "run", "run_id") or "(undef)")) + """</strong></div>
+    </div>
+    """ + "\n    ".join(sections) + """
+  </main>
+</body>
+</html>
+"""
+
+
+def _write_run_report_html(report_path: Path, payload: dict) -> Path:
+    html_path = report_path.with_suffix(".html")
+    html_path.write_text(_run_report_html(payload), encoding="utf-8")
+    return html_path
 
 
 def write_run_report(
@@ -1145,6 +1484,19 @@ def _render_compare_html(report_text: str) -> str:
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 13px;
     }
+    a {
+      color: #2457a6;
+      text-decoration: none;
+      font-weight: 650;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .muted {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
     .pill {
       display: inline-block;
       min-width: 82px;
@@ -1429,8 +1781,10 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
         elapsed_seconds=elapsed,
         workflow_log=workflow_log,
     )
+    html_report_path = _write_run_report_html(report_path, json.loads(report_path.read_text(encoding="utf-8")))
     _row("Log", workflow_log)
     _row("Report", report_path)
+    _row("HTML", html_report_path)
     if workflow.metadata.get("source_type") == "nf-core":
         report_data = json.loads(report_path.read_text(encoding="utf-8"))
         _print_external_output_pointers(report_data)
