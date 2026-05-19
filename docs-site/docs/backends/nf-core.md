@@ -1,9 +1,10 @@
 # nf-core Backend
 
-CBIcall can launch registered nf-core workflows through Nextflow. CBIcall
-validates the YAML, pins the registered nf-core release, writes the Nextflow
-params/config files, and records the run metadata. The nf-core workflow keeps
-its own native output layout and runtime behavior.
+CBIcall can launch registered [nf-core](https://nf-co.re/) workflows through
+[Nextflow](https://www.nextflow.io/docs/latest/). CBIcall validates the YAML,
+pins the registered nf-core release, writes the Nextflow params/config files,
+and records the run metadata. The nf-core workflow keeps its own native output
+layout and runtime behavior.
 
 nf-core is an external workflow adapter in CBIcall, not one of the shipped
 WES/WGS/mtDNA analysis pipelines. Use this page when testing registered nf-core
@@ -20,7 +21,7 @@ are created under the discovered sample/input directory.
 
 CBIcall is not a replacement for nf-core. nf-core provides community-maintained
 Nextflow workflows; CBIcall adds a project-level execution contract around
-selected workflows.
+selected registered workflows.
 
 | Aspect | nf-core / Nextflow | CBIcall |
 | --- | --- | --- |
@@ -33,9 +34,10 @@ selected workflows.
 
 ## Demo Smoke Test
 
-Use `nf-core/demo` as a lightweight external Nextflow smoke test. The
-checked-in `examples/input/demo.yaml` uses `test,singularity` because that is
-the practical profile on HPC systems where Docker is not available.
+Use [`nf-core/demo`](https://nf-co.re/demo) as a lightweight external
+Nextflow smoke test. The checked-in `examples/input/demo.yaml` uses
+`test,singularity` because that is the practical profile on HPC systems where
+Docker is not available.
 
 For an HPC or Apptainer/Singularity test:
 
@@ -59,9 +61,11 @@ Run it from the directory containing `demo.yaml`:
 :::note[How nf-core profiles combine]
 The `test` profile provides nf-core's built-in test inputs and smoke-test
 settings. It does not select the software runtime by itself. Combine it with a
-runtime profile such as `singularity`, `docker`, or `conda`: for example,
+runtime profile such as `singularity` or `docker`: for example,
 `test,singularity`. If `nextflow_args.input` is set, that explicit input
-overrides the input supplied by the `test` profile.
+overrides the input supplied by the `test` profile. See the
+[nf-core profile documentation](https://nf-co.re/docs/usage/getting_started/configuration)
+for generic profile behavior.
 :::
 
 :::tip[Workstation Docker alternative]
@@ -78,8 +82,8 @@ run with `-t 1`, but demo generally cannot.
 
 ## Sarek Example
 
-Sarek is launched as an external nf-core workflow. CBIcall passes
-`nextflow_args` to the generated Nextflow params file.
+[`nf-core/sarek`](https://nf-co.re/sarek) is launched as an external nf-core
+workflow. CBIcall passes `nextflow_args` to the generated Nextflow params file.
 
 ```yaml
 mode:             cohort
@@ -108,12 +112,10 @@ The example also skips Sarek's HaplotypeCaller filtering step because tiny
 single-chromosome smoke tests may not contain enough overlapping resource
 variants for GATK `FilterVariantTranches`.
 
-`nextflow_singularity_cache_dir` is important on HPC systems where a module or
-site config points Nextflow to a shared image library that may contain unreadable
-images. CBIcall writes this path into the generated Nextflow config. If the HPC
-module also exports `NXF_*` variables, they should be set in the shell bootstrap
-before CBIcall starts; CBIcall inherits and forwards the shell environment
-unchanged.
+On HPC, use `nextflow_singularity_cache_dir` when the default shared container
+cache contains unreadable images or when you want the cache path recorded in the
+generated Nextflow config. CBIcall inherits any `NXF_*` variables already set by
+the shell or scheduler bootstrap.
 
 The Sarek registry entry also declares its canonical HaplotypeCaller VCF output:
 
@@ -210,54 +212,13 @@ export NXF_SYNTAX_PARSER=v1
 This is a Nextflow compatibility setting, not a CBIcall parameter.
 :::
 
-## Container Cache
-
-Set a shared Singularity/Apptainer cache when the HPC allows it:
-
-```bash
-export NXF_SINGULARITY_CACHEDIR=/shared/nxf-singularity-library
-export NXF_SINGULARITY_LIBRARYDIR=/shared/nxf-singularity-library
-```
-
-Without this variable, Nextflow stores pulled images under the run work
-directory, which can make repeated tests slower.
-
-If a shared cache contains an image that your user cannot read, Apptainer may
-fail with an error like:
-
-```text
-could not open image /shared/nxf-singularity-library/...img
-... is not readable by the current user, check permissions
-```
-
-Use a user-owned or project-owned cache instead:
-
-```bash
-mkdir -p "$HOME/.nextflow-singularity-cache"
-export NXF_SINGULARITY_CACHEDIR="$HOME/.nextflow-singularity-cache"
-export NXF_SINGULARITY_LIBRARYDIR="$HOME/.nextflow-singularity-cache"
-```
-
-or:
-
-```bash
-mkdir -p /path/to/project/nxf-singularity-cache
-export NXF_SINGULARITY_CACHEDIR=/path/to/project/nxf-singularity-cache
-export NXF_SINGULARITY_LIBRARYDIR=/path/to/project/nxf-singularity-cache
-```
-
-Then rerun the same CBIcall command. This lets Nextflow pull readable container
-images for the current user.
-
-You can also pin this cache in the CBIcall YAML so the run records the same
-cache/library path in `cbicall_external_nextflow.config`:
-
-```yaml
-nextflow_singularity_cache_dir: /path/to/project/nxf-singularity-cache
-```
-
-CBIcall does not create `NXF_*` environment variables itself. Define those in
-the shell or SLURM bootstrap when the HPC module recommends them.
+:::tip[Container cache]
+If Apptainer/Singularity cannot read an image from a shared Nextflow cache, use a
+user-owned or project-owned cache and point CBIcall to it with
+`nextflow_singularity_cache_dir`. For general container and offline setup, see
+the [nf-core documentation](https://nf-co.re/docs/usage/getting_started/configuration)
+and the [Nextflow container documentation](https://www.nextflow.io/docs/latest/container.html).
+:::
 
 ## Logs
 
@@ -272,21 +233,19 @@ cbicall_nextflow_<pipeline>_<mode>_external_nf-core_<run_id>/
 ```
 
 For task-level failures, start with `.nextflow.log` and the main CBIcall
-launcher log. Nextflow reports the task work directory in many errors, but the
-task files may not exist if the failure happened before the task was submitted
-to the executor.
+launcher log. Nextflow often reports the task work directory in the error text.
 
-If the work directory contains task files, inspect them:
+:::tip[Debugging failed nf-core tasks]
+When a task reaches execution, Nextflow usually writes `.command.*` files under
+`work/<hash>/<task>/`. A compact first check is:
 
 ```bash
 cd work/<hash>/<task>
-ls -la
-test -f .command.err && cat .command.err
-test -f .command.out && cat .command.out
-test -f .command.log && cat .command.log
-test -f .command.sh && cat .command.sh
+ls -la .command*
 ```
 
-If `.command.log` and related files are absent, the task usually failed before
-execution, for example because requested CPUs exceeded the CPUs allocated by the
-scheduler.
+If those files are absent, the task likely failed before execution, commonly
+because the scheduler allocation was smaller than the task request. See the
+[Nextflow troubleshooting documentation](https://www.nextflow.io/docs/latest/troubleshooting.html)
+for generic engine-level debugging.
+:::
