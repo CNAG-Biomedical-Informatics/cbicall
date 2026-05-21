@@ -26,8 +26,8 @@ def test_dnaseq_builds_bash_command_with_flags(tmp_path, monkeypatch):
         "cleanup_bam": True,
         "genome": "b37",
         "inputs": {"input_dir": None, "sample_map": "map.txt"},
-        "workflow_rule": None,
-        "allow_partial_run": False,
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
             "engine": "bash",
@@ -72,8 +72,8 @@ def test_dnaseq_passes_resolved_env_file_to_bash(tmp_path, monkeypatch):
         "debug": False,
         "genome": "b37",
         "inputs": {"input_dir": None, "sample_map": None},
-        "workflow_rule": None,
-        "allow_partial_run": False,
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
             "engine": "bash",
@@ -106,8 +106,8 @@ def test_dnaseq_debug_prints(monkeypatch, tmp_path, capsys):
         "debug": True,
         "genome": "b37",
         "inputs": {"input_dir": None, "sample_map": None},
-        "workflow_rule": None,
-        "allow_partial_run": False,
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
             "engine": "bash",
@@ -146,8 +146,8 @@ def test_dnaseq_builds_bash_command_gatk35_has_no_extra_flags(tmp_path, monkeypa
         "cleanup_bam": True,
         "genome": "b37",
         "inputs": {"input_dir": None, "sample_map": "map.txt"},
-        "workflow_rule": None,
-        "allow_partial_run": False,
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
             "engine": "bash",
@@ -183,8 +183,8 @@ def test_dnaseq_builds_snakemake_command_and_config(tmp_path, monkeypatch):
         "debug": False,
         "genome": "hg38",
         "inputs": {"input_dir": None, "sample_map": None},
-        "workflow_rule": None,
-        "allow_partial_run": False,
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
             "engine": "snakemake",
@@ -226,8 +226,8 @@ def test_dnaseq_builds_snakemake_partial_rule_command(tmp_path, monkeypatch):
         "debug": False,
         "genome": "b37",
         "inputs": {"input_dir": None, "sample_map": None},
-        "workflow_rule": "call_variants",
-        "allow_partial_run": True,
+        "snakemake_parameters": {"target": "call_variants"},
+        "nextflow_parameters": {},
         "run_mode": "partial",
         "workflow": {
             "engine": "snakemake",
@@ -264,8 +264,8 @@ def test_dnaseq_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
         "debug": False,
         "genome": "hg38",
         "inputs": {"input_dir": None, "sample_map": None},
-        "workflow_rule": None,
-        "allow_partial_run": False,
+        "snakemake_parameters": {},
+        "nextflow_parameters": {"emit_report": True, "scatter_count": 2},
         "run_mode": "full",
         "cleanup_bam": True,
         "workflow": {
@@ -292,6 +292,8 @@ def test_dnaseq_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
     assert "--genome" in cmd and "hg38" in cmd
     assert "--cleanup_bam" in cmd and "true" in cmd
     assert "--vcf2hash_script" in cmd
+    assert "--emit_report" in cmd
+    assert "--scatter_count" in cmd and "2" in cmd
     assert recorded["engine"] == "nextflow"
 
 
@@ -315,8 +317,8 @@ def test_dnaseq_builds_nextflow_cohort_command_with_sample_map(tmp_path, monkeyp
         "debug": False,
         "genome": "b37",
         "inputs": {"input_dir": None, "sample_map": str(sample_map)},
-        "workflow_rule": None,
-        "allow_partial_run": False,
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
         "run_mode": "full",
         "cleanup_bam": False,
         "workflow": {
@@ -348,8 +350,8 @@ def test_dnaseq_nextflow_cohort_requires_sample_map(tmp_path):
         "debug": False,
         "genome": "b37",
         "inputs": {"input_dir": None, "sample_map": None},
-        "workflow_rule": None,
-        "allow_partial_run": False,
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
             "engine": "nextflow",
@@ -371,7 +373,7 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
     monkeypatch.setattr(dnaseq.platform, "machine", lambda: "x86_64")
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
-        recorded.update({"cmd": cmd, "cwd": cwd, "engine": engine, "env": env})
+        recorded.update({"cmd": cmd, "cwd": cwd, "log_path": log_path, "engine": engine, "env": env})
 
     monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
 
@@ -386,17 +388,17 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
         "run_id": "RIDSAREK",
         "debug": False,
         "genome": "external",
-        "nextflow_profile": "docker",
-        "nextflow_singularity_cache_dir": str(tmp_path / "nxf-cache"),
-        "nextflow_args": {
+        "nfcore_profile": "docker",
+        "nfcore_singularity_cache_dir": str(tmp_path / "nxf-cache"),
+        "nfcore_parameters": {
             "input": str(sample_map),
             "genome": "GATK.GRCh38",
             "tools": "haplotypecaller",
             "max_memory": "30.GB",
         },
         "inputs": {"input_dir": None, "sample_map": None},
-        "workflow_rule": None,
-        "allow_partial_run": False,
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
             "engine": "nextflow",
@@ -444,6 +446,7 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
     assert "NXF_APPTAINER_CACHEDIR" not in recorded["env"]
     assert "NXF_APPTAINER_LIBRARYDIR" not in recorded["env"]
     assert recorded["cwd"] == project_dir
+    assert recorded["log_path"] == project_dir / "nf-core_sarek_cohort.log"
     assert recorded["engine"] == "nextflow"
 
 
@@ -467,15 +470,15 @@ def test_dnaseq_nfcore_sarek_pins_amd64_docker_platform_on_arm64(tmp_path, monke
         "run_id": "RIDSAREKARM",
         "debug": False,
         "genome": "external",
-        "nextflow_profile": "docker",
-        "nextflow_args": {
+        "nfcore_profile": "docker",
+        "nfcore_parameters": {
             "input": str(sample_map),
             "genome": "GATK.GRCh38",
             "tools": "haplotypecaller",
         },
         "inputs": {"input_dir": None, "sample_map": None},
-        "workflow_rule": None,
-        "allow_partial_run": False,
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
             "engine": "nextflow",
@@ -501,62 +504,6 @@ def test_dnaseq_nfcore_sarek_pins_amd64_docker_platform_on_arm64(tmp_path, monke
     assert "runOptions = '--platform linux/amd64'" in config_text
 
 
-def test_nextflow_partial_run_raises(tmp_path):
-    project_dir = tmp_path / "proj"
-    project_dir.mkdir()
-    settings = {
-        "project_dir": str(project_dir),
-        "threads": 2,
-        "run_id": "RIDNFPART",
-        "debug": False,
-        "genome": "b37",
-        "inputs": {"input_dir": None, "sample_map": None},
-        "workflow_rule": "call_variants",
-        "allow_partial_run": True,
-        "run_mode": "partial",
-        "workflow": {
-            "engine": "nextflow",
-            "pipeline": "wes",
-            "mode": "single",
-            "gatk_version": "gatk-4.6",
-            "entrypoint": str(tmp_path / "main.nf"),
-            "config_file": str(tmp_path / "config.yaml"),
-            "helpers": {},
-        },
-    }
-    with pytest.raises(WorkflowResolutionError, match="nextflow"):
-        dnaseq.DNAseq(settings).variant_calling()
-
-
-def test_bash_partial_run_raises(tmp_path):
-    project_dir = tmp_path / "proj"
-    project_dir.mkdir()
-
-    settings = {
-        "project_dir": str(project_dir),
-        "threads": 2,
-        "run_id": "RIDPARTBASH",
-        "debug": False,
-        "genome": "b37",
-        "inputs": {"input_dir": None, "sample_map": None},
-        "workflow_rule": "call_variants",
-        "allow_partial_run": True,
-        "run_mode": "partial",
-        "workflow": {
-            "engine": "bash",
-            "pipeline": "wes",
-            "mode": "single",
-            "gatk_version": "gatk-4.6",
-            "entrypoint": str(tmp_path / "wes_single.sh"),
-            "config_file": None,
-            "helpers": {},
-        },
-    }
-
-    with pytest.raises(WorkflowResolutionError, match="Partial workflow runs are not supported"):
-        dnaseq.DNAseq(settings).variant_calling()
-
-
 def test_snakemake_missing_snakefile_raises(tmp_path):
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -568,8 +515,8 @@ def test_snakemake_missing_snakefile_raises(tmp_path):
         "debug": False,
         "genome": "b37",
         "inputs": {"input_dir": None, "sample_map": None},
-        "workflow_rule": None,
-        "allow_partial_run": False,
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
             "engine": "snakemake",
@@ -593,8 +540,8 @@ def test_dnaseq_raises_if_projectdir_missing(tmp_path):
         "run_id": "RID0",
         "debug": False,
         "inputs": {"input_dir": None, "sample_map": None},
-        "workflow_rule": None,
-        "allow_partial_run": False,
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
             "engine": "bash",
@@ -619,8 +566,8 @@ def test_variant_calling_raises_on_invalid_engine(tmp_path):
         "run_id": "RIDBAD",
         "debug": False,
         "inputs": {"input_dir": None, "sample_map": None},
-        "workflow_rule": None,
-        "allow_partial_run": False,
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
             "engine": "nope",

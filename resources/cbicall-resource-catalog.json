@@ -100,7 +100,7 @@
     "nf-core-sarek-managed-resources-v1": {
       "type": "nextflow-managed",
       "version": "sarek-3.8.1",
-      "description": "nf-core/Sarek resources managed by Nextflow profile and nf-core parameters",
+      "description": "nf-core/Sarek resources managed by nf-core profile and nf-core parameters",
       "compatible_workflows": [
         "nextflow/sarek/cohort/nf-core/v1"
       ],
@@ -112,7 +112,7 @@
     "nf-core-demo-managed-resources-v1": {
       "type": "nextflow-managed",
       "version": "demo-1.1.0",
-      "description": "nf-core/demo resources managed by Nextflow profile and nf-core parameters",
+      "description": "nf-core/demo resources managed by nf-core profile and nf-core parameters",
       "compatible_workflows": [
         "nextflow/demo/single/nf-core/v1"
       ],

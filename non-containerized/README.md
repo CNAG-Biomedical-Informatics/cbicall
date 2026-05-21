@@ -91,8 +91,9 @@ CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.
 
 ### Point CBIcall to your resource directory
 
-CBIcall workflows read resource paths from Bash `env.sh` files and the
-Snakemake `config.yaml`. In a non-containerized installation, point those files
+CBIcall workflows read resource paths from Bash `env.sh` files and from
+Snakemake/Nextflow `config.yaml` files. In a non-containerized installation,
+point those files
 to the host directory where you installed the CBIcall-provided resource bundle:
 
 ```bash
@@ -103,11 +104,13 @@ sed -i "s|^DATADIR=.*|DATADIR=${CBICALL_DATA}|" workflows/bash/gatk-3.5/env.sh
 sed -i "s|^datadir:.*|datadir: \"${CBICALL_DATA}\"|" workflows/snakemake/gatk-4.6/config.yaml
 ```
 
+The native Nextflow config is a symlink to this shared GATK 4.6 backend config, so one edit updates both Snakemake and Nextflow native workflows.
+
 Confirm that CBIcall sees the configured resources:
 
 ```bash
 bin/cbicall validate-resources
-bin/cbicall doctor -p examples/input/param.yaml
+bin/cbicall validate-parameters -p examples/input/param.yaml
 ```
 
 Ok, finally we are going to install `Java 8` in case you don't have it already:
@@ -123,13 +126,13 @@ Once you are in the root directory of the repo:
 **WES**:
 
 ```bash
-bin/cbicall test --wes -t 1
+bin/cbicall test --wes-bash -t 1
 ```
 
 **mtDNA**:
 
 ```bash
-bin/cbicall test --mit -t 1
+bin/cbicall test --mit-bash -t 1
 ```
 
 ## System requirements

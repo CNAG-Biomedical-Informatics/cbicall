@@ -29,7 +29,7 @@ executes it.
 | --- | --- |
 | Out-of-box analysis pipelines | WES, WGS, and mtDNA variant calling |
 | Workflow backends | Bash, Snakemake, and Nextflow |
-| External workflow adapter | Registered nf-core workflows launched through Nextflow |
+| External workflows | Registered nf-core workflows launched through the Nextflow backend |
 
 Use [Included Pipelines](pipelines/overview) for the shipped analyses and
 [Native Backends](backends/native) for how those workflows are dispatched.

@@ -10,7 +10,7 @@ They do not replace biological or clinical validation of the underlying variant-
 </div>
 
 This page is about execution tests. If the question is whether a parameters YAML
-resolves before launch, use `validate-param` as described in
+resolves before launch, use `validate-parameters` as described in
 [Configuration Reference](../help/configuration-reference). If the question is
 whether a custom resource catalog or installed resource directory is valid, use
 [Resource Validation](resource-validation).
@@ -21,6 +21,12 @@ From the repository root:
 
 ```bash
 bin/cbicall test --wes-bash -t 1
+```
+
+On HPC, pass the same runtime profile you use for normal runs:
+
+```bash
+bin/cbicall test --wes-bash -t 1 --runtime-profile cnag-hpc
 ```
 
 | Check | What it confirms |
@@ -41,6 +47,7 @@ bin/cbicall test --wes-snakemake -t 1
 bin/cbicall test --wes-nextflow -t 1
 bin/cbicall test --mit-bash -t 1
 bin/cbicall test --all -t 1
+bin/cbicall test --wes-bash -t 1 --runtime-profile cnag-hpc
 ```
 
 | Command | Use |
@@ -50,6 +57,7 @@ bin/cbicall test --all -t 1
 | `bin/cbicall test --wes-nextflow -t 1` | Optional Nextflow WES test. Requires `nextflow` on `PATH` and compares the resulting VCF to the same Bash reference VCF. |
 | `bin/cbicall test --mit-bash -t 1` | Optional mtDNA Bash integration test after the WES path is working. |
 | `bin/cbicall test --all -t 1` | Run all bundled integration examples. Optional engine tests are skipped when their engine is not installed. |
+| `bin/cbicall test --wes-bash -t 1 --runtime-profile cnag-hpc` | Run a bundled test through a non-local CBIcall runtime profile. |
 
 :::note[Workflow engine dependencies]
 Snakemake and Nextflow are not part of the CBIcall resource bundle. Install them

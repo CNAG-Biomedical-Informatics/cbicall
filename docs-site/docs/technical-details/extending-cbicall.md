@@ -49,7 +49,7 @@ After editing the workflow registry or resource files, run the relevant checks:
 ```bash
 bin/cbicall validate-registry
 bin/cbicall validate-resources
-bin/cbicall validate-param -p parameters.yaml
+bin/cbicall validate-parameters -p parameters.yaml
 ```
 
 `validate-registry` is mainly for pipeline developers. It checks that CBIcall's

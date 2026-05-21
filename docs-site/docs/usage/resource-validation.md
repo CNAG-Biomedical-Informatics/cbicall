@@ -36,7 +36,7 @@ Validate one resource key:
 bin/cbicall validate-resources --resource cbicall-germline-resources-v1
 ```
 
-For external nf-core adapters:
+For external nf-core workflows:
 
 ```bash
 bin/cbicall validate-resources --resource nf-core-demo-managed-resources-v1
@@ -56,10 +56,10 @@ compatibility keys exist.
 
 ## Validate One Run
 
-Use `validate-param` with the parameters YAML that will be launched:
+Use `validate-parameters` with the parameters YAML that will be launched:
 
 ```bash
-bin/cbicall validate-param -p my-center-wes.yaml
+bin/cbicall validate-parameters -p my-center-wes.yaml
 ```
 
 This checks the **selected resource** against the resolved workflow and

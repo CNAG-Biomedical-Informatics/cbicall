@@ -1,4 +1,4 @@
-# nf-core Backend
+# nf-core External Workflows
 
 CBIcall can launch registered [nf-core](https://nf-co.re/) workflows through
 [Nextflow](https://www.nextflow.io/docs/latest/). CBIcall validates the YAML,
@@ -6,16 +6,39 @@ pins the registered nf-core release, writes the Nextflow params/config files,
 and records the run metadata. The nf-core workflow keeps its own native output
 layout and runtime behavior.
 
-nf-core is an external workflow adapter in CBIcall, not one of the shipped
-WES/WGS/mtDNA analysis pipelines. Use this page when testing registered nf-core
+nf-core workflows are external workflows in CBIcall. They are launched through
+the Nextflow backend, but they are not one of the shipped WES/WGS/mtDNA
+analysis pipelines. Use this page when testing registered nf-core
 examples on a workstation or on a cluster.
 
 :::note[Run directory location]
 External nf-core run directories are created where `cbicall run` is launched,
-for example `cbicall_nextflow_sarek_cohort_external_nf-core_<run-id>/`.
+for example `cbicall_nf-core_sarek_cohort_<run-id>/`.
 This differs from native CBIcall WES/WGS/mtDNA pipelines, whose run directories
 are created under the discovered sample/input directory.
 :::
+
+## Profiles and Container Runtimes
+
+CBIcall passes `nfcore_profile` to nf-core as the Nextflow `-profile` value.
+Profiles are comma-separated and combined by Nextflow; each profile adds a
+different part of the runtime configuration.
+
+| Profile | What it does |
+| --- | --- |
+| `test` | Uses the nf-core workflow's built-in test data and smoke-test settings. It is not a software runtime. |
+| `docker` | Runs tasks with Docker. Images are pulled into the local Docker image store. |
+| `singularity` | Runs tasks with Singularity/Apptainer. Images are pulled into the Nextflow/Singularity cache. |
+| `conda` | Builds Conda environments when the workflow supports it. Useful in some setups, but not the recommended CBIcall HPC path. |
+
+For smoke tests, combine `test` with a runtime profile, for example
+`test,docker` on a Docker workstation or `test,singularity` on HPC. If
+`nfcore_parameters.input` is set, that explicit input overrides the test input
+provided by the nf-core `test` profile.
+
+For Singularity/Apptainer, image placement is controlled by the environment
+variables `NXF_SINGULARITY_CACHEDIR` and `NXF_SINGULARITY_LIBRARYDIR`, or by
+CBIcall's `nfcore_singularity_cache_dir` setting.
 
 ## How CBIcall Complements nf-core
 
@@ -47,29 +70,19 @@ pipeline:         demo
 workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-demo-managed-resources-v1
-nextflow_profile: test,singularity
-nextflow_args:    {}
+nfcore_profile: test,singularity
+nfcore_parameters:    {}
 ```
 
 Run it from the directory containing `demo.yaml`:
 
 ```bash
-../../bin/cbicall validate-param -p demo.yaml --no-color
+../../bin/cbicall validate-parameters -p demo.yaml --no-color
 ../../bin/cbicall run -p demo.yaml -t 4 --no-color
 ```
 
-:::note[How nf-core profiles combine]
-The `test` profile provides nf-core's built-in test inputs and smoke-test
-settings. It does not select the software runtime by itself. Combine it with a
-runtime profile such as `singularity` or `docker`: for example,
-`test,singularity`. If `nextflow_args.input` is set, that explicit input
-overrides the input supplied by the `test` profile. See the
-[nf-core profile documentation](https://nf-co.re/docs/usage/getting_started/configuration)
-for generic profile behavior.
-:::
-
 :::tip[Workstation Docker alternative]
-On an x86_64 workstation with Docker, change `nextflow_profile` to
+On an x86_64 workstation with Docker installed, change `nfcore_profile` to
 `test,docker`. On HPC, prefer `test,singularity`; Docker is usually unavailable
 inside cluster jobs.
 :::
@@ -83,7 +96,7 @@ run with `-t 1`, but demo generally cannot.
 ## Sarek Example
 
 [`nf-core/sarek`](https://nf-co.re/sarek) is launched as an external nf-core
-workflow. CBIcall passes `nextflow_args` to the generated Nextflow params file.
+workflow. CBIcall passes `nfcore_parameters` to the generated Nextflow params file.
 
 ```yaml
 mode:             cohort
@@ -91,9 +104,9 @@ pipeline:         sarek
 workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-sarek-managed-resources-v1
-nextflow_profile: singularity
-nextflow_singularity_cache_dir: nxf-singularity-cache
-nextflow_args:
+nfcore_profile: singularity
+nfcore_singularity_cache_dir: nxf-singularity-cache
+nfcore_parameters:
   input: sarek_samplesheet.csv
   genome: GATK.GRCh38
   tools: haplotypecaller
@@ -104,7 +117,7 @@ nextflow_args:
 ```
 
 Use `max_memory` to cap nf-core/Sarek process memory requests. CBIcall writes it
-to the generated nf-core params file and mirrors it in Nextflow
+to the generated nf-core parameters file and mirrors it in Nextflow
 `process.resourceLimits`, so the scheduler sees the same memory ceiling.
 The example interval file is a tiny GRCh38 chr22 BED stored with the registered
 Sarek workflow support files.
@@ -112,7 +125,7 @@ The example also skips Sarek's HaplotypeCaller filtering step because tiny
 single-chromosome smoke tests may not contain enough overlapping resource
 variants for GATK `FilterVariantTranches`.
 
-On HPC, use `nextflow_singularity_cache_dir` when the default shared container
+On HPC, use `nfcore_singularity_cache_dir` when the default shared container
 cache contains unreadable images or when you want the cache path recorded in the
 generated Nextflow config. CBIcall inherits any `NXF_*` variables already set by
 the shell or scheduler bootstrap.
@@ -128,27 +141,22 @@ When this file exists, `run-report.json` records a normalized VCF hash so
 
 ![Screenshot of a CBIcall HTML run comparison report for repeated nf-core/Sarek runs, showing matching framework, pipeline, resource, and canonical HaplotypeCaller VCF fingerprints.](/img/compare-runs-nfcore-html-report.png)
 
-For germline HaplotypeCaller testing, the Sarek samplesheet must include a
-header and mark the sample as normal:
+For the germline HaplotypeCaller smoke test, the Sarek samplesheet can use the
+minimal FASTQ layout shown in `examples/input/sarek_samplesheet.csv`:
 
 ```csv
-patient,sample,lane,fastq_1,fastq_2,status
-CNAG99901P_ex,CNAG99901P_ex,L001,/path/to/R1.fastq.gz,/path/to/R2.fastq.gz,0
+patient,sample,lane,fastq_1,fastq_2
+CNAG99901P_ex,CNAG99901P_ex,L001,/path/to/R1.fastq.gz,/path/to/R2.fastq.gz
 ```
 
-The `status` column uses Sarek's convention:
-
-| Value | Meaning |
-| --- | --- |
-| `0` | Normal |
-| `1` | Tumor |
-
-If the header is missing, Sarek may interpret the sample incorrectly and report
-that only tumor samples were provided.
+Keep the header. Without it, Sarek may parse the first sample row as column
+names and fail before launching the expected workflow steps. For the full
+samplesheet schema and advanced use cases, use the
+[nf-core/Sarek documentation](https://nf-co.re/sarek).
 
 ## HPC Notes
 
-On a cluster, load the runtime used by the selected Nextflow profile. Check
+On a cluster, load the runtime used by the selected nf-core profile. Check
 available modules:
 
 ```bash
@@ -215,7 +223,7 @@ This is a Nextflow compatibility setting, not a CBIcall parameter.
 :::tip[Container cache]
 If Apptainer/Singularity cannot read an image from a shared Nextflow cache, use a
 user-owned or project-owned cache and point CBIcall to it with
-`nextflow_singularity_cache_dir`. For general container and offline setup, see
+`nfcore_singularity_cache_dir`. For general container and offline setup, see
 the [nf-core documentation](https://nf-co.re/docs/usage/getting_started/configuration)
 and the [Nextflow container documentation](https://www.nextflow.io/docs/latest/container.html).
 :::
@@ -225,8 +233,8 @@ and the [Nextflow container documentation](https://www.nextflow.io/docs/latest/c
 CBIcall writes the main Nextflow launcher log in the run directory:
 
 ```text
-cbicall_nextflow_<pipeline>_<mode>_external_nf-core_<run_id>/
-  nextflow_<pipeline>_<mode>_external_nf-core.log
+cbicall_nf-core_<pipeline>_<mode>_<run_id>/
+  nf-core_<pipeline>_<mode>.log
   .nextflow.log
   cbicall_external_nextflow.params.yaml
   cbicall_external_nextflow.config

@@ -225,7 +225,7 @@ This checks that the catalog entry is well formed and that its
 ## 5. Validate One Real Run
 
 Resource catalog validation does not know which profile or runtime directory a user will
-select. Use `validate-param` with a concrete parameters file to validate the selected
+select. Use `validate-parameters` with a concrete parameters file to validate the selected
 workflow and bundle together:
 
 ```yaml
@@ -241,10 +241,10 @@ input_dir: SAMPLE01
 Then run:
 
 ```bash
-bin/cbicall validate-param -p my-center-wes.yaml
+bin/cbicall validate-parameters -p my-center-wes.yaml
 ```
 
-`validate-param` resolves the workflow implementation, checks that the selected
+`validate-parameters` resolves the workflow implementation, checks that the selected
 `resource` is compatible with it, resolves the backend resource location,
 and verifies installed bundle metadata when `cbicall-resource-id.json` or
 `cbicall-resource-installation.json` is present in `DATADIR`.
@@ -255,6 +255,6 @@ and verifies installed bundle metadata when `cbicall-resource-id.json` or
 - [ ] Add the bundle entry to `resources/cbicall-resource-catalog.json`.
 - [ ] Declare compatible workflow implementation keys.
 - [ ] Add archive and identifier checksums for CBIcall-provided downloads.
-- [ ] Keep backend-specific paths in `env.sh` or Snakemake `config.yaml`.
+- [ ] Keep backend-specific paths in `env.sh` or Snakemake/Nextflow `config.yaml`.
 - [ ] Run `bin/cbicall validate-resources --resource <resource-key>`.
-- [ ] Run `bin/cbicall validate-param -p <parameters.yaml>` with that resource selected.
+- [ ] Run `bin/cbicall validate-parameters -p <parameters.yaml>` with that resource selected.

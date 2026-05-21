@@ -58,22 +58,22 @@ _DEFAULTS = {
     "technology": "Illumina HiSeq",
     "workflow_engine": "bash",
     "profile": "local",
-    "nextflow_profile": None,
-    "nextflow_args": {},
-    "nextflow_singularity_cache_dir": None,
+    "snakemake_parameters": {},
+    "nextflow_parameters": {},
+    "nfcore_profile": None,
+    "nfcore_parameters": {},
+    "nfcore_singularity_cache_dir": None,
     "gatk_version": "gatk-3.5",
     "workflow_version": None,
     "pipeline_version": None,
     "project_dir": "cbicall",
     "cleanup_bam": False,
-    "workflow_rule": None,
-    "allow_partial_run": False,
     "genome": None,  # Option 1: effective default assigned in _apply_genome_rules
     "resource": "cbicall-germline-resources-v1",
 }
 
 _RUNTIME_ONLY_KEYS = {
-    "profile": "profile is a runtime option; use --profile instead of setting it in the parameters YAML.",
+    "profile": "profile is a runtime option; use --runtime-profile instead of setting it in the parameters YAML.",
 }
 
 
@@ -193,24 +193,54 @@ def _validate_enums_except_genome(cfg: dict) -> None:
     _validate_enum("workflow_engine", cfg["workflow_engine"], WORKFLOW_ENGINE_VALUES)
 
 
-def _validate_partial_run_settings(cfg: dict) -> None:
-    workflow_rule = cfg.get("workflow_rule")
-    allow_partial_run = cfg.get("allow_partial_run")
+def _validate_mapping_parameter(cfg: dict, key: str) -> dict:
+    value = cfg.get(key)
+    if value is None:
+        value = {}
+    if not isinstance(value, dict):
+        raise ParameterValidationError(f"{key} must be a mapping.")
+    cfg[key] = dict(value)
+    return cfg[key]
 
-    if workflow_rule is not None:
-        if not isinstance(workflow_rule, str) or not workflow_rule.strip():
-            raise ParameterValidationError(
-                "workflow_rule must be a non-empty string when provided."
-            )
-        cfg["workflow_rule"] = workflow_rule.strip()
 
-    if not isinstance(allow_partial_run, bool):
-        raise ParameterValidationError("allow_partial_run must be a boolean value.")
+def _validate_backend_parameter_settings(cfg: dict) -> None:
+    snakemake_parameters = _validate_mapping_parameter(cfg, "snakemake_parameters")
+    nextflow_parameters = _validate_mapping_parameter(cfg, "nextflow_parameters")
 
-    if cfg.get("workflow_rule") and not allow_partial_run:
+    if snakemake_parameters and cfg.get("workflow_engine") != "snakemake":
+        raise ParameterValidationError("snakemake_parameters requires workflow_engine='snakemake'.")
+    if nextflow_parameters and (cfg.get("workflow_engine") != "nextflow" or cfg.get("gatk_version") == "nf-core"):
+        raise ParameterValidationError("nextflow_parameters requires a native workflow_engine='nextflow' run.")
+
+    target = snakemake_parameters.get("target")
+    if target is not None:
+        if not isinstance(target, str) or not target.strip():
+            raise ParameterValidationError("snakemake_parameters.target must be a non-empty string when provided.")
+        snakemake_parameters["target"] = target.strip()
+
+    reserved_snakemake = sorted(set(snakemake_parameters) & {"genome", "pipeline", "sample_map", "workspace"})
+    if reserved_snakemake:
         raise ParameterValidationError(
-            f"workflow_rule was set to '{cfg['workflow_rule']}', but --allow-partial-run was not provided. "
-            "Refusing to start a partial workflow run."
+            "snakemake_parameters cannot set CBIcall-controlled parameters: " + ", ".join(reserved_snakemake)
+        )
+
+    reserved_nextflow = sorted(
+        set(nextflow_parameters)
+        & {
+            "pipeline",
+            "genome",
+            "threads",
+            "cleanup_bam",
+            "sample_map",
+            "workspace",
+            "coverage_script",
+            "vcf2sex_script",
+            "vcf2hash_script",
+        }
+    )
+    if reserved_nextflow:
+        raise ParameterValidationError(
+            "nextflow_parameters cannot set CBIcall-controlled parameters: " + ", ".join(reserved_nextflow)
         )
 
 
@@ -264,52 +294,52 @@ def _normalize_workflow_version_settings(cfg: dict) -> None:
     cfg["gatk_version"] = workflow_version
 
 
-def _validate_external_nextflow_settings(cfg: dict) -> None:
-    cache_dir = cfg.get("nextflow_singularity_cache_dir")
+def _validate_nfcore_settings(cfg: dict) -> None:
+    cache_dir = cfg.get("nfcore_singularity_cache_dir")
     if cfg.get("gatk_version") != "nf-core":
         if cache_dir is not None:
             raise ParameterValidationError(
-                "nextflow_singularity_cache_dir requires workflow_version='nf-core'."
+                "nfcore_singularity_cache_dir requires workflow_version='nf-core'."
             )
         return
     if cfg.get("workflow_engine") != "nextflow":
         raise ParameterValidationError("workflow_version='nf-core' requires workflow_engine='nextflow'.")
 
-    profile = cfg.get("nextflow_profile")
+    profile = cfg.get("nfcore_profile")
     if profile is None or not str(profile).strip():
-        raise ParameterValidationError("workflow_version='nf-core' requires 'nextflow_profile'.")
-    cfg["nextflow_profile"] = str(profile).strip()
+        raise ParameterValidationError("workflow_version='nf-core' requires 'nfcore_profile'.")
+    cfg["nfcore_profile"] = str(profile).strip()
 
-    nextflow_args = cfg.get("nextflow_args")
-    if nextflow_args is None:
-        nextflow_args = {}
-    if not isinstance(nextflow_args, dict):
-        raise ParameterValidationError("nextflow_args must be a mapping of nf-core/Nextflow parameters.")
-    reserved = sorted(set(nextflow_args) & {"outdir", "max_cpus"})
+    nfcore_parameters = cfg.get("nfcore_parameters")
+    if nfcore_parameters is None:
+        nfcore_parameters = {}
+    if not isinstance(nfcore_parameters, dict):
+        raise ParameterValidationError("nfcore_parameters must be a mapping of nf-core parameters.")
+    reserved = sorted(set(nfcore_parameters) & {"outdir", "max_cpus"})
     if reserved:
         raise ParameterValidationError(
-            "nextflow_args cannot set CBIcall-controlled parameters: " + ", ".join(reserved)
+            "nfcore_parameters cannot set CBIcall-controlled parameters: " + ", ".join(reserved)
         )
-    cfg["nextflow_args"] = dict(nextflow_args)
+    cfg["nfcore_parameters"] = dict(nfcore_parameters)
 
     if cache_dir is not None:
         cache_dir = str(cache_dir).strip()
         if not cache_dir:
             raise ParameterValidationError(
-                "nextflow_singularity_cache_dir must be a non-empty path when provided."
+                "nfcore_singularity_cache_dir must be a non-empty path when provided."
             )
-        cfg["nextflow_singularity_cache_dir"] = cache_dir
+        cfg["nfcore_singularity_cache_dir"] = cache_dir
 
 
 def _is_uri(value: str) -> bool:
     return "://" in value or value.startswith(("s3:", "gs:"))
 
 
-def _resolve_nextflow_arg_paths(value, base_dir: Path):
+def _resolve_nfcore_param_paths(value, base_dir: Path):
     if isinstance(value, dict):
-        return {key: _resolve_nextflow_arg_paths(item, base_dir) for key, item in value.items()}
+        return {key: _resolve_nfcore_param_paths(item, base_dir) for key, item in value.items()}
     if isinstance(value, list):
-        return [_resolve_nextflow_arg_paths(item, base_dir) for item in value]
+        return [_resolve_nfcore_param_paths(item, base_dir) for item in value]
     if not isinstance(value, str) or not value.strip() or _is_uri(value):
         return value
     path = Path(value)
@@ -352,9 +382,9 @@ def read_param_file(yaml_file: str) -> dict:
     _validate_enums_except_genome(cfg)
     _validate_profile_settings(cfg)
     _validate_pipeline_version_settings(cfg)
-    _validate_partial_run_settings(cfg)
+    _validate_backend_parameter_settings(cfg)
     _validate_resource_settings(cfg)
-    _validate_external_nextflow_settings(cfg)
+    _validate_nfcore_settings(cfg)
 
     # Apply shared genome rules
     user_provided_genome = "genome" in params
@@ -377,12 +407,12 @@ def read_param_file(yaml_file: str) -> dict:
             sm = yaml_path.parent / sm
         cfg["sample_map"] = str(sm.resolve())
 
-    cfg["nextflow_args"] = _resolve_nextflow_arg_paths(cfg.get("nextflow_args", {}), yaml_path.parent)
-    if cfg.get("nextflow_singularity_cache_dir") is not None:
-        cache_dir = Path(cfg["nextflow_singularity_cache_dir"])
+    cfg["nfcore_parameters"] = _resolve_nfcore_param_paths(cfg.get("nfcore_parameters", {}), yaml_path.parent)
+    if cfg.get("nfcore_singularity_cache_dir") is not None:
+        cache_dir = Path(cfg["nfcore_singularity_cache_dir"])
         if not cache_dir.is_absolute():
             cache_dir = yaml_path.parent / cache_dir
-        cfg["nextflow_singularity_cache_dir"] = str(cache_dir.resolve())
+        cfg["nfcore_singularity_cache_dir"] = str(cache_dir.resolve())
 
     # Validate pipeline-mode combination for selected GATK version
     _validate_combos(cfg)
@@ -399,9 +429,9 @@ def _merge_and_validate_param_values(params: dict) -> dict:
     _validate_enums_except_genome(cfg_in)
     _validate_profile_settings(cfg_in)
     _validate_pipeline_version_settings(cfg_in)
-    _validate_partial_run_settings(cfg_in)
+    _validate_backend_parameter_settings(cfg_in)
     _validate_resource_settings(cfg_in)
-    _validate_external_nextflow_settings(cfg_in)
+    _validate_nfcore_settings(cfg_in)
     _apply_genome_rules(cfg_in, user_provided_genome=("genome" in params))
     _validate_enum("genome", cfg_in["genome"], GENOME_VALUES)
     _validate_combos(cfg_in)
@@ -420,8 +450,10 @@ def _build_runtime_identity(cfg_in: dict) -> dict:
     run_id = f"{now}{pid % 100000:05d}"
     run_date = time.ctime()
 
-    tmp_str = "_".join(
-        [
+    if cfg_in["gatk_version"] == "nf-core":
+        name_parts = [cfg_in["project_dir"], "nf-core", cfg_in["pipeline"], cfg_in["mode"], run_id]
+    else:
+        name_parts = [
             cfg_in["project_dir"],
             cfg_in["workflow_engine"],
             cfg_in["pipeline"],
@@ -430,7 +462,7 @@ def _build_runtime_identity(cfg_in: dict) -> dict:
             cfg_in["gatk_version"],
             run_id,
         ]
-    )
+    tmp_str = "_".join(name_parts)
 
     input_dir = cfg_in.get("input_dir")
     output_basename = None
@@ -546,9 +578,11 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         user="",
         workflow_engine=cfg_in["workflow_engine"],
         profile=cfg_in["profile"],
-        nextflow_profile=cfg_in.get("nextflow_profile"),
-        nextflow_args=cfg_in.get("nextflow_args", {}),
-        nextflow_singularity_cache_dir=cfg_in.get("nextflow_singularity_cache_dir"),
+        snakemake_parameters=cfg_in.get("snakemake_parameters", {}),
+        nextflow_parameters=cfg_in.get("nextflow_parameters", {}),
+        nfcore_profile=cfg_in.get("nfcore_profile"),
+        nfcore_parameters=cfg_in.get("nfcore_parameters", {}),
+        nfcore_singularity_cache_dir=cfg_in.get("nfcore_singularity_cache_dir"),
         genome=cfg_in["genome"],
         pipeline=cfg_in["pipeline"],
         mode=cfg_in["mode"],
@@ -567,9 +601,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         host_threads=0,
         host_threads_minus_one=0,
         compression_cmd="",
-        workflow_rule=cfg_in.get("workflow_rule"),
-        allow_partial_run=bool(cfg_in.get("allow_partial_run", False)),
-        run_mode="partial" if cfg_in.get("workflow_rule") else "full",
+        run_mode="partial" if cfg_in.get("snakemake_parameters", {}).get("target") else "full",
         resources={"bundle": bundle_resource},
     )
     runtime_identity = _build_runtime_identity(cfg_in)
@@ -578,9 +610,11 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         user=runtime_identity["user"],
         workflow_engine=config.workflow_engine,
         profile=config.profile,
-        nextflow_profile=config.nextflow_profile,
-        nextflow_args=config.nextflow_args,
-        nextflow_singularity_cache_dir=config.nextflow_singularity_cache_dir,
+        snakemake_parameters=config.snakemake_parameters,
+        nextflow_parameters=config.nextflow_parameters,
+        nfcore_profile=config.nfcore_profile,
+        nfcore_parameters=config.nfcore_parameters,
+        nfcore_singularity_cache_dir=config.nfcore_singularity_cache_dir,
         genome=config.genome,
         pipeline=config.pipeline,
         mode=config.mode,
@@ -596,8 +630,6 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         host_threads=host_metadata["host_threads"],
         host_threads_minus_one=host_metadata["host_threads_minus_one"],
         compression_cmd=host_metadata["compression_cmd"],
-        workflow_rule=config.workflow_rule,
-        allow_partial_run=config.allow_partial_run,
         run_mode=config.run_mode,
         capture_label=host_metadata.get("capture_label"),
         arch=host_metadata.get("arch"),

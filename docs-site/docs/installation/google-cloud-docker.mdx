@@ -20,7 +20,7 @@ The recipe runs:
 
 ```bash
 bin/cbicall validate-resources
-bin/cbicall validate-param -p examples/input/param.yaml
+bin/cbicall validate-parameters -p examples/input/param.yaml
 bin/cbicall test --wes-bash -t 1
 ```
 
@@ -29,7 +29,7 @@ Expected evidence:
 | Evidence | Meaning |
 | --- | --- |
 | `validate-resources` succeeds | The resource catalog is well formed and points to declared workflows. |
-| `validate-param` resolves the run | The parameters YAML resolves to a concrete workflow, profile, pipeline version, and resource. |
+| `validate-parameters` resolves the run | The parameters YAML resolves to a concrete workflow, profile, pipeline version, and resource. |
 | `test --wes-bash` succeeds | The generated WES VCF matches the shipped reference output under the integration-test comparison. |
 | Normalized [SHA-256](https://en.wikipedia.org/wiki/SHA-2) is printed | The test computes this on the fly from the filtered, sorted reference and test VCF records. |
 | `run-report.json` exists | The cloud run records workflow and resource provenance. |
@@ -184,11 +184,13 @@ sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-3.5/env.sh
 sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/config.yaml
 ```
 
+The native Nextflow config is a symlink to this shared GATK 4.6 backend config, so one edit updates both Snakemake and Nextflow native workflows.
+
 ## 6. Run the Reproducibility Check
 
 ```bash
 cbicall_docker bin/cbicall validate-resources
-cbicall_docker bin/cbicall validate-param -p examples/input/param.yaml
+cbicall_docker bin/cbicall validate-parameters -p examples/input/param.yaml
 cbicall_docker bin/cbicall test --wes-bash -t 1
 ```
 

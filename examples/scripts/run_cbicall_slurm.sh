@@ -78,7 +78,7 @@ YAML
 srun "\$CBICALL" \\
      run \\
      -p "\$YAML_FILE" \\
-     --profile cnag-hpc \\
+     --runtime-profile cnag-hpc \\
      -t $THREADS
 EOF
 

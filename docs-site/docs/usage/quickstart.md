@@ -29,7 +29,7 @@ with the shipped reference output.
 :::tip[Need deeper checks?]
 Use [Integration Tests](integration-tests) for bundled WES/mtDNA test details,
 [Configuration Reference](../help/configuration-reference) for
-`validate-param`, and [Resource Validation](resource-validation) for checking
+`validate-parameters`, and [Resource Validation](resource-validation) for checking
 the selected resource entry.
 :::
 

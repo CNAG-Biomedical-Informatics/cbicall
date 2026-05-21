@@ -61,8 +61,9 @@ CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.
 
 ### Point CBIcall to your resource directory
 
-CBIcall workflows read resource paths from Bash `env.sh` files and the
-Snakemake `config.yaml`. In Docker, mount your host resource directory as
+CBIcall workflows read resource paths from Bash `env.sh` files and from
+Snakemake/Nextflow `config.yaml` files. In Docker, mount your host resource
+directory as
 `/cbicall-data` and point CBIcall to that container path:
 
 ```bash
@@ -70,6 +71,8 @@ sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-4.6/env.sh
 sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-3.5/env.sh
 sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/config.yaml
 ```
+
+The native Nextflow config is a symlink to this shared GATK 4.6 backend config, so one edit updates both Snakemake and Nextflow native workflows.
 
 ### Method 1: Installing from Docker Hub (fast)
 
@@ -127,7 +130,7 @@ Inside the container, confirm that CBIcall sees the mounted resources:
 
 ```bash
 bin/cbicall validate-resources
-bin/cbicall validate-param -p examples/input/param.yaml
+bin/cbicall validate-parameters -p examples/input/param.yaml
 ```
 
 ## Performing integration tests

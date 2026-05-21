@@ -71,11 +71,11 @@ class RunSettings:
     cleanup_bam: bool
     inputs: InputsSpec
     workflow: WorkflowSpec
-    nextflow_profile: Optional[str] = None
-    nextflow_args: Dict[str, Any] = field(default_factory=dict)
-    nextflow_singularity_cache_dir: Optional[str] = None
-    workflow_rule: Optional[str] = None
-    allow_partial_run: bool = False
+    snakemake_parameters: Dict[str, Any] = field(default_factory=dict)
+    nextflow_parameters: Dict[str, Any] = field(default_factory=dict)
+    nfcore_profile: Optional[str] = None
+    nfcore_parameters: Dict[str, Any] = field(default_factory=dict)
+    nfcore_singularity_cache_dir: Optional[str] = None
     run_mode: str = "full"
 
     @classmethod
@@ -88,13 +88,13 @@ class RunSettings:
             threads=int(data["threads"]),
             debug=bool(data["debug"]),
             profile=str(data.get("profile", "local")),
-            nextflow_profile=data.get("nextflow_profile"),
-            nextflow_args=dict(data.get("nextflow_args", {})),
-            nextflow_singularity_cache_dir=data.get("nextflow_singularity_cache_dir"),
+            snakemake_parameters=dict(data.get("snakemake_parameters", {})),
+            nextflow_parameters=dict(data.get("nextflow_parameters", {})),
+            nfcore_profile=data.get("nfcore_profile"),
+            nfcore_parameters=dict(data.get("nfcore_parameters", {})),
+            nfcore_singularity_cache_dir=data.get("nfcore_singularity_cache_dir"),
             genome=data.get("genome"),
             cleanup_bam=bool(data.get("cleanup_bam", False)),
-            workflow_rule=data.get("workflow_rule"),
-            allow_partial_run=bool(data.get("allow_partial_run", False)),
             run_mode=str(data.get("run_mode", "full")),
             inputs=InputsSpec.from_mapping(data.get("inputs", {})),
             workflow=WorkflowSpec.from_mapping(data["workflow"]),
@@ -107,13 +107,13 @@ class RunSettings:
             "threads": self.threads,
             "debug": self.debug,
             "profile": self.profile,
-            "nextflow_profile": self.nextflow_profile,
-            "nextflow_args": dict(self.nextflow_args),
-            "nextflow_singularity_cache_dir": self.nextflow_singularity_cache_dir,
+            "snakemake_parameters": dict(self.snakemake_parameters),
+            "nextflow_parameters": dict(self.nextflow_parameters),
+            "nfcore_profile": self.nfcore_profile,
+            "nfcore_parameters": dict(self.nfcore_parameters),
+            "nfcore_singularity_cache_dir": self.nfcore_singularity_cache_dir,
             "genome": self.genome,
             "cleanup_bam": self.cleanup_bam,
-            "workflow_rule": self.workflow_rule,
-            "allow_partial_run": self.allow_partial_run,
             "run_mode": self.run_mode,
             "inputs": self.inputs.to_dict(),
             "workflow": self.workflow.to_dict(),
@@ -140,11 +140,11 @@ class ResolvedConfig:
     host_threads: int
     host_threads_minus_one: int
     compression_cmd: str
-    nextflow_profile: Optional[str] = None
-    nextflow_args: Dict[str, Any] = field(default_factory=dict)
-    nextflow_singularity_cache_dir: Optional[str] = None
-    workflow_rule: Optional[str] = None
-    allow_partial_run: bool = False
+    snakemake_parameters: Dict[str, Any] = field(default_factory=dict)
+    nextflow_parameters: Dict[str, Any] = field(default_factory=dict)
+    nfcore_profile: Optional[str] = None
+    nfcore_parameters: Dict[str, Any] = field(default_factory=dict)
+    nfcore_singularity_cache_dir: Optional[str] = None
     run_mode: str = "full"
     capture_label: Optional[str] = None
     arch: Optional[str] = None
@@ -166,9 +166,11 @@ class ResolvedConfig:
             user=str(data.get("user", "")),
             workflow_engine=str(workflow_engine),
             profile=str(data.get("profile", "local")),
-            nextflow_profile=data.get("nextflow_profile"),
-            nextflow_args=dict(data.get("nextflow_args", {})),
-            nextflow_singularity_cache_dir=data.get("nextflow_singularity_cache_dir"),
+            snakemake_parameters=dict(data.get("snakemake_parameters", {})),
+            nextflow_parameters=dict(data.get("nextflow_parameters", {})),
+            nfcore_profile=data.get("nfcore_profile"),
+            nfcore_parameters=dict(data.get("nfcore_parameters", {})),
+            nfcore_singularity_cache_dir=data.get("nfcore_singularity_cache_dir"),
             genome=data.get("genome"),
             pipeline=str(pipeline),
             mode=str(mode),
@@ -184,8 +186,6 @@ class ResolvedConfig:
             host_threads=int(data.get("host_threads", 0)),
             host_threads_minus_one=int(data.get("host_threads_minus_one", 0)),
             compression_cmd=str(data.get("compression_cmd", "")),
-            workflow_rule=data.get("workflow_rule"),
-            allow_partial_run=bool(data.get("allow_partial_run", False)),
             run_mode=str(data.get("run_mode", "full")),
             capture_label=data.get("capture_label"),
             arch=data.get("arch"),
@@ -198,9 +198,11 @@ class ResolvedConfig:
             "user": self.user,
             "workflow_engine": self.workflow_engine,
             "profile": self.profile,
-            "nextflow_profile": self.nextflow_profile,
-            "nextflow_args": dict(self.nextflow_args),
-            "nextflow_singularity_cache_dir": self.nextflow_singularity_cache_dir,
+            "snakemake_parameters": dict(self.snakemake_parameters),
+            "nextflow_parameters": dict(self.nextflow_parameters),
+            "nfcore_profile": self.nfcore_profile,
+            "nfcore_parameters": dict(self.nfcore_parameters),
+            "nfcore_singularity_cache_dir": self.nfcore_singularity_cache_dir,
             "genome": self.genome,
             "pipeline": self.pipeline,
             "mode": self.mode,
@@ -216,8 +218,6 @@ class ResolvedConfig:
             "host_threads": self.host_threads,
             "host_threads_minus_one": self.host_threads_minus_one,
             "compression_cmd": self.compression_cmd,
-            "workflow_rule": self.workflow_rule,
-            "allow_partial_run": self.allow_partial_run,
             "run_mode": self.run_mode,
             "capture_label": self.capture_label,
             "arch": self.arch,

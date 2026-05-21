@@ -27,8 +27,8 @@ For WES/WGS cohort runs, `sample_map` points to a TSV containing sample IDs and 
 For mtDNA runs, CBIcall expects BAM files from previous WES/WGS single-sample runs. mtDNA workflows do not start from FASTQ files.
 
 For external nf-core workflows, workflow-specific inputs are passed in
-`nextflow_args`. For example, Sarek expects its samplesheet under
-`nextflow_args.input`. CBIcall launches the registered Nextflow workflow and
+`nfcore_parameters`. For example, Sarek expects its samplesheet under
+`nfcore_parameters.input`. CBIcall launches the registered Nextflow workflow and
 leaves its native output directory layout unchanged.
 
 ## CLI Synopsis
@@ -127,9 +127,9 @@ pipeline:         sarek
 workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-sarek-managed-resources-v1
-nextflow_profile: singularity
-nextflow_singularity_cache_dir: nxf-singularity-cache
-nextflow_args:
+nfcore_profile: singularity
+nfcore_singularity_cache_dir: nxf-singularity-cache
+nfcore_parameters:
   input: sarek_samplesheet.csv
   genome: GATK.GRCh38
   tools: haplotypecaller
@@ -147,8 +147,8 @@ pipeline:         demo
 workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-demo-managed-resources-v1
-nextflow_profile: test,singularity
-nextflow_args:    {}
+nfcore_profile: test,singularity
+nfcore_parameters:    {}
 ```
 
 This example uses nf-core's built-in test profile with Singularity/Apptainer,
@@ -158,21 +158,27 @@ which is the recommended profile on HPC. On an x86_64 Docker workstation,
 For workstation and cluster runs with nf-core workflows, see
 [nf-core Workflows](../backends/nf-core).
 
-## Partial Runs
+## Backend-Specific Parameters
 
-Partial runs are intended for targeted Snakemake execution and restarts. Leave `workflow_rule` unset for a normal full run.
+Use backend-specific parameter blocks for values that belong to an execution backend rather than to CBIcall's global analysis contract.
+
+For targeted Snakemake execution, set a Snakemake target:
 
 ```yaml
 workflow_engine: snakemake
-workflow_rule: call_variants
-allow_partial_run: true
+snakemake_parameters:
+  target: call_variants
 ```
 
-Behavior:
+For native CBIcall Nextflow workflows, pass extra workflow parameters with:
 
-- if `workflow_rule` is unset, the full workflow runs
-- if `workflow_rule` is set, the run is marked as partial in metadata and CLI output
-- if `workflow_rule` is set without `allow_partial_run: true`, CBIcall refuses to start
+```yaml
+workflow_engine: nextflow
+nextflow_parameters:
+  publish_debug_files: true
+```
+
+CBIcall still owns core values such as `pipeline`, `genome`, `threads`, helper script paths, and cohort workspace names, and refuses backend parameter blocks that try to override them.
 
 ## Outputs and Logs
 

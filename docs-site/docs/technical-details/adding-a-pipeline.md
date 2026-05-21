@@ -145,7 +145,7 @@ CBIcall launches Snakemake with:
 - the shared config file through `--configfile`
 - `genome` through `--config`
 - `sample_map` and `workspace` for cohort workflows when needed
-- `workflow_rule` as the Snakemake target when partial execution is requested
+- `snakemake_parameters.target` as the Snakemake target when targeted execution is requested
 
 ### External Nextflow Layout
 
@@ -198,7 +198,7 @@ When adding another nf-core workflow, add a registry entry with `source_type`,
 a compatible resource catalog entry if users should be able to select it through
 the `resource` key.
 For nf-core workflows where references and containers are managed by the
-Nextflow profile, use a lightweight `type: nextflow-managed` resource entry.
+nf-core profile, use a lightweight `type: nextflow-managed` resource entry.
 See [Adding Resources](adding-resources) for the resource catalog contract.
 
 ## 2. Register the Pipeline
@@ -320,7 +320,7 @@ Good first checks:
 ```bash
 bin/cbicall validate-registry
 bin/cbicall validate-resources
-bin/cbicall validate-param -p mypipe.yaml
+bin/cbicall validate-parameters -p mypipe.yaml
 bin/cbicall run -p mypipe.yaml -t 2
 ```
 

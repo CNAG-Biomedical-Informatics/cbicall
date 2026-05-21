@@ -4,5 +4,5 @@ workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-demo-managed-resources-v1
 
-nextflow_profile: test,singularity
-nextflow_args:    {}
+nfcore_profile: test,singularity
+nfcore_parameters:    {}

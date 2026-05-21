@@ -209,7 +209,7 @@ def test_read_param_file_accepts_project_dir(tmp_path):
     assert cfg1["project_dir"] == "my_run"
 
 
-def test_read_param_file_rejects_workflow_rule_without_allow_partial_run(tmp_path):
+def test_read_param_file_rejects_removed_workflow_rule_key(tmp_path):
     p = tmp_path / "params_partial.yaml"
     p.write_text(
         "mode: single\n"
@@ -219,27 +219,23 @@ def test_read_param_file_rejects_workflow_rule_without_allow_partial_run(tmp_pat
         "workflow_rule: call_variants\n",
         encoding="utf-8",
     )
-    with pytest.raises(
-        ParameterValidationError,
-        match=r"workflow_rule was set to 'call_variants', but --allow-partial-run was not provided",
-    ):
+    with pytest.raises(ParameterValidationError, match="workflow_rule.*does not exist"):
         config_mod.read_param_file(str(p))
 
 
-def test_read_param_file_accepts_partial_run_fields(tmp_path):
+def test_read_param_file_accepts_snakemake_target_parameter(tmp_path):
     p = tmp_path / "params_partial_ok.yaml"
     p.write_text(
         "mode: single\n"
         "pipeline: wes\n"
         "workflow_engine: snakemake\n"
         "gatk_version: gatk-4.6\n"
-        "workflow_rule: call_variants\n"
-        "allow_partial_run: true\n",
+        "snakemake_parameters:\n"
+        "  target: call_variants\n",
         encoding="utf-8",
     )
     cfg = config_mod.read_param_file(str(p))
-    assert cfg["workflow_rule"] == "call_variants"
-    assert cfg["allow_partial_run"] is True
+    assert cfg["snakemake_parameters"]["target"] == "call_variants"
 
 
 def test_read_param_file_accepts_resource(tmp_path):
@@ -280,7 +276,7 @@ def test_read_param_file_rejects_profile_runtime_option(tmp_path):
         "profile: cnag-hpc\n",
         encoding="utf-8",
     )
-    with pytest.raises(ParameterValidationError, match="use --profile"):
+    with pytest.raises(ParameterValidationError, match="use --runtime-profile"):
         config_mod.read_param_file(str(p))
 
 
@@ -349,12 +345,11 @@ def test_set_config_values_partial_run_metadata(monkeypatch, tmp_path):
             "pipeline": "wes",
             "workflow_engine": "snakemake",
             "gatk_version": "gatk-4.6",
-            "workflow_rule": "call_variants",
-            "allow_partial_run": True,
+            "snakemake_parameters": {"target": "call_variants"},
+            "nextflow_parameters": {},
         }
     )
-    assert cfg["workflow_rule"] == "call_variants"
-    assert cfg["allow_partial_run"] is True
+    assert cfg["snakemake_parameters"]["target"] == "call_variants"
     assert cfg["run_mode"] == "partial"
 
 
@@ -1190,9 +1185,9 @@ def test_read_param_file_accepts_sarek_external_nextflow(tmp_path):
         "workflow_engine: nextflow\n"
         "workflow_version: nf-core\n"
         "resource: nf-core-sarek-managed-resources-v1\n"
-        "nextflow_profile: docker\n"
-        "nextflow_singularity_cache_dir: nxf-cache\n"
-        "nextflow_args:\n"
+        "nfcore_profile: docker\n"
+        "nfcore_singularity_cache_dir: nxf-cache\n"
+        "nfcore_parameters:\n"
         "  input: samplesheet.csv\n"
         "  genome: GATK.GRCh38\n"
         "  tools: haplotypecaller\n",
@@ -1202,12 +1197,12 @@ def test_read_param_file_accepts_sarek_external_nextflow(tmp_path):
     cfg = config_mod.read_param_file(str(p))
     assert cfg["gatk_version"] == "nf-core"
     assert cfg["genome"] == "external"
-    assert cfg["nextflow_singularity_cache_dir"] == str((tmp_path / "nxf-cache").resolve())
-    assert cfg["nextflow_args"]["input"] == str(sample_map.resolve())
-    assert cfg["nextflow_args"]["genome"] == "GATK.GRCh38"
+    assert cfg["nfcore_singularity_cache_dir"] == str((tmp_path / "nxf-cache").resolve())
+    assert cfg["nfcore_parameters"]["input"] == str(sample_map.resolve())
+    assert cfg["nfcore_parameters"]["genome"] == "GATK.GRCh38"
 
 
-def test_read_param_file_sarek_requires_nextflow_profile(tmp_path):
+def test_read_param_file_sarek_requires_nfcore_profile(tmp_path):
     p = tmp_path / "params.yaml"
     p.write_text(
         "mode: cohort\n"
@@ -1215,14 +1210,14 @@ def test_read_param_file_sarek_requires_nextflow_profile(tmp_path):
         "workflow_engine: nextflow\n"
         "workflow_version: nf-core\n"
         "resource: nf-core-sarek-managed-resources-v1\n"
-        "nextflow_args:\n"
+        "nfcore_parameters:\n"
         "  input: samplesheet.csv\n"
         "  genome: GATK.GRCh38\n"
         "  tools: haplotypecaller\n",
         encoding="utf-8",
     )
 
-    with pytest.raises(ParameterValidationError, match="nextflow_profile"):
+    with pytest.raises(ParameterValidationError, match="nfcore_profile"):
         config_mod.read_param_file(str(p))
 
 
@@ -1248,11 +1243,11 @@ def test_read_param_file_rejects_nfcore_cache_dir_for_native_workflow(tmp_path):
         "pipeline: wes\n"
         "workflow_engine: bash\n"
         "gatk_version: gatk-4.6\n"
-        "nextflow_singularity_cache_dir: nxf-cache\n",
+        "nfcore_singularity_cache_dir: nxf-cache\n",
         encoding="utf-8",
     )
 
-    with pytest.raises(ParameterValidationError, match="nextflow_singularity_cache_dir"):
+    with pytest.raises(ParameterValidationError, match="nfcore_singularity_cache_dir"):
         config_mod.read_param_file(str(p))
 
 
@@ -1308,9 +1303,9 @@ def test_set_config_values_sarek_resolves_external_nfcore_workflow(monkeypatch, 
             "workflow_engine": "nextflow",
             "workflow_version": "nf-core",
             "resource": "nf-core-sarek-managed-resources-v1",
-            "nextflow_profile": "docker",
-            "nextflow_singularity_cache_dir": str(tmp_path / "nxf-cache"),
-            "nextflow_args": {
+            "nfcore_profile": "docker",
+            "nfcore_singularity_cache_dir": str(tmp_path / "nxf-cache"),
+            "nfcore_parameters": {
                 "input": str(tmp_path / "samplesheet.csv"),
                 "genome": "GATK.GRCh38",
                 "tools": "haplotypecaller",
@@ -1322,12 +1317,16 @@ def test_set_config_values_sarek_resolves_external_nfcore_workflow(monkeypatch, 
     assert cfg["workflow"]["metadata"]["source_type"] == "nf-core"
     assert cfg["workflow"]["metadata"]["release"] == "3.8.1"
     assert cfg["workflow"]["metadata"]["canonical_outputs"][0]["name"] == "haplotypecaller_vcf"
-    assert cfg["nextflow_profile"] == "docker"
-    assert cfg["nextflow_singularity_cache_dir"] == str(tmp_path / "nxf-cache")
-    assert cfg["nextflow_args"]["tools"] == "haplotypecaller"
+    assert cfg["nfcore_profile"] == "docker"
+    assert cfg["nfcore_singularity_cache_dir"] == str(tmp_path / "nxf-cache")
+    assert cfg["nfcore_parameters"]["tools"] == "haplotypecaller"
     assert cfg["resources"]["bundle"]["type"] == "nextflow-managed"
     assert cfg["resources"]["bundle"]["runtime_check"]["status"] == "not_applicable"
     assert cfg["capture_label"] is None
+    run_name = Path(cfg["project_dir"]).name
+    assert run_name.startswith("cbicall_nf-core_sarek_cohort_")
+    assert "external" not in run_name
+    assert "nextflow" not in run_name
 
 
 # --------------------------

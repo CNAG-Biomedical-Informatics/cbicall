@@ -111,7 +111,7 @@ srun apptainer exec \\
   "\${CBICALL_IN_CONTAINER}" \\
     run \\
     -p "\${YAML_FILE}" \\
-    --profile cnag-hpc \\
+    --runtime-profile cnag-hpc \\
     -t ${THREADS}
 EOF
 

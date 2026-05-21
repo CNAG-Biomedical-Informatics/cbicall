@@ -37,6 +37,24 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     entrypoint.write_text("#!/bin/sh\necho ok\n", encoding="utf-8")
     env_file = tmp_path / "env.sh"
     env_file.write_text("DATADIR=/tmp\n", encoding="utf-8")
+    catalog_path = tmp_path.parent / f"{tmp_path.name}-resource-catalog.json"
+    catalog_path.write_text(
+        json.dumps(
+            {
+                "resources": {
+                    "cbicall-germline-resources-v1": {
+                        "tools": {
+                            "gatk4": {"version": "4.6.2.0", "path_hint": "NGSutils/gatk/gatk-4.6.2.0/gatk"},
+                            "bwa": {"version": "0.7.18", "path_hint": "NGSutils/bwa-0.7.18/bwa"},
+                        }
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "workflow.log").write_text("workflow log\n", encoding="utf-8")
+    (tmp_path / "log.json").write_text("{}\n", encoding="utf-8")
     stats_dir = tmp_path / "03_stats"
     stats_dir.mkdir()
     (stats_dir / "sample.vcf.sha256.txt").write_text(
@@ -68,7 +86,12 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
                 "helpers": {"env": str(env_file)},
             },
             "resources": {
-                "bundle": {"key": "cbicall-germline-resources-v1", "version": "v1", "fingerprint": "abc"}
+                "bundle": {
+                    "key": "cbicall-germline-resources-v1",
+                    "version": "v1",
+                    "fingerprint": "abc",
+                    "catalog": str(catalog_path),
+                }
             },
             "version": "1.2.3",
         }
@@ -99,12 +122,15 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     inventory = data["outputs"]["file_inventory"]
     assert inventory["algorithm"] == "sha256"
     assert inventory["scope"] == "run directory relative file paths"
-    assert inventory["entries"] == 3
+    assert inventory["entries"] == 5
     assert inventory["excluded"] == [".nextflow", ".nextflow*", "run-report.html", "run-report.json", "work"]
     assert "run-report.json" not in inventory["paths"]
-    assert inventory["paths"] == ["03_stats/sample.vcf.sha256.txt", "env.sh", "wes_single.sh"]
+    assert inventory["paths"] == ["03_stats/sample.vcf.sha256.txt", "env.sh", "log.json", "wes_single.sh", "workflow.log"]
     assert len(inventory["sha256"]) == 64
     assert data["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] == "normalized"
+    assert data["software_versions"]["scope"] == "resource_declared"
+    assert data["software_versions"]["entries"]["gatk4"]["version"] == "4.6.2.0"
+    assert len(data["software_versions"]["sha256"]) == 64
     html_report = cli_mod._write_run_report_html(report, data)
     assert html_report.is_file()
     html_text = html_report.read_text(encoding="utf-8")
@@ -112,6 +138,14 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     assert "Human-readable summary generated from" in html_text
     assert "bash/wes/single/gatk-4.6/v1" in html_text
     assert "normalized" in html_text
+    assert "Run Files" in html_text
+    assert 'href="workflow.log"' in html_text
+    assert 'href="log.json"' in html_text
+    assert 'href="run-report.json"' in html_text
+    assert "Software Versions" in html_text
+    assert "resource_declared" in html_text
+    assert "gatk4" in html_text
+    assert "4.6.2.0" in html_text
     assert "03_stats/sample.vcf.sha256.txt" in html_text
     assert "href=\"03_stats/sample.vcf.sha256.txt\"" in html_text
 
@@ -158,8 +192,20 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
     pipeline_info = tmp_path / "sarek" / "pipeline_info"
     pipeline_info.mkdir(parents=True)
     (pipeline_info / "params_2026-05-19_12-21-13.json").write_text("{}\n", encoding="utf-8")
-    (pipeline_info / "execution_trace_2026-05-19_12-20-22.txt").write_text("task\n", encoding="utf-8")
+    (pipeline_info / "execution_trace_2026-05-19_12-20-22.txt").write_text(
+        "task_id\thash\tname\tstatus\tpeak_rss\tpeak_vmem\n"
+        "1\taa/bbccdd\tNFCORE_SAREK:FASTQC (sample)\tCOMPLETED\t641.9 MB\t6.5 GB\n"
+        "2\tbb/ccddee\tNFCORE_SAREK:GATK4_HAPLOTYPECALLER (sample)\tCOMPLETED\t951.4 MB\t12 GB\n",
+        encoding="utf-8",
+    )
     (pipeline_info / "execution_report_2026-05-19_12-20-22.html").write_text("<html></html>\n", encoding="utf-8")
+    (pipeline_info / "execution_timeline_2026-05-19_12-20-22.html").write_text("<html></html>\n", encoding="utf-8")
+    (pipeline_info / "pipeline_dag_2026-05-19_12-20-22.html").write_text("<html></html>\n", encoding="utf-8")
+    (pipeline_info / "manifest_2026-05-19_12-20-22.bco.json").write_text("{}\n", encoding="utf-8")
+    (pipeline_info / "nf_core_sarek_software_mqc_versions.yml").write_text(
+        "GATK4_HAPLOTYPECALLER:\n  gatk4: 4.6.1.0\nWorkflow:\n  nf-core/sarek: v3.8.1\n  Nextflow: 25.10.2\n",
+        encoding="utf-8",
+    )
     multiqc_dir = tmp_path / "sarek" / "multiqc" / "multiqc_data"
     multiqc_dir.mkdir(parents=True)
     (tmp_path / "sarek" / "multiqc" / "multiqc_report.html").write_text("<html></html>\n", encoding="utf-8")
@@ -178,7 +224,7 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
             "workflow_engine": "nextflow",
             "profile": "local",
             "genome": "external",
-            "nextflow_profile": "singularity",
+            "nfcore_profile": "singularity",
             "inputs": {"input_dir": None, "sample_map": None},
             "workflow": {
                 "engine": "nextflow",
@@ -224,6 +270,10 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
     assert summary["pipeline_info"]["dir"] == str(pipeline_info)
     assert summary["pipeline_info"]["params"].endswith("params_2026-05-19_12-21-13.json")
     assert summary["pipeline_info"]["trace"].endswith("execution_trace_2026-05-19_12-20-22.txt")
+    assert summary["pipeline_info"]["timeline"].endswith("execution_timeline_2026-05-19_12-20-22.html")
+    assert summary["pipeline_info"]["dag"].endswith("pipeline_dag_2026-05-19_12-20-22.html")
+    assert summary["pipeline_info"]["manifest"].endswith("manifest_2026-05-19_12-20-22.bco.json")
+    assert summary["pipeline_info"]["software_versions"].endswith("nf_core_sarek_software_mqc_versions.yml")
     assert summary["multiqc"]["report"].endswith("multiqc_report.html")
     assert summary["multiqc"]["data_dir"] == str(multiqc_dir)
     canonical = data["outputs"]["canonical_outputs"][0]
@@ -236,9 +286,25 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
     assert vcf_report["name"] == "haplotypecaller_vcf"
     assert vcf_report["normalized_records"] == 1
     assert len(vcf_report["normalized_sha256"]) == 64
+    assert data["software_versions"]["status"] == "parsed"
+    assert data["software_versions"]["scope"] == "workflow_reported"
+    assert data["software_versions"]["entries"]["GATK4_HAPLOTYPECALLER"]["gatk4"] == "4.6.1.0"
+    assert len(data["software_versions"]["sha256"]) == 64
+    assert data["execution_trace"]["tasks"] == 2
+    assert data["execution_trace"]["status_counts"] == {"COMPLETED": 2}
+    assert data["execution_trace"]["max_peak_rss"]["value"] == "951.4 MB"
+    assert data["execution_trace"]["max_peak_vmem"]["value"] == "12 GB"
     html_report = cli_mod._write_run_report_html(report, data)
     html_text = html_report.read_text(encoding="utf-8")
     assert "nf-core/sarek" in html_text
+    assert "External Reports" in html_text
+    assert "Software Versions" in html_text
+    assert "GATK4_HAPLOTYPECALLER" in html_text
+    assert "Execution Trace" in html_text
+    assert "Max peak RSS" in html_text
+    assert "951.4 MB" in html_text
+    assert "Execution timeline" in html_text
+    assert "Pipeline DAG" in html_text
     assert "haplotypecaller_vcf" in html_text
     assert "CNAG99901P_ex.haplotypecaller.vcf.gz" in html_text
 
@@ -301,6 +367,8 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
             ],
         },
         "resources": {"bundle": {"key": "cbicall-germline-resources-v1", "version": "v1", "fingerprint": "res"}},
+        "software_versions": {"sha256": "software-a", "scope": "resource_declared"},
+        "execution_trace": {"tasks": 2, "max_peak_rss": {"bytes": 1000}, "max_peak_vmem": {"bytes": 2000}},
         "outputs": {
             "file_inventory": {"entries": 3, "sha256": "manifest-a"},
             "vcf_hash_reports": [
@@ -312,6 +380,8 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     changed["runtime"]["python"]["version"] = "3.12.4"
     changed["workflow"]["fingerprint"] = "workflow-b"
     changed["workflow"]["files"][0]["sha256"] = "bbb"
+    changed["software_versions"]["sha256"] = "software-b"
+    changed["execution_trace"]["max_peak_rss"]["bytes"] = 1500
     changed["outputs"]["file_inventory"]["sha256"] = "manifest-b"
     changed["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] = "vcf"
 
@@ -328,7 +398,10 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     assert "CBIcall ver" in out
     assert "Python ver" in out
     assert "Engine ver" in out
+    assert "Task count" in out
+    assert "Max peak RSS" in out
     assert "Workflow hash" in out
+    assert "Software versions" in out
     assert "Resource ver" in out
     assert "File inventory" in out
     assert "different" in out
@@ -342,11 +415,13 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     report_text = report.read_text(encoding="utf-8")
     assert "Run Comparison" in report_text
     assert "Workflow hash" in report_text
+    assert "Software versions" in report_text
     assert "Legend" in report_text
     html_text = html_report.read_text(encoding="utf-8")
     assert "<title>CBIcall Run Comparison</title>" in html_text
     assert "Run Comparison" in html_text
     assert "Workflow hash" in html_text
+    assert "Software versions" in html_text
     assert "Status summary" in html_text
     assert "class=\"pill different\"" in html_text
 
@@ -373,6 +448,8 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
             ],
         },
         "resources": {"bundle": {"key": "cbicall-germline-resources-v1", "version": "v1", "fingerprint": "res"}},
+        "software_versions": {"sha256": "software-a", "scope": "resource_declared"},
+        "execution_trace": {"tasks": 2, "max_peak_rss": {"bytes": 1000}, "max_peak_vmem": {"bytes": 2000}},
         "outputs": {
             "file_inventory": {"entries": 3, "sha256": "manifest-a"},
             "vcf_hash_reports": [
@@ -384,6 +461,9 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     different = json.loads(json.dumps(base))
     different["runtime"]["engine"]["version"] = "5.2.22"
     different["workflow"]["fingerprint"] = "workflow-c"
+    different["software_versions"]["sha256"] = "software-c"
+    different["execution_trace"]["tasks"] = 3
+    different["execution_trace"]["max_peak_vmem"]["bytes"] = 2500
     different["outputs"]["file_inventory"]["entries"] = 4
     different["outputs"]["file_inventory"]["sha256"] = "manifest-c"
     different["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] = "vcf-c"
@@ -396,8 +476,11 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     assert "Run Matrix" in out
     assert "Baseline" in out
     assert "Workflow hash" in out
+    assert "Software versions" in out
     assert "Python ver" in out
     assert "Engine ver" in out
+    assert "Task count" in out
+    assert "Max peak VMEM" in out
     assert "Resource ver" in out
     assert "File inventory" in out
     assert "different: " in out
@@ -529,6 +612,55 @@ def test_print_config_includes_workflow_block(capsys):
     assert "(undef)" in out
 
 
+def test_validate_parameters_command_prints_parameters_ok(monkeypatch, tmp_path, capsys):
+    param_file = tmp_path / "parameters.yaml"
+    param_file.write_text("pipeline: wes\n", encoding="utf-8")
+
+    monkeypatch.setattr(cli_mod.config_mod, "read_param_file", lambda _: {"pipeline": "wes"})
+    monkeypatch.setattr(
+        cli_mod.config_mod,
+        "set_config_values",
+        lambda _: {
+            "project_dir": str(tmp_path / "run"),
+            "run_id": "RIDPARAM",
+            "workflow_engine": "bash",
+            "profile": "local",
+            "genome": "b37",
+            "pipeline": "wes",
+            "mode": "single",
+            "gatk_version": "gatk-4.6",
+            "pipeline_version": "v1",
+            "inputs": {"input_dir": None, "sample_map": None},
+            "workflow": {
+                "engine": "bash",
+                "pipeline": "wes",
+                "mode": "single",
+                "gatk_version": "gatk-4.6",
+                "pipeline_version": "v1",
+                "entrypoint": "/tmp/wes_single.sh",
+                "config_file": None,
+                "helpers": {"env": "/tmp/env.sh"},
+            },
+            "resources": {
+                "bundle": {
+                    "key": "cbicall-germline-resources-v1",
+                    "version": "v1",
+                    "fingerprint": "abc",
+                    "runtime_check": {"status": "ok", "datadir": "/tmp/resources"},
+                }
+            },
+        },
+    )
+
+    rc = cli_mod._run_validate_parameters_command(["-p", str(param_file), "--no-color"])
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Parameters OK" in out
+    assert "Configuration OK" not in out
+    assert "Param file" in out
+
+
 def test_validate_registry_command_uses_default_registry(capsys):
     rc = cli_mod._run_validate_registry_command(["--no-color"])
 
@@ -537,6 +669,11 @@ def test_validate_registry_command_uses_default_registry(capsys):
     assert "Registry OK" in out
     assert "cbicall-workflow-registry.yaml" in out
     assert "cbicall-workflow-registry.schema.json" in out
+    assert "Backends" in out
+    assert "bash, nextflow, snakemake" in out
+    assert "External" in out
+    assert "nf-core" in out
+    assert "Engines" not in out
 
 
 def test_validate_resources_command_uses_default_catalog(capsys):
@@ -650,7 +787,7 @@ def test_main_run_subcommand_happy_path(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["cbicall", "run", "-t", "4", "-p", str(param_file), "--profile", "cnag-hpc", "--no-color"],
+        ["cbicall", "run", "-t", "4", "-p", str(param_file), "--runtime-profile", "cnag-hpc", "--no-color"],
     )
 
     fake_param = {
@@ -864,8 +1001,8 @@ def test_main_partial_run_warning_and_metadata(monkeypatch, tmp_path, capsys):
             "workflow_engine": "snakemake",
             "gatk_version": "gatk-4.6",
             "cleanup_bam": False,
-            "workflow_rule": "call_variants",
-            "allow_partial_run": True,
+            "snakemake_parameters": {"target": "call_variants"},
+            "nextflow_parameters": {},
         },
     )
     monkeypatch.setattr(
@@ -875,8 +1012,8 @@ def test_main_partial_run_warning_and_metadata(monkeypatch, tmp_path, capsys):
             "project_dir": str(tmp_path / "proj_partial"),
             "run_id": "IDPART",
             "genome": "b37",
-            "workflow_rule": "call_variants",
-            "allow_partial_run": True,
+            "snakemake_parameters": {"target": "call_variants"},
+            "nextflow_parameters": {},
             "run_mode": "partial",
             "inputs": {"input_dir": None, "sample_map": None},
             "workflow": {
@@ -911,10 +1048,9 @@ def test_main_partial_run_warning_and_metadata(monkeypatch, tmp_path, capsys):
     assert cli_mod.main() == 0
     out = capsys.readouterr().out
     assert "Partial Run" in out
-    assert "Workflow rule" in out
+    assert "Snakemake target" in out
     assert "call_variants" in out
-    assert seen["settings"].workflow_rule == "call_variants"
-    assert seen["settings"].allow_partial_run is True
+    assert seen["settings"].snakemake_parameters["target"] == "call_variants"
     assert seen["settings"].run_mode == "partial"
 
 
@@ -939,7 +1075,7 @@ def test_run_test_command_all_selects_optional_engines_and_skips_missing(monkeyp
     monkeypatch.setattr(cli_mod, "_project_root", lambda: tmp_path)
     monkeypatch.setattr(cli_mod.subprocess, "run", fake_run)
 
-    assert cli_mod._run_test_command(["--all", "-t", "2"]) == 0
+    assert cli_mod._run_test_command(["--all", "-t", "2", "--runtime-profile", "cnag-hpc"]) == 0
     assert seen["cmd"] == [
         "bash",
         str(script),
@@ -950,6 +1086,7 @@ def test_run_test_command_all_selects_optional_engines_and_skips_missing(monkeyp
     ]
     assert seen["cwd"] == str(script.parent)
     assert seen["env"]["THREADS"] == "2"
+    assert seen["env"]["CBICALL_RUNTIME_PROFILE"] == "cnag-hpc"
     assert seen["env"]["CBICALL_TEST_SKIP_MISSING_OPTIONAL"] == "1"
     assert seen["check"] is False
 
@@ -1148,8 +1285,8 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
         "workflow_version": "nf-core",
         "gatk_version": "nf-core",
         "resource": "nf-core-sarek-managed-resources-v1",
-        "nextflow_profile": "docker",
-        "nextflow_args": {
+        "nfcore_profile": "docker",
+        "nfcore_parameters": {
             "input": str(sample_map),
             "genome": "GATK.GRCh38",
             "tools": "haplotypecaller",
@@ -1166,13 +1303,13 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
             "run_id": "IDSAREK",
             "workflow_engine": "nextflow",
             "profile": "local",
-            "nextflow_profile": "docker",
+            "nfcore_profile": "docker",
             "genome": "external",
             "pipeline": "sarek",
             "mode": "cohort",
             "gatk_version": "nf-core",
             "pipeline_version": "v1",
-            "nextflow_args": {
+            "nfcore_parameters": {
                 "input": str(sample_map),
                 "genome": "GATK.GRCh38",
                 "tools": "haplotypecaller",
@@ -1237,6 +1374,6 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
     )
 
     assert rc == 0
-    assert seen["settings"].nextflow_profile == "docker"
-    assert seen["settings"].nextflow_args["genome"] == "GATK.GRCh38"
-    assert seen["settings"].nextflow_args["tools"] == "haplotypecaller"
+    assert seen["settings"].nfcore_profile == "docker"
+    assert seen["settings"].nfcore_parameters["genome"] == "GATK.GRCh38"
+    assert seen["settings"].nfcore_parameters["tools"] == "haplotypecaller"

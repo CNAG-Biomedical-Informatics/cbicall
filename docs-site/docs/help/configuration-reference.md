@@ -52,7 +52,7 @@ workflow compatibility metadata.
 | `gatk-4.6` + `nextflow` + `wes single/cohort` | Yes |
 | `gatk-4.6` + `nextflow` + `wgs single/cohort` | Yes |
 | `nf-core` + `nextflow` + `demo single` | External nf-core smoke test |
-| `nf-core` + `nextflow` + `sarek cohort` | External nf-core/Sarek adapter |
+| `nf-core` + `nextflow` + `sarek cohort` | External nf-core/Sarek workflow |
 | `gatk-3.5` + `bash` + `wes single/cohort` | Legacy |
 | `gatk-3.5` + `bash` + `mit single/cohort` | Yes, x86_64 only |
 | `mit` + `snakemake` or `nextflow` | No |
@@ -60,7 +60,7 @@ workflow compatibility metadata.
 
 :::info[Genome rules]
 - `pipeline: mit` always uses `genome: rsrs`.
-- External nf-core pipelines use `genome: external`; the reference is selected by the nf-core parameters in `nextflow_args`.
+- External nf-core pipelines use `genome: external`; the reference is selected by the nf-core parameters in `nfcore_parameters`.
 - `genome: hg38` is supported only with `pipeline: wgs`.
 - `pipeline: wes` currently uses `b37`.
 :::
@@ -107,7 +107,7 @@ input_dir:       CNAG999_exome/CNAG99901P_ex
 
 ### nf-core/demo
 
-`nf-core/demo` is useful for testing CBIcall's external nf-core wrapper without
+`nf-core/demo` is useful for testing CBIcall's external nf-core support without
 modeling a full biological workflow. It uses the nf-core `test` profile.
 
 ```yaml
@@ -116,17 +116,16 @@ pipeline:         demo
 workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-demo-managed-resources-v1
-nextflow_profile: test,singularity
-nextflow_args:    {}
+nfcore_profile: test,singularity
+nfcore_parameters:    {}
 ```
 
 Use the checked-in `test,singularity` profile on HPC. Here, `test` supplies
-nf-core's built-in demo inputs and `singularity` selects the container runtime.
-On an x86_64 Docker workstation, `test,docker` is also possible, but Docker is
-usually unavailable inside cluster jobs. If `nextflow_args.input` is set, it
-overrides the input supplied by the `test` profile.
-For workstation and cluster runs, see
-[nf-core Workflows](../backends/nf-core).
+nf-core's built-in demo inputs and smoke-test settings, while `singularity`
+selects the Singularity/Apptainer runtime. On an x86_64 Docker workstation,
+`test,docker` is also possible. If `nfcore_parameters.input` is set, it overrides
+the input supplied by the `test` profile. For workstation and cluster runs, see
+[nf-core External Workflows](../backends/nf-core).
 
 ### nf-core/Sarek
 
@@ -140,9 +139,9 @@ pipeline:         sarek
 workflow_engine:  nextflow
 workflow_version: nf-core
 resource:         nf-core-sarek-managed-resources-v1
-nextflow_profile: singularity
-nextflow_singularity_cache_dir: nxf-singularity-cache
-nextflow_args:
+nfcore_profile: singularity
+nfcore_singularity_cache_dir: nxf-singularity-cache
+nfcore_parameters:
   input: sarek_samplesheet.csv
   genome: GATK.GRCh38
   tools: haplotypecaller
@@ -153,16 +152,16 @@ nextflow_args:
 ```
 
 CBIcall does not interpret Sarek-specific parameters. Values under
-`nextflow_args` are passed to the generated nf-core params file. Use the
+`nfcore_parameters` are passed to the generated nf-core parameters file. Use the
 samplesheet format and parameter names expected by the selected Sarek release.
 
 For nf-core/Sarek, the CLI thread value is written to the generated params file
 as `max_cpus`. For example, `bin/cbicall run -p sarek.yaml -t 6` passes
 `max_cpus: 6` to Sarek and writes a small Nextflow config with
 `process.resourceLimits` so individual processes do not request more than six
-CPUs. Memory caps stay in `nextflow_args`, for example `max_memory: 30.GB`;
+CPUs. Memory caps stay in `nfcore_parameters`, for example `max_memory: 30.GB`;
 CBIcall writes the same value to Nextflow `process.resourceLimits.memory`.
-On HPC, set `nextflow_singularity_cache_dir` to a user- or project-owned
+On HPC, set `nfcore_singularity_cache_dir` to a user- or project-owned
 directory so the generated Nextflow config points away from unreadable
 site-level container libraries. If the HPC module exports `NXF_*` variables,
 keep those exports in the shell or SLURM bootstrap before invoking CBIcall.
@@ -200,29 +199,29 @@ on a shared HPC system.
 Select a non-default CBIcall profile on the CLI:
 
 ```bash
-bin/cbicall run -p parameters.yaml -t 4 --profile cnag-hpc
+bin/cbicall run -p parameters.yaml -t 4 --runtime-profile cnag-hpc
 ```
 
 Validate the parameters YAML and resolved setup without starting the workflow:
 
 ```bash
-bin/cbicall validate-param -p parameters.yaml --profile cnag-hpc
+bin/cbicall validate-parameters -p parameters.yaml --runtime-profile cnag-hpc
 ```
 
 The `profile` key is not accepted in the parameters YAML. During a real run, the
 resolved profile and selected environment file are written to `log.json`.
-`validate-param` prints the same resolved values without creating a run
+`validate-parameters` prints the same resolved values without creating a run
 directory or log file.
 
 ## Command Utilities
 
 | Command | Use |
 | --- | --- |
-| `bin/cbicall run -p parameters.yaml -t 4 [--profile cnag-hpc]` | Execute a normal analysis run. |
-| `bin/cbicall validate-param -p parameters.yaml [--profile cnag-hpc]` | Dry-run preflight for one concrete run. It validates the parameters YAML, workflow, runtime profile env file, and selected resource without launching the workflow. |
+| `bin/cbicall run -p parameters.yaml -t 4 [--runtime-profile cnag-hpc]` | Execute a normal analysis run. |
+| `bin/cbicall validate-parameters -p parameters.yaml [--runtime-profile cnag-hpc]` | Dry-run preflight for one concrete run. It validates the parameters YAML, workflow, runtime profile env file, and selected resource without launching the workflow. |
 | `bin/cbicall validate-resources` | Check the resource catalog and, optionally, one resource key. |
 | `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare two or more run directories or `run-report.json` files. |
-| `bin/cbicall test --wes-bash`, `--wes-snakemake`, `--wes-nextflow`, `--mit-bash`, or `--all` | Runs the bundled integration examples without remembering the script path. `--wes-bash` is the required baseline test; Snakemake and Nextflow tests require their engines on `PATH`. |
+| `bin/cbicall test --wes-bash [--runtime-profile cnag-hpc]`, `--wes-snakemake`, `--wes-nextflow`, `--mit-bash`, or `--all` | Runs the bundled integration examples without remembering the script path. `--runtime-profile` is forwarded to the internal `cbicall run` calls. `--wes-bash` is the required baseline test; Snakemake and Nextflow tests require their engines on `PATH`. |
 
 For a higher-level explanation of included pipelines versus execution backends,
 see [Included Pipelines](../pipelines/overview) and
@@ -233,16 +232,16 @@ see [Included Pipelines](../pipelines/overview) and
 | Key | Default | Use |
 | --- | --- | --- |
 | `pipeline_version` | Registry default, currently `v1` | Advanced pin for a specific CBIcall pipeline implementation. Leave unset for normal runs. |
-| `nextflow_profile` | `null` | Nextflow profile passed to external nf-core workflows, for example `docker` or `singularity`. |
-| `nextflow_args` | `{}` | Pass-through nf-core/Nextflow parameters written to the generated params file. CBIcall controls `outdir` and `max_cpus`. |
-| `nextflow_singularity_cache_dir` | `null` | Optional Singularity/Apptainer image cache directory for external nf-core workflows. CBIcall writes it to the generated Nextflow config as cache and library directories. |
-| `workflow_rule` | `null` | Snakemake target for a partial run. Leave unset for normal full runs. |
-| `allow_partial_run` | `false` | Must be `true` when `workflow_rule` is set. This prevents accidental partial starts. |
+| `snakemake_parameters` | `{}` | Snakemake-specific options. `target` selects a Snakemake target instead of the default `all`; other keys are passed through as extra `--config key=value` entries after CBIcall-managed config values. |
+| `nextflow_parameters` | `{}` | Native CBIcall Nextflow parameters passed as `--key value`. CBIcall blocks keys it owns, such as `pipeline`, `genome`, `threads`, helper scripts, and cohort workspace settings. |
+| `nfcore_profile` | `null` | nf-core profile passed to external nf-core workflows, for example `docker`, `singularity`, or `test,singularity`. |
+| `nfcore_parameters` | `{}` | Pass-through nf-core parameters written to the generated params file. CBIcall controls `outdir` and `max_cpus`. |
+| `nfcore_singularity_cache_dir` | `null` | Optional Singularity/Apptainer image cache directory for external nf-core workflows. CBIcall writes it to the generated Nextflow config as cache and library directories. |
 | `organism` | `Homo sapiens` | Metadata field. |
 | `technology` | `Illumina HiSeq` | Metadata field. |
 
-:::warning[Partial runs]
-Partial runs are intended for targeted Snakemake execution and restarts. If `workflow_rule` is set without `allow_partial_run: true`, CBIcall refuses to start.
+:::note[Backend-specific parameters]
+Use `snakemake_parameters`, `nextflow_parameters`, and `nfcore_parameters` only for parameters owned by that backend or external workflow. CBIcall still owns the compatibility contract and blocks overrides of core values it resolves itself.
 :::
 
 ## Output Directory Naming
@@ -251,6 +250,13 @@ Every run gets a generated directory:
 
 ```text
 <project_dir>_<workflow_engine>_<pipeline>_<mode>_<genome>_<gatk_version>_<run-id>/
+```
+
+External nf-core workflows use a shorter name because their reference genome and
+runtime details are workflow-specific and recorded in `run-report.json`:
+
+```text
+<project_dir>_nf-core_<pipeline>_<mode>_<run-id>/
 ```
 
 When `input_dir` is set, this directory is created inside `input_dir`.

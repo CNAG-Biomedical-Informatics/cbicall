@@ -69,9 +69,15 @@ const sidebars: SidebarsConfig = {
           label: 'Native',
         },
         {
-          type: 'doc',
-          id: 'backends/nf-core',
-          label: 'nf-core',
+          type: 'category',
+          label: 'External',
+          items: [
+            {
+              type: 'doc',
+              id: 'backends/nf-core',
+              label: 'nf-core',
+            },
+          ],
         },
       ],
     },

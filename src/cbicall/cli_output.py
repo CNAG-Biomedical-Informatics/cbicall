@@ -86,7 +86,7 @@ def _print_run_summary(
     _section(f"CBIcall {version}", colors["cyan"], colors["bold"], colors["reset"])
     _row("Executable", _short_path(cbicall_path))
     _row("Workflow", f"{workflow.engine} -> {workflow.pipeline} -> {workflow.mode}")
-    _row("Profile", resolved_config.profile)
+    _row("Runtime profile", resolved_config.profile)
     _row("Genome", genome)
     _row("Threads", arg.get("threads"))
     _row("Project", _short_path(resolved_config.project_dir))
@@ -102,7 +102,7 @@ def _print_run_summary(
             colors["reset"],
         )
         _row("Run mode", resolved_config.run_mode)
-        _row("Workflow rule", resolved_config.workflow_rule)
+        _row("Snakemake target", resolved_config.snakemake_parameters.get("target"))
         print()
 
     _section("Inputs", colors["yellow"], colors["bold"], colors["reset"])
@@ -112,10 +112,10 @@ def _print_run_summary(
     _row("Workflow ver", workflow.gatk_version)
     _row("Pipeline ver", workflow.pipeline_version)
     if workflow.metadata.get("source_type") == "nf-core":
-        _row("NF profile", resolved_config.nextflow_profile)
-        _row("NF args", ", ".join(sorted(resolved_config.nextflow_args)) or "(none)")
-        if resolved_config.nextflow_singularity_cache_dir:
-            _row("NF cache", _short_path(resolved_config.nextflow_singularity_cache_dir))
+        _row("NF profile", resolved_config.nfcore_profile)
+        _row("NF parameters", ", ".join(sorted(resolved_config.nfcore_parameters)) or "(none)")
+        if resolved_config.nfcore_singularity_cache_dir:
+            _row("NF cache", _short_path(resolved_config.nfcore_singularity_cache_dir))
     print()
 
     _section("Resolved", colors["blue"], colors["bold"], colors["reset"])
@@ -134,6 +134,9 @@ def _print_run_summary(
             _row("Nextflow", _short_path(workflow.entrypoint))
             _row("Config", _short_path(workflow.config_file))
 
-    log_name = f"{workflow.engine}_{workflow.pipeline}_{workflow.mode}_{genome}_{workflow.gatk_version}.log"
+    if workflow.metadata.get("source_type") == "nf-core":
+        log_name = f"nf-core_{workflow.pipeline}_{workflow.mode}.log"
+    else:
+        log_name = f"{workflow.engine}_{workflow.pipeline}_{workflow.mode}_{genome}_{workflow.gatk_version}.log"
     _row("Log", Path(resolved_config.project_dir) / log_name)
     print()

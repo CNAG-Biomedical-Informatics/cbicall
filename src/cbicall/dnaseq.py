@@ -38,6 +38,23 @@ def _groovy_memory_value(value: object) -> str:
     return _groovy_single_quote(text)
 
 
+def _parameter_value_to_string(value: object) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+
+def _append_nextflow_cli_parameters(cmd: List[str], parameters: Dict[str, object]) -> None:
+    for key, value in sorted(parameters.items()):
+        flag = f"--{key}"
+        if value is None:
+            continue
+        if value is True:
+            cmd.append(flag)
+        else:
+            cmd.extend([flag, _parameter_value_to_string(value)])
+
+
 def _run_cmd(
     cmd: List[str],
     cwd: Path,
@@ -124,10 +141,6 @@ class BaseRunner:
         return self.settings.inputs
 
     @property
-    def workflow_rule(self) -> Optional[str]:
-        return self.settings.workflow_rule
-
-    @property
     def workdir(self) -> Path:
         return Path(self.settings.project_dir)
 
@@ -137,7 +150,10 @@ class BaseRunner:
 
     @property
     def log_path(self) -> Path:
-        log_name = f"{self.engine}_{self.suffix}_{self.genome}_{self.gatk_version}.log"
+        if self.workflow.metadata.get("source_type") == "nf-core":
+            log_name = f"nf-core_{self.suffix}.log"
+        else:
+            log_name = f"{self.engine}_{self.suffix}_{self.genome}_{self.gatk_version}.log"
         return self.workdir / log_name
 
     def _base_env(self) -> Dict[str, str]:
@@ -182,11 +198,6 @@ class BashRunner(BaseRunner):
         return env_updates
 
     def build_command(self) -> List[str]:
-        if self.workflow_rule:
-            raise WorkflowResolutionError(
-                "Partial workflow runs are not supported for workflow_engine='bash'."
-            )
-
         # Bash reads workflow scripts directly from the repository at runtime.
         # Editing a .sh file while a job is running can make bash reach EOF early
         # and still exit 0 if the last completed command succeeded.
@@ -220,7 +231,7 @@ class SnakemakeRunner(BaseRunner):
         if not script:
             raise WorkflowResolutionError(f"Missing Snakefile for pipeline/mode '{self.suffix}'")
 
-        target_rule = self.workflow_rule or "all"
+        target_rule = str(self.settings.snakemake_parameters.get("target") or "all")
 
         cmd: List[str] = [
             "snakemake",
@@ -248,6 +259,11 @@ class SnakemakeRunner(BaseRunner):
                     f"workspace=cohort.genomicsdb.{self.settings.run_id}"
                 )
 
+        for key, value in sorted(self.settings.snakemake_parameters.items()):
+            if key == "target":
+                continue
+            snk_config_kvs.append(f"{key}={_parameter_value_to_string(value)}")
+
         cmd += ["--config"] + snk_config_kvs
         return cmd
 
@@ -262,14 +278,14 @@ class NextflowRunner(BaseRunner):
         if not source or not release:
             raise WorkflowResolutionError("nf-core workflow registry entry must define source and release.")
 
-        if not self.settings.nextflow_profile:
-            raise WorkflowResolutionError("nextflow_profile is required for external Nextflow workflows.")
+        if not self.settings.nfcore_profile:
+            raise WorkflowResolutionError("nfcore_profile is required for external nf-core workflows.")
 
         outdir_name = self.workflow.metadata.get("default_outdir", self.pipeline)
         params_file = self.workdir / "cbicall_external_nextflow.params.yaml"
         config_file = self.workdir / "cbicall_external_nextflow.config"
         max_cpus = int(self.settings.threads)
-        params = dict(self.settings.nextflow_args)
+        params = dict(self.settings.nfcore_parameters)
         params["outdir"] = str((self.workdir / outdir_name).resolve())
         params["max_cpus"] = max_cpus
         params_file.write_text(yaml.safe_dump(params, sort_keys=True), encoding="utf-8")
@@ -281,24 +297,24 @@ class NextflowRunner(BaseRunner):
             f"  resourceLimits = [ {', '.join(resource_limits)} ]",
             "}",
         ]
-        if self.settings.nextflow_singularity_cache_dir:
+        if self.settings.nfcore_singularity_cache_dir:
             config_lines.extend(
                 [
                     "",
                     "singularity {",
-                    f"  cacheDir = {_groovy_single_quote(self.settings.nextflow_singularity_cache_dir)}",
-                    f"  libraryDir = {_groovy_single_quote(self.settings.nextflow_singularity_cache_dir)}",
+                    f"  cacheDir = {_groovy_single_quote(self.settings.nfcore_singularity_cache_dir)}",
+                    f"  libraryDir = {_groovy_single_quote(self.settings.nfcore_singularity_cache_dir)}",
                     "}",
                     "",
                     "apptainer {",
-                    f"  cacheDir = {_groovy_single_quote(self.settings.nextflow_singularity_cache_dir)}",
-                    f"  libraryDir = {_groovy_single_quote(self.settings.nextflow_singularity_cache_dir)}",
+                    f"  cacheDir = {_groovy_single_quote(self.settings.nfcore_singularity_cache_dir)}",
+                    f"  libraryDir = {_groovy_single_quote(self.settings.nfcore_singularity_cache_dir)}",
                     "}",
                 ]
             )
         profile_tokens = {
             token.strip()
-            for token in str(self.settings.nextflow_profile).split(",")
+            for token in str(self.settings.nfcore_profile).split(",")
             if token.strip()
         }
         if platform.machine() in {"aarch64", "arm64"} and "docker" in profile_tokens:
@@ -319,7 +335,7 @@ class NextflowRunner(BaseRunner):
             "-r",
             str(release),
             "-profile",
-            str(self.settings.nextflow_profile),
+            str(self.settings.nfcore_profile),
             "-c",
             str(config_file),
             "-params-file",
@@ -331,11 +347,6 @@ class NextflowRunner(BaseRunner):
         ]
 
     def build_command(self) -> List[str]:
-        if self.workflow_rule:
-            raise WorkflowResolutionError(
-                "Partial workflow runs are not supported for workflow_engine='nextflow'."
-            )
-
         if self._is_nfcore_workflow():
             return self._build_external_nextflow_command()
 
@@ -388,6 +399,7 @@ class NextflowRunner(BaseRunner):
             if helper_path:
                 cmd += [f"--{param_name}", str(helper_path)]
 
+        _append_nextflow_cli_parameters(cmd, self.settings.nextflow_parameters)
         return cmd
 
 

@@ -16,7 +16,7 @@ def _build_parser(version: str, *, prog: str = "cbicall") -> argparse.ArgumentPa
 
             Commands:
               cbicall run -p parameters.yaml -t THREADS
-              cbicall validate-param -p parameters.yaml
+              cbicall validate-parameters -p parameters.yaml
               cbicall validate-registry
               cbicall validate-resources
               cbicall compare-runs RUN_A RUN_B [RUN_C ...]
@@ -50,7 +50,8 @@ def _build_parser(version: str, *, prog: str = "cbicall") -> argparse.ArgumentPa
         help="Parameters input file (YAML; required)",
     )
     parser.add_argument(
-        "--profile",
+        "--runtime-profile",
+        dest="profile",
         default="local",
         help="CBIcall runtime profile for native workflows (default: local)",
     )

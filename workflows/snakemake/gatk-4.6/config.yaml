@@ -1,4 +1,4 @@
-# Shared config for bundled GATK 4.6 Snakemake WES/WGS workflows.
+# Shared config for bundled GATK 4.6 Snakemake and Nextflow WES/WGS workflows.
 
 # -----------------------
 # Base directories
@@ -9,9 +9,7 @@ dbdir: "{datadir}/Databases"
 ngsutils: "{datadir}/NGSutils"
 tmpdir: "{datadir}/tmp"
 
-pipeline: "wes"
 genome: "b37"
-threads: 8
 cleanup_bam: false
 min_snp_for_vqsr: 1000
 min_indel_for_vqsr: 8000

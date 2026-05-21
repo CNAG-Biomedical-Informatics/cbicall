@@ -34,8 +34,8 @@ else
     PY27_MODULE="Python/2.7.18-GCCcore-11.2.0"
 fi
 
-# CNAG HPC Cluster (Java/17.0.2) <---required
-export PATH=/software/crgadm/software/Java/17.0.2/bin:$PATH
+# CNAG HPC Cluster (Java/25.36) <---required
+export PATH=/software/crgadm/software/Java/25.36/bin:$PATH
 
 # Picard (shared by GATK3 & bed conversion)
 PIC="$JAVA8 -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/picard-2.25/build/libs/picard.jar"

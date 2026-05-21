@@ -16,6 +16,8 @@ from urllib.parse import quote
 from pathlib import Path
 from typing import List, Optional
 
+import yaml
+
 from . import config as config_mod
 from .cli_output import (
     _format_duration,
@@ -295,6 +297,8 @@ def _collect_file_inventory(project_dir: Path) -> dict:
     excluded = {"run-report.json", "run-report.html"}
     excluded_roots = {"work", ".nextflow"}
     paths = []
+    total_bytes = 0
+    largest_files = []
     if project_dir.is_dir():
         for path in project_dir.rglob("*"):
             if not path.is_file():
@@ -307,13 +311,19 @@ def _collect_file_inventory(project_dir: Path) -> dict:
                 continue
             if path.name.startswith(".nextflow"):
                 continue
+            size = path.stat().st_size
             paths.append(rel_path)
+            total_bytes += size
+            largest_files.append({"path": rel_path, "bytes": size})
     paths.sort()
+    largest_files = sorted(largest_files, key=lambda item: (-item["bytes"], item["path"]))[:10]
     manifest_text = "".join(f"{path}\n" for path in paths).encode("utf-8")
     return {
         "algorithm": "sha256",
         "scope": "run directory relative file paths",
         "entries": len(paths),
+        "total_bytes": total_bytes,
+        "largest_files": largest_files,
         "sha256": hashlib.sha256(manifest_text).hexdigest(),
         "excluded": sorted(excluded | excluded_roots | {".nextflow*"}),
         "paths": paths,
@@ -468,6 +478,156 @@ def _external_nextflow_outputs(resolved_config: ResolvedConfig, project_dir: Pat
     return payload
 
 
+def _parse_size_to_bytes(value) -> Optional[int]:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text or text == "-":
+        return None
+    match = re.match(r"^([0-9]+(?:\.[0-9]+)?)\s*([KMGTPE]?B)?$", text, re.IGNORECASE)
+    if not match:
+        return None
+    number = float(match.group(1))
+    unit = (match.group(2) or "B").upper()
+    factors = {
+        "B": 1,
+        "KB": 1024,
+        "MB": 1024 ** 2,
+        "GB": 1024 ** 3,
+        "TB": 1024 ** 4,
+        "PB": 1024 ** 5,
+        "EB": 1024 ** 6,
+    }
+    return int(number * factors.get(unit, 1))
+
+
+def _trace_max(rows: List[dict], field: str) -> dict:
+    best = None
+    for row in rows:
+        value = _parse_size_to_bytes(row.get(field))
+        if value is None:
+            continue
+        if best is None or value > best["bytes"]:
+            best = {
+                "bytes": value,
+                "value": row.get(field),
+                "task": row.get("name") or row.get("process") or row.get("task_id"),
+                "hash": row.get("hash"),
+                "status": row.get("status"),
+            }
+    return best or {}
+
+
+def _collect_execution_trace_summary(output_report: dict) -> dict:
+    trace_path = _nested(output_report, "external_summary", "pipeline_info", "trace")
+    if not trace_path:
+        return {}
+    path = Path(str(trace_path))
+    if not path.is_file():
+        return {}
+
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except UnicodeDecodeError:
+        return {"source": str(path), "status": "read_error"}
+    if not lines:
+        return {"source": str(path), "status": "empty", "sha256": _sha256_file(path)}
+
+    header = lines[0].split("\t")
+    rows = []
+    status_counts = {}
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+        values = line.split("\t")
+        row = {key: values[idx] if idx < len(values) else "" for idx, key in enumerate(header)}
+        rows.append(row)
+        status = row.get("status") or "unknown"
+        status_counts[status] = status_counts.get(status, 0) + 1
+
+    return {
+        "source": str(path),
+        "sha256": _sha256_file(path),
+        "status": "parsed",
+        "tasks": len(rows),
+        "status_counts": status_counts,
+        "max_peak_rss": _trace_max(rows, "peak_rss"),
+        "max_peak_vmem": _trace_max(rows, "peak_vmem"),
+    }
+
+
+def _dict_sha256(value: dict) -> str:
+    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _collect_external_software_versions(output_report: dict) -> dict:
+    software_path = _nested(output_report, "external_summary", "pipeline_info", "software_versions")
+    if not software_path:
+        return {}
+
+    path = Path(str(software_path))
+    if not path.is_file():
+        return {}
+
+    report = {
+        "source": str(path),
+        "sha256": _sha256_file(path),
+        "format": "yaml",
+        "scope": "workflow_reported",
+    }
+    try:
+        parsed = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except Exception as exc:
+        report["status"] = "parse_error"
+        report["error"] = str(exc)
+        return report
+
+    report["status"] = "parsed"
+    report["entries"] = parsed if isinstance(parsed, dict) else {"value": parsed}
+    return report
+
+
+def _collect_declared_resource_software_versions(resources: dict) -> dict:
+    bundle = (resources or {}).get("bundle") or {}
+    catalog_path = bundle.get("catalog")
+    resource_key = bundle.get("key")
+    if not catalog_path or not resource_key:
+        return {}
+
+    path = Path(str(catalog_path))
+    if not path.is_file():
+        return {}
+
+    try:
+        catalog = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return {
+            "source": str(path),
+            "status": "parse_error",
+            "error": str(exc),
+            "scope": "resource_declared",
+        }
+
+    entry = (catalog.get("resources") or {}).get(str(resource_key)) or {}
+    tools = entry.get("tools") or {}
+    if not isinstance(tools, dict) or not tools:
+        return {}
+
+    return {
+        "source": str(path),
+        "sha256": _dict_sha256(tools),
+        "format": "resource_catalog",
+        "scope": "resource_declared",
+        "status": "parsed",
+        "entries": tools,
+    }
+
+
+def _collect_software_versions(output_report: dict, resources: dict) -> dict:
+    return _collect_external_software_versions(output_report) or _collect_declared_resource_software_versions(resources)
+
+
 def _print_external_output_pointers(report: dict) -> None:
     summary = _nested(report, "outputs", "external_summary") or {}
     if not summary:
@@ -591,8 +751,121 @@ def _output_rows_html(payload: dict, base_dir: Path) -> str:
         seen.add(str(rel_path))
         rows.append(_html_row_raw("Output", _file_link(str(rel_path), base_dir)))
 
+    total_bytes = _nested(payload, "outputs", "file_inventory", "total_bytes")
+    if total_bytes is not None:
+        rows.append(_html_row("Inventory size", f"{total_bytes} bytes"))
+
     if not rows:
         rows.append(_html_row("Outputs", "No essential output files were recorded. See run-report.json for the full inventory."))
+    return "".join(rows)
+
+
+def _run_file_rows_html(payload: dict, base_dir: Path) -> str:
+    rows = []
+    for path, label in [
+        (payload.get("workflow_log"), "Workflow log"),
+        (base_dir / "log.json", "Resolved log.json"),
+        (base_dir / "run-report.json", "Run report JSON"),
+    ]:
+        if path and Path(str(path)).is_file():
+            rows.append(_html_row_raw(label, _file_link(str(path), base_dir)))
+    return "".join(rows)
+
+
+def _external_report_rows_html(payload: dict, base_dir: Path) -> str:
+    rows = []
+    outputs = payload.get("outputs", {})
+    summary = outputs.get("external_summary") or {}
+    pipeline_info = summary.get("pipeline_info") or {}
+    multiqc = summary.get("multiqc") or {}
+
+    for key, label in [
+        ("params_file", "CBIcall params"),
+        ("config_file", "CBIcall config"),
+    ]:
+        path = outputs.get(key)
+        if path:
+            rows.append(_html_row_raw(label, _file_link(path, base_dir)))
+
+    for key, label in [
+        ("params", "Resolved params"),
+        ("trace", "Execution trace"),
+        ("report", "Execution report"),
+        ("timeline", "Execution timeline"),
+        ("dag", "Pipeline DAG"),
+        ("manifest", "Manifest"),
+        ("software_versions", "Software versions"),
+    ]:
+        path = pipeline_info.get(key)
+        if path:
+            rows.append(_html_row_raw(label, _file_link(path, base_dir)))
+
+    if multiqc.get("report"):
+        rows.append(_html_row_raw("MultiQC report", _file_link(multiqc["report"], base_dir)))
+    if multiqc.get("data_dir"):
+        rows.append(_html_row_raw("MultiQC data", _file_link(multiqc["data_dir"], base_dir)))
+
+    return "".join(rows)
+
+
+def _format_software_version_entry(value) -> str:
+    if isinstance(value, dict):
+        parts = [f"{key}: {val}" for key, val in sorted(value.items())]
+        return "; ".join(parts)
+    if isinstance(value, list):
+        return "; ".join(str(item) for item in value)
+    return str(value)
+
+
+def _execution_trace_rows_html(payload: dict, base_dir: Path) -> str:
+    trace = payload.get("execution_trace") or {}
+    if not trace:
+        return ""
+
+    rows = []
+    if trace.get("source"):
+        rows.append(_html_row_raw("Source", _file_link(trace["source"], base_dir)))
+    if trace.get("sha256"):
+        rows.append(_html_row("Fingerprint", trace["sha256"]))
+    if trace.get("tasks") is not None:
+        rows.append(_html_row("Tasks", trace.get("tasks")))
+    if trace.get("status_counts"):
+        rows.append(_html_row("Task status", _format_software_version_entry(trace["status_counts"])))
+    for key, label in [("max_peak_rss", "Max peak RSS"), ("max_peak_vmem", "Max peak VMEM")]:
+        item = trace.get(key) or {}
+        if item:
+            value = item.get("value") or item.get("bytes")
+            detail = html.escape(str(value))
+            if item.get("task"):
+                detail += f'<br><span class="muted">{html.escape(str(item["task"]))}</span>'
+            rows.append(_html_row_raw(label, detail))
+    if trace.get("status") and trace.get("status") != "parsed":
+        rows.append(_html_row("Status", trace.get("status")))
+    return "".join(rows)
+
+
+def _software_versions_rows_html(payload: dict, base_dir: Path) -> str:
+    report = payload.get("software_versions") or {}
+    if not report:
+        return ""
+
+    rows = []
+    if report.get("source"):
+        rows.append(_html_row_raw("Source", _file_link(report["source"], base_dir)))
+    if report.get("sha256"):
+        rows.append(_html_row("Fingerprint", report["sha256"]))
+    if report.get("scope"):
+        rows.append(_html_row("Scope", report["scope"]))
+    if report.get("status") and report.get("status") != "parsed":
+        rows.append(_html_row("Status", report.get("status")))
+    if report.get("error"):
+        rows.append(_html_row("Error", report.get("error")))
+
+    entries = report.get("entries") or {}
+    if isinstance(entries, dict):
+        for key in sorted(entries):
+            rows.append(_html_row(str(key), _format_software_version_entry(entries[key])))
+
     return "".join(rows)
 
 
@@ -603,6 +876,11 @@ def _run_report_html(payload: dict) -> str:
         (item.get("role", "file"), f"{item.get('status', 'unknown')} | {item.get('path')} | {item.get('sha256')}")
         for item in workflow_files
     ]
+
+    run_file_rows = _run_file_rows_html(payload, base_dir)
+    external_report_rows = _external_report_rows_html(payload, base_dir)
+    software_version_rows = _software_versions_rows_html(payload, base_dir)
+    execution_trace_rows = _execution_trace_rows_html(payload, base_dir)
 
     sections = [
         _html_section(
@@ -624,7 +902,7 @@ def _run_report_html(payload: dict) -> str:
                 ("Genome", _nested(payload, "run", "genome")),
                 ("GATK / workflow version", _nested(payload, "workflow", "gatk_version")),
                 ("Pipeline version", _nested(payload, "workflow", "pipeline_version")),
-                ("Profile", payload.get("profile")),
+                ("Runtime profile", payload.get("profile")),
                 ("Threads", _nested(payload, "run", "threads")),
             ],
         ),
@@ -661,6 +939,14 @@ def _run_report_html(payload: dict) -> str:
             _output_rows_html(payload, base_dir),
         ),
     ]
+    if run_file_rows:
+        sections.insert(-1, _html_section_raw("Run Files", run_file_rows))
+    if external_report_rows:
+        sections.insert(-1, _html_section_raw("External Reports", external_report_rows))
+    if software_version_rows:
+        sections.insert(-1, _html_section_raw("Software Versions", software_version_rows))
+    if execution_trace_rows:
+        sections.insert(-1, _html_section_raw("Execution Trace", execution_trace_rows))
 
     return """<!doctype html>
 <html lang="en">
@@ -856,6 +1142,8 @@ def write_run_report(
     if external_outputs.get("vcf_hash_reports"):
         output_fingerprints["vcf_hash_reports"].extend(external_outputs.pop("vcf_hash_reports"))
     output_fingerprints.update(external_outputs)
+    software_versions = _collect_software_versions(output_fingerprints, resolved_config.resources)
+    execution_trace = _collect_execution_trace_summary(output_fingerprints)
     payload = {
         "status": "success",
         "elapsed_seconds": round(elapsed_seconds, 3),
@@ -881,13 +1169,17 @@ def write_run_report(
         "parameters": {
             "paramfile": arg.get("paramfile"),
             "cleanup_bam": params.get("cleanup_bam", False),
-            "workflow_rule": resolved_config.workflow_rule,
-            "allow_partial_run": resolved_config.allow_partial_run,
-            "nextflow_profile": resolved_config.nextflow_profile,
-            "nextflow_args": resolved_config.nextflow_args,
-            "nextflow_singularity_cache_dir": resolved_config.nextflow_singularity_cache_dir,
+            "snakemake_parameters": resolved_config.snakemake_parameters,
+            "nextflow_parameters": resolved_config.nextflow_parameters,
+            "nfcore_profile": resolved_config.nfcore_profile,
+            "nfcore_parameters": resolved_config.nfcore_parameters,
+            "nfcore_singularity_cache_dir": resolved_config.nfcore_singularity_cache_dir,
         },
     }
+    if software_versions:
+        payload["software_versions"] = software_versions
+    if execution_trace:
+        payload["execution_trace"] = execution_trace
     with report_path.open("w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, indent=2, sort_keys=True)
     return report_path
@@ -902,13 +1194,13 @@ def _apply_cli_runtime_overrides(params: dict, arg: dict) -> dict:
     return params
 
 
-def _run_validate_param_command(argv: List[str]) -> int:
+def _run_validate_parameters_command(argv: List[str]) -> int:
     parser = argparse.ArgumentParser(
-        prog="cbicall validate-param",
+        prog="cbicall validate-parameters",
         description="Validate a CBIcall parameters YAML without starting the workflow.",
     )
     parser.add_argument("-p", "--param", dest="paramfile", required=True, help="Parameters YAML file.")
-    parser.add_argument("--profile", default="local", help="CBIcall runtime profile for native workflows.")
+    parser.add_argument("--runtime-profile", dest="profile", default="local", help="CBIcall runtime profile for native workflows.")
     parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
     args = parser.parse_args(argv)
 
@@ -920,11 +1212,11 @@ def _run_validate_param_command(argv: List[str]) -> int:
     params = _apply_cli_runtime_overrides(params, vars(args))
     resolved_config = ResolvedConfig.from_mapping({**config_mod.set_config_values(params), "version": VERSION})
 
-    _section("Configuration OK", GREEN)
+    _section("Parameters OK", GREEN)
     workflow = resolved_config.workflow
     bundle = resolved_config.resources.get("bundle", {})
     _row("Param file", _short_path(args.paramfile))
-    _row("Profile", resolved_config.profile)
+    _row("Runtime profile", resolved_config.profile)
     _row("Workflow", f"{workflow.engine} -> {workflow.pipeline} -> {workflow.mode}")
     _row("Workflow ver", workflow.gatk_version)
     _row("Pipeline ver", workflow.pipeline_version)
@@ -932,10 +1224,10 @@ def _run_validate_param_command(argv: List[str]) -> int:
     if workflow.metadata.get("source_type") == "nf-core":
         _row("Source", workflow.metadata.get("source"))
         _row("Release", workflow.metadata.get("release"))
-        _row("NF profile", resolved_config.nextflow_profile)
-        _row("NF args", ", ".join(sorted(resolved_config.nextflow_args)) or "(none)")
-        if resolved_config.nextflow_singularity_cache_dir:
-            _row("NF cache", _short_path(resolved_config.nextflow_singularity_cache_dir))
+        _row("NF profile", resolved_config.nfcore_profile)
+        _row("NF parameters", ", ".join(sorted(resolved_config.nfcore_parameters)) or "(none)")
+        if resolved_config.nfcore_singularity_cache_dir:
+            _row("NF cache", _short_path(resolved_config.nfcore_singularity_cache_dir))
     else:
         _row("Entrypoint", _short_path(workflow.entrypoint))
     if workflow.engine == "bash":
@@ -949,6 +1241,24 @@ def _run_validate_param_command(argv: List[str]) -> int:
     _row("DATADIR", _short_path(runtime_check.get("datadir")))
     _row("Resource check", runtime_check.get("status"))
     return 0
+
+
+def _collect_external_sources(value) -> List[str]:
+    sources = set()
+
+    def visit(node):
+        if isinstance(node, dict):
+            source_type = node.get("source_type")
+            if source_type:
+                sources.add(str(source_type))
+            for child in node.values():
+                visit(child)
+        elif isinstance(node, list):
+            for child in node:
+                visit(child)
+
+    visit(value)
+    return sorted(sources)
 
 
 def _run_validate_registry_command(argv: List[str]) -> int:
@@ -972,12 +1282,14 @@ def _run_validate_registry_command(argv: List[str]) -> int:
     registry_path = Path(args.registry)
     schema_path = Path(args.schema)
     registry = load_workflow_registry(registry_path, schema_path)
-    engines = sorted((registry.get("workflows") or {}).keys())
+    backends = sorted((registry.get("workflows") or {}).keys())
+    external_sources = _collect_external_sources(registry)
 
     _section("Registry OK", GREEN)
     _row("Registry", _short_path(registry_path))
     _row("Schema", _short_path(schema_path))
-    _row("Engines", ", ".join(engines) if engines else "(none)")
+    _row("Backends", ", ".join(backends) if backends else "(none)")
+    _row("External", ", ".join(external_sources) if external_sources else "(none)")
     return 0
 
 
@@ -1212,11 +1524,21 @@ def _print_multi_run_comparison(reports: List[dict]) -> None:
     _multi_status("Engine ver", baseline, reports, lambda report: _nested(report, "runtime", "engine", "version"))
 
     print()
+    _section("Execution", BLUE)
+    _multi_status("Task count", baseline, reports, lambda report: _nested(report, "execution_trace", "tasks"))
+    _multi_status("Max peak RSS", baseline, reports, lambda report: _nested(report, "execution_trace", "max_peak_rss", "bytes"))
+    _multi_status("Max peak VMEM", baseline, reports, lambda report: _nested(report, "execution_trace", "max_peak_vmem", "bytes"))
+
+    print()
     _section("Pipeline", BLUE)
     _multi_status("Workflow key", baseline, reports, lambda report: _nested(report, "workflow", "key"))
     _multi_status("Pipeline ver", baseline, reports, lambda report: _nested(report, "workflow", "pipeline_version"))
     _multi_status("Entrypoint", baseline, reports, lambda report: _nested(report, "workflow", "entrypoint"))
     _multi_status("Workflow hash", baseline, reports, lambda report: _nested(report, "workflow", "fingerprint"))
+
+    print()
+    _section("Software", BLUE)
+    _multi_status("Software versions", baseline, reports, lambda report: _nested(report, "software_versions", "sha256"))
 
     print()
     _section("Workflow Files", BLUE)
@@ -1235,6 +1557,7 @@ def _print_multi_run_comparison(reports: List[dict]) -> None:
     print()
     _section("Outputs", BLUE)
     _multi_status("File count", baseline, reports, lambda report: _nested(report, "outputs", "file_inventory", "entries"))
+    _multi_status("File bytes", baseline, reports, lambda report: _nested(report, "outputs", "file_inventory", "total_bytes"))
     _multi_status("File inventory", baseline, reports, lambda report: _nested(report, "outputs", "file_inventory", "sha256"))
     keys = sorted({key for report in reports for key in _vcf_hash_map(report)})
     if not keys:
@@ -1265,11 +1588,21 @@ def _print_run_comparison(left: dict, right: dict) -> None:
     _compare_row("Engine ver", _nested(left, "runtime", "engine", "version"), _nested(right, "runtime", "engine", "version"))
 
     print()
+    _section("Execution", BLUE)
+    _compare_row("Task count", _nested(left, "execution_trace", "tasks"), _nested(right, "execution_trace", "tasks"))
+    _compare_row("Max peak RSS", _nested(left, "execution_trace", "max_peak_rss", "bytes"), _nested(right, "execution_trace", "max_peak_rss", "bytes"))
+    _compare_row("Max peak VMEM", _nested(left, "execution_trace", "max_peak_vmem", "bytes"), _nested(right, "execution_trace", "max_peak_vmem", "bytes"))
+
+    print()
     _section("Pipeline", BLUE)
     _compare_row("Workflow key", _nested(left, "workflow", "key"), _nested(right, "workflow", "key"))
     _compare_row("Pipeline ver", _nested(left, "workflow", "pipeline_version"), _nested(right, "workflow", "pipeline_version"))
     _compare_row("Entrypoint", _nested(left, "workflow", "entrypoint"), _nested(right, "workflow", "entrypoint"))
     _compare_row("Workflow hash", _nested(left, "workflow", "fingerprint"), _nested(right, "workflow", "fingerprint"))
+
+    print()
+    _section("Software", BLUE)
+    _compare_row("Software versions", _nested(left, "software_versions", "sha256"), _nested(right, "software_versions", "sha256"))
 
     print()
     _section("Workflow Files", BLUE)
@@ -1288,6 +1621,7 @@ def _print_run_comparison(left: dict, right: dict) -> None:
     print()
     _section("Outputs", BLUE)
     _compare_row("File count", _nested(left, "outputs", "file_inventory", "entries"), _nested(right, "outputs", "file_inventory", "entries"))
+    _compare_row("File bytes", _nested(left, "outputs", "file_inventory", "total_bytes"), _nested(right, "outputs", "file_inventory", "total_bytes"))
     _compare_row("File inventory", _nested(left, "outputs", "file_inventory", "sha256"), _nested(right, "outputs", "file_inventory", "sha256"))
     _compare_output_hashes(left, right)
     _print_run_comparison_legend()
@@ -1613,6 +1947,7 @@ def _run_test_command(argv: List[str]) -> int:
         help="Run all bundled integration tests. Optional engine tests are skipped if their engine is not installed.",
     )
     parser.add_argument("-t", "--threads", type=int, default=1, help="Number of threads to use.")
+    parser.add_argument("--runtime-profile", dest="profile", default="local", help="CBIcall runtime profile for native workflow tests.")
     args = parser.parse_args(argv)
 
     if args.threads <= 0:
@@ -1638,6 +1973,7 @@ def _run_test_command(argv: List[str]) -> int:
     env = os.environ.copy()
     env["CBICALL"] = str(root / "bin" / "cbicall")
     env["THREADS"] = str(args.threads)
+    env["CBICALL_RUNTIME_PROFILE"] = str(args.profile)
     if args.all and not args.wes_snakemake:
         env["CBICALL_TEST_SKIP_MISSING_OPTIONAL"] = "1"
     return subprocess.run(
@@ -1740,13 +2076,13 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
             "threads": arg["threads"],
             "debug": arg["debug"],
             "profile": resolved_config.profile,
-            "nextflow_profile": resolved_config.nextflow_profile,
-            "nextflow_args": resolved_config.nextflow_args,
-            "nextflow_singularity_cache_dir": resolved_config.nextflow_singularity_cache_dir,
+            "snakemake_parameters": resolved_config.snakemake_parameters,
+            "nextflow_parameters": resolved_config.nextflow_parameters,
+            "nfcore_profile": resolved_config.nfcore_profile,
+            "nfcore_parameters": resolved_config.nfcore_parameters,
+            "nfcore_singularity_cache_dir": resolved_config.nfcore_singularity_cache_dir,
             "genome": resolved_config.genome,
             "cleanup_bam": params.get("cleanup_bam", False),
-            "workflow_rule": resolved_config.workflow_rule,
-            "allow_partial_run": resolved_config.allow_partial_run,
             "run_mode": resolved_config.run_mode,
             "inputs": resolved_config.inputs.to_dict(),
             "workflow": resolved_config.workflow.to_dict(),
@@ -1772,7 +2108,10 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
     elapsed = time.time() - start_time
     _row("Elapsed", _format_duration(elapsed))
     genome = resolved_config.genome or "b37"
-    log_name = f"{workflow.engine}_{workflow.pipeline}_{workflow.mode}_{genome}_{workflow.gatk_version}.log"
+    if workflow.metadata.get("source_type") == "nf-core":
+        log_name = f"nf-core_{workflow.pipeline}_{workflow.mode}.log"
+    else:
+        log_name = f"{workflow.engine}_{workflow.pipeline}_{workflow.mode}_{genome}_{workflow.gatk_version}.log"
     workflow_log = Path(resolved_config.project_dir) / log_name
     report_path = write_run_report(
         resolved_config,
@@ -1808,8 +2147,8 @@ def main() -> int:
 
     if len(sys.argv) > 1 and sys.argv[1] == "run":
         return _run_run_command(sys.argv[2:], start_time=start_time, cbicall_path=cbicall_path)
-    if len(sys.argv) > 1 and sys.argv[1] == "validate-param":
-        return _run_validate_param_command(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "validate-parameters":
+        return _run_validate_parameters_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "validate-registry":
         return _run_validate_registry_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "validate-resources":

@@ -8,6 +8,7 @@ LC_ALL=C
 
 CBICALL=${CBICALL:-'../../bin/cbicall'}
 THREADS=${THREADS:-1}
+CBICALL_RUNTIME_PROFILE=${CBICALL_RUNTIME_PROFILE:-local}
 PATTERN=${PATTERN:-'^#'}
 LAUNCHER_LOG_DIR=${LAUNCHER_LOG_DIR:-$(pwd -P)}
 
@@ -45,6 +46,7 @@ Options:
 Environment variables:
   CBICALL                         Path to cbicall executable (default: ../../bin/cbicall)
   THREADS                         Number of threads to use (default: 1)
+  CBICALL_RUNTIME_PROFILE                 Runtime profile passed to cbicall run (default: local)
   PATTERN                         Regex pattern to filter out lines before comparison (default: '^#')
   CBICALL_TEST_SKIP_MISSING_OPTIONAL
                                   Skip optional engine tests when dependencies are missing.
@@ -273,7 +275,7 @@ if [ "$RUN_WES_BASH" -eq 1 ]; then
   WES_LAUNCHER_LOG=$(mktemp -p "$LAUNCHER_LOG_DIR" cbicall-test-wes.XXXXXX.log)
   list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_BEFORE"
 
-  if ! "$CBICALL" run -p "$PARAM_WES" -t "$THREADS" > "$WES_LAUNCHER_LOG" 2>&1; then
+  if ! "$CBICALL" run -p "$PARAM_WES" -t "$THREADS" --runtime-profile "$CBICALL_RUNTIME_PROFILE" > "$WES_LAUNCHER_LOG" 2>&1; then
     list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_AFTER"
     WES_RUN_DIR=$(run_dir_from_launcher_log "$WES_LAUNCHER_LOG")
     if [ -z "${WES_RUN_DIR:-}" ]; then
@@ -365,7 +367,7 @@ resource: "cbicall-germline-resources-v1"
 input_dir: CNAG999_exome/CNAG99901P_ex
 EOF
 
-    if ! "$CBICALL" run -p "$WES_SMK_PARAM" -t "$THREADS" > "$WES_SMK_LAUNCHER_LOG" 2>&1; then
+    if ! "$CBICALL" run -p "$WES_SMK_PARAM" -t "$THREADS" --runtime-profile "$CBICALL_RUNTIME_PROFILE" > "$WES_SMK_LAUNCHER_LOG" 2>&1; then
       list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_SMK_AFTER"
       WES_SMK_RUN_DIR=$(run_dir_from_launcher_log "$WES_SMK_LAUNCHER_LOG")
       if [ -z "${WES_SMK_RUN_DIR:-}" ]; then
@@ -458,7 +460,7 @@ resource: "cbicall-germline-resources-v1"
 input_dir: CNAG999_exome/CNAG99901P_ex
 EOF
 
-    if ! "$CBICALL" run -p "$WES_NF_PARAM" -t "$THREADS" > "$WES_NF_LAUNCHER_LOG" 2>&1; then
+    if ! "$CBICALL" run -p "$WES_NF_PARAM" -t "$THREADS" --runtime-profile "$CBICALL_RUNTIME_PROFILE" > "$WES_NF_LAUNCHER_LOG" 2>&1; then
       list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$WES_NF_AFTER"
       WES_NF_RUN_DIR=$(run_dir_from_launcher_log "$WES_NF_LAUNCHER_LOG")
       if [ -z "${WES_NF_RUN_DIR:-}" ]; then
@@ -535,7 +537,7 @@ if [ "$RUN_MIT_BASH" -eq 1 ]; then
   MIT_LAUNCHER_LOG=$(mktemp -p "$LAUNCHER_LOG_DIR" cbicall-test-mit.XXXXXX.log)
   list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$MIT_BEFORE"
 
-  if ! "$CBICALL" run -p "$PARAM_MIT" -t "$THREADS" > "$MIT_LAUNCHER_LOG" 2>&1; then
+  if ! "$CBICALL" run -p "$PARAM_MIT" -t "$THREADS" --runtime-profile "$CBICALL_RUNTIME_PROFILE" > "$MIT_LAUNCHER_LOG" 2>&1; then
     list_run_dirs "$BASE_DIR" "$RUN_GLOB" > "$MIT_AFTER"
     MIT_RUN_DIR=$(run_dir_from_launcher_log "$MIT_LAUNCHER_LOG")
     if [ -z "${MIT_RUN_DIR:-}" ]; then
