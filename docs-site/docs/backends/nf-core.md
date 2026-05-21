@@ -139,7 +139,7 @@ sarek/variant_calling/haplotypecaller/*/*.haplotypecaller.vcf.gz
 When this file exists, `run-report.json` records a normalized VCF hash so
 `cbicall compare-runs` can audit repeated Sarek runs.
 
-![Screenshot of a CBIcall HTML run comparison report for repeated nf-core/Sarek runs, showing matching framework, pipeline, resource, and canonical HaplotypeCaller VCF fingerprints.](/img/compare-runs-nfcore-html-report.png)
+![Screenshot of a CBIcall HTML run comparison report for repeated nf-core/Sarek runs, showing the combined status KPI and legend row plus matching canonical HaplotypeCaller VCF fingerprints.](/img/compare-runs-nfcore-html-report.png)
 
 For the germline HaplotypeCaller smoke test, the Sarek samplesheet can use the
 minimal FASTQ layout shown in `examples/input/sarek_samplesheet.csv`:

@@ -45,13 +45,13 @@ bin/cbicall compare-runs baseline_run/ repeat_1/ repeat_2/ repeat_3/ \
 
 | Layer | Fields |
 | --- | --- |
-| Framework | CBIcall version, Python version, and workflow engine version recorded in `run-report.json`. |
+| Framework | CBIcall version, Python version, Java version, configured native Java version, and workflow engine version recorded in `run-report.json`. |
 | Pipeline | Workflow key, pipeline implementation version, entrypoint, and workflow fingerprint. |
 | Execution | Task count and peak RAM summaries when the backend provides an execution trace. |
 | Software | Software-version fingerprint when available. Native runs use declared tool versions from the resource catalog; nf-core runs use the workflow-reported software versions YAML. |
 | Workflow files | Entrypoint and helper/config file paths plus their SHA-256 values. |
 | Resources | Resource key and resource fingerprint from the selected resource catalog entry. |
-| Outputs | Run-directory file inventory fingerprint, total recorded bytes, and normalized VCF fingerprints from native `03_stats/*.vcf.sha256.txt` files or registry-declared canonical external VCFs. |
+| Outputs | Run-directory file inventory fingerprint, human-readable recorded size, and normalized VCF fingerprints from native `03_stats/*.vcf.sha256.txt` files or registry-declared canonical external VCFs. |
 
 :::note[Runtime fingerprints]
 Workflow and resource fingerprints are **computed at runtime** from the files and
@@ -90,8 +90,9 @@ Sarek runs can be audited without hard-coding Sarek paths in `compare-runs`.
 The file inventory fingerprint is path-based, not content-based. It hashes the
 sorted list of relative file paths in the run directory, excluding
 `run-report.json` itself. CBIcall also records the total bytes represented by
-that inventory and the largest files, which is useful for storage audits but is
-not used as the primary reproducibility fingerprint.
+that inventory and the largest files, rendering them in human-readable units in
+HTML/text reports. This is useful for storage audits but is not used as the
+primary reproducibility fingerprint.
 
 The status vocabulary is intentionally small:
 
@@ -134,9 +135,20 @@ still be inspected before claiming full execution identity.
 
 The text report is the canonical audit artifact because it is easy to diff,
 archive, and attach to review material. The HTML report is a static rendering of
-the same information for browsing.
+the same information for browsing, with tabs for the overview, detailed rows,
+and raw text report.
 
-![Screenshot of the CBIcall HTML run comparison report showing summary counters, baseline run metadata, and status pills for framework, pipeline, and workflow file checks.](/img/compare-runs-html-report.png)
+To regenerate the HTML report for a completed run without rerunning the workflow:
+
+```bash
+bin/cbicall render-report completed_run/
+```
+
+This reads the existing `run-report.json`, refreshes output-derived fields such
+as the file inventory and VCF hash sidecars when the run directory is available,
+and writes `run-report.html` next to the JSON report.
+
+![Screenshot of the CBIcall HTML run comparison report showing the combined status KPI and legend row, overview cards, and detailed comparison tabs.](/img/compare-runs-html-report.png)
 
 ## Interpretation
 

@@ -1,5 +1,6 @@
 import json
 import os
+import platform
 import argparse
 import gzip
 import hashlib
@@ -258,7 +259,110 @@ def _command_version(command: str, args: List[str]) -> dict:
     return report
 
 
-def _runtime_report(engine: str) -> dict:
+def _architecture_key() -> str:
+    machine = platform.machine().lower()
+    if machine in {"x86_64", "amd64"}:
+        return "amd64"
+    if machine in {"aarch64", "arm64"}:
+        return "aarch64"
+    return machine
+
+
+def _source_bash_env_variable(env_file: str, variable: str) -> dict:
+    report = {
+        "source": str(env_file),
+        "variable": variable,
+        "status": "unknown",
+        "path": None,
+    }
+    path = Path(str(env_file))
+    if not path.is_file():
+        report["status"] = "source_missing"
+        return report
+    try:
+        completed = subprocess.run(
+            [
+                "bash",
+                "-c",
+                'source "$1" >/dev/null 2>&1; printf "%s" "${!2:-}"',
+                "bash",
+                str(path),
+                variable,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except Exception as exc:
+        report["status"] = "error"
+        report["error"] = str(exc)
+        return report
+
+    value = completed.stdout.strip()
+    report["returncode"] = completed.returncode
+    if completed.returncode != 0:
+        report["status"] = "nonzero_exit"
+        if completed.stderr:
+            report["detail"] = completed.stderr.strip().splitlines()[0][:200]
+        return report
+    if not value:
+        report["status"] = "not_set"
+        return report
+    report["status"] = "ok"
+    report["path"] = value
+    return report
+
+
+def _configured_native_java_report(workflow) -> Optional[dict]:
+    if workflow is None or workflow.metadata.get("source_type") == "nf-core":
+        return None
+
+    java_path = None
+    source = None
+    status = "not_configured"
+    arch = _architecture_key()
+
+    if workflow.engine == "bash":
+        env_file = workflow.helpers.get("env")
+        if not env_file:
+            return None
+        env_report = _source_bash_env_variable(env_file, "JAVA8")
+        java_path = env_report.get("path")
+        source = f"{env_file}:JAVA8"
+        status = env_report.get("status") or status
+        if not java_path:
+            env_report["name"] = "configured_java"
+            return env_report
+    elif workflow.engine in {"snakemake", "nextflow"}:
+        config_file = workflow.config_file
+        if not config_file:
+            return None
+        config_path = Path(str(config_file))
+        source = f"{config_file}:java.{arch}"
+        if not config_path.is_file():
+            return {"name": "configured_java", "source": source, "status": "source_missing", "path": None, "version": None}
+        try:
+            config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+        except Exception as exc:
+            return {"name": "configured_java", "source": source, "status": "error", "path": None, "version": None, "error": str(exc)}
+        java_cfg = config.get("java") or {}
+        java_path = java_cfg.get(arch)
+        if not java_path:
+            return {"name": "configured_java", "source": source, "status": "not_set", "path": None, "version": None}
+        status = "ok"
+    else:
+        return None
+
+    version_report = _command_version(str(java_path), ["-version"])
+    version_report["name"] = "configured_java"
+    version_report["source"] = source
+    if status != "ok" and version_report.get("status") == "not_found":
+        version_report["status"] = status
+    return version_report
+
+
+def _runtime_report(engine: str, workflow=None) -> dict:
     commands = {
         "bash": ("bash", ["--version"]),
         "snakemake": ("snakemake", ["--version"]),
@@ -268,7 +372,8 @@ def _runtime_report(engine: str) -> dict:
         "python": {
             "executable": sys.executable,
             "version": sys.version.split()[0],
-        }
+        },
+        "java": _command_version("java", ["-version"]),
     }
     if engine in commands:
         command, args = commands[engine]
@@ -280,6 +385,9 @@ def _runtime_report(engine: str) -> dict:
             "status": "unsupported",
             "version": None,
         }
+    configured_java = _configured_native_java_report(workflow)
+    if configured_java:
+        payload["configured_java"] = configured_java
     return payload
 
 
@@ -299,6 +407,7 @@ def _collect_file_inventory(project_dir: Path) -> dict:
     paths = []
     total_bytes = 0
     largest_files = []
+    directories = {}
     if project_dir.is_dir():
         for path in project_dir.rglob("*"):
             if not path.is_file():
@@ -314,15 +423,21 @@ def _collect_file_inventory(project_dir: Path) -> dict:
             size = path.stat().st_size
             paths.append(rel_path)
             total_bytes += size
+            group = rel_parts[0] if len(rel_parts) > 1 else "."
+            directories.setdefault(group, {"group": group, "count": 0, "bytes": 0})
+            directories[group]["count"] += 1
+            directories[group]["bytes"] += size
             largest_files.append({"path": rel_path, "bytes": size})
     paths.sort()
     largest_files = sorted(largest_files, key=lambda item: (-item["bytes"], item["path"]))[:10]
+    directory_summary = sorted(directories.values(), key=lambda item: (-item["count"], item["group"]))
     manifest_text = "".join(f"{path}\n" for path in paths).encode("utf-8")
     return {
         "algorithm": "sha256",
         "scope": "run directory relative file paths",
         "entries": len(paths),
         "total_bytes": total_bytes,
+        "directories": directory_summary,
         "largest_files": largest_files,
         "sha256": hashlib.sha256(manifest_text).hexdigest(),
         "excluded": sorted(excluded | excluded_roots | {".nextflow*"}),
@@ -719,6 +834,114 @@ def _is_essential_output(rel_path: str) -> bool:
     return rel_path.endswith((".vcf", ".vcf.gz", ".g.vcf.gz", ".html", ".txt")) and not rel_path.startswith("01_bam/")
 
 
+
+
+def _inventory_group_stats(payload: dict) -> List[dict]:
+    inventory = _nested(payload, "outputs", "file_inventory") or {}
+    directories = inventory.get("directories") or []
+    if directories:
+        return sorted(
+            [
+                {
+                    "group": str(item.get("group") or "."),
+                    "count": int(item.get("count") or 0),
+                    "bytes": int(item.get("bytes") or 0),
+                }
+                for item in directories
+                if isinstance(item, dict)
+            ],
+            key=lambda item: (-item["count"], item["group"]),
+        )
+
+    largest = inventory.get("largest_files") or []
+    groups = {}
+    for rel_path in inventory.get("paths") or []:
+        text = str(rel_path)
+        group = text.split("/", 1)[0] if "/" in text else "."
+        groups.setdefault(group, {"group": group, "count": 0, "bytes": 0})
+        groups[group]["count"] += 1
+    for item in largest:
+        if not isinstance(item, dict):
+            continue
+        rel_path = item.get("path")
+        if not rel_path:
+            continue
+        group = str(rel_path).split("/", 1)[0] if "/" in str(rel_path) else "."
+        groups.setdefault(group, {"group": group, "count": 0, "bytes": 0})
+        groups[group]["bytes"] += int(item.get("bytes") or 0)
+    return sorted(groups.values(), key=lambda item: (-item["count"], item["group"]))
+
+
+def _output_dashboard_html(payload: dict, base_dir: Path) -> str:
+    inventory = _nested(payload, "outputs", "file_inventory") or {}
+    outputs = payload.get("outputs", {})
+    canonical = outputs.get("canonical_outputs") or []
+    vcf_reports = outputs.get("vcf_hash_reports") or []
+    entries = inventory.get("entries")
+    total_bytes = inventory.get("total_bytes")
+    groups = _inventory_group_stats(payload)
+    max_count = max((item["count"] for item in groups), default=0)
+
+    metric_cards = [
+        ("Files", entries if entries is not None else "(undef)"),
+        ("Inventory Size", _format_bytes(total_bytes) if total_bytes is not None else "(undef)"),
+        ("Canonical Outputs", len(canonical)),
+        ("VCF Fingerprints", len(vcf_reports)),
+    ]
+    cards_html = "".join(
+        '<div class="output-card">'
+        f'<span>{html.escape(str(label))}</span>'
+        f'<strong>{html.escape(str(value))}</strong>'
+        '</div>'
+        for label, value in metric_cards
+    )
+
+    bars = []
+    for item in groups[:8]:
+        width = 0 if max_count == 0 else max(4, round((item["count"] / max_count) * 100))
+        label = html.escape(str(item["group"]))
+        count = html.escape(str(item["count"]))
+        size = html.escape(_format_bytes(item.get("bytes") or 0)) if item.get("bytes") else "size not estimated"
+        bars.append(
+            '<div class="bar-row">'
+            f'<div class="bar-label"><strong>{label}</strong><span>{count} files | {size}</span></div>'
+            '<div class="bar-track">'
+            f'<div class="bar-fill" style="width:{width}%"></div>'
+            '</div>'
+            '</div>'
+        )
+    bars_html = "".join(bars) or '<p class="empty-note">No output inventory was recorded.</p>'
+
+    canonical_cards = []
+    for item in canonical[:6]:
+        matches = item.get("matches") or []
+        status = item.get("status") or "unknown"
+        links = "<br>".join(_file_link(match, base_dir) for match in matches[:4]) if matches else "No files matched"
+        if len(matches) > 4:
+            links += f'<br><span class="muted">+{len(matches) - 4} more</span>'
+        canonical_cards.append(
+            '<div class="deliverable">'
+            f'<span class="deliverable-status">{html.escape(str(status))}</span>'
+            f'<strong>{html.escape(str(item.get("name") or "Canonical output"))}</strong>'
+            f'<p>{links}</p>'
+            '</div>'
+        )
+    canonical_html = "".join(canonical_cards) or '<p class="empty-note">No registry-declared canonical outputs were recorded.</p>'
+
+    return (
+        '<section class="output-dashboard">'
+        '<h2>Output Dashboard</h2>'
+        f'<div class="output-cards">{cards_html}</div>'
+        '<div class="dashboard-grid">'
+        '<div class="dashboard-panel"><h3>Inventory Composition</h3>'
+        f'{bars_html}</div>'
+        '<div class="dashboard-panel"><h3>Canonical Deliverables</h3>'
+        f'{canonical_html}</div>'
+        '</div>'
+        '</section>'
+    )
+
+
 def _output_rows_html(payload: dict, base_dir: Path) -> str:
     rows = []
     seen = set()
@@ -745,15 +968,33 @@ def _output_rows_html(payload: dict, base_dir: Path) -> str:
             detail += f'<br><span class="muted">normalized SHA-256: {html.escape(str(normalized_hash))}</span>'
         rows.append(_html_row_raw("VCF", detail))
 
+    essential_paths = []
     for rel_path in _nested(payload, "outputs", "file_inventory", "paths") or []:
         if rel_path in seen or not _is_essential_output(str(rel_path)):
             continue
-        seen.add(str(rel_path))
-        rows.append(_html_row_raw("Output", _file_link(str(rel_path), base_dir)))
+        essential_paths.append(str(rel_path))
+
+    max_outputs = 25
+    for rel_path in essential_paths[:max_outputs]:
+        seen.add(rel_path)
+        rows.append(_html_row_raw("Output", _file_link(rel_path, base_dir)))
+    if len(essential_paths) > max_outputs:
+        rows.append(_html_row("Output list", f"Showing {max_outputs} of {len(essential_paths)} essential files. See run-report.json for the full inventory."))
 
     total_bytes = _nested(payload, "outputs", "file_inventory", "total_bytes")
     if total_bytes is not None:
-        rows.append(_html_row("Inventory size", f"{total_bytes} bytes"))
+        rows.append(_html_row("Inventory size", _format_bytes(total_bytes)))
+
+    largest = _nested(payload, "outputs", "file_inventory", "largest_files") or []
+    for item in largest[:5]:
+        rel_path = item.get("path") if isinstance(item, dict) else None
+        if not rel_path:
+            continue
+        detail = (
+            f"{_file_link(str(rel_path), base_dir)}"
+            f'<br><span class="muted">{html.escape(_format_bytes(item.get("bytes")))}</span>'
+        )
+        rows.append(_html_row_raw("Largest file", detail))
 
     if not rows:
         rows.append(_html_row("Outputs", "No essential output files were recorded. See run-report.json for the full inventory."))
@@ -882,6 +1123,8 @@ def _run_report_html(payload: dict) -> str:
     software_version_rows = _software_versions_rows_html(payload, base_dir)
     execution_trace_rows = _execution_trace_rows_html(payload, base_dir)
 
+    output_dashboard = _output_dashboard_html(payload, base_dir)
+
     sections = [
         _html_section(
             "Run",
@@ -912,6 +1155,10 @@ def _run_report_html(payload: dict) -> str:
                 ("CBIcall", _nested(payload, "framework", "version")),
                 ("Python", _nested(payload, "runtime", "python", "version")),
                 ("Python executable", _nested(payload, "runtime", "python", "executable")),
+                ("Java", _nested(payload, "runtime", "java", "version")),
+                ("Java path", _nested(payload, "runtime", "java", "path")),
+                ("Configured Java", _nested(payload, "runtime", "configured_java", "version")),
+                ("Configured Java path", _nested(payload, "runtime", "configured_java", "path")),
                 ("Workflow engine", _nested(payload, "runtime", "engine", "name")),
                 ("Engine version", _nested(payload, "runtime", "engine", "version")),
                 ("Engine path", _nested(payload, "runtime", "engine", "path")),
@@ -947,6 +1194,22 @@ def _run_report_html(payload: dict) -> str:
         sections.insert(-1, _html_section_raw("Software Versions", software_version_rows))
     if execution_trace_rows:
         sections.insert(-1, _html_section_raw("Execution Trace", execution_trace_rows))
+    sections.insert(-1, output_dashboard)
+
+    def _section_has_title(section_html: str, title: str) -> bool:
+        return f"<h2>{html.escape(title)}</h2>" in section_html
+
+    overview_sections = sections[:2]
+    output_sections = [section for section in sections if _section_has_title(section, "Output Dashboard") or _section_has_title(section, "Outputs")]
+    evidence_sections = [
+        section
+        for section in sections[2:]
+        if not (_section_has_title(section, "Output Dashboard") or _section_has_title(section, "Outputs"))
+    ]
+    overview_html = "\n          ".join(overview_sections)
+    evidence_html = "\n          ".join(evidence_sections) or '<p class="empty-note">No additional evidence sections were recorded.</p>'
+    outputs_html = "\n          ".join(output_sections) or '<p class="empty-note">No output sections were recorded.</p>'
+    raw_json = html.escape(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
 
     return """<!doctype html>
 <html lang="en">
@@ -957,25 +1220,32 @@ def _run_report_html(payload: dict) -> str:
   <style>
     :root {
       color-scheme: light;
-      --bg: #f6f7f9;
+      --bg: #f3f5f8;
       --panel: #ffffff;
-      --panel-soft: #fbfcfe;
+      --panel-soft: #f8fafc;
       --text: #17202a;
       --muted: #5f6b7a;
       --border: #d8dee8;
+      --accent: #2457a6;
+      --accent-soft: #e8f0ff;
+      --teal: #0f766e;
+      --green: #17633a;
+      --amber: #9a5b00;
       --ok-bg: #e8f5ee;
       --ok-text: #17633a;
     }
     body {
       margin: 0;
-      background: var(--bg);
+      background:
+        radial-gradient(circle at top left, rgba(36, 87, 166, 0.12), transparent 320px),
+        linear-gradient(180deg, #eef3f8 0, var(--bg) 300px);
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-size: 15px;
       line-height: 1.45;
     }
     main {
-      width: min(1120px, calc(100% - 32px));
+      width: min(1180px, calc(100% - 32px));
       margin: 28px auto 40px;
     }
     header {
@@ -999,10 +1269,12 @@ def _run_report_html(payload: dict) -> str:
       margin: 18px 0 20px;
     }
     .metric {
-      background: var(--panel);
+      background: linear-gradient(180deg, #ffffff, #fbfcfe);
       border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
       border-radius: 8px;
       padding: 12px 14px;
+      box-shadow: 0 8px 24px rgba(16, 24, 40, 0.06);
     }
     .metric span {
       display: block;
@@ -1047,6 +1319,7 @@ def _run_report_html(payload: dict) -> str:
       border-radius: 8px;
       margin: 14px 0;
       overflow: hidden;
+      box-shadow: 0 8px 24px rgba(16, 24, 40, 0.05);
     }
     h2 {
       margin: 0;
@@ -1055,6 +1328,165 @@ def _run_report_html(payload: dict) -> str:
       background: var(--panel-soft);
       font-size: 16px;
       letter-spacing: 0;
+    }
+    .output-dashboard {
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+    }
+    .output-cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .output-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: var(--panel);
+    }
+    .output-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+    .output-card strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 18px;
+      overflow-wrap: anywhere;
+    }
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 14px;
+      padding: 16px;
+    }
+    .dashboard-panel {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 14px;
+    }
+    h3 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .bar-row {
+      margin: 10px 0;
+    }
+    .bar-label {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .bar-label strong {
+      color: var(--text);
+      font-size: 13px;
+    }
+    .bar-track {
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #e9edf3;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--teal));
+    }
+    .deliverable {
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--teal);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: 10px 0;
+      background: #fbfcfe;
+    }
+    .deliverable strong {
+      display: block;
+      margin: 2px 0 4px;
+    }
+    .deliverable p {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    .deliverable-status {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--ok-bg);
+      color: var(--ok-text);
+      font-size: 11px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+    .empty-note {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 16px;
+    }
+    .section-note {
+      padding: 12px 16px 0;
+      font-size: 13px;
+    }
+    .tabs > input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .tab-labels {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 18px;
+    }
+    .tab-labels label {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.82);
+      padding: 8px 14px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+      box-shadow: 0 5px 18px rgba(16, 24, 40, 0.05);
+    }
+    #tab-overview:checked ~ .tab-labels label[for="tab-overview"],
+    #tab-evidence:checked ~ .tab-labels label[for="tab-evidence"],
+    #tab-outputs:checked ~ .tab-labels label[for="tab-outputs"],
+    #tab-json:checked ~ .tab-labels label[for="tab-json"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+    .tab-panel {
+      display: none;
+    }
+    #tab-overview:checked ~ .tab-panels .overview-panel,
+    #tab-evidence:checked ~ .tab-panels .evidence-panel,
+    #tab-outputs:checked ~ .tab-panels .outputs-panel,
+    #tab-json:checked ~ .tab-panels .json-panel {
+      display: block;
+    }
+    pre {
+      margin: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #101828;
+      color: #edf2f7;
+      overflow: auto;
+      padding: 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
     }
     table {
       width: 100%;
@@ -1084,7 +1516,8 @@ def _run_report_html(payload: dict) -> str:
     }
     @media (max-width: 760px) {
       main { width: min(100% - 20px, 1120px); }
-      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .summary, .output-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .dashboard-grid { grid-template-columns: 1fr; }
       th,
       td {
         display: block;
@@ -1111,7 +1544,32 @@ def _run_report_html(payload: dict) -> str:
       <div class="metric"><span>Engine</span><strong>""" + html.escape(str(_nested(payload, "workflow", "engine") or "(undef)")) + """</strong></div>
       <div class="metric"><span>Run ID</span><strong>""" + html.escape(str(_nested(payload, "run", "run_id") or "(undef)")) + """</strong></div>
     </div>
-    """ + "\n    ".join(sections) + """
+    <div class="tabs">
+      <input checked type="radio" name="run-tabs" id="tab-overview">
+      <input type="radio" name="run-tabs" id="tab-evidence">
+      <input type="radio" name="run-tabs" id="tab-outputs">
+      <input type="radio" name="run-tabs" id="tab-json">
+      <div class="tab-labels" aria-label="Report views">
+        <label for="tab-overview">Overview</label>
+        <label for="tab-evidence">Evidence</label>
+        <label for="tab-outputs">Outputs</label>
+        <label for="tab-json">Raw JSON</label>
+      </div>
+      <div class="tab-panels">
+        <div class="tab-panel overview-panel">
+          """ + overview_html + """
+        </div>
+        <div class="tab-panel evidence-panel">
+          """ + evidence_html + """
+        </div>
+        <div class="tab-panel outputs-panel">
+          """ + outputs_html + """
+        </div>
+        <div class="tab-panel json-panel">
+          <pre>""" + raw_json + """</pre>
+        </div>
+      </div>
+    </div>
   </main>
 </body>
 </html>
@@ -1153,7 +1611,7 @@ def write_run_report(
             "name": "CBIcall",
             "version": resolved_config.version or VERSION,
         },
-        "runtime": _runtime_report(workflow.engine),
+        "runtime": _runtime_report(workflow.engine, workflow),
         "profile": resolved_config.profile,
         "workflow": _workflow_report(workflow),
         "resources": resolved_config.resources,
@@ -1338,14 +1796,71 @@ def _run_report_path(path: str) -> Path:
     return report_path
 
 
+def _refresh_report_output_fields(report_path: Path, payload: dict) -> bool:
+    """Refresh audit fields that can be derived from files in an existing run dir."""
+    project_dir = report_path.parent
+    if not project_dir.is_dir():
+        return False
+
+    fresh = _collect_output_fingerprints(project_dir)
+    outputs = payload.setdefault("outputs", {})
+    changed = False
+
+    inventory = outputs.setdefault("file_inventory", {})
+    fresh_inventory = fresh.get("file_inventory") or {}
+    if int(fresh_inventory.get("entries") or 0) > 0:
+        for key in ["directories", "largest_files", "total_bytes", "entries", "sha256", "algorithm", "scope", "excluded", "paths"]:
+            if fresh_inventory.get(key) is not None and inventory.get(key) != fresh_inventory.get(key):
+                inventory[key] = fresh_inventory[key]
+                changed = True
+
+    fresh_vcfs = fresh.get("vcf_hash_reports") or []
+    if fresh_vcfs and outputs.get("vcf_hash_reports") != fresh_vcfs:
+        outputs["vcf_hash_reports"] = fresh_vcfs
+        changed = True
+
+    return changed
+
+
 def _load_run_report(path: str) -> dict:
     report_path = _run_report_path(path)
     try:
         report = json.loads(report_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"Invalid run report JSON: {report_path}") from exc
+    _refresh_report_output_fields(report_path, report)
     report["_report_path"] = str(report_path)
     return report
+
+
+def _run_render_report_command(argv: List[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="cbicall render-report",
+        description="Regenerate run-report.html from an existing CBIcall run-report.json.",
+    )
+    parser.add_argument("run", help="Run directory or run-report.json file.")
+    parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
+    args = parser.parse_args(argv)
+
+    if args.nocolor:
+        os.environ["ANSI_COLORS_DISABLED"] = "1"
+    _refresh_colors()
+
+    report_path = _run_report_path(args.run)
+    try:
+        payload = json.loads(report_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid run report JSON: {report_path}") from exc
+
+    refreshed = _refresh_report_output_fields(report_path, payload)
+    if refreshed:
+        report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+    html_path = _write_run_report_html(report_path, payload)
+    _section("Report Rendered", GREEN)
+    _row("Report", report_path)
+    _row("Refreshed", "outputs" if refreshed else "no")
+    _row("HTML", html_path)
+    return 0
 
 
 def _nested(data: dict, *keys):
@@ -1370,6 +1885,38 @@ def _short_hash(value: str) -> str:
     if len(text) >= 32 and all(ch in "0123456789abcdefABCDEF" for ch in text):
         return f"{text[:12]}...{text[-8:]}"
     return text
+
+
+def _format_bytes(value) -> str:
+    try:
+        size = int(value)
+    except (TypeError, ValueError):
+        return str(value)
+
+    if size < 0:
+        return str(size)
+    units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]
+    number = float(size)
+    unit = units[0]
+    for unit in units:
+        if number < 1024 or unit == units[-1]:
+            break
+        number /= 1024
+    if unit == "B":
+        human = f"{size} B"
+    elif number >= 100:
+        human = f"{number:.0f} {unit}"
+    elif number >= 10:
+        human = f"{number:.1f} {unit}"
+    else:
+        human = f"{number:.2f} {unit}"
+    return f"{human} ({size} bytes)"
+
+
+def _format_optional_bytes(value):
+    if value is None:
+        return None
+    return _format_bytes(value)
 
 
 def _comparison_value(value):
@@ -1463,6 +2010,38 @@ def _compare_output_hashes(left: dict, right: dict) -> None:
         )
 
 
+def _inventory_total_bytes(report: dict):
+    return _nested(report, "outputs", "file_inventory", "total_bytes")
+
+
+def _inventory_manifest_hash(report: dict):
+    return _nested(report, "outputs", "file_inventory", "sha256")
+
+
+def _inventory_size_detail(left, right) -> str:
+    return f"{_comparison_value(_format_optional_bytes(left))} != {_comparison_value(_format_optional_bytes(right))}"
+
+
+def _compare_inventory_size(left: dict, right: dict) -> None:
+    left_size = _inventory_total_bytes(left)
+    right_size = _inventory_total_bytes(right)
+    if left_size is None and right_size is None:
+        _row("Inventory size", "not available")
+        return
+    if left_size is None or right_size is None:
+        _row("Inventory size", f"missing: {_inventory_size_detail(left_size, right_size)}")
+        return
+    if left_size == right_size:
+        _row("Inventory size", f"same: {_comparison_value(_format_optional_bytes(left_size))}")
+        return
+    left_manifest = _inventory_manifest_hash(left)
+    right_manifest = _inventory_manifest_hash(right)
+    if left_manifest and left_manifest == right_manifest:
+        _row("Inventory size", f"note: {_inventory_size_detail(left_size, right_size)}; file list unchanged")
+        return
+    _row("Inventory size", f"different: {_inventory_size_detail(left_size, right_size)}")
+
+
 def _multi_status(label: str, baseline, reports: List[dict], value_fn) -> None:
     baseline_value = value_fn(baseline)
     compared = reports[1:]
@@ -1508,6 +2087,40 @@ def _multi_vcf_hash_value(key: str, report: dict):
     return entry.get("normalized_sha256")
 
 
+def _multi_inventory_size_status(baseline: dict, reports: List[dict]) -> None:
+    baseline_size = _inventory_total_bytes(baseline)
+    compared = reports[1:]
+    if baseline_size is None and all(_inventory_total_bytes(report) is None for report in compared):
+        _row("Inventory size", "not available")
+        return
+
+    missing = []
+    different = []
+    note_only = True
+    baseline_manifest = _inventory_manifest_hash(baseline)
+    for report in compared:
+        size = _inventory_total_bytes(report)
+        if baseline_size is None or size is None:
+            missing.append(_run_label(report))
+            note_only = False
+        elif size != baseline_size:
+            different.append(report)
+            if not baseline_manifest or _inventory_manifest_hash(report) != baseline_manifest:
+                note_only = False
+
+    if missing:
+        _row("Inventory size", "missing: " + ", ".join(missing))
+    elif different:
+        details = [f"baseline={_comparison_value(_format_optional_bytes(baseline_size))}"]
+        for report in different:
+            details.append(f"{_run_label(report)}={_comparison_value(_format_optional_bytes(_inventory_total_bytes(report)))}")
+        status = "note" if note_only else "different"
+        suffix = "; file list unchanged" if note_only else ""
+        _row("Inventory size", f"{status}: " + "; ".join(details) + suffix)
+    else:
+        _row("Inventory size", f"same: {_comparison_value(_format_optional_bytes(baseline_size))}")
+
+
 def _print_multi_run_comparison(reports: List[dict]) -> None:
     baseline = reports[0]
     compared = reports[1:]
@@ -1516,18 +2129,21 @@ def _print_multi_run_comparison(reports: List[dict]) -> None:
     _row("Runs", len(reports))
     _row("Baseline", _run_label(baseline))
     _row("Compared", ", ".join(_run_label(report) for report in compared))
+    _print_run_comparison_legend()
 
     print()
     _section("Framework", BLUE)
     _multi_status("CBIcall ver", baseline, reports, lambda report: _nested(report, "framework", "version"))
     _multi_status("Python ver", baseline, reports, lambda report: _nested(report, "runtime", "python", "version"))
+    _multi_status("Java ver", baseline, reports, lambda report: _nested(report, "runtime", "java", "version"))
+    _multi_status("Configured Java", baseline, reports, lambda report: _nested(report, "runtime", "configured_java", "version"))
     _multi_status("Engine ver", baseline, reports, lambda report: _nested(report, "runtime", "engine", "version"))
 
     print()
     _section("Execution", BLUE)
-    _multi_status("Task count", baseline, reports, lambda report: _nested(report, "execution_trace", "tasks"))
-    _multi_status("Max peak RSS", baseline, reports, lambda report: _nested(report, "execution_trace", "max_peak_rss", "bytes"))
-    _multi_status("Max peak VMEM", baseline, reports, lambda report: _nested(report, "execution_trace", "max_peak_vmem", "bytes"))
+    _multi_status("Task count (trace)", baseline, reports, lambda report: _nested(report, "execution_trace", "tasks"))
+    _multi_status("Max peak RSS (trace)", baseline, reports, lambda report: _nested(report, "execution_trace", "max_peak_rss", "bytes"))
+    _multi_status("Max peak VMEM (trace)", baseline, reports, lambda report: _nested(report, "execution_trace", "max_peak_vmem", "bytes"))
 
     print()
     _section("Pipeline", BLUE)
@@ -1557,14 +2173,13 @@ def _print_multi_run_comparison(reports: List[dict]) -> None:
     print()
     _section("Outputs", BLUE)
     _multi_status("File count", baseline, reports, lambda report: _nested(report, "outputs", "file_inventory", "entries"))
-    _multi_status("File bytes", baseline, reports, lambda report: _nested(report, "outputs", "file_inventory", "total_bytes"))
+    _multi_inventory_size_status(baseline, reports)
     _multi_status("File inventory", baseline, reports, lambda report: _nested(report, "outputs", "file_inventory", "sha256"))
     keys = sorted({key for report in reports for key in _vcf_hash_map(report)})
     if not keys:
         _row("VCF hashes", "not available")
     for key in keys:
         _multi_status(_short_path(key), baseline, reports, lambda report, item=key: _multi_vcf_hash_value(item, report))
-    _print_run_comparison_legend()
 
 
 def _print_run_comparison_legend() -> None:
@@ -1573,25 +2188,29 @@ def _print_run_comparison_legend() -> None:
     _row("same", "values or fingerprints match")
     _row("different", "values or fingerprints exist in both runs but differ")
     _row("missing", "available in only some runs")
-    _row("not available", "not recorded in either run report")
+    _row("note", "audit hint; not treated as a failed reproducibility check")
+    _row("not available", "not recorded in the run reports; task/RAM traces require a backend execution trace")
 
 
 def _print_run_comparison(left: dict, right: dict) -> None:
     _section("Run Comparison", CYAN)
     _row("Run A", _short_path(left["_report_path"]))
     _row("Run B", _short_path(right["_report_path"]))
+    _print_run_comparison_legend()
 
     print()
     _section("Framework", BLUE)
     _compare_row("CBIcall ver", _nested(left, "framework", "version"), _nested(right, "framework", "version"))
     _compare_row("Python ver", _nested(left, "runtime", "python", "version"), _nested(right, "runtime", "python", "version"))
+    _compare_row("Java ver", _nested(left, "runtime", "java", "version"), _nested(right, "runtime", "java", "version"))
+    _compare_row("Configured Java", _nested(left, "runtime", "configured_java", "version"), _nested(right, "runtime", "configured_java", "version"))
     _compare_row("Engine ver", _nested(left, "runtime", "engine", "version"), _nested(right, "runtime", "engine", "version"))
 
     print()
     _section("Execution", BLUE)
-    _compare_row("Task count", _nested(left, "execution_trace", "tasks"), _nested(right, "execution_trace", "tasks"))
-    _compare_row("Max peak RSS", _nested(left, "execution_trace", "max_peak_rss", "bytes"), _nested(right, "execution_trace", "max_peak_rss", "bytes"))
-    _compare_row("Max peak VMEM", _nested(left, "execution_trace", "max_peak_vmem", "bytes"), _nested(right, "execution_trace", "max_peak_vmem", "bytes"))
+    _compare_row("Task count (trace)", _nested(left, "execution_trace", "tasks"), _nested(right, "execution_trace", "tasks"))
+    _compare_row("Max peak RSS (trace)", _nested(left, "execution_trace", "max_peak_rss", "bytes"), _nested(right, "execution_trace", "max_peak_rss", "bytes"))
+    _compare_row("Max peak VMEM (trace)", _nested(left, "execution_trace", "max_peak_vmem", "bytes"), _nested(right, "execution_trace", "max_peak_vmem", "bytes"))
 
     print()
     _section("Pipeline", BLUE)
@@ -1621,10 +2240,9 @@ def _print_run_comparison(left: dict, right: dict) -> None:
     print()
     _section("Outputs", BLUE)
     _compare_row("File count", _nested(left, "outputs", "file_inventory", "entries"), _nested(right, "outputs", "file_inventory", "entries"))
-    _compare_row("File bytes", _nested(left, "outputs", "file_inventory", "total_bytes"), _nested(right, "outputs", "file_inventory", "total_bytes"))
+    _compare_inventory_size(left, right)
     _compare_row("File inventory", _nested(left, "outputs", "file_inventory", "sha256"), _nested(right, "outputs", "file_inventory", "sha256"))
     _compare_output_hashes(left, right)
-    _print_run_comparison_legend()
 
 
 def _html_status_parts(value: str) -> tuple:
@@ -1635,6 +2253,7 @@ def _html_status_parts(value: str) -> tuple:
         ("different", "different"),
         ("missing", "missing"),
         ("same", "same"),
+        ("note", "note"),
     ]:
         if lowered == label:
             return status, label, ""
@@ -1657,14 +2276,31 @@ def _render_compare_html(report_text: str) -> str:
         current = {"title": line.strip(), "rows": []}
         sections.append(current)
 
-    status_counts = {"same": 0, "different": 0, "missing": 0, "unavailable": 0}
+    status_counts = {"same": 0, "different": 0, "missing": 0, "note": 0, "unavailable": 0}
     section_html = []
+    highlight_html = []
     for section in sections:
         rows = []
         for label, value in section["rows"]:
             status_class, status_label, detail = _html_status_parts(value)
             if status_class in status_counts:
                 status_counts[status_class] += 1
+            if status_class in {"different", "missing", "note"}:
+                detail_html = (
+                    f'<code>{html.escape(detail)}</code>'
+                    if detail
+                    else '<code>No detail recorded</code>'
+                )
+                highlight_html.append(
+                    f"<div class=\"change-item {status_class}\">"
+                    "<div class=\"change-head\">"
+                    f"<span class=\"change-section\">{html.escape(section['title'])}</span>"
+                    f"<span class=\"pill {status_class}\">{html.escape(status_label)}</span>"
+                    "</div>"
+                    f"<strong>{html.escape(label)}</strong>"
+                    f"{detail_html}"
+                    "</div>"
+                )
             value_html = (
                 f"<span class=\"detail\">{html.escape(detail)}</span>"
                 if status_class == "neutral"
@@ -1679,6 +2315,8 @@ def _render_compare_html(report_text: str) -> str:
                 f"<td>{value_html}</td>"
                 "</tr>"
             )
+        if section["title"].lower() == "legend":
+            continue
         table = "<table>" + "".join(rows) + "</table>" if rows else ""
         section_html.append(
             "<section>"
@@ -1688,18 +2326,28 @@ def _render_compare_html(report_text: str) -> str:
         )
 
     report_title = sections[0]["title"] if sections else "Run Comparison"
+    status_items = [
+        ("same", "same", "Values or fingerprints match."),
+        ("different", "different", "Values or fingerprints exist in both runs but differ."),
+        ("missing", "missing", "Available in only some runs."),
+        ("note", "note", "Audit hint; not treated as a failed reproducibility check."),
+        ("unavailable", "not available", "Not recorded in the run reports; task/RAM traces require a backend execution trace."),
+    ]
     summary_html = "".join(
         "<div class=\"metric\">"
-        f"<span>{html.escape(label)}</span>"
+        f"<span class=\"pill {key}\">{html.escape(label)}</span>"
         f"<strong>{status_counts[key]}</strong>"
+        f"<p>{html.escape(description)}</p>"
         "</div>"
-        for key, label in [
-            ("same", "Same"),
-            ("different", "Different"),
-            ("missing", "Missing"),
-            ("unavailable", "Not available"),
-        ]
+        for key, label, description in status_items
     )
+    highlights = (
+        "".join(highlight_html)
+        if highlight_html
+        else "<p class=\"empty-note\">No differences, missing values, or notes were detected. The full comparison is available in Details.</p>"
+    )
+    details = "\n          ".join(section_html)
+    raw_report = html.escape(report_text)
 
     return """<!doctype html>
 <html lang="en">
@@ -1725,10 +2373,15 @@ def _render_compare_html(report_text: str) -> str:
       --missing-text: #8a1f1f;
       --na-bg: #eceff3;
       --na-text: #475467;
+      --note-bg: #eaf2ff;
+      --note-text: #2457a6;
+      --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
     }
     body {
       margin: 0;
-      background: var(--bg);
+      background:
+        radial-gradient(circle at top left, rgba(36, 87, 166, 0.13), transparent 30%),
+        linear-gradient(180deg, #f8fafc, var(--bg));
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-size: 15px;
@@ -1754,28 +2407,36 @@ def _render_compare_html(report_text: str) -> str:
     }
     .summary {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(96px, 1fr));
       gap: 10px;
       margin: 18px 0 20px;
+      overflow-x: auto;
+      padding-bottom: 2px;
     }
     .metric {
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 12px 14px;
+      padding: 11px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
     }
-    .metric span {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
+    .metric .pill {
+      min-width: 0;
+      margin-right: 0;
+      padding: 4px 10px;
+      font-size: 13px;
     }
     .metric strong {
       display: block;
-      margin-top: 2px;
-      font-size: 24px;
-      line-height: 1.1;
+      margin-top: 8px;
+      font-size: 26px;
+      line-height: 1;
+    }
+    .metric p {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.3;
     }
     section {
       background: var(--panel);
@@ -1791,6 +2452,94 @@ def _render_compare_html(report_text: str) -> str:
       background: var(--panel-soft);
       font-size: 16px;
       letter-spacing: 0;
+    }
+    .empty-note {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 16px;
+    }
+    .tabs > input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .tab-labels {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 18px;
+    }
+    .tab-labels label {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      padding: 8px 14px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+      box-shadow: 0 5px 18px rgba(15, 23, 42, 0.04);
+    }
+    #tab-overview:checked ~ .tab-labels label[for="tab-overview"],
+    #tab-details:checked ~ .tab-labels label[for="tab-details"],
+    #tab-raw:checked ~ .tab-labels label[for="tab-raw"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+    .tab-panel {
+      display: none;
+    }
+    #tab-overview:checked ~ .tab-panels .overview-panel,
+    #tab-details:checked ~ .tab-panels .details-panel,
+    #tab-raw:checked ~ .tab-panels .raw-panel {
+      display: block;
+    }
+    .change-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      padding: 16px;
+    }
+    .change-item {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--accent);
+      border-radius: 8px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+    .change-item.different { border-left-color: var(--diff-text); }
+    .change-item.missing { border-left-color: var(--missing-text); }
+    .change-item.note { border-left-color: var(--note-text); }
+    .change-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .change-section {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+    .change-item strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+    .change-item code {
+      display: block;
+      border-radius: 6px;
+      background: #f6f8fb;
+      color: var(--text);
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
     }
     table {
       width: 100%;
@@ -1842,14 +2591,33 @@ def _render_compare_html(report_text: str) -> str:
       font-weight: 750;
       text-align: center;
     }
-    .detail { color: var(--text); }
+    .detail {
+      display: inline-block;
+      color: var(--text);
+    }
+    .pill + .detail {
+      margin-left: 8px;
+    }
     .same { background: var(--same-bg); color: var(--same-text); }
     .different { background: var(--diff-bg); color: var(--diff-text); }
     .missing { background: var(--missing-bg); color: var(--missing-text); }
+    .note { background: var(--note-bg); color: var(--note-text); }
     .unavailable { background: var(--na-bg); color: var(--na-text); }
+    pre {
+      margin: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #101828;
+      color: #edf2f7;
+      overflow: auto;
+      padding: 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
     @media (max-width: 760px) {
       main { width: min(100% - 20px, 1120px); }
-      .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .change-list { grid-template-columns: 1fr; }
       th,
       td {
         display: block;
@@ -1873,15 +2641,40 @@ def _render_compare_html(report_text: str) -> str:
       <h1>CBIcall """ + html.escape(report_title) + """</h1>
       <p>Static rendering of the text report generated by <code>cbicall compare-runs</code>.</p>
     </header>
-    <div class="summary" aria-label="Status summary">
+    <div class="summary" aria-label="Status summary and legend">
       """ + summary_html + """
     </div>
-    """ + "\n    ".join(section_html) + """
+    <div class="tabs">
+      <input checked type="radio" name="compare-tabs" id="tab-overview">
+      <input type="radio" name="compare-tabs" id="tab-details">
+      <input type="radio" name="compare-tabs" id="tab-raw">
+      <div class="tab-labels" aria-label="Report views">
+        <label for="tab-overview">Overview</label>
+        <label for="tab-details">Details</label>
+        <label for="tab-raw">Raw Text</label>
+      </div>
+      <div class="tab-panels">
+        <div class="tab-panel overview-panel">
+          <section>
+            <h2>Differences, Missing Values, and Notes</h2>
+            <p class="section-note">Only changed, missing, or noted fields are listed here. The full comparison is available in Details.</p>
+            <div class="change-list">
+              """ + highlights + """
+            </div>
+          </section>
+        </div>
+        <div class="tab-panel details-panel">
+          """ + details + """
+        </div>
+        <div class="tab-panel raw-panel">
+          <pre>""" + raw_report + """</pre>
+        </div>
+      </div>
+    </div>
   </main>
 </body>
 </html>
 """
-
 
 def _run_compare_runs_command(argv: List[str]) -> int:
     parser = argparse.ArgumentParser(
@@ -2155,6 +2948,8 @@ def main() -> int:
         return _run_validate_resources_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "compare-runs":
         return _run_compare_runs_command(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "render-report":
+        return _run_render_report_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "test":
         return _run_test_command(sys.argv[2:])
 

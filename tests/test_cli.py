@@ -123,6 +123,11 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     assert inventory["algorithm"] == "sha256"
     assert inventory["scope"] == "run directory relative file paths"
     assert inventory["entries"] == 5
+    assert inventory["total_bytes"] > 0
+    assert inventory["largest_files"][0]["bytes"] >= inventory["largest_files"][-1]["bytes"]
+    directory_map = {item["group"]: item for item in inventory["directories"]}
+    assert directory_map["03_stats"]["count"] == 1
+    assert directory_map["03_stats"]["bytes"] > 0
     assert inventory["excluded"] == [".nextflow", ".nextflow*", "run-report.html", "run-report.json", "work"]
     assert "run-report.json" not in inventory["paths"]
     assert inventory["paths"] == ["03_stats/sample.vcf.sha256.txt", "env.sh", "log.json", "wes_single.sh", "workflow.log"]
@@ -139,9 +144,17 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     assert "bash/wes/single/gatk-4.6/v1" in html_text
     assert "normalized" in html_text
     assert "Run Files" in html_text
+    assert "Overview" in html_text
+    assert "Evidence" in html_text
+    assert "Outputs" in html_text
+    assert "Raw JSON" in html_text
+    assert 'id="tab-outputs"' in html_text
     assert 'href="workflow.log"' in html_text
     assert 'href="log.json"' in html_text
     assert 'href="run-report.json"' in html_text
+    assert "Inventory size" in html_text
+    assert "bytes" in html_text
+    assert "Largest file" in html_text
     assert "Software Versions" in html_text
     assert "resource_declared" in html_text
     assert "gatk4" in html_text
@@ -150,15 +163,53 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     assert "href=\"03_stats/sample.vcf.sha256.txt\"" in html_text
 
 
-def test_runtime_report_records_python_and_backend_version(monkeypatch):
+def test_run_report_html_caps_large_output_inventory(tmp_path):
+    payload = {
+        "status": "success",
+        "elapsed_seconds": 1,
+        "workflow_log": str(tmp_path / "workflow.log"),
+        "framework": {"version": "1.2.3"},
+        "runtime": {"python": {}, "engine": {}},
+        "workflow": {"engine": "bash", "pipeline": "wes", "mode": "single", "files": []},
+        "resources": {"bundle": {}},
+        "outputs": {
+            "file_inventory": {
+                "paths": [f"03_stats/output_{idx}.txt" for idx in range(30)],
+                "total_bytes": 1536,
+                "largest_files": [
+                    {"path": "02_varcall/sample.vcf.gz", "bytes": 1536},
+                    {"path": "03_stats/output_0.txt", "bytes": 512},
+                ],
+            }
+        },
+        "run": {"project_dir": str(tmp_path), "run_id": "RID", "threads": 1},
+    }
+
+    html_text = cli_mod._run_report_html(payload)
+
+    assert "Showing 25 of 30 essential files" in html_text
+    assert "Output Dashboard" in html_text
+    assert "Raw JSON" in html_text
+    assert "Inventory Composition" in html_text
+    assert "Canonical Deliverables" in html_text
+    assert "Inventory size" in html_text
+    assert "1.50 KiB (1536 bytes)" in html_text
+    assert "Largest file" in html_text
+    assert "02_varcall/sample.vcf.gz" in html_text
+    assert "bar-fill" in html_text
+
+
+def test_runtime_report_records_python_java_and_backend_version(monkeypatch):
     monkeypatch.setattr(cli_mod.shutil, "which", lambda command: f"/usr/bin/{command}")
 
     def fake_run(command, capture_output, text, timeout, check):
-        assert command == ["/usr/bin/nextflow", "-version"]
         assert capture_output is True
         assert text is True
         assert timeout == 10
         assert check is False
+        if command == ["/usr/bin/java", "-version"]:
+            return SimpleNamespace(returncode=0, stdout="", stderr='openjdk version "17.0.10"\n')
+        assert command == ["/usr/bin/nextflow", "-version"]
         return SimpleNamespace(returncode=0, stdout="Nextflow version 25.10.2\n", stderr="")
 
     monkeypatch.setattr(cli_mod.subprocess, "run", fake_run)
@@ -166,6 +217,9 @@ def test_runtime_report_records_python_and_backend_version(monkeypatch):
     report = cli_mod._runtime_report("nextflow")
 
     assert report["python"]["version"] == sys.version.split()[0]
+    assert report["java"]["name"] == "java"
+    assert report["java"]["path"] == "/usr/bin/java"
+    assert report["java"]["version"] == "17.0.10"
     assert report["engine"]["name"] == "nextflow"
     assert report["engine"]["path"] == "/usr/bin/nextflow"
     assert report["engine"]["version"] == "25.10.2"
@@ -354,6 +408,8 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
         "framework": {"name": "CBIcall", "version": "1.2.3"},
         "runtime": {
             "python": {"version": "3.12.3"},
+            "java": {"version": "17.0.10"},
+            "configured_java": {"version": "1.8.0_472"},
             "engine": {"name": "bash", "version": "5.2.21"},
         },
         "workflow": {
@@ -370,7 +426,7 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
         "software_versions": {"sha256": "software-a", "scope": "resource_declared"},
         "execution_trace": {"tasks": 2, "max_peak_rss": {"bytes": 1000}, "max_peak_vmem": {"bytes": 2000}},
         "outputs": {
-            "file_inventory": {"entries": 3, "sha256": "manifest-a"},
+            "file_inventory": {"entries": 3, "total_bytes": 1536, "sha256": "manifest-a"},
             "vcf_hash_reports": [
                 {"file": "sample.vcf.gz", "normalized_sha256": "vcf"}
             ]
@@ -382,6 +438,7 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     changed["workflow"]["files"][0]["sha256"] = "bbb"
     changed["software_versions"]["sha256"] = "software-b"
     changed["execution_trace"]["max_peak_rss"]["bytes"] = 1500
+    changed["outputs"]["file_inventory"]["total_bytes"] = 2048
     changed["outputs"]["file_inventory"]["sha256"] = "manifest-b"
     changed["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] = "vcf"
 
@@ -397,12 +454,17 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     assert "Run Comparison" in out
     assert "CBIcall ver" in out
     assert "Python ver" in out
+    assert "Java ver" in out
+    assert "Configured Java" in out
     assert "Engine ver" in out
-    assert "Task count" in out
-    assert "Max peak RSS" in out
+    assert "Task count (trace)" in out
+    assert "Max peak RSS (trace)" in out
     assert "Workflow hash" in out
     assert "Software versions" in out
     assert "Resource ver" in out
+    assert "Inventory size" in out
+    assert "1.50 KiB" in out
+    assert "2.00 KiB" in out
     assert "File inventory" in out
     assert "different" in out
     assert "entrypoint" in out
@@ -423,7 +485,86 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     assert "Workflow hash" in html_text
     assert "Software versions" in html_text
     assert "Status summary" in html_text
+    assert "Overview" in html_text
+    assert "Details" in html_text
+    assert "Raw Text" in html_text
+    assert "Differences, Missing Values, and Notes" in html_text
+    assert "Only changed, missing, or noted fields are listed here" in html_text
+    assert "change-list" in html_text
+    assert "change-item different" in html_text
+    assert "Python ver" in html_text
+    assert "sample.vcf.gz" in html_text
+    assert "Legend" in html_text
+    assert "Status summary and legend" in html_text
+    assert 'class="metric"' in html_text
+    assert "legend-section" not in html_text
+    assert "task/RAM traces require a backend execution trace" in html_text
     assert "class=\"pill different\"" in html_text
+    assert "class=\"pill same\"" in html_text
+
+
+def test_compare_runs_marks_inventory_size_only_drift_as_note(tmp_path, capsys):
+    run_a = tmp_path / "run_a"
+    run_b = tmp_path / "run_b"
+    run_a.mkdir()
+    run_b.mkdir()
+    base = {
+        "framework": {"version": "1.2.3"},
+        "runtime": {"python": {"version": "3.12.3"}, "engine": {"version": "bash"}},
+        "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "files": []},
+        "resources": {"bundle": {}},
+        "outputs": {
+            "file_inventory": {"entries": 3, "total_bytes": 1536, "sha256": "same-paths"},
+            "vcf_hash_reports": [],
+        },
+    }
+    changed = json.loads(json.dumps(base))
+    changed["outputs"]["file_inventory"]["total_bytes"] = 2048
+    (run_a / "run-report.json").write_text(json.dumps(base), encoding="utf-8")
+    (run_b / "run-report.json").write_text(json.dumps(changed), encoding="utf-8")
+
+    html_report = tmp_path / "compare.html"
+    assert cli_mod._run_compare_runs_command([str(run_a), str(run_b), "--no-color", "--html", str(html_report)]) == 0
+
+    out = capsys.readouterr().out
+    assert "Inventory size => note:" in out
+    assert "file list unchanged" in out
+    assert "Inventory size => different" not in out
+    html_text = html_report.read_text(encoding="utf-8")
+    assert '<span class="pill note">note</span>' in html_text
+    assert "VCF Hashes" not in html_text
+    assert "vcf-evidence" not in html_text
+
+
+def test_compare_runs_refreshes_vcf_hashes_from_existing_run_dirs(tmp_path, capsys):
+    runs = [tmp_path / "run_a", tmp_path / "run_b"]
+    for idx, run in enumerate(runs):
+        stats = run / "03_stats"
+        stats.mkdir(parents=True)
+        (stats / "sample.vcf.sha256.txt").write_text(
+            "FILE=02_varcall/sample.vcf.gz\n"
+            "ALGORITHM=sha256\n"
+            f"NORMALIZED_SHA256=vcf-{idx}\n",
+            encoding="utf-8",
+        )
+        (run / "run-report.json").write_text(
+            json.dumps({
+                "framework": {"version": "1.2.3"},
+                "runtime": {"python": {"version": "3.12.3"}, "engine": {"version": "bash"}},
+                "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "files": []},
+                "resources": {"bundle": {}},
+                "outputs": {"file_inventory": {"entries": 0}, "vcf_hash_reports": []},
+            }),
+            encoding="utf-8",
+        )
+
+    assert cli_mod._run_compare_runs_command([str(runs[0]), str(runs[1]), "--no-color"]) == 0
+
+    out = capsys.readouterr().out
+    assert "sample.vcf.gz" in out
+    assert "vcf-0" in out
+    assert "vcf-1" in out
+    assert "VCF hashes   => not available" not in out
 
 
 def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys):
@@ -436,6 +577,8 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
         "framework": {"name": "CBIcall", "version": "1.2.3"},
         "runtime": {
             "python": {"version": "3.12.3"},
+            "java": {"version": "17.0.10"},
+            "configured_java": {"version": "1.8.0_472"},
             "engine": {"name": "bash", "version": "5.2.21"},
         },
         "workflow": {
@@ -451,7 +594,7 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
         "software_versions": {"sha256": "software-a", "scope": "resource_declared"},
         "execution_trace": {"tasks": 2, "max_peak_rss": {"bytes": 1000}, "max_peak_vmem": {"bytes": 2000}},
         "outputs": {
-            "file_inventory": {"entries": 3, "sha256": "manifest-a"},
+            "file_inventory": {"entries": 3, "total_bytes": 1536, "sha256": "manifest-a"},
             "vcf_hash_reports": [
                 {"file": "sample.vcf.gz", "normalized_sha256": "vcf"}
             ]
@@ -465,6 +608,7 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     different["execution_trace"]["tasks"] = 3
     different["execution_trace"]["max_peak_vmem"]["bytes"] = 2500
     different["outputs"]["file_inventory"]["entries"] = 4
+    different["outputs"]["file_inventory"]["total_bytes"] = 2048
     different["outputs"]["file_inventory"]["sha256"] = "manifest-c"
     different["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] = "vcf-c"
 
@@ -478,10 +622,15 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     assert "Workflow hash" in out
     assert "Software versions" in out
     assert "Python ver" in out
+    assert "Java ver" in out
+    assert "Configured Java" in out
     assert "Engine ver" in out
-    assert "Task count" in out
-    assert "Max peak VMEM" in out
+    assert "Task count (trace)" in out
+    assert "Max peak VMEM (trace)" in out
     assert "Resource ver" in out
+    assert "Inventory size" in out
+    assert "baseline=1.50 KiB" in out
+    assert "2.00 KiB" in out
     assert "File inventory" in out
     assert "different: " in out
     assert "run_2/run-report.json" in out
@@ -489,6 +638,46 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     assert "same: 1.2.3" in out
     assert "baseline=vcf" in out
     assert "vcf-c" in out
+
+
+def test_render_report_command_refreshes_output_hashes_and_regenerates_html(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    stats_dir = run_dir / "03_stats"
+    stats_dir.mkdir()
+    (stats_dir / "sample.vcf.sha256.txt").write_text(
+        "FILE=02_varcall/sample.vcf.gz\n"
+        "ALGORITHM=sha256\n"
+        "NORMALIZED_SHA256=normalized-refresh\n",
+        encoding="utf-8",
+    )
+    payload = {
+        "status": "success",
+        "elapsed_seconds": 1,
+        "workflow_log": str(run_dir / "workflow.log"),
+        "framework": {"version": "1.2.3"},
+        "runtime": {"python": {}, "engine": {}, "java": {}},
+        "workflow": {"engine": "bash", "pipeline": "wes", "mode": "single", "files": []},
+        "resources": {"bundle": {}},
+        "outputs": {"file_inventory": {"paths": [], "total_bytes": 0}, "vcf_hash_reports": []},
+        "run": {"project_dir": str(run_dir), "run_id": "RID", "threads": 1},
+    }
+    report_path = run_dir / "run-report.json"
+    report_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    assert cli_mod._run_render_report_command([str(run_dir), "--no-color"]) == 0
+
+    out = capsys.readouterr().out
+    assert "Report Rendered" in out
+    assert "Refreshed" in out
+    assert "outputs" in out
+    assert "run-report.html" in out
+    refreshed = json.loads(report_path.read_text(encoding="utf-8"))
+    assert refreshed["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] == "normalized-refresh"
+    html_text = (run_dir / "run-report.html").read_text(encoding="utf-8")
+    assert "CBIcall Run Report" in html_text
+    assert "Output Dashboard" in html_text
+    assert "normalized-refresh" in html_text
 
 
 def test_run_with_spinner_no_spinner_calls_function():
