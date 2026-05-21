@@ -17,8 +17,8 @@ export default function Home() {
               <img className={styles.heroLogo} src={logoUrl} alt="CBIcall" />
               <h1 className={styles.srOnly}>CBIcall</h1>
               <p className={styles.heroSubtitle}>
-                A configuration-driven framework for reproducible WES, WGS,
-                and mtDNA variant-calling workflows.
+                CBIcall is a configuration-driven framework for reproducible
+                variant calling in large sequencing cohorts.
               </p>
               <div className={styles.actions}>
                 <Link className="button button--primary button--lg" to="/docs/usage/quickstart">
@@ -30,27 +30,27 @@ export default function Home() {
               </div>
             </div>
 
-            <div className={styles.workflowPanel} aria-label="CBIcall workflow summary">
+            <div className={styles.workflowPanel} aria-label="CBIcall framework summary">
               <div className={styles.workflowStep}>
-                <span>Input</span>
-                <strong>FASTQ; existing BAMs for mtDNA</strong>
+                <span>Parameters</span>
+                <strong>Validated YAML analysis contract</strong>
               </div>
               <div className={styles.workflowArrow}>→</div>
               <div className={styles.workflowStepPrimary}>
-                <span>Dispatcher</span>
-                <strong>WES · WGS · mtDNA</strong>
+                <span>Workflow backends</span>
+                <strong>Bash · Snakemake · Nextflow</strong>
               </div>
               <div className={styles.workflowArrow}>→</div>
               <div className={styles.workflowStep}>
-                <span>Output</span>
-                <strong>BAM · VCF · QC · HTML</strong>
+                <span>Audit</span>
+                <strong>Run reports · hashes · comparisons</strong>
               </div>
               <div className={styles.tokens}>
-                <span>bash</span>
-                <span>snakemake</span>
-                <span>nextflow</span>
-                <span>GATK</span>
-                <span>MToolBox</span>
+                <span>validation</span>
+                <span>resources</span>
+                <span>provenance</span>
+                <span>reports</span>
+                <span>nf-core</span>
               </div>
             </div>
           </div>
@@ -62,15 +62,15 @@ export default function Home() {
               <h2>Install</h2>
               <p>Docker, Apptainer, and non-containerized setup paths.</p>
             </Link>
-            <Link className={styles.card} to="/docs/usage/quickstart">
-              <span>Workflow</span>
-              <h2>Run</h2>
-              <p>Single-sample and cohort workflows for WES, WGS, and mtDNA.</p>
+            <Link className={styles.card} to="/docs/pipelines/overview">
+              <span>Pipelines</span>
+              <h2>Included Analyses</h2>
+              <p>Curated WES, WGS, and mtDNA workflows for single-sample and cohort use.</p>
             </Link>
-            <Link className={styles.card} to="/docs/help/outputs">
-              <span>Results</span>
-              <h2>Inspect</h2>
-              <p>Standard project layout, logs, QC files, and generated outputs.</p>
+            <Link className={styles.card} to="/docs/usage/run-comparison">
+              <span>Reproducibility</span>
+              <h2>Audit Runs</h2>
+              <p>Structured reports, workflow fingerprints, resource hashes, and run comparison.</p>
             </Link>
             <Link className={styles.card} to="/docs/technical-details/adding-a-pipeline">
               <span>Developers</span>

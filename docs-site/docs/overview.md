@@ -2,23 +2,23 @@
 
 ![CBIcall](/img/cbicall-logo.png)
 
-<p align="center"><em>Reproducible germline variant calling for Illumina DNA sequencing</em></p>
+<p align="center"><em>Configuration-driven framework for reproducible cohort-scale variant calling</em></p>
 
-**CBIcall** (**C**NAG **B**iomedical **I**nformatics framework for variant **call**ing) gives users a single command-line entry point for curated WES, WGS, and mtDNA workflows, while keeping run configuration, logs, and outputs traceable.
+**CBIcall** (**C**NAG **B**iomedical **I**nformatics framework for variant **call**ing) is a configuration-driven framework for reproducible variant calling in large sequencing cohorts.
 
 :::tip[In one sentence]
-CBIcall validates a parameters YAML file, resolves the requested workflow, creates a run directory, and launches the matching Bash, Snakemake, or Nextflow pipeline.
+CBIcall validates a parameters YAML file, resolves an approved workflow backend, creates a deterministic run directory, and records structured provenance for audit and run comparison.
 :::
 
 ## What CBIcall Does
 
-CBIcall is an orchestrator. It does not re-implement alignment or variant
-calling algorithms; it runs curated workflows built from established tools such
-as BWA, GATK, and MToolBox.
+CBIcall does not re-implement alignment or variant-calling algorithms; those
+steps remain in curated workflows built from established tools such as BWA,
+GATK, MToolBox, Snakemake, Nextflow, and selected nf-core pipelines.
 
-- validates the **parameters YAML** before launch
-- dispatches **Bash**, **Snakemake**, or **Nextflow** workflows
-- records **logs, provenance, run reports, and output fingerprints** when available
+- validates the **parameters YAML** and compatibility contract before launch
+- resolves **Bash**, **Snakemake**, or **Nextflow** workflow backends
+- records **logs, provenance, run reports, output fingerprints, and run comparisons** when available
 
 ## Pipelines and Backends
 
@@ -32,7 +32,7 @@ executes it.
 | External workflows | Registered nf-core workflows launched through the Nextflow backend |
 
 Use [Included Pipelines](pipelines/overview) for the shipped analyses and
-[Native Backends](backends/native) for how those workflows are dispatched.
+[Native Backends](backends/native) for the supported workflow backends.
 
 ## Installation at a Glance
 

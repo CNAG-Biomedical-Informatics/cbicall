@@ -19,9 +19,9 @@
 ---
 
 **CBIcall** (**C**NAG **B**iomedical **I**nformatics framework for variant **call**ing) is a
-configuration-driven workflow dispatcher for Illumina sequencing variant calling,
-designed to support reproducible, auditable, and consistent execution of analysis pipelines
-in production environments.
+**configuration-driven framework** for reproducible variant calling in large sequencing cohorts.
+It validates analysis intent, resolves approved workflow backends, and records **structured
+provenance** for auditable production runs.
 
 **📘 Documentation:** <a href="https://cnag-biomedical-informatics.github.io/cbicall" target="_blank">https://cnag-biomedical-informatics.github.io/cbicall</a>
 
@@ -43,10 +43,10 @@ in production environments.
 
 CBIcall orchestrates germline variant calling workflows for Illumina sequencing data.
 It does **not** implement variant calling algorithms itself. Instead, it validates
-parameters, resolves workflows from a versioned registry, dispatches native CBIcall
-workflows through Bash, Snakemake, or Nextflow backends, and captures logs and
-structured metadata for traceability. Selected external nf-core workflows can also
-be dispatched through the same validation and provenance layer.
+parameters, resolves workflows from a versioned registry, launches native CBIcall
+workflows through **Bash, Snakemake, or Nextflow** backends, and captures logs,
+run reports, output fingerprints, and structured metadata for traceability. Selected
+external nf-core workflows can also run through the same validation and provenance layer.
 
 Key points:
 
