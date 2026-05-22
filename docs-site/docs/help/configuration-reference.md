@@ -28,7 +28,7 @@ genome:          b37
 | --- | --- | --- | --- |
 | `mode` | `single` | `single`, `cohort` | Selects one-sample processing or cohort-level processing. |
 | `pipeline` | `wes` | `wes`, `wgs`, `mit`; external names are registry-defined | Selects the analysis type. For `workflow_provider: nf-core`, the value is resolved through the workflow registry. |
-| `workflow_backend` | `bash` | `bash`, `snakemake`, `nextflow` | Selects the execution backend supported by the current workflows. |
+| `workflow_backend` | `bash` | `bash`, `snakemake`, `nextflow`, `cromwell` | Selects the execution backend supported by the current workflows. |
 | `software_stack` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the GATK release for CBIcall-native workflows. Use `gatk-4.6` for current bundled WES/WGS workflows. |
 | `workflow_provider` | `cbicall` | `cbicall`, `nf-core` | Selects whether the workflow is a CBIcall-maintained implementation or an external nf-core workflow. Use `workflow_provider: nf-core` for external nf-core workflows. |
 | `resource` | `cbicall-germline-resources-v1` | resource key | Selects one entry from `resources/cbicall-resource-catalog.json`. |
@@ -51,6 +51,8 @@ workflow compatibility metadata.
 | `gatk-4.6` + `snakemake` + `wgs single/cohort` | Yes |
 | `gatk-4.6` + `nextflow` + `wes single/cohort` | Yes |
 | `gatk-4.6` + `nextflow` + `wgs single/cohort` | Yes |
+| `gatk-4.6` + `cromwell` + `wes single` | Yes |
+| `gatk-4.6` + `cromwell` + `wes cohort` or `wgs` | No |
 | `nf-core` + `nextflow` + `demo single` | External nf-core smoke test |
 | `nf-core` + `nextflow` + `sarek cohort` | External nf-core/Sarek workflow |
 | `gatk-3.5` + `bash` + `wes single/cohort` | Legacy |
@@ -221,7 +223,7 @@ directory or log file.
 | `bin/cbicall validate-resources` | Check the resource catalog and, optionally, one resource key. |
 | `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare two or more run directories or `run-report.json` files. |
 | `bin/cbicall report RUN_DIR` | Read-only summary of one completed run. Add `--html` to write `run-report.html`, `--refresh` to update output-derived metadata in `run-report.json`, and `-O/--overwrite` to replace existing files. Use `--json` for structured output. |
-| `bin/cbicall test --wes-bash [--runtime-profile cnag-hpc]`, `--wes-snakemake`, `--wes-nextflow`, `--mit-bash`, `--nf-core-demo`, `--nf-core-sarek`, or `--all` | Runs contract-based integration examples. `--runtime-profile` is forwarded to the internal `cbicall run` calls. `--wes-bash` is the required native baseline test; Snakemake, Nextflow, and nf-core tests require their backends on `PATH`. |
+| `bin/cbicall test --wes-bash [--runtime-profile cnag-hpc]`, `--wes-snakemake`, `--wes-nextflow`, `--wes-cromwell`, `--mit-bash`, `--nf-core-demo`, `--nf-core-sarek`, or `--all` | Runs contract-based integration examples. `--runtime-profile` is forwarded to the internal `cbicall run` calls. `--wes-bash` is the required native baseline test; Snakemake, Nextflow, Cromwell, and nf-core tests require their backends on `PATH` or configured through their documented environment variables. |
 
 For a higher-level explanation of included pipelines versus execution backends,
 see [Included Pipelines](../pipelines/overview) and
@@ -234,6 +236,7 @@ see [Included Pipelines](../pipelines/overview) and
 | `registry_version` | Registry default, currently `v1` | Advanced pin for a specific CBIcall registry version. Leave unset for normal runs. |
 | `snakemake_parameters` | `{}` | Snakemake-specific options. `target` selects a Snakemake target instead of the default `all`; other keys are passed through as extra `--config key=value` entries after CBIcall-managed config values. |
 | `nextflow_parameters` | `{}` | Native CBIcall Nextflow parameters passed as `--key value`. CBIcall blocks keys it owns, such as `pipeline`, `genome`, `threads`, helper scripts, and cohort workspace settings. |
+| `cromwell_parameters` | `{}` | Native CBIcall Cromwell/WDL inputs for advanced workflow-specific values. CBIcall blocks overrides of inputs it owns, including tool paths, reference paths, sample identity, genome, pipeline, and thread count. |
 | `nfcore_profile` | `null` | nf-core profile passed to external nf-core workflows, for example `docker`, `singularity`, or `test,singularity`. |
 | `nfcore_parameters` | `{}` | Pass-through nf-core parameters written to the generated params file. CBIcall controls `outdir` and `max_cpus`. |
 | `nfcore_singularity_cache_dir` | `null` | Optional Singularity/Apptainer image cache directory for external nf-core workflows. CBIcall writes it to the generated Nextflow config as cache and library directories. |
@@ -241,7 +244,7 @@ see [Included Pipelines](../pipelines/overview) and
 | `technology` | `Illumina HiSeq` | Metadata field. |
 
 :::note[Backend-specific parameters]
-Use `snakemake_parameters`, `nextflow_parameters`, and `nfcore_parameters` only for parameters owned by that backend or external workflow. CBIcall still owns the compatibility contract and blocks overrides of core values it resolves itself.
+Use `snakemake_parameters`, `nextflow_parameters`, `cromwell_parameters`, and `nfcore_parameters` only for parameters owned by that backend or external workflow. CBIcall still owns the compatibility contract and blocks overrides of core values it resolves itself.
 :::
 
 ## Output Directory Naming

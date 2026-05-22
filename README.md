@@ -44,14 +44,14 @@ provenance** for auditable production runs.
 CBIcall orchestrates germline variant calling workflows for Illumina sequencing data.
 It does **not** implement variant calling algorithms itself. Instead, it validates
 parameters, resolves workflows from a versioned registry, launches native CBIcall
-workflows through **Bash, Snakemake, or Nextflow** backends, and captures logs,
+workflows through **Bash, Snakemake, Nextflow, or Cromwell** backends, and captures logs,
 run reports, output fingerprints, and structured metadata for traceability. Selected
 external nf-core workflows can also run through the same validation and provenance layer.
 
 Key points:
 
 - Configuration-driven execution from a YAML parameter file
-- Native CBIcall workflow support through Bash, Snakemake, and Nextflow backends
+- Native CBIcall workflow support through Bash, Snakemake, Nextflow, and Cromwell backends
 - Support for WES, WGS, and mtDNA analysis modes
 - Registry-backed support for selected external nf-core/Nextflow workflows
 - Structured run logging and traceable runtime metadata

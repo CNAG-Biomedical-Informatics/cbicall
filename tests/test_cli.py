@@ -128,7 +128,17 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     directory_map = {item["group"]: item for item in inventory["directories"]}
     assert directory_map["03_stats"]["count"] == 1
     assert directory_map["03_stats"]["bytes"] > 0
-    assert inventory["excluded"] == [".nextflow", ".nextflow*", "run-report.html", "run-report.json", "work"]
+    assert inventory["excluded"] == [
+        ".nextflow",
+        ".nextflow*",
+        "cromwell-executions",
+        "cromwell-logs",
+        "cromwell-outputs",
+        "cromwell-work",
+        "run-report.html",
+        "run-report.json",
+        "work",
+    ]
     assert "run-report.json" not in inventory["paths"]
     assert inventory["paths"] == ["03_stats/sample.vcf.sha256.txt", "env.sh", "log.json", "wes_single.sh", "workflow.log"]
     assert len(inventory["sha256"]) == 64
@@ -1007,7 +1017,7 @@ def test_validate_registry_command_uses_default_registry(capsys):
     assert "cbicall-workflow-registry.yaml" in out
     assert "cbicall-workflow-registry.schema.json" in out
     assert "Backends" in out
-    assert "bash, nextflow, snakemake" in out
+    assert "bash, cromwell, nextflow, snakemake" in out
     assert "External" in out
     assert "nf-core" in out
     assert "Engines" not in out
@@ -1406,6 +1416,7 @@ def test_run_test_command_all_selects_native_backends_and_skips_missing(monkeypa
         "wes-bash",
         "wes-snakemake",
         "wes-nextflow",
+        "wes-cromwell",
         "mit-bash",
     ]
     assert seen["project_root"] == tmp_path

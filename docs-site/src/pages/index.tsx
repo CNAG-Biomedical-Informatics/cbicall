@@ -38,7 +38,7 @@ export default function Home() {
               <div className={styles.workflowArrow}>→</div>
               <div className={styles.workflowStepPrimary}>
                 <span>Workflow backends</span>
-                <strong>Bash · Snakemake · Nextflow</strong>
+                <strong>Bash · Snakemake · Nextflow · Cromwell</strong>
               </div>
               <div className={styles.workflowArrow}>→</div>
               <div className={styles.workflowStep}>

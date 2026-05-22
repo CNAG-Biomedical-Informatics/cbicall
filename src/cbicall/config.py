@@ -41,7 +41,7 @@ MODE_VALUES = {"single", "cohort"}
 PIPELINE_VALUES = {"wes", "wgs", "mit"}
 ORGANISM_VALUES = {"Homo sapiens", "Mus musculus"}
 TECHNOLOGY_VALUES = {"Illumina HiSeq", "NovaSeq"}
-WORKFLOW_BACKEND_VALUES = {"bash", "nextflow", "snakemake"}
+WORKFLOW_BACKEND_VALUES = {"bash", "cromwell", "nextflow", "snakemake"}
 WORKFLOW_PROVIDER_VALUES = {"cbicall", "nf-core"}
 SOFTWARE_STACK_VALUES = {"gatk-3.5", "gatk-4.6"}
 GENOME_VALUES = {"b37", "hg38", "rsrs", "external"}
@@ -60,6 +60,7 @@ _DEFAULTS = {
     "profile": "local",
     "snakemake_parameters": {},
     "nextflow_parameters": {},
+    "cromwell_parameters": {},
     "nfcore_profile": None,
     "nfcore_parameters": {},
     "nfcore_singularity_cache_dir": None,
@@ -153,6 +154,14 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
                 "The combination pipeline='mit' with workflow_backend='nextflow' is not supported."
             )
 
+    if cfg.get("workflow_backend") == "cromwell":
+        if cfg.get("workflow_provider") != "cbicall":
+            raise ParameterValidationError("workflow_backend='cromwell' is currently supported only with workflow_provider='cbicall'.")
+        if cfg.get("software_stack") != "gatk-4.6":
+            raise ParameterValidationError("workflow_backend='cromwell' currently supports software_stack='gatk-4.6' only.")
+        if cfg.get("pipeline") != "wes" or cfg.get("mode") != "single":
+            raise ParameterValidationError("workflow_backend='cromwell' currently supports only pipeline='wes' with mode='single'.")
+
     if cfg.get("workflow_provider") == "nf-core":
         if cfg.get("workflow_backend") != "nextflow":
             raise ParameterValidationError("workflow_provider='nf-core' requires workflow_backend='nextflow'.")
@@ -213,11 +222,14 @@ def _validate_mapping_parameter(cfg: dict, key: str) -> dict:
 def _validate_backend_parameter_settings(cfg: dict) -> None:
     snakemake_parameters = _validate_mapping_parameter(cfg, "snakemake_parameters")
     nextflow_parameters = _validate_mapping_parameter(cfg, "nextflow_parameters")
+    cromwell_parameters = _validate_mapping_parameter(cfg, "cromwell_parameters")
 
     if snakemake_parameters and cfg.get("workflow_backend") != "snakemake":
         raise ParameterValidationError("snakemake_parameters requires workflow_backend='snakemake'.")
     if nextflow_parameters and (cfg.get("workflow_backend") != "nextflow" or cfg.get("workflow_provider") == "nf-core"):
         raise ParameterValidationError("nextflow_parameters requires a native workflow_backend='nextflow' run.")
+    if cromwell_parameters and cfg.get("workflow_backend") != "cromwell":
+        raise ParameterValidationError("cromwell_parameters requires workflow_backend='cromwell'.")
 
     target = snakemake_parameters.get("target")
     if target is not None:
@@ -248,6 +260,42 @@ def _validate_backend_parameter_settings(cfg: dict) -> None:
     if reserved_nextflow:
         raise ParameterValidationError(
             "nextflow_parameters cannot set CBIcall-controlled parameters: " + ", ".join(reserved_nextflow)
+        )
+
+    reserved_cromwell = sorted(
+        set(cromwell_parameters)
+        & {
+            "id",
+            "pipeline",
+            "genome",
+            "threads",
+            "cleanup_bam",
+            "fastq_pairs_tsv",
+            "datadir",
+            "dbdir",
+            "ngsutils",
+            "tmpdir",
+            "bwa",
+            "samtools",
+            "gatk4_cmd",
+            "ref",
+            "refgz",
+            "dbsnp",
+            "mills_indels",
+            "kg_indels",
+            "hapmap",
+            "omni",
+            "interval_list",
+            "snp_res",
+            "indel_res",
+            "coverage_script",
+            "vcf2sex_script",
+            "vcf2hash_script",
+        }
+    )
+    if reserved_cromwell:
+        raise ParameterValidationError(
+            "cromwell_parameters cannot set CBIcall-controlled parameters: " + ", ".join(reserved_cromwell)
         )
 
 
@@ -604,6 +652,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         profile=cfg_in["profile"],
         snakemake_parameters=cfg_in.get("snakemake_parameters", {}),
         nextflow_parameters=cfg_in.get("nextflow_parameters", {}),
+        cromwell_parameters=cfg_in.get("cromwell_parameters", {}),
         nfcore_profile=cfg_in.get("nfcore_profile"),
         nfcore_parameters=cfg_in.get("nfcore_parameters", {}),
         nfcore_singularity_cache_dir=cfg_in.get("nfcore_singularity_cache_dir"),
@@ -638,6 +687,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         profile=config.profile,
         snakemake_parameters=config.snakemake_parameters,
         nextflow_parameters=config.nextflow_parameters,
+        cromwell_parameters=config.cromwell_parameters,
         nfcore_profile=config.nfcore_profile,
         nfcore_parameters=config.nfcore_parameters,
         nfcore_singularity_cache_dir=config.nfcore_singularity_cache_dir,

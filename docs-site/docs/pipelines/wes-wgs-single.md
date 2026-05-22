@@ -21,6 +21,13 @@ A user-focused guide to processing whole-exome (WES) and whole-genome (WGS) data
 **Source:** [View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/nextflow/gatk-4.6/wes_single.nf)
 
 </TabItem>
+<TabItem value="cromwell" label="Cromwell">
+
+**Source:** [View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/cromwell/gatk-4.6/wes_single.wdl)
+
+Current Cromwell support is WES single-sample only.
+
+</TabItem>
 </Tabs>
 ---
 

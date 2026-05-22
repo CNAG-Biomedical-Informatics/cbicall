@@ -46,10 +46,11 @@ repeated runs, see [Run Comparison](run-comparison).
 | `bin/cbicall test --wes-bash -t 1` | **Native WES**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | <span className="cbicallTestBadge cbicallTestBadgeNeutral">none</span> | Run report fields, expected files, **normalized VCF hash** |
 | `bin/cbicall test --wes-snakemake -t 1` | **Native WES**, Snakemake | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `snakemake` on `PATH` | Run report fields, expected files, **normalized VCF hash** |
 | `bin/cbicall test --wes-nextflow -t 1` | **Native WES**, Nextflow | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `nextflow` on `PATH` | Run report fields, expected files, **normalized VCF hash** |
+| `bin/cbicall test --wes-cromwell -t 1` | **Native WES**, Cromwell | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `CROMWELL_JAR`, `cromwell`, or `cromwell*.jar` on `PATH` | Generated inputs/options/metadata, run report fields, expected files, **normalized VCF hash** |
 | `bin/cbicall test --mit-bash -t 1` | **Native mtDNA**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | x86_64 host | Run report fields, expected files, **prioritized variants hash**, **raw JSON hash** |
 | `bin/cbicall test --nf-core-demo -t 4` | **nf-core/demo** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile | Generated params/config, run reports, **pipeline info**, **MultiQC anchors** |
 | `bin/cbicall test --nf-core-sarek -t 4` | **nf-core/Sarek** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile and Sarek inputs/resources | Generated params/config, run reports, **pipeline info**, **MultiQC anchors**, declared canonical outputs when produced |
-| `bin/cbicall test --all -t 1` | **Native tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Optional backends skipped if missing | Runs WES Bash, WES Snakemake, WES Nextflow, and mtDNA contracts |
+| `bin/cbicall test --all -t 1` | **Native tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Optional backends skipped if missing | Runs WES Bash, WES Snakemake, WES Nextflow, WES Cromwell, and mtDNA contracts |
 
 Useful variants:
 
@@ -64,9 +65,12 @@ bin/cbicall test --nf-core-demo -t 4 --keep-external-work
 details.
 
 :::note[Workflow backend dependencies]
-Snakemake and Nextflow are not part of the CBIcall resource bundle. Install them
-in the runtime environment before running their backend-specific tests.
-On CNAG HPC, load Nextflow first:
+Snakemake, Nextflow, and Cromwell are not part of the CBIcall resource bundle.
+Install them in the runtime environment before running their backend-specific
+tests. For Cromwell, set `CROMWELL_JAR=/path/to/cromwell.jar`, put a
+`cromwell` launcher on `PATH`, or put a `cromwell*.jar` file such as
+`cromwell-92.jar` on `PATH`.
+For Nextflow or nf-core tests on CNAG HPC, load Nextflow first:
 
 ```bash
 module load Nextflow/25.10.2
@@ -110,6 +114,10 @@ the run directory starts with `cbicall_snakemake_gatk-4.6_wes_single_b37_*`.
 
 The optional Nextflow WES test uses the same input and expected VCF records, but
 the run directory starts with `cbicall_nextflow_gatk-4.6_wes_single_b37_*`.
+
+The optional Cromwell WES test uses the same input and expected VCF records, but
+the run directory starts with `cbicall_cromwell_gatk-4.6_wes_single_b37_*` and
+contains generated `cbicall_cromwell.*.json` launch files.
 
 For mtDNA, the run directory looks like:
 

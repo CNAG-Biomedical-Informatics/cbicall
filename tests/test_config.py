@@ -1100,8 +1100,46 @@ def test_set_config_values_snakemake_missing_files_triggers_guard(monkeypatch, t
 
 
 # --------------------------
+# cromwell branch
+# --------------------------
+
+
+def test_set_config_values_cromwell_wes_single_gatk46_resolves():
+    cfg = config_mod.set_config_values(
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "cromwell", "software_stack": "gatk-4.6"}
+    )
+
+    assert cfg["workflow"]["backend"] == "cromwell"
+    assert cfg["workflow"]["entrypoint"].endswith("wes_single.wdl")
+    assert cfg["workflow"]["config_file"].endswith("config.yaml")
+    assert cfg["workflow"]["helpers"]["vcf2hash"].endswith("vcf2hash.sh")
+    assert cfg["cromwell_parameters"] == {}
+
+
+def test_set_config_values_cromwell_rejects_non_wes_single():
+    with pytest.raises(ParameterValidationError, match="currently supports only pipeline='wes' with mode='single'"):
+        config_mod.set_config_values(
+            {"mode": "cohort", "pipeline": "wes", "workflow_backend": "cromwell", "software_stack": "gatk-4.6"}
+        )
+
+
+def test_set_config_values_cromwell_parameters_reject_controlled_keys():
+    with pytest.raises(ParameterValidationError, match="cromwell_parameters cannot set CBIcall-controlled parameters"):
+        config_mod.set_config_values(
+            {
+                "mode": "single",
+                "pipeline": "wes",
+                "workflow_backend": "cromwell",
+                "software_stack": "gatk-4.6",
+                "cromwell_parameters": {"threads": 99},
+            }
+        )
+
+
+# --------------------------
 # nextflow branch
 # --------------------------
+
 
 def test_set_config_values_nextflow_single_gatk46_resolves(monkeypatch, tmp_path):
     root = _mk_fake_root(monkeypatch, tmp_path)

@@ -22,7 +22,7 @@ CBIcall now has two useful first-run paths:
 | Path | Needs the CBIcall resource bundle? | Use when |
 | --- | --- | --- |
 | nf-core provider | No | You want to test CBIcall orchestration immediately with Nextflow/nf-core. |
-| Native CBIcall WES/mtDNA | Yes | You want to test the bundled Bash/Snakemake/Nextflow workflows against CBIcall's integration contracts. |
+| Native CBIcall WES/mtDNA | Yes | You want to test the bundled Bash/Snakemake/Nextflow/Cromwell workflows against CBIcall's integration contracts. |
 
 For nf-core, CBIcall validates the YAML and records provenance, while nf-core and
 Nextflow manage the workflow's own test data, containers, and references.

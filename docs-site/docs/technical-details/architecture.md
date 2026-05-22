@@ -7,7 +7,7 @@ Its main responsibilities are:
 - Validating required parameters, compatibility rules, and runtime resources
 - Resolving the selected **workflow backend**, **software stack**, **pipeline**, **mode**, and **registry version**
 - Preparing a deterministic run directory
-- Dispatching the appropriate Bash, Snakemake, Nextflow, or nf-core workflow
+- Dispatching the appropriate Bash, Snakemake, Nextflow, Cromwell, or nf-core workflow
 - Recording logs, workflow fingerprints, resource provenance, and compact run reports
 
 The actual bioinformatics work, such as alignment, variant calling, mtDNA
@@ -35,8 +35,8 @@ _CBIcall resolves a validated parameters YAML into one registered workflow imple
 | **CLI and validation layer** | Reads the parameters YAML, applies defaults, checks schema-level and compatibility rules, resolves runtime profiles, and starts the selected command. | `src/cbicall/cli.py`, `src/cbicall/config.py` |
 | **Workflow registry** | Developer-facing routing table that maps `workflow_backend`, `software_stack`, `pipeline`, `mode`, and `registry_version` to one implementation. Validate it with `bin/cbicall validate-registry` after editing. | `workflows/registry/cbicall-workflow-registry.yaml`, `src/cbicall/workflow_registry.py` |
 | **Resource catalog** | Declares external dependency sets, resource identifiers, compatible workflow keys, and checksum metadata for downloadable CBIcall bundles. | `resources/cbicall-resource-catalog.json`, `src/cbicall/resources.py` |
-| **Workflow runners** | Execute the resolved implementation. Bash runs local scripts directly; Snakemake and native Nextflow run bundled workflow files; external nf-core entries are launched through Nextflow. | `src/cbicall/dnaseq.py` |
-| **Workflow implementations** | Contain the analysis logic for native WES, WGS, and mtDNA pipelines, plus registered external nf-core workflows. | `workflows/bash/`, `workflows/snakemake/`, `workflows/nextflow/` |
+| **Workflow runners** | Execute the resolved implementation. Bash runs local scripts directly; Snakemake, native Nextflow, and Cromwell run bundled workflow files; external nf-core entries are launched through Nextflow. | `src/cbicall/dnaseq.py` |
+| **Workflow implementations** | Contain the analysis logic for native WES, WGS, and mtDNA pipelines, plus registered external nf-core workflows. | `workflows/bash/`, `workflows/snakemake/`, `workflows/nextflow/`, `workflows/cromwell/` |
 | **Run audit layer** | Writes `log.json`, `run-report.json`, workflow fingerprints, selected resource identity, output fingerprints, and comparison reports. | `src/cbicall/cli.py`, `bin/cbicall compare-runs` |
 | **Contract tests** | Run small examples and validate expected output contracts without keeping full `ref_*` run directories in the repository. | `src/cbicall/integration_tests.py`, `tests/fixtures/integration/` |
 
@@ -132,10 +132,11 @@ The workflow backend is selected in the YAML:
 - `workflow_backend: bash`
 - `workflow_backend: snakemake`
 - `workflow_backend: nextflow`
+- `workflow_backend: cromwell`
 
 ::::tip[Backend choice]
-Bash workflows are direct and transparent. Snakemake and native Nextflow
-workflows provide backend-managed orchestration for bundled CBIcall workflows.
+Bash workflows are direct and transparent. Snakemake, native Nextflow, and
+Cromwell workflows provide backend-managed orchestration for bundled CBIcall workflows.
 External nf-core workflows are also launched through the Nextflow backend, but
 their test data, containers, and references are managed by nf-core/Nextflow
 rather than by the CBIcall resource bundle.
@@ -177,14 +178,14 @@ default, generate both terminal and HTML summaries.
 
 ### Native CBIcall workflows
 
-| Pipeline | Mode | Genome | Software stack | Bash | Snakemake | Nextflow |
-| --- | --- | --- | --- | --- | --- | --- |
-| **WES** | `single` | `b37` | `gatk-3.5`, `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` | `gatk-4.6` |
-| **WES** | `cohort` | `b37` | `gatk-3.5`, `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` | `gatk-4.6` |
-| **WGS** | `single` | `b37`, `hg38` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> |
-| **WGS** | `cohort` | `b37`, `hg38` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> |
-| **mtDNA** | `single` | `rsrs` | `gatk-3.5` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
-| **mtDNA** | `cohort` | `rsrs` | `gatk-3.5` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
+| Pipeline | Mode | Genome | Software stack | Bash | Snakemake | Nextflow | Cromwell |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **WES** | `single` | `b37` | `gatk-3.5`, `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` | `gatk-4.6` | `gatk-4.6` |
+| **WES** | `cohort` | `b37` | `gatk-3.5`, `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
+| **WGS** | `single` | `b37`, `hg38` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
+| **WGS** | `cohort` | `b37`, `hg38` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
+| **mtDNA** | `single` | `rsrs` | `gatk-3.5` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
+| **mtDNA** | `cohort` | `rsrs` | `gatk-3.5` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
 
 ::::warning[mtDNA platform limitation]
 The bundled mtDNA workflow is not supported on ARM / aarch64 because of legacy

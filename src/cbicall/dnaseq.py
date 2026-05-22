@@ -1,13 +1,16 @@
+import json
 import os
 import platform
 import re
+import shutil
 import shlex
 import subprocess
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import yaml
 
+from .cromwell import find_cromwell_jar_on_path
 from .errors import WorkflowExecutionError, WorkflowResolutionError
 from .models import RunSettings
 
@@ -53,6 +56,54 @@ def _append_nextflow_cli_parameters(cmd: List[str], parameters: Dict[str, object
             cmd.append(flag)
         else:
             cmd.extend([flag, _parameter_value_to_string(value)])
+
+
+def _expand_config_value(value: Any, variables: Dict[str, Any]) -> Any:
+    if isinstance(value, dict):
+        return {key: _expand_config_value(item, variables) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_expand_config_value(item, variables) for item in value]
+    if not isinstance(value, str):
+        return value
+    out = value
+    changed = True
+    while changed:
+        previous = out
+        for key, item in variables.items():
+            out = out.replace("{" + str(key) + "}", str(item))
+        changed = out != previous
+    return out
+
+
+def _expand_native_config(config: Dict[str, Any], *, genome: str) -> Dict[str, Any]:
+    data = dict(config)
+    lvl1 = {"datadir": data["datadir"], "mem": data.get("mem", "8G")}
+    data["dbdir"] = _expand_config_value(data["dbdir"], lvl1)
+    data["ngsutils"] = _expand_config_value(data["ngsutils"], lvl1)
+    data["tmpdir"] = _expand_config_value(data["tmpdir"], lvl1)
+    lvl2 = {**lvl1, "dbdir": data["dbdir"], "ngsutils": data["ngsutils"], "tmpdir": data["tmpdir"]}
+    data["gatk4_cmd"] = _expand_config_value(data["gatk4_cmd"], lvl2)
+    resources = data.get("resources", {})
+    if genome not in resources:
+        raise WorkflowResolutionError(f"Missing resources.{genome} in native backend config")
+    res = _expand_config_value(resources[genome], lvl2)
+    bundle = res.get("bundle")
+    res = _expand_config_value(res, {**lvl2, "bundle": bundle})
+    res = _expand_config_value(res, {**lvl2, **res})
+    data["resources"] = {genome: res}
+    tools = data.get("tools", {})
+    arch = "aarch64" if platform.machine() in {"aarch64", "arm64"} else "amd64"
+    if arch not in tools:
+        raise WorkflowResolutionError(f"Missing tools.{arch} in native backend config")
+    data["selected_tools"] = _expand_config_value(tools[arch], lvl2)
+    return data
+
+
+def _copy_if_different(src: Path, dst: Path) -> None:
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    if src.resolve() == dst.resolve():
+        return
+    shutil.copy2(src, dst)
 
 
 def _run_cmd(
@@ -403,6 +454,175 @@ class NextflowRunner(BaseRunner):
         return cmd
 
 
+class CromwellRunner(BaseRunner):
+    workflow_name = "CBIcallWesSingle"
+
+    @property
+    def inputs_json(self) -> Path:
+        return self.workdir / "cbicall_cromwell.inputs.json"
+
+    @property
+    def options_json(self) -> Path:
+        return self.workdir / "cbicall_cromwell.options.json"
+
+    @property
+    def metadata_json(self) -> Path:
+        return self.workdir / "cbicall_cromwell.metadata.json"
+
+    @property
+    def fastq_pairs_tsv(self) -> Path:
+        return self.workdir / "cbicall_cromwell.fastq_pairs.tsv"
+
+    def _sample_id(self) -> str:
+        rawid = self.workdir.parent.name
+        return rawid.split("_", 1)[0]
+
+    def _input_dir(self) -> Path:
+        if self.inputs.input_dir:
+            return Path(self.inputs.input_dir)
+        return self.workdir.parent
+
+    def _write_fastq_pairs(self) -> None:
+        input_dir = self._input_dir()
+        pairs = []
+        for r1 in sorted(input_dir.glob("*_R1_*fastq.gz")):
+            r2 = Path(str(r1).replace("_R1_", "_R2_"))
+            if not r2.is_file():
+                raise WorkflowResolutionError(f"Missing FASTQ mate for Cromwell input: {r2}")
+            base = r1.name.replace(".fastq.gz", "").split("_R1_", 1)[0]
+            pairs.append((base, str(r1.resolve()), str(r2.resolve())))
+        if not pairs:
+            raise WorkflowResolutionError(f"No *_R1_*fastq.gz files found for Cromwell input in: {input_dir}")
+        self.fastq_pairs_tsv.write_text(
+            "".join("\t".join(row) + "\n" for row in pairs),
+            encoding="utf-8",
+        )
+
+    def _write_cromwell_json(self) -> None:
+        if self.pipeline != "wes" or self.mode != "single":
+            raise WorkflowResolutionError("Cromwell backend currently supports only WES single-sample runs.")
+        if not self.workflow.config_file:
+            raise WorkflowResolutionError(f"Missing Cromwell config file for pipeline/mode '{self.suffix}'")
+
+        self.workdir.mkdir(parents=True, exist_ok=True)
+        output_dirs = (
+            "01_bam",
+            "02_varcall",
+            "03_stats",
+            "logs",
+            "cromwell-work",
+            "cromwell-outputs",
+            "cromwell-logs",
+        )
+        for rel in output_dirs:
+            (self.workdir / rel).mkdir(parents=True, exist_ok=True)
+        self._write_fastq_pairs()
+
+        config = yaml.safe_load(Path(self.workflow.config_file).read_text(encoding="utf-8")) or {}
+        expanded = _expand_native_config(config, genome=self.genome)
+        resources = expanded["resources"][self.genome]
+        tools = expanded["selected_tools"]
+        prefix = self.workflow_name + "."
+        payload = {
+            prefix + "id": self._sample_id(),
+            prefix + "pipeline": self.pipeline,
+            prefix + "genome": self.genome,
+            prefix + "threads": int(self.settings.threads),
+            prefix + "cleanup_bam": bool(self.settings.cleanup_bam),
+            prefix + "fastq_pairs_tsv": str(self.fastq_pairs_tsv.resolve()),
+            prefix + "tmpdir": str(expanded["tmpdir"]),
+            prefix + "bwa": str(tools["bwa"]),
+            prefix + "samtools": str(tools["samtools"]),
+            prefix + "gatk4_cmd": str(expanded["gatk4_cmd"]),
+            prefix + "ref": str(resources["ref"]),
+            prefix + "refgz": str(resources["refgz"]),
+            prefix + "dbsnp": str(resources["dbsnp"]),
+            prefix + "mills_indels": str(resources["mills_indels"]),
+            prefix + "kg_indels": str(resources["kg_indels"]),
+            prefix + "hapmap": str(resources["hapmap"]),
+            prefix + "omni": str(resources["omni"]),
+            prefix + "interval_list": str(resources["interval_list"]),
+            prefix + "snp_res": str(resources["snp_res"]),
+            prefix + "indel_res": str(resources["indel_res"]),
+            prefix + "coverage_script": str(self.workflow.helpers["coverage"]),
+            prefix + "vcf2sex_script": str(self.workflow.helpers["vcf2sex"]),
+            prefix + "vcf2hash_script": str(self.workflow.helpers["vcf2hash"]),
+        }
+        for key, value in sorted(self.settings.cromwell_parameters.items()):
+            payload[key if "." in key else prefix + key] = value
+        self.inputs_json.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+        options = {
+            "final_workflow_outputs_dir": str((self.workdir / "cromwell-outputs").resolve()),
+            "final_workflow_log_dir": str((self.workdir / "cromwell-logs").resolve()),
+            "use_relative_output_paths": True,
+        }
+        self.options_json.write_text(json.dumps(options, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    def _cromwell_command_prefix(self) -> List[str]:
+        jar = os.environ.get("CROMWELL_JAR")
+        if jar:
+            jar_path = Path(jar)
+            if not jar_path.is_file():
+                raise WorkflowResolutionError(f"CROMWELL_JAR does not exist: {jar}")
+            return [os.environ.get("JAVA_CMD", "java"), "-jar", str(jar_path)]
+        executable = shutil.which("cromwell")
+        if executable:
+            return [executable]
+        jar_path = find_cromwell_jar_on_path()
+        if jar_path:
+            return [os.environ.get("JAVA_CMD", "java"), "-jar", str(jar_path)]
+        raise WorkflowResolutionError("Cromwell is not available. Set CROMWELL_JAR, put cromwell on PATH, or put cromwell*.jar on PATH.")
+
+    def build_command(self) -> List[str]:
+        script = self.workflow.entrypoint
+        if not script:
+            raise WorkflowResolutionError(f"Missing Cromwell WDL for pipeline/mode '{self.suffix}'")
+        self._write_cromwell_json()
+        return [
+            *self._cromwell_command_prefix(),
+            "run",
+            str(script),
+            "--inputs",
+            str(self.inputs_json),
+            "--options",
+            str(self.options_json),
+            "--metadata-output",
+            str(self.metadata_json),
+        ]
+
+    def execute(self, *, debug: bool = False) -> None:
+        super().execute(debug=debug)
+        self._promote_outputs()
+
+    def _promote_outputs(self) -> None:
+        if not self.metadata_json.is_file():
+            raise WorkflowExecutionError(f"Cromwell metadata output was not created: {self.metadata_json}")
+        metadata = json.loads(self.metadata_json.read_text(encoding="utf-8"))
+        outputs = metadata.get("outputs") or {}
+        destinations = {
+            "gvcf": "02_varcall",
+            "raw_vcf": "02_varcall",
+            "qc_vcf": "02_varcall",
+            "coverage": "03_stats",
+            "sex": "03_stats",
+            "vcf_hash": "03_stats",
+            "logs": "logs",
+        }
+        for key, value in outputs.items():
+            suffix = str(key).split(".")[-1]
+            target_dir = destinations.get(suffix)
+            if not target_dir:
+                continue
+            values = value if isinstance(value, list) else [value]
+            for item in values:
+                if not item:
+                    continue
+                src = Path(str(item))
+                if src.is_file():
+                    _copy_if_different(src, self.workdir / target_dir / src.name)
+
+
 class DNAseq:
     """
     Backend-specific workflow runner facade.
@@ -431,6 +651,13 @@ class DNAseq:
 
         if backend == "nextflow":
             return NextflowRunner(
+                settings,
+                run_cmd=self._run_cmd,
+                cmd_to_string=self._cmd_to_string,
+            )
+
+        if backend == "cromwell":
+            return CromwellRunner(
                 settings,
                 run_cmd=self._run_cmd,
                 cmd_to_string=self._cmd_to_string,

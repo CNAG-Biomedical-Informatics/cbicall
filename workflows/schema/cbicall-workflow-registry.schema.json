@@ -12,7 +12,8 @@
       "properties": {
         "bash": { "$ref": "#/$defs/backend" },
         "snakemake": { "$ref": "#/$defs/backend" },
-        "nextflow": { "$ref": "#/$defs/backend" }
+        "nextflow": { "$ref": "#/$defs/backend" },
+        "cromwell": { "$ref": "#/$defs/backend" }
       }
     }
   },

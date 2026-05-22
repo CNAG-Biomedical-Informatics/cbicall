@@ -74,6 +74,7 @@ class RunSettings:
     workflow: WorkflowSpec
     snakemake_parameters: Dict[str, Any] = field(default_factory=dict)
     nextflow_parameters: Dict[str, Any] = field(default_factory=dict)
+    cromwell_parameters: Dict[str, Any] = field(default_factory=dict)
     nfcore_profile: Optional[str] = None
     nfcore_parameters: Dict[str, Any] = field(default_factory=dict)
     nfcore_singularity_cache_dir: Optional[str] = None
@@ -91,6 +92,7 @@ class RunSettings:
             profile=str(data.get("profile", "local")),
             snakemake_parameters=dict(data.get("snakemake_parameters", {})),
             nextflow_parameters=dict(data.get("nextflow_parameters", {})),
+            cromwell_parameters=dict(data.get("cromwell_parameters", {})),
             nfcore_profile=data.get("nfcore_profile"),
             nfcore_parameters=dict(data.get("nfcore_parameters", {})),
             nfcore_singularity_cache_dir=data.get("nfcore_singularity_cache_dir"),
@@ -110,6 +112,7 @@ class RunSettings:
             "profile": self.profile,
             "snakemake_parameters": dict(self.snakemake_parameters),
             "nextflow_parameters": dict(self.nextflow_parameters),
+            "cromwell_parameters": dict(self.cromwell_parameters),
             "nfcore_profile": self.nfcore_profile,
             "nfcore_parameters": dict(self.nfcore_parameters),
             "nfcore_singularity_cache_dir": self.nfcore_singularity_cache_dir,
@@ -145,6 +148,7 @@ class ResolvedConfig:
     compression_cmd: str
     snakemake_parameters: Dict[str, Any] = field(default_factory=dict)
     nextflow_parameters: Dict[str, Any] = field(default_factory=dict)
+    cromwell_parameters: Dict[str, Any] = field(default_factory=dict)
     nfcore_profile: Optional[str] = None
     nfcore_parameters: Dict[str, Any] = field(default_factory=dict)
     nfcore_singularity_cache_dir: Optional[str] = None
@@ -173,6 +177,7 @@ class ResolvedConfig:
             profile=str(data.get("profile", "local")),
             snakemake_parameters=dict(data.get("snakemake_parameters", {})),
             nextflow_parameters=dict(data.get("nextflow_parameters", {})),
+            cromwell_parameters=dict(data.get("cromwell_parameters", {})),
             nfcore_profile=data.get("nfcore_profile"),
             nfcore_parameters=dict(data.get("nfcore_parameters", {})),
             nfcore_singularity_cache_dir=data.get("nfcore_singularity_cache_dir"),
@@ -207,6 +212,7 @@ class ResolvedConfig:
             "profile": self.profile,
             "snakemake_parameters": dict(self.snakemake_parameters),
             "nextflow_parameters": dict(self.nextflow_parameters),
+            "cromwell_parameters": dict(self.cromwell_parameters),
             "nfcore_profile": self.nfcore_profile,
             "nfcore_parameters": dict(self.nfcore_parameters),
             "nfcore_singularity_cache_dir": self.nfcore_singularity_cache_dir,

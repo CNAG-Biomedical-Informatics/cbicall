@@ -557,6 +557,213 @@ def test_dnaseq_raises_if_projectdir_missing(tmp_path):
         dnaseq.DNAseq(settings).variant_calling()
 
 
+def _write_cromwell_config(tmp_path):
+    config = tmp_path / "config.yaml"
+    config.write_text(
+        "datadir: /data\n"
+        "dbdir: '{datadir}/Databases'\n"
+        "ngsutils: '{datadir}/NGSutils'\n"
+        "tmpdir: '{datadir}/tmp'\n"
+        "mem: 8G\n"
+        "gatk4_cmd: '{ngsutils}/gatk/gatk --java-options -Xmx{mem}'\n"
+        "tools:\n"
+        "  amd64:\n"
+        "    bwa: '{ngsutils}/bwa/bwa'\n"
+        "    samtools: '{ngsutils}/samtools/samtools'\n"
+        "  aarch64:\n"
+        "    bwa: '{ngsutils}/bwa-arm/bwa'\n"
+        "    samtools: '{ngsutils}/samtools-arm/samtools'\n"
+        "resources:\n"
+        "  b37:\n"
+        "    bundle: '{dbdir}/GATK_bundle/b37'\n"
+        "    ref: '{bundle}/ref.fasta'\n"
+        "    refgz: '{bundle}/ref.fasta.gz'\n"
+        "    dbsnp: '{dbdir}/dbsnp.vcf.gz'\n"
+        "    mills_indels: '{bundle}/mills.vcf.gz'\n"
+        "    kg_indels: '{bundle}/kg.vcf.gz'\n"
+        "    hapmap: '{bundle}/hapmap.vcf.gz'\n"
+        "    omni: '{bundle}/omni.vcf.gz'\n"
+        "    interval_list: '{bundle}/targets.interval_list'\n"
+        "    snp_res: '-resource:dbsnp,known=true {dbsnp}'\n"
+        "    indel_res: '-resource:mills,known=true {mills_indels}'\n",
+        encoding="utf-8",
+    )
+    return config
+
+
+def test_dnaseq_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch):
+    recorded = {}
+    project_dir = tmp_path / "CNAG99901P_ex" / "cbicall_cromwell_run"
+    project_dir.mkdir(parents=True)
+    input_dir = project_dir.parent
+    (input_dir / "CNAG99901P_ex_S2_L001_R1_001.fastq.gz").write_text("r1\n", encoding="utf-8")
+    (input_dir / "CNAG99901P_ex_S2_L001_R2_001.fastq.gz").write_text("r2\n", encoding="utf-8")
+    jar = tmp_path / "cromwell.jar"
+    jar.write_text("jar\n", encoding="utf-8")
+    monkeypatch.setenv("CROMWELL_JAR", str(jar))
+    monkeypatch.setenv("JAVA_CMD", "/usr/bin/java")
+    monkeypatch.setattr(dnaseq.platform, "machine", lambda: "x86_64")
+
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "cwd": cwd, "backend": backend})
+        log_path.write_text("cromwell log\n", encoding="utf-8")
+        task = tmp_path / "task-output"
+        (task / "02_varcall").mkdir(parents=True)
+        (task / "03_stats").mkdir()
+        (task / "logs").mkdir()
+        outputs = {}
+        for name in ("hc.g.vcf.gz", "hc.raw.vcf.gz", "hc.QC.vcf.gz"):
+            path = task / "02_varcall" / f"CNAG99901P.{name}"
+            path.write_text(name + "\n", encoding="utf-8")
+            key = {"hc.g.vcf.gz": "gvcf", "hc.raw.vcf.gz": "raw_vcf", "hc.QC.vcf.gz": "qc_vcf"}[name]
+            outputs[f"CBIcallWesSingle.{key}"] = str(path)
+        for key, filename in {
+            "coverage": "CNAG99901P.coverage.txt",
+            "sex": "CNAG99901P.sex.txt",
+            "vcf_hash": "CNAG99901P.vcf.sha256.txt",
+        }.items():
+            path = task / "03_stats" / filename
+            path.write_text(key + "\n", encoding="utf-8")
+            outputs[f"CBIcallWesSingle.{key}"] = str(path)
+        log = task / "logs" / "CNAG99901P.log"
+        log.write_text("task log\n", encoding="utf-8")
+        outputs["CBIcallWesSingle.logs"] = [str(log)]
+        (cwd / "cbicall_cromwell.metadata.json").write_text(
+            __import__("json").dumps({"outputs": outputs}),
+            encoding="utf-8",
+        )
+
+    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    wdl = tmp_path / "wes_single.wdl"
+    wdl.write_text("version 1.0\n", encoding="utf-8")
+    config = _write_cromwell_config(tmp_path)
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 2,
+        "run_id": "RIDCROM",
+        "debug": False,
+        "profile": "local",
+        "genome": "b37",
+        "inputs": {"input_dir": str(input_dir), "sample_map": None},
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
+        "cromwell_parameters": {"extra_label": "audit"},
+        "run_mode": "full",
+        "cleanup_bam": False,
+        "workflow": {
+            "backend": "cromwell",
+            "pipeline": "wes",
+            "mode": "single",
+            "software_stack": "gatk-4.6",
+            "entrypoint": str(wdl),
+            "config_file": str(config),
+            "helpers": {
+                "coverage": str(tmp_path / "coverage.sh"),
+                "vcf2sex": str(tmp_path / "vcf2sex.sh"),
+                "vcf2hash": str(tmp_path / "vcf2hash.sh"),
+            },
+        },
+    }
+
+    assert dnaseq.DNAseq(settings).variant_calling() is True
+    cmd = recorded["cmd"]
+    assert cmd[:4] == ["/usr/bin/java", "-jar", str(jar), "run"]
+    assert "--inputs" in cmd and str(project_dir / "cbicall_cromwell.inputs.json") in cmd
+    assert "--options" in cmd and str(project_dir / "cbicall_cromwell.options.json") in cmd
+    assert "--metadata-output" in cmd
+    assert recorded["backend"] == "cromwell"
+    inputs = __import__("json").loads((project_dir / "cbicall_cromwell.inputs.json").read_text(encoding="utf-8"))
+    assert inputs["CBIcallWesSingle.id"] == "CNAG99901P"
+    assert inputs["CBIcallWesSingle.bwa"] == "/data/NGSutils/bwa/bwa"
+    assert inputs["CBIcallWesSingle.ref"] == "/data/Databases/GATK_bundle/b37/ref.fasta"
+    assert inputs["CBIcallWesSingle.extra_label"] == "audit"
+    assert (project_dir / "cbicall_cromwell.fastq_pairs.tsv").read_text(encoding="utf-8").count("\n") == 1
+    assert (project_dir / "02_varcall" / "CNAG99901P.hc.QC.vcf.gz").is_file()
+    assert (project_dir / "03_stats" / "CNAG99901P.vcf.sha256.txt").is_file()
+    assert (project_dir / "logs" / "CNAG99901P.log").is_file()
+
+
+def test_dnaseq_cromwell_uses_versioned_jar_on_path(tmp_path, monkeypatch):
+    monkeypatch.delenv("CROMWELL_JAR", raising=False)
+    monkeypatch.setenv("JAVA_CMD", "/usr/bin/java")
+    monkeypatch.setattr(dnaseq.shutil, "which", lambda name: None)
+    jar_dir = tmp_path / "bin"
+    jar_dir.mkdir()
+    jar = jar_dir / "cromwell-92.jar"
+    jar.write_text("jar\n", encoding="utf-8")
+    monkeypatch.setenv("PATH", str(jar_dir))
+    project_dir = tmp_path / "CNAG99901P_ex" / "run"
+    project_dir.mkdir(parents=True)
+    (project_dir.parent / "S_R1_001.fastq.gz").write_text("r1\n", encoding="utf-8")
+    (project_dir.parent / "S_R2_001.fastq.gz").write_text("r2\n", encoding="utf-8")
+    wdl = tmp_path / "wes_single.wdl"
+    wdl.write_text("version 1.0\n", encoding="utf-8")
+    config = _write_cromwell_config(tmp_path)
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 1,
+        "run_id": "RID",
+        "debug": False,
+        "profile": "local",
+        "genome": "b37",
+        "inputs": {"input_dir": str(project_dir.parent), "sample_map": None},
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
+        "cromwell_parameters": {},
+        "cleanup_bam": False,
+        "workflow": {
+            "backend": "cromwell",
+            "pipeline": "wes",
+            "mode": "single",
+            "software_stack": "gatk-4.6",
+            "entrypoint": str(wdl),
+            "config_file": str(config),
+            "helpers": {"coverage": "coverage.sh", "vcf2sex": "vcf2sex.sh", "vcf2hash": "vcf2hash.sh"},
+        },
+    }
+
+    cmd = dnaseq.DNAseq(settings)._make_runner().build_command()
+
+    assert cmd[:4] == ["/usr/bin/java", "-jar", str(jar), "run"]
+
+
+def test_dnaseq_cromwell_requires_runtime(tmp_path, monkeypatch):
+    monkeypatch.delenv("CROMWELL_JAR", raising=False)
+    monkeypatch.setenv("PATH", str(tmp_path / "empty-path"))
+    monkeypatch.setattr(dnaseq.shutil, "which", lambda name: None)
+    project_dir = tmp_path / "CNAG99901P_ex" / "run"
+    project_dir.mkdir(parents=True)
+    (project_dir.parent / "S_R1_001.fastq.gz").write_text("r1\n", encoding="utf-8")
+    (project_dir.parent / "S_R2_001.fastq.gz").write_text("r2\n", encoding="utf-8")
+    wdl = tmp_path / "wes_single.wdl"
+    wdl.write_text("version 1.0\n", encoding="utf-8")
+    config = _write_cromwell_config(tmp_path)
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 1,
+        "run_id": "RID",
+        "debug": False,
+        "profile": "local",
+        "genome": "b37",
+        "inputs": {"input_dir": str(project_dir.parent), "sample_map": None},
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
+        "cromwell_parameters": {},
+        "cleanup_bam": False,
+        "workflow": {
+            "backend": "cromwell",
+            "pipeline": "wes",
+            "mode": "single",
+            "software_stack": "gatk-4.6",
+            "entrypoint": str(wdl),
+            "config_file": str(config),
+            "helpers": {"coverage": "coverage.sh", "vcf2sex": "vcf2sex.sh", "vcf2hash": "vcf2hash.sh"},
+        },
+    }
+    with pytest.raises(WorkflowResolutionError, match="Cromwell is not available"):
+        dnaseq.DNAseq(settings).variant_calling()
+
 def test_variant_calling_raises_on_invalid_backend(tmp_path):
     project_dir = tmp_path / "proj"
     project_dir.mkdir()

@@ -14,10 +14,10 @@ CBIcall validates a parameters YAML file, resolves an approved workflow backend,
 
 CBIcall does not re-implement alignment or variant-calling algorithms; those
 steps remain in curated workflows built from established tools such as BWA,
-GATK, MToolBox, Snakemake, Nextflow, and selected nf-core pipelines.
+GATK, MToolBox, Snakemake, Nextflow, Cromwell, and selected nf-core pipelines.
 
 - validates the **parameters YAML** and compatibility contract before launch
-- resolves **Bash**, **Snakemake**, or **Nextflow** workflow backends
+- resolves **Bash**, **Snakemake**, **Nextflow**, or **Cromwell** workflow backends
 - records **logs, provenance, run reports, output fingerprints, and run comparisons** when available
 
 ## Pipelines and Backends
@@ -28,7 +28,7 @@ executes it.
 | Layer | Current scope |
 | --- | --- |
 | Out-of-box analysis pipelines | WES, WGS, and mtDNA variant calling |
-| Workflow backends | Bash, Snakemake, and Nextflow |
+| Workflow backends | Bash, Snakemake, Nextflow, and Cromwell |
 | External workflows | Registered nf-core workflows launched through the Nextflow backend |
 
 The native CBIcall WES/WGS/mtDNA workflows use the CBIcall-provided resource

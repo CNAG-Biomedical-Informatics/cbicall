@@ -296,7 +296,7 @@ def _resolve_workflow_datadir(workflow: WorkflowSpec) -> dict:
         datadir = _datadir_from_bash_env(source) if source else None
         return {"source": source, "source_key": "workflow.helpers.env", "datadir": datadir}
 
-    if workflow.backend in {"snakemake", "nextflow"}:
+    if workflow.backend in {"snakemake", "nextflow", "cromwell"}:
         source = workflow.config_file
         datadir = _datadir_from_snakemake_config(source) if source else None
         return {"source": source, "source_key": "workflow.config_file", "datadir": datadir}

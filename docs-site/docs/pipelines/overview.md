@@ -17,8 +17,8 @@ mode: single
 ```
 
 The workflow backend is configured separately with `workflow_backend`. See
-[Native Backends](../backends/native) for Bash, Snakemake, Nextflow, and
-external nf-core execution.
+[Native Backends](../backends/native) for Bash, Snakemake, Nextflow, Cromwell,
+and external nf-core execution.
 
 ## Pipeline Guides
 
@@ -32,11 +32,11 @@ external nf-core execution.
 
 Backend coverage differs by pipeline family:
 
-| Pipeline | Bash | Snakemake | Nextflow |
-| --- | --- | --- | --- |
-| WES | Yes | Yes | Yes |
-| WGS | Yes | Yes | Yes |
-| mtDNA | Yes | No | No |
+| Pipeline | Bash | Snakemake | Nextflow | Cromwell |
+| --- | --- | --- | --- | --- |
+| WES | Yes | Yes | Yes | Single-sample only |
+| WGS | Yes | Yes | Yes | No |
+| mtDNA | Yes | No | No | No |
 
 External nf-core workflows are registered through the Nextflow backend, but they
 are not part of the included WES/WGS/mtDNA pipeline set.

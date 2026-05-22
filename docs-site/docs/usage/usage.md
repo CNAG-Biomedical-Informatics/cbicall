@@ -109,6 +109,20 @@ input_dir:       CNAG999_genome/CNAG99901P_wg
 genome:          hg38
 ```
 
+### WES Single-Sample With Cromwell
+
+The checked-in example is `examples/input/wes_cromwell.yaml`. Set
+`CROMWELL_JAR`, put `cromwell` on `PATH`, or put `cromwell*.jar` on `PATH` before running it.
+
+```yaml
+mode:            single
+pipeline:        wes
+workflow_backend: cromwell
+software_stack:    gatk-4.6
+input_dir:       CNAG999_exome/CNAG99901P_ex
+genome:          b37
+```
+
 ### mtDNA Single-Sample
 
 ```yaml
@@ -181,6 +195,10 @@ nextflow_parameters:
   publish_debug_files: true
 ```
 
+For native CBIcall Cromwell workflows, pass advanced WDL inputs with
+`cromwell_parameters`. CBIcall still owns tool paths, reference paths, sample
+identity, genome, pipeline, and thread count.
+
 CBIcall still owns core values such as `pipeline`, `genome`, `threads`, helper script paths, and cohort workspace names, and refuses backend parameter blocks that try to override them.
 
 ## Outputs and Logs
@@ -210,7 +228,7 @@ CBIcall is designed for multi-core Linux desktop, workstation, server, and HPC e
 | CPU | At least 4 cores |
 | RAM | At least 8 GB for single-sample runs; more for cohort joint genotyping |
 | Disk | At least 250 GB, depending on input size and whether BAM cleanup is enabled |
-| Source installation | Python 3.8+, Java 8, plus Snakemake or Nextflow when using those workflow backends |
+| Source installation | Python 3.8+, Java 8, plus Snakemake, Nextflow, or Cromwell when using those workflow backends |
 
 ## Next Steps
 

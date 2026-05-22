@@ -33,6 +33,7 @@ from .cli_output import (
 from .dnaseq import DNAseq
 from .errors import ParameterValidationError
 from .helpmod import usage, parse_args as _parse_args, parse_run_args as _parse_run_args
+from .cromwell import find_cromwell_jar_on_path
 from .integration_tests import run_integration_tests, selected_tests_from_args
 from .models import ResolvedConfig, RunSettings
 from .resources import validate_resource_catalog
@@ -364,6 +365,33 @@ def _configured_native_java_report(workflow) -> Optional[dict]:
     return version_report
 
 
+def _cromwell_jar_report(jar_path: Path, *, source: str) -> dict:
+    java_cmd = os.environ.get("JAVA_CMD", "java")
+    report = _command_version(java_cmd, ["-jar", str(jar_path), "--version"])
+    report["name"] = "cromwell"
+    report["launcher"] = "java-jar"
+    report["jar"] = str(jar_path)
+    report["source"] = source
+    if jar_path.is_file():
+        report["jar_sha256"] = _sha256_file(jar_path)
+    else:
+        report["status"] = "not_found"
+        report["error"] = f"Cromwell JAR does not exist: {jar_path}"
+    return report
+
+
+def _cromwell_runtime_report() -> dict:
+    jar = os.environ.get("CROMWELL_JAR")
+    if jar:
+        return _cromwell_jar_report(Path(jar), source="CROMWELL_JAR")
+    executable_report = _command_version("cromwell", ["--version"])
+    if executable_report.get("status") == "ok":
+        return executable_report
+    jar_path = find_cromwell_jar_on_path()
+    if jar_path:
+        return _cromwell_jar_report(jar_path, source="PATH")
+    return executable_report
+
 def _runtime_report(backend: str, workflow=None) -> dict:
     commands = {
         "bash": ("bash", ["--version"]),
@@ -377,7 +405,9 @@ def _runtime_report(backend: str, workflow=None) -> dict:
         },
         "java": _command_version("java", ["-version"]),
     }
-    if backend in commands:
+    if backend == "cromwell":
+        payload["backend"] = _cromwell_runtime_report()
+    elif backend in commands:
         command, args = commands[backend]
         payload["backend"] = _command_version(command, args)
     else:
@@ -405,7 +435,14 @@ def _parse_key_value_file(path: Path) -> dict:
 
 def _collect_file_inventory(project_dir: Path) -> dict:
     excluded = {"run-report.json", "run-report.html"}
-    excluded_roots = {"work", ".nextflow"}
+    excluded_roots = {
+        "work",
+        ".nextflow",
+        "cromwell-executions",
+        "cromwell-logs",
+        "cromwell-outputs",
+        "cromwell-work",
+    }
     paths = []
     total_bytes = 0
     largest_files = []
@@ -834,8 +871,6 @@ def _is_essential_output(rel_path: str) -> bool:
     if rel_path.startswith(("02_varcall/", "03_stats/", "02_browser/", "01_mtoolbox/")):
         return True
     return rel_path.endswith((".vcf", ".vcf.gz", ".g.vcf.gz", ".html", ".txt")) and not rel_path.startswith("01_bam/")
-
-
 
 
 def _inventory_group_stats(payload: dict) -> List[dict]:
@@ -1645,6 +1680,7 @@ def write_run_report(
             "cleanup_bam": params.get("cleanup_bam", False),
             "snakemake_parameters": resolved_config.snakemake_parameters,
             "nextflow_parameters": resolved_config.nextflow_parameters,
+            "cromwell_parameters": resolved_config.cromwell_parameters,
             "nfcore_profile": resolved_config.nfcore_profile,
             "nfcore_parameters": resolved_config.nfcore_parameters,
             "nfcore_singularity_cache_dir": resolved_config.nfcore_singularity_cache_dir,
@@ -2894,6 +2930,11 @@ def _run_test_command(argv: List[str]) -> int:
         action="store_true",
         help="Run the Nextflow WES integration test. Requires nextflow on PATH.",
     )
+    parser.add_argument(
+        "--wes-cromwell",
+        action="store_true",
+        help="Run the Cromwell WES integration test. Requires CROMWELL_JAR, cromwell, or cromwell*.jar on PATH.",
+    )
     parser.add_argument("--mit-bash", action="store_true", help="Run the Bash mitochondrial integration test.")
     parser.add_argument(
         "--nf-core-demo",
@@ -3035,6 +3076,7 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
             "profile": resolved_config.profile,
             "snakemake_parameters": resolved_config.snakemake_parameters,
             "nextflow_parameters": resolved_config.nextflow_parameters,
+            "cromwell_parameters": resolved_config.cromwell_parameters,
             "nfcore_profile": resolved_config.nfcore_profile,
             "nfcore_parameters": resolved_config.nfcore_parameters,
             "nfcore_singularity_cache_dir": resolved_config.nfcore_singularity_cache_dir,

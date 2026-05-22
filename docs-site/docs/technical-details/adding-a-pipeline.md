@@ -18,7 +18,7 @@ Before editing files, define the shape of the workflow.
 
 | Decision | Options | Why it matters |
 | --- | --- | --- |
-| Backend | `bash`, `snakemake`, `nextflow` | Determines where the entrypoint lives and how CBIcall launches it. |
+| Backend | `bash`, `snakemake`, `nextflow`, `cromwell` | Determines where the entrypoint lives and how CBIcall launches it. |
 | Software stack | `gatk-3.5`, `gatk-4.6`, `nf-core` | Determines the workflow subdirectory, required helper files, or external workflow source. |
 | Pipeline name | e.g. `mypipe` | Becomes the value users set as `pipeline: mypipe`. |
 | Mode | `single`, `cohort`, or both | Determines which entrypoint filenames are needed. |
@@ -56,7 +56,7 @@ The main implementation layers are:
 | --- | --- |
 | `src/cbicall/config.py` | Parameter defaults, semantic validation, runtime metadata. |
 | `src/cbicall/workflow_registry.py` | Registry loading, workflow resolution, referenced-file validation. |
-| `src/cbicall/dnaseq.py` | Backend-specific execution through `BashRunner`, `SnakemakeRunner`, and `NextflowRunner`. |
+| `src/cbicall/dnaseq.py` | Backend-specific execution through `BashRunner`, `SnakemakeRunner`, `NextflowRunner`, and `CromwellRunner`. |
 | `workflows/registry/cbicall-workflow-registry.yaml` | Declares available native scripts and external workflow entries. |
 | `workflows/schema/cbicall-workflow-registry.schema.json` | Validates the registry structure. |
 
@@ -166,6 +166,23 @@ CBIcall launches the resolved `.nf` file with CBIcall-managed parameters,
 including genome, threads, sample map or input directory, helper scripts, and
 workspace paths. Native Nextflow registry entries also require the helper paths
 used by post-processing and run comparison.
+
+### Native Cromwell Layout
+
+Native Cromwell workflows live under the selected software stack:
+
+```text
+workflows/cromwell/gatk-4.6/
+  config.yaml -> ../../snakemake/gatk-4.6/config.yaml
+  wes_single.wdl
+```
+
+CBIcall writes `cbicall_cromwell.inputs.json`,
+`cbicall_cromwell.options.json`, and `cbicall_cromwell.metadata.json` in the run
+directory. The WDL receives absolute paths for inputs, tools, references, and
+helper scripts. Final outputs are promoted back into the standard CBIcall
+`01_bam/`, `02_varcall/`, `03_stats/`, and `logs/` layout so run reports and
+`compare-runs` work like the other native backends.
 
 ### External Nextflow Layout
 

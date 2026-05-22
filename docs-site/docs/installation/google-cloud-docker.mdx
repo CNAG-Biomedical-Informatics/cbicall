@@ -187,7 +187,7 @@ sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-3.5/env.sh
 sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/config.yaml
 ```
 
-The native Nextflow config is a symlink to this shared GATK 4.6 backend config, so one edit updates both Snakemake and Nextflow native workflows.
+The native Nextflow and Cromwell configs are symlinks to this shared GATK 4.6 backend config, so one edit updates Snakemake, native Nextflow, and Cromwell native workflows.
 
 ## 6. Run the Reproducibility Check
 

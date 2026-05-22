@@ -114,6 +114,40 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
             profiles=profiles,
         )
 
+    if backend == "cromwell":
+        needed_helpers = ["config", "coverage", "vcf2sex", "vcf2hash"]
+        missing_helpers = [k for k in needed_helpers if k not in helpers]
+        if missing_helpers:
+            raise WorkflowResolutionError(
+                f"Workflow registry is missing helper keys for cromwell/{software_stack}: {missing_helpers}"
+            )
+        metadata = {}
+        if isinstance(implementation, dict):
+            metadata["canonical_outputs"] = [
+                {
+                    "name": str(item["name"]),
+                    "type": str(item["type"]),
+                    "pattern": str(item["pattern"]),
+                }
+                for item in implementation.get("canonical_outputs", [])
+            ]
+        return WorkflowSpec(
+            backend=backend,
+            pipeline=pipeline,
+            mode=mode,
+            software_stack=software_stack,
+            registry_version=registry_version,
+            entrypoint=str(base_dir / script_name),
+            config_file=str(base_dir / helpers["config"]),
+            helpers={
+                "coverage": str(base_dir / helpers["coverage"]),
+                "vcf2sex": str(base_dir / helpers["vcf2sex"]),
+                "vcf2hash": str(base_dir / helpers["vcf2hash"]),
+            },
+            profiles=profiles,
+            metadata=metadata,
+        )
+
     if backend == "nextflow":
         if isinstance(implementation, dict) and implementation.get("provider") == "nf-core":
             return WorkflowSpec(
@@ -174,9 +208,9 @@ def validate_resolved_workflow_files(workflow: WorkflowSpec) -> None:
     must_exist = [("workflow.entrypoint", workflow.entrypoint)]
     if workflow.backend == "bash":
         must_exist.extend((f"workflow.helpers.{name}", path) for name, path in workflow.helpers.items())
-    elif workflow.backend in {"snakemake", "nextflow"}:
+    elif workflow.backend in {"snakemake", "nextflow", "cromwell"}:
         must_exist.append(("workflow.config_file", workflow.config_file))
-        if workflow.backend == "nextflow":
+        if workflow.backend in {"nextflow", "cromwell"}:
             must_exist.extend((f"workflow.helpers.{name}", path) for name, path in workflow.helpers.items())
 
     missing_files = [(label, path) for label, path in must_exist if path and not Path(path).exists()]
@@ -195,12 +229,12 @@ def validate_resolved_workflow_files(workflow: WorkflowSpec) -> None:
                 "Missing +x on one or more workflow scripts: "
                 + ", ".join(f"{label} -> {path}" for label, path in not_exe)
             )
-    elif workflow.backend == "nextflow":
+    elif workflow.backend in {"nextflow", "cromwell"}:
         exe_paths = [(f"workflow.helpers.{name}", path) for name, path in workflow.helpers.items()]
         not_exe = [(label, path) for label, path in exe_paths if path and not os.access(path, os.X_OK)]
         if not_exe:
             raise WorkflowResolutionError(
-                "Missing +x on one or more Nextflow helper scripts: "
+                f"Missing +x on one or more {workflow.backend} helper scripts: "
                 + ", ".join(f"{label} -> {path}" for label, path in not_exe)
             )
 
@@ -262,7 +296,9 @@ def _resolve_pipeline_implementation(
         return selected_registry_version, implementation
     if isinstance(implementation, dict):
         if implementation.get("script"):
-            return selected_registry_version, str(implementation["script"])
+            if set(implementation) == {"script"}:
+                return selected_registry_version, str(implementation["script"])
+            return selected_registry_version, implementation
         if implementation.get("provider") == "nf-core":
             missing = [key for key in ("source", "release") if not implementation.get(key)]
             if missing:

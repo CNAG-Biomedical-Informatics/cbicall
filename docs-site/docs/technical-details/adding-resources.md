@@ -188,7 +188,7 @@ DBDIR=$DATADIR/Databases
 NGSUTILS=$DATADIR/NGSutils
 ```
 
-For Snakemake and Nextflow workflows, update the relevant `config.yaml`:
+For Snakemake, native Nextflow, and Cromwell workflows, update the relevant `config.yaml`:
 
 ```yaml
 datadir: /path/to/my-center-resources

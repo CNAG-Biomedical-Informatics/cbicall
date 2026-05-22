@@ -100,6 +100,27 @@ workflows:
                 v1:
                   script: "wgs_cohort.smk"
 
+  cromwell:
+    base_dir: "workflows/cromwell"
+    software_stacks:
+      gatk-4.6:
+        helpers:
+          config: "config.yaml"
+          coverage: "../../bash/gatk-4.6/coverage.sh"
+          vcf2sex: "../../bash/gatk-4.6/vcf2sex.sh"
+          vcf2hash: "../../bash/gatk-4.6/vcf2hash.sh"
+        pipelines:
+          wes:
+            single:
+              default_registry_version: "v1"
+              registry_versions:
+                v1:
+                  script: "wes_single.wdl"
+                  canonical_outputs:
+                    - name: "wes_filtered_vcf"
+                      type: "vcf"
+                      pattern: "02_varcall/*.hc.QC.vcf.gz"
+
   nextflow:
     base_dir: "workflows/nextflow"
     software_stacks:

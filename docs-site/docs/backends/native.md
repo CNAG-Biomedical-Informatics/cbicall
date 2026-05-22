@@ -12,6 +12,7 @@ The workflow backend controls how the selected pipeline is launched.
 | Bash | Runs CBIcall-maintained shell workflows directly | Production runs with the bundled WES, WGS, and mtDNA scripts |
 | Snakemake | Runs CBIcall-maintained Snakemake workflows | Rule-based execution and partial workflow targets |
 | Nextflow | Runs CBIcall-maintained Nextflow workflows | Alternative workflow-backend implementation for WES/WGS |
+| Cromwell | Runs CBIcall-maintained WDL workflows | WES single-sample execution with Cromwell/WDL while preserving CBIcall audit outputs |
 
 ### Bash
 
@@ -30,6 +31,18 @@ selection or partial execution is needed.
 The native Nextflow backend runs CBIcall-maintained Nextflow workflows from
 `workflows/nextflow`. It supports WES/WGS workflows and follows CBIcall's run
 directory and provenance model.
+
+### Cromwell
+
+The Cromwell backend runs CBIcall-maintained WDL workflows from
+`workflows/cromwell`. Current native support is focused on the GATK 4.6 WES
+single-sample workflow. CBIcall generates Cromwell inputs/options JSON files,
+launches the registered WDL, and promotes final outputs into the standard
+`01_bam/`, `02_varcall/`, `03_stats/`, and `logs/` layout.
+
+Use `CROMWELL_JAR=/path/to/cromwell.jar`, put a `cromwell` launcher on
+`PATH`, or put a `cromwell*.jar` file such as `cromwell-92.jar` on `PATH`
+before launching this backend.
 
 CBIcall can also launch registered external nf-core workflows through Nextflow.
 Those workflows are documented separately because they keep their native output
@@ -54,6 +67,12 @@ software_stack:    gatk-4.6
 ```yaml
 pipeline:        wgs
 workflow_backend: nextflow
+software_stack:    gatk-4.6
+```
+
+```yaml
+pipeline:        wes
+workflow_backend: cromwell
 software_stack:    gatk-4.6
 ```
 

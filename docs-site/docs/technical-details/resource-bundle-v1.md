@@ -90,7 +90,7 @@ The bundle layout uses these conventional top-level names:
 | `DBDIR` | `DATADIR/Databases` |
 | `NGSUTILS` | `DATADIR/NGSutils` |
 
-Workflow-specific files such as Bash `env.sh` and Snakemake/Nextflow `config.yaml` resolve the installed bundle layout into concrete executable and reference paths.
+Workflow-specific files such as Bash `env.sh` and Snakemake/Nextflow/Cromwell `config.yaml` resolve the installed bundle layout into concrete executable and reference paths.
 
 ## Tools
 
@@ -152,7 +152,7 @@ This local manifest records the installed resource key, archive checksum result,
 
 ## Runtime Check
 
-Before launching a workflow, CBIcall resolves `DATADIR` from the selected Bash `env.sh` or Snakemake/Nextflow `config.yaml`.
+Before launching a workflow, CBIcall resolves `DATADIR` from the selected Bash `env.sh` or Snakemake/Nextflow/Cromwell `config.yaml`.
 
 If bundle metadata exists beside `DATADIR`, CBIcall validates it:
 
