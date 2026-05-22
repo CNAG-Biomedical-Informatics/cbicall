@@ -19,24 +19,31 @@ if [ $# -ne 1 ]
   exit 1
 fi
 
-workflow_backend=$1
+WORKFLOW_BACKEND=$1
 
 # Determine the directory where the script resides
-BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source env.sh from the same directory
-source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
+source "${CBICALL_ENV_FILE:-$SCRIPT_DIR/env.sh}"
 
-dir=../*_{ex,wg}/cbicall_${workflow_backend}_wes_single*/02_varcall
+shopt -s nullglob
 
-for vcf1 in $( ls -1 "$dir"/*.*QC.vcf )
+VCFS=(../*_{ex,wg}/cbicall_"${WORKFLOW_BACKEND}"_wes_single*/02_varcall/*.*QC.vcf)
+
+if [ "${#VCFS[@]}" -eq 0 ]; then
+  echo "No QC VCF files found for workflow backend: $WORKFLOW_BACKEND" >&2
+  exit 1
+fi
+
+for VCF1 in "${VCFS[@]}"
 do
- short1=$( echo "$vcf1" | awk -F'/' '{print $NF}' | sed 's/.ug.QC.vcf//' )
- for vcf2 in $( ls -1 "$dir"/*.*QC.vcf )
+ SAMPLE1=$(basename "$VCF1" .ug.QC.vcf)
+ for VCF2 in "${VCFS[@]}"
  do
-  short2=$( echo "$vcf2" | awk -F'/' '{print $NF}' | sed 's/.ug.QC.vcf//' )
-  echo -n "$short1 $short2 "
-  $BED jaccard -a "$vcf1" -b "$vcf2" | sed '1d' | cut -f3 | tr '\n' ' '
+  SAMPLE2=$(basename "$VCF2" .ug.QC.vcf)
+  echo -n "$SAMPLE1 $SAMPLE2 "
+  "$BED" jaccard -a "$VCF1" -b "$VCF2" | sed '1d' | cut -f3 | tr '\n' ' '
   echo
  done
 done

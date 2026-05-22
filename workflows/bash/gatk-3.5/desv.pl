@@ -38,6 +38,11 @@ while (<>) {
     $counter++;
 }
 
+if ( !$counter ) {
+    print "      NA       NA \n ";
+    exit 0;
+}
+
 $mean = $sum / $counter;
 $desv = sqrt( ( $sumsq - $sum**2 / $counter ) / $counter );
 #printf "%12.5f %8.4f \n ", $mean,$desv;
