@@ -690,6 +690,7 @@ def test_report_command_summarizes_run_without_writing_by_default(tmp_path, caps
     assert "Outputs" in out
     assert "bash/wes/single/gatk-4.6/v1" in out
     assert "cbicall-germline-resources-v1" in out
+    assert "read-only" in out
     assert "run-report.html" in out
     assert "missing" in out
     assert "VCF hashes" in out
@@ -729,8 +730,8 @@ def test_report_command_refreshes_and_writes_html_when_requested(tmp_path, capsy
     assert cli_mod._run_report_command([str(run_dir), "--refresh", "--html", "--overwrite", "--no-color"]) == 0
 
     out = capsys.readouterr().out
-    assert "Refreshed" in out
-    assert "outputs (written to JSON)" in out
+    assert "run-report.json" in out
+    assert "written" in out
     assert "run-report.html" in out
     assert "written" in out
     refreshed = json.loads(report_path.read_text(encoding="utf-8"))
