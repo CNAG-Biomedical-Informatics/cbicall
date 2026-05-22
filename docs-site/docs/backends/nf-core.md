@@ -59,9 +59,9 @@ around selected registered provider entries.
 ## Demo Smoke Test
 
 Use [`nf-core/demo`](https://nf-co.re/demo) as a lightweight nf-core provider
-smoke test through the Nextflow backend. The checked-in `examples/input/demo.yaml` uses
-`test,singularity` because that is the practical profile on HPC systems where
-Docker is not available.
+smoke test through the Nextflow backend. The checked-in
+`examples/input/nf-core-demo.yaml` uses `test,singularity` because that is the
+practical profile on HPC systems where Docker is not available.
 
 For an HPC or Apptainer/Singularity test:
 
@@ -72,14 +72,13 @@ workflow_backend:  nextflow
 workflow_provider: nf-core
 resource:         nf-core-demo-managed-resources-v1
 nfcore_profile: test,singularity
-nfcore_parameters:    {}
 ```
 
-Run it from the directory containing `demo.yaml`:
+Run it from the directory containing `nf-core-demo.yaml`:
 
 ```bash
-../../bin/cbicall validate-parameters -p demo.yaml --no-color
-../../bin/cbicall run -p demo.yaml -t 4 --no-color
+../../bin/cbicall validate-parameters -p nf-core-demo.yaml --no-color
+../../bin/cbicall run -p nf-core-demo.yaml -t 4 --no-color
 ```
 
 :::tip[Workstation Docker alternative]
@@ -88,17 +87,55 @@ On an x86_64 workstation with Docker installed, change `nfcore_profile` to
 inside cluster jobs.
 :::
 
+:::note[Default Singularity cache]
+For nf-core runs using `singularity`, if neither `NXF_SINGULARITY_CACHEDIR` nor
+`nfcore_singularity_cache_dir` is configured, Nextflow stores pulled images
+inside the run directory, usually under `work/singularity`, and may print:
+
+```text
+WARN: Singularity cache directory has not been defined -- Remote image will be stored in the path: <run-dir>/work/singularity
+```
+
+For repeated or production runs, configure the cache explicitly through the
+shell, scheduler environment, or `nfcore_singularity_cache_dir`.
+:::
+
 :::note[CPU requirement]
 `nf-core/demo` includes steps that request more than one CPU. Use at least
 `-t 4` and request matching scheduler CPUs. The tiny Sarek chr22 smoke test can
 run with `-t 1`, but demo generally cannot.
 :::
 
-## Sarek Example
+## Sarek Examples
 
 [`nf-core/sarek`](https://nf-co.re/sarek) is launched as an nf-core provider
 entry through the Nextflow backend. CBIcall passes `nfcore_parameters` to the
 generated Nextflow params file.
+
+### Built-In nf-core Test
+
+The smallest Sarek check uses nf-core's own `test` profile. It verifies that
+CBIcall can launch the registered Sarek release, write the params/config files,
+pull containers, parse Nextflow reports, and record software versions.
+
+```yaml
+mode:             cohort
+pipeline:         sarek
+workflow_backend:  nextflow
+workflow_provider: nf-core
+resource:         nf-core-sarek-managed-resources-v1
+nfcore_profile: test,singularity
+```
+
+This is an execution smoke test, not the HaplotypeCaller output example. The
+Sarek `test` profile supplies its own inputs and defaults to Strelka, so the
+CBIcall canonical HaplotypeCaller VCF pattern is expected to be missing.
+
+### CBIcall Test Data
+
+Use `examples/input/nf-core-sarek.yaml` when you want the CBIcall test-data
+example. It points Sarek to `examples/input/sarek_samplesheet.csv`, uses the
+tiny GRCh38 chr22 interval file, and asks for HaplotypeCaller output.
 
 ```yaml
 mode:             cohort
@@ -107,7 +144,7 @@ workflow_backend:  nextflow
 workflow_provider: nf-core
 resource:         nf-core-sarek-managed-resources-v1
 nfcore_profile: singularity
-nfcore_singularity_cache_dir: nxf-singularity-cache
+# nfcore_singularity_cache_dir: nxf-singularity-cache
 nfcore_parameters:
   input: sarek_samplesheet.csv
   genome: GATK.GRCh38
@@ -176,15 +213,16 @@ export NXF_SINGULARITY_CACHEDIR=/path/to/singularity/cache
 export NXF_SINGULARITY_LIBRARYDIR=/path/to/singularity/library
 ```
 
-At CNAG, source the example bootstrap before running CBIcall from a source
-checkout:
+When running from a source checkout, make sure the SLURM script loads the Python
+runtime needed by CBIcall before calling `bin/cbicall`. For example:
 
 ```bash
-source /software/biomed/cbicall/examples/scripts/cnag_hpc_cbicall_env.sh
+module load Python/3.10.8-GCCcore-12.2.0
+export PYTHONPATH=/software/biomed/cbi_py3/lib/python3.10/site-packages:$PYTHONPATH
 ```
 
-This loads the Python runtime required by CBIcall before the Python entrypoint
-starts. It also tries to load Nextflow for nf-core provider entries.
+The bundled SLURM examples set this directly in the generated job script rather
+than requiring a separate sourced bootstrap.
 
 :::tip[Container profile name]
 Many nf-core configs still use the profile name `singularity`, even when the
@@ -199,7 +237,7 @@ value to CBIcall:
 ```bash
 #SBATCH --cpus-per-task=6
 
-../../bin/cbicall run -p demo.yaml -t "$SLURM_CPUS_PER_TASK"
+../../bin/cbicall run -p nf-core-demo.yaml -t "$SLURM_CPUS_PER_TASK"
 ```
 
 If Nextflow reports:
@@ -225,8 +263,8 @@ This is a Nextflow compatibility setting, not a CBIcall parameter.
 :::tip[Container cache]
 If Apptainer/Singularity cannot read an image from a shared Nextflow cache, use a
 user-owned or project-owned cache and point CBIcall to it with
-`nfcore_singularity_cache_dir`. For general container and offline setup, see
-the [nf-core documentation](https://nf-co.re/docs/usage/getting_started/configuration)
+`nfcore_singularity_cache_dir`. For general container and offline setup, see the
+[nf-core documentation](https://nf-co.re/docs/usage/getting_started/configuration)
 and the [Nextflow container documentation](https://www.nextflow.io/docs/latest/container.html).
 :::
 

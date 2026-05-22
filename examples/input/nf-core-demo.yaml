@@ -5,4 +5,3 @@ workflow_provider: nf-core
 resource:         nf-core-demo-managed-resources-v1
 
 nfcore_profile: test,singularity
-nfcore_parameters:    {}

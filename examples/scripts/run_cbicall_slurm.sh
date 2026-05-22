@@ -58,7 +58,16 @@ cat > "${JOB_SCRIPT}" <<EOF
 CBICALL_DIR="/software/biomed/cbicall"
 CBICALL="\$CBICALL_DIR/bin/cbicall"
 
-source "\$CBICALL_DIR/examples/scripts/cnag_hpc_cbicall_env.sh"
+module load Python/3.10.8-GCCcore-12.2.0
+export PYTHONPATH="/software/biomed/cbi_py3/lib/python3.10/site-packages:\${PYTHONPATH:-}"
+
+# Required only for Nextflow/nf-core runs; harmless for Bash runs when available.
+module load Nextflow/25.10.2 2>/dev/null || true
+
+# For nf-core with Singularity/Apptainer, uncomment and set a user- or
+# project-owned cache if the site-level cache is not suitable.
+# export NXF_SINGULARITY_CACHEDIR=/path/to/singularity/cache
+# export NXF_SINGULARITY_LIBRARYDIR=/path/to/singularity/library
 
 cd \$SLURM_SUBMIT_DIR
 

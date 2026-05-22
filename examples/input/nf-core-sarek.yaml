@@ -5,7 +5,7 @@ workflow_provider: nf-core
 resource:         nf-core-sarek-managed-resources-v1
 
 nfcore_profile: singularity
-nfcore_singularity_cache_dir: nxf-singularity-cache
+#nfcore_singularity_cache_dir: nxf-singularity-cache
 nfcore_parameters:
   input: sarek_samplesheet.csv
   genome: GATK.GRCh38

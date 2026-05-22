@@ -121,6 +121,8 @@ input_dir:       CNAG999_exome/CNAG99901P_ex
 
 ### nf-core/Sarek Through CBIcall
 
+The checked-in example is `examples/input/nf-core-sarek.yaml`.
+
 ```yaml
 mode:             cohort
 pipeline:         sarek
@@ -128,7 +130,7 @@ workflow_backend:  nextflow
 workflow_provider: nf-core
 resource:         nf-core-sarek-managed-resources-v1
 nfcore_profile: singularity
-nfcore_singularity_cache_dir: nxf-singularity-cache
+# nfcore_singularity_cache_dir: nxf-singularity-cache
 nfcore_parameters:
   input: sarek_samplesheet.csv
   genome: GATK.GRCh38
@@ -141,6 +143,8 @@ nfcore_parameters:
 
 ### nf-core/demo Smoke Test
 
+The checked-in example is `examples/input/nf-core-demo.yaml`.
+
 ```yaml
 mode:             single
 pipeline:         demo
@@ -148,7 +152,6 @@ workflow_backend:  nextflow
 workflow_provider: nf-core
 resource:         nf-core-demo-managed-resources-v1
 nfcore_profile: test,singularity
-nfcore_parameters:    {}
 ```
 
 This example uses nf-core's built-in test profile with Singularity/Apptainer,

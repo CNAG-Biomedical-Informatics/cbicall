@@ -117,7 +117,6 @@ workflow_backend:  nextflow
 workflow_provider: nf-core
 resource:         nf-core-demo-managed-resources-v1
 nfcore_profile: test,singularity
-nfcore_parameters:    {}
 ```
 
 Use the checked-in `test,singularity` profile on HPC. Here, `test` supplies
@@ -140,7 +139,7 @@ workflow_backend:  nextflow
 workflow_provider: nf-core
 resource:         nf-core-sarek-managed-resources-v1
 nfcore_profile: singularity
-nfcore_singularity_cache_dir: nxf-singularity-cache
+# nfcore_singularity_cache_dir: nxf-singularity-cache
 nfcore_parameters:
   input: sarek_samplesheet.csv
   genome: GATK.GRCh38
@@ -156,7 +155,7 @@ CBIcall does not interpret Sarek-specific parameters. Values under
 samplesheet format and parameter names expected by the selected Sarek release.
 
 For nf-core/Sarek, the CLI thread value is written to the generated params file
-as `max_cpus`. For example, `bin/cbicall run -p sarek.yaml -t 6` passes
+as `max_cpus`. For example, `bin/cbicall run -p nf-core-sarek.yaml -t 6` passes
 `max_cpus: 6` to Sarek and writes a small Nextflow config with
 `process.resourceLimits` so individual processes do not request more than six
 CPUs. Memory caps stay in `nfcore_parameters`, for example `max_memory: 30.GB`;
