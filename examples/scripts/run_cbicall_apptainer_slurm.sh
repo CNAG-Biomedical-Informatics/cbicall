@@ -88,7 +88,7 @@ YAML_FILE="${SAMPLE_ID}_${PIPELINE}_param.yaml"
 cat <<YAML > "\${YAML_FILE}"
 mode: single
 pipeline: ${PIPELINE}
-workflow_engine: bash
+workflow_backend: bash
 gatk_version: gatk-4.6
 resource: "cbicall-germline-resources-v1"
 input_dir: ${WORKDIR}

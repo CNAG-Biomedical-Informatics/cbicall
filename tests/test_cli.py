@@ -71,12 +71,12 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
         {
             "project_dir": str(tmp_path),
             "run_id": "RIDREPORT",
-            "workflow_engine": "bash",
+            "workflow_backend": "bash",
             "profile": "cnag-hpc",
             "genome": "b37",
             "inputs": {"input_dir": None, "sample_map": None},
             "workflow": {
-                "engine": "bash",
+                "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
                 "gatk_version": "gatk-4.6",
@@ -110,7 +110,7 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     assert data["profile"] == "cnag-hpc"
     assert data["framework"]["version"] == "1.2.3"
     assert data["runtime"]["python"]["version"] == sys.version.split()[0]
-    assert data["runtime"]["engine"]["name"] == "bash"
+    assert data["runtime"]["backend"]["name"] == "bash"
     assert data["elapsed_seconds"] == 12.346
     assert data["resources"]["bundle"]["version"] == "v1"
     assert data["resources"]["bundle"]["fingerprint"] == "abc"
@@ -169,8 +169,8 @@ def test_run_report_html_caps_large_output_inventory(tmp_path):
         "elapsed_seconds": 1,
         "workflow_log": str(tmp_path / "workflow.log"),
         "framework": {"version": "1.2.3"},
-        "runtime": {"python": {}, "engine": {}},
-        "workflow": {"engine": "bash", "pipeline": "wes", "mode": "single", "files": []},
+        "runtime": {"python": {}, "backend": {}},
+        "workflow": {"backend": "bash", "pipeline": "wes", "mode": "single", "files": []},
         "resources": {"bundle": {}},
         "outputs": {
             "file_inventory": {
@@ -220,10 +220,10 @@ def test_runtime_report_records_python_java_and_backend_version(monkeypatch):
     assert report["java"]["name"] == "java"
     assert report["java"]["path"] == "/usr/bin/java"
     assert report["java"]["version"] == "17.0.10"
-    assert report["engine"]["name"] == "nextflow"
-    assert report["engine"]["path"] == "/usr/bin/nextflow"
-    assert report["engine"]["version"] == "25.10.2"
-    assert report["engine"]["status"] == "ok"
+    assert report["backend"]["name"] == "nextflow"
+    assert report["backend"]["path"] == "/usr/bin/nextflow"
+    assert report["backend"]["version"] == "25.10.2"
+    assert report["backend"]["status"] == "ok"
 
 
 def test_runtime_report_marks_missing_backend(monkeypatch):
@@ -231,9 +231,9 @@ def test_runtime_report_marks_missing_backend(monkeypatch):
 
     report = cli_mod._runtime_report("snakemake")
 
-    assert report["engine"]["name"] == "snakemake"
-    assert report["engine"]["status"] == "not_found"
-    assert report["engine"]["version"] is None
+    assert report["backend"]["name"] == "snakemake"
+    assert report["backend"]["status"] == "not_found"
+    assert report["backend"]["version"] is None
 
 
 def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
@@ -275,13 +275,13 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
         {
             "project_dir": str(tmp_path),
             "run_id": "RIDNFCORE",
-            "workflow_engine": "nextflow",
+            "workflow_backend": "nextflow",
             "profile": "local",
             "genome": "external",
             "nfcore_profile": "singularity",
             "inputs": {"input_dir": None, "sample_map": None},
             "workflow": {
-                "engine": "nextflow",
+                "backend": "nextflow",
                 "pipeline": "sarek",
                 "mode": "cohort",
                 "gatk_version": "nf-core",
@@ -290,7 +290,7 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
                 "config_file": None,
                 "helpers": {},
                 "metadata": {
-                    "source_type": "nf-core",
+                    "provider": "nf-core",
                     "source": "nf-core/sarek",
                     "release": "3.8.1",
                     "default_outdir": "sarek",
@@ -410,7 +410,7 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
             "python": {"version": "3.12.3"},
             "java": {"version": "17.0.10"},
             "configured_java": {"version": "1.8.0_472"},
-            "engine": {"name": "bash", "version": "5.2.21"},
+            "backend": {"name": "bash", "version": "5.2.21"},
         },
         "workflow": {
             "key": "bash/wes/single/gatk-4.6/v1",
@@ -456,7 +456,7 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     assert "Python ver" in out
     assert "Java ver" in out
     assert "Configured Java" in out
-    assert "Engine ver" in out
+    assert "Backend ver" in out
     assert "Task count (trace)" in out
     assert "Max peak RSS (trace)" in out
     assert "Workflow hash" in out
@@ -510,7 +510,7 @@ def test_compare_runs_marks_inventory_size_only_drift_as_note(tmp_path, capsys):
     run_b.mkdir()
     base = {
         "framework": {"version": "1.2.3"},
-        "runtime": {"python": {"version": "3.12.3"}, "engine": {"version": "bash"}},
+        "runtime": {"python": {"version": "3.12.3"}, "backend": {"version": "bash"}},
         "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "files": []},
         "resources": {"bundle": {}},
         "outputs": {
@@ -550,7 +550,7 @@ def test_compare_runs_refreshes_vcf_hashes_from_existing_run_dirs(tmp_path, caps
         (run / "run-report.json").write_text(
             json.dumps({
                 "framework": {"version": "1.2.3"},
-                "runtime": {"python": {"version": "3.12.3"}, "engine": {"version": "bash"}},
+                "runtime": {"python": {"version": "3.12.3"}, "backend": {"version": "bash"}},
                 "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "files": []},
                 "resources": {"bundle": {}},
                 "outputs": {"file_inventory": {"entries": 0}, "vcf_hash_reports": []},
@@ -579,7 +579,7 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
             "python": {"version": "3.12.3"},
             "java": {"version": "17.0.10"},
             "configured_java": {"version": "1.8.0_472"},
-            "engine": {"name": "bash", "version": "5.2.21"},
+            "backend": {"name": "bash", "version": "5.2.21"},
         },
         "workflow": {
             "key": "bash/wes/single/gatk-4.6/v1",
@@ -602,7 +602,7 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     }
     same = json.loads(json.dumps(base))
     different = json.loads(json.dumps(base))
-    different["runtime"]["engine"]["version"] = "5.2.22"
+    different["runtime"]["backend"]["version"] = "5.2.22"
     different["workflow"]["fingerprint"] = "workflow-c"
     different["software_versions"]["sha256"] = "software-c"
     different["execution_trace"]["tasks"] = 3
@@ -624,7 +624,7 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     assert "Python ver" in out
     assert "Java ver" in out
     assert "Configured Java" in out
-    assert "Engine ver" in out
+    assert "Backend ver" in out
     assert "Task count (trace)" in out
     assert "Max peak VMEM (trace)" in out
     assert "Resource ver" in out
@@ -656,8 +656,8 @@ def test_render_report_command_refreshes_output_hashes_and_regenerates_html(tmp_
         "elapsed_seconds": 1,
         "workflow_log": str(run_dir / "workflow.log"),
         "framework": {"version": "1.2.3"},
-        "runtime": {"python": {}, "engine": {}, "java": {}},
-        "workflow": {"engine": "bash", "pipeline": "wes", "mode": "single", "files": []},
+        "runtime": {"python": {}, "backend": {}, "java": {}},
+        "workflow": {"backend": "bash", "pipeline": "wes", "mode": "single", "files": []},
         "resources": {"bundle": {}},
         "outputs": {"file_inventory": {"paths": [], "total_bytes": 0}, "vcf_hash_reports": []},
         "run": {"project_dir": str(run_dir), "run_id": "RID", "threads": 1},
@@ -790,8 +790,8 @@ def test_short_path_for_none_and_short_values():
 
 def test_print_config_includes_workflow_block(capsys):
     cfg = {
-        "workflow_engine": "snakemake",
-        "workflow": {"entrypoint": "/tmp/wes_single.smk", "engine": "snakemake"},
+        "workflow_backend": "snakemake",
+        "workflow": {"entrypoint": "/tmp/wes_single.smk", "backend": "snakemake"},
         "x": None,
     }
     cli_mod._print_config(cfg)
@@ -812,7 +812,7 @@ def test_validate_parameters_command_prints_parameters_ok(monkeypatch, tmp_path,
         lambda _: {
             "project_dir": str(tmp_path / "run"),
             "run_id": "RIDPARAM",
-            "workflow_engine": "bash",
+            "workflow_backend": "bash",
             "profile": "local",
             "genome": "b37",
             "pipeline": "wes",
@@ -821,7 +821,7 @@ def test_validate_parameters_command_prints_parameters_ok(monkeypatch, tmp_path,
             "pipeline_version": "v1",
             "inputs": {"input_dir": None, "sample_map": None},
             "workflow": {
-                "engine": "bash",
+                "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
                 "gatk_version": "gatk-4.6",
@@ -916,7 +916,7 @@ def test_main_happy_path(monkeypatch, tmp_path):
         "mode": "single",
         "input_dir": None,
         "sample_map": None,
-        "workflow_engine": "bash",
+        "workflow_backend": "bash",
         "gatk_version": "gatk-3.5",
         "cleanup_bam": False,
     }
@@ -931,7 +931,7 @@ def test_main_happy_path(monkeypatch, tmp_path):
             "genome": "b37",
             "inputs": {"input_dir": None, "sample_map": None},
             "workflow": {
-                "engine": "bash",
+                "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
                 "gatk_version": "gatk-3.5",
@@ -984,7 +984,7 @@ def test_main_run_subcommand_happy_path(monkeypatch, tmp_path, capsys):
         "mode": "single",
         "input_dir": None,
         "sample_map": None,
-        "workflow_engine": "bash",
+        "workflow_backend": "bash",
         "gatk_version": "gatk-4.6",
         "cleanup_bam": False,
     }
@@ -1001,7 +1001,7 @@ def test_main_run_subcommand_happy_path(monkeypatch, tmp_path, capsys):
             "genome": "b37",
             "inputs": {"input_dir": None, "sample_map": None},
             "workflow": {
-                "engine": "bash",
+                "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
                 "gatk_version": "gatk-4.6",
@@ -1065,7 +1065,7 @@ def test_main_verbose_prints(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(
         cli_mod.config_mod, "read_param_file", lambda _: {
             "pipeline": "wes", "mode": "single", "input_dir": None, "sample_map": None,
-            "workflow_engine": "bash", "gatk_version": "gatk-3.5", "cleanup_bam": False
+            "workflow_backend": "bash", "gatk_version": "gatk-3.5", "cleanup_bam": False
         }
     )
     monkeypatch.setattr(
@@ -1075,7 +1075,7 @@ def test_main_verbose_prints(monkeypatch, tmp_path, capsys):
             "genome": "b37",
             "inputs": {"input_dir": None, "sample_map": None},
             "workflow": {
-                "engine": "bash",
+                "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
                 "gatk_version": "gatk-3.5",
@@ -1126,7 +1126,7 @@ def test_main_warns_when_genome_is_inferred(monkeypatch, tmp_path, capsys):
             "mode": "single",
             "input_dir": None,
             "sample_map": None,
-            "workflow_engine": "bash",
+            "workflow_backend": "bash",
             "gatk_version": "gatk-3.5",
             "cleanup_bam": False,
         },
@@ -1140,7 +1140,7 @@ def test_main_warns_when_genome_is_inferred(monkeypatch, tmp_path, capsys):
             "genome": "b37",
             "inputs": {"input_dir": None, "sample_map": None},
             "workflow": {
-                "engine": "bash",
+                "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
                 "gatk_version": "gatk-3.5",
@@ -1187,7 +1187,7 @@ def test_main_partial_run_warning_and_metadata(monkeypatch, tmp_path, capsys):
             "mode": "single",
             "input_dir": None,
             "sample_map": None,
-            "workflow_engine": "snakemake",
+            "workflow_backend": "snakemake",
             "gatk_version": "gatk-4.6",
             "cleanup_bam": False,
             "snakemake_parameters": {"target": "call_variants"},
@@ -1206,7 +1206,7 @@ def test_main_partial_run_warning_and_metadata(monkeypatch, tmp_path, capsys):
             "run_mode": "partial",
             "inputs": {"input_dir": None, "sample_map": None},
             "workflow": {
-                "engine": "snakemake",
+                "backend": "snakemake",
                 "pipeline": "wes",
                 "mode": "single",
                 "gatk_version": "gatk-4.6",
@@ -1347,7 +1347,7 @@ def test_main_no_color_disables_ansi_output(monkeypatch, tmp_path, capsys):
             "mode": "single",
             "input_dir": None,
             "sample_map": None,
-            "workflow_engine": "bash",
+            "workflow_backend": "bash",
             "gatk_version": "gatk-3.5",
             "cleanup_bam": False,
         },
@@ -1361,7 +1361,7 @@ def test_main_no_color_disables_ansi_output(monkeypatch, tmp_path, capsys):
             "genome": "b37",
             "inputs": {"input_dir": None, "sample_map": None},
             "workflow": {
-                "engine": "bash",
+                "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
                 "gatk_version": "gatk-3.5",
@@ -1409,7 +1409,7 @@ def test_main_passes_wgs_cohort_workflow_keys(monkeypatch, tmp_path):
         "mode": "cohort",
         "input_dir": None,
         "sample_map": str(tmp_path / "sample_map.tsv"),
-        "workflow_engine": "bash",
+        "workflow_backend": "bash",
         "gatk_version": "gatk-4.6",
         "cleanup_bam": False,
     }
@@ -1424,7 +1424,7 @@ def test_main_passes_wgs_cohort_workflow_keys(monkeypatch, tmp_path):
             "genome": "b37",
             "inputs": {"input_dir": None, "sample_map": str(tmp_path / "sample_map.tsv")},
             "workflow": {
-                "engine": "bash",
+                "backend": "bash",
                 "pipeline": "wgs",
                 "mode": "cohort",
                 "gatk_version": "gatk-4.6",
@@ -1470,8 +1470,8 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
         "mode": "cohort",
         "input_dir": None,
         "sample_map": str(sample_map),
-        "workflow_engine": "nextflow",
-        "workflow_version": "nf-core",
+        "workflow_backend": "nextflow",
+        "workflow_provider": "nf-core",
         "gatk_version": "nf-core",
         "resource": "nf-core-sarek-managed-resources-v1",
         "nfcore_profile": "docker",
@@ -1490,7 +1490,7 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
         lambda _: {
             "project_dir": str(tmp_path / "proj_sarek"),
             "run_id": "IDSAREK",
-            "workflow_engine": "nextflow",
+            "workflow_backend": "nextflow",
             "profile": "local",
             "nfcore_profile": "docker",
             "genome": "external",
@@ -1505,7 +1505,7 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
             },
             "inputs": {"input_dir": None, "sample_map": str(sample_map)},
             "workflow": {
-                "engine": "nextflow",
+                "backend": "nextflow",
                 "pipeline": "sarek",
                 "mode": "cohort",
                 "gatk_version": "nf-core",
@@ -1514,7 +1514,7 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
                 "config_file": None,
                 "helpers": {},
                 "metadata": {
-                    "source_type": "nf-core",
+                    "provider": "nf-core",
                     "source": "nf-core/sarek",
                     "release": "3.8.1",
                     "default_outdir": "sarek",

@@ -45,7 +45,7 @@ bin/cbicall compare-runs baseline_run/ repeat_1/ repeat_2/ repeat_3/ \
 
 | Layer | Fields |
 | --- | --- |
-| Framework | CBIcall version, Python version, Java version, configured native Java version, and workflow engine version recorded in `run-report.json`. |
+| Framework | CBIcall version, Python version, Java version, configured native Java version, and workflow backend version recorded in `run-report.json`. |
 | Pipeline | Workflow key, pipeline implementation version, entrypoint, and workflow fingerprint. |
 | Execution | Task count and peak RAM summaries when the backend provides an execution trace. |
 | Software | Software-version fingerprint when available. Native runs use declared tool versions from the resource catalog; nf-core runs use the workflow-reported software versions YAML. |
@@ -108,7 +108,7 @@ The status vocabulary is intentionally small:
 Use this order when auditing two runs:
 
 1. Check **Framework**. A different CBIcall version means the execution driver
-   changed between runs. A different Python or workflow engine version means
+   changed between runs. A different Python or workflow backend version means
    the runtime stack changed.
 2. Check **Execution** if a trace is available. Different task counts or peak
    RAM values usually indicate a backend/runtime difference or a changed workflow

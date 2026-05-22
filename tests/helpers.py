@@ -30,15 +30,15 @@ def write_workflow_schema(path: Path) -> None:
                 "type": "object",
                 "additionalProperties": False,
                 "properties": {
-                    "bash": {"$ref": "#/$defs/engine"},
-                    "snakemake": {"$ref": "#/$defs/engine"},
-                    "nextflow": {"$ref": "#/$defs/engine"},
+                    "bash": {"$ref": "#/$defs/backend"},
+                    "snakemake": {"$ref": "#/$defs/backend"},
+                    "nextflow": {"$ref": "#/$defs/backend"},
                 },
                 "required": ["bash"],
             }
         },
         "$defs": {
-            "engine": {
+            "backend": {
                 "type": "object",
                 "additionalProperties": False,
                 "required": ["base_dir", "versions"],
@@ -104,11 +104,11 @@ def write_workflow_schema(path: Path) -> None:
                 "additionalProperties": False,
                 "oneOf": [
                     {"required": ["script"]},
-                    {"required": ["source_type", "source", "release"]},
+                    {"required": ["provider", "source", "release"]},
                 ],
                 "properties": {
                     "script": {"type": "string", "minLength": 1},
-                    "source_type": {"enum": ["nf-core"]},
+                    "provider": {"enum": ["nf-core"]},
                     "source": {"type": "string", "minLength": 1},
                     "release": {"type": "string", "minLength": 1},
                     "default_outdir": {"type": "string", "minLength": 1},

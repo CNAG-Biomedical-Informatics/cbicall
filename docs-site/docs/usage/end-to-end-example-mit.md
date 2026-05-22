@@ -45,7 +45,7 @@ Example:
 ```yaml
 mode:            single
 pipeline:        mit
-workflow_engine: bash
+workflow_backend: bash
 input_dir:       CNAG999_exome/CNAG99901P_ex
 ```
 
@@ -167,7 +167,7 @@ Create a YAML file, e.g. `mit_cohort.yaml`:
 ```yaml
 mode:            cohort
 pipeline:        mit
-workflow_engine: bash
+workflow_backend: bash
 gatk_version:    gatk-3.5
 input_dir:       CNAG999_exome
 ```

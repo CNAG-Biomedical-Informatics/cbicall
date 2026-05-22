@@ -8,9 +8,9 @@ from cbicall.errors import ParameterValidationError
 from cbicall.models import WorkflowSpec
 
 
-def _workflow(engine="bash", *, env_file=None, config_file=None):
+def _workflow(backend="bash", *, env_file=None, config_file=None):
     return WorkflowSpec(
-        engine=engine,
+        backend=backend,
         pipeline="wes",
         mode="single",
         gatk_version="gatk-4.6",
@@ -177,7 +177,7 @@ def test_validate_resource_catalog_can_filter_one_bundle(tmp_path):
         resources_mod.validate_resource_catalog(catalog, resource_key="missing")
 
 
-def test_validate_resource_catalog_accepts_non_bundle_resource_type(tmp_path):
+def test_validate_resource_catalog_accepts_non_bundle_resource(tmp_path):
     catalog = tmp_path / "catalog.json"
     catalog.write_text(
         json.dumps(
@@ -202,7 +202,7 @@ def test_validate_resource_catalog_accepts_non_bundle_resource_type(tmp_path):
     assert summary["compatible_workflows"] == 1
 
 
-def test_build_resource_metadata_accepts_non_bundle_resource_type(tmp_path):
+def test_build_resource_metadata_accepts_non_bundle_resource(tmp_path):
     catalog_dir = tmp_path / "resources"
     catalog_dir.mkdir()
     (catalog_dir / "cbicall-resource-catalog.json").write_text(
@@ -221,19 +221,19 @@ def test_build_resource_metadata_accepts_non_bundle_resource_type(tmp_path):
         encoding="utf-8",
     )
     workflow = WorkflowSpec(
-        engine="nextflow",
+        backend="nextflow",
         pipeline="sarek",
         mode="cohort",
         gatk_version="nf-core",
         pipeline_version="v1",
         entrypoint="nf-core/sarek",
-        metadata={"source_type": "nf-core"},
+        metadata={"provider": "nf-core"},
     )
 
     metadata = resources_mod.build_bundle_resource_metadata(
         {
             "resource": "nf-core-sarek-managed-resources-v1",
-            "workflow_engine": "nextflow",
+            "workflow_backend": "nextflow",
             "pipeline": "sarek",
             "mode": "cohort",
             "gatk_version": "nf-core",

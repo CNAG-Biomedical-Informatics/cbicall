@@ -5,11 +5,11 @@ from cbicall import dnaseq
 def test_dnaseq_snakemake_with_sample_map_adds_workspace_and_sample_map(tmp_path, monkeypatch):
     recorded = {}
 
-    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded["cmd"] = cmd
         recorded["env"] = env
         recorded["log_path"] = log_path
-        recorded["engine"] = engine
+        recorded["backend"] = backend
 
     monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
 
@@ -24,7 +24,7 @@ def test_dnaseq_snakemake_with_sample_map_adds_workspace_and_sample_map(tmp_path
         "genome": "hg38",
         "inputs": {"input_dir": None, "sample_map": "map.txt"},
         "workflow": {
-            "engine": "snakemake",
+            "backend": "snakemake",
             "pipeline": "wgs",
             "mode": "cohort",
             "gatk_version": "gatk-4.6",
@@ -48,4 +48,4 @@ def test_dnaseq_snakemake_with_sample_map_adds_workspace_and_sample_map(tmp_path
 
     # env exists but GENOME isn't required for snakemake
     assert recorded["env"] is not None
-    assert recorded["engine"] == "snakemake"
+    assert recorded["backend"] == "snakemake"

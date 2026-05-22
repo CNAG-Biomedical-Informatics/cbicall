@@ -81,7 +81,7 @@ For most WES/WGS runs, start with **4 threads per task**. See [Performance](../h
 ```yaml
 mode:            single
 pipeline:        wes
-workflow_engine: bash
+workflow_backend: bash
 gatk_version:    gatk-4.6
 input_dir:       CNAG999_exome/CNAG99901P_ex
 genome:          b37
@@ -92,7 +92,7 @@ genome:          b37
 ```yaml
 mode:            cohort
 pipeline:        wes
-workflow_engine: bash
+workflow_backend: bash
 gatk_version:    gatk-4.6
 genome:          b37
 sample_map:      ./sample_map.tsv
@@ -103,7 +103,7 @@ sample_map:      ./sample_map.tsv
 ```yaml
 mode:            single
 pipeline:        wgs
-workflow_engine: nextflow
+workflow_backend: nextflow
 gatk_version:    gatk-4.6
 input_dir:       CNAG999_genome/CNAG99901P_wg
 genome:          hg38
@@ -114,7 +114,7 @@ genome:          hg38
 ```yaml
 mode:            single
 pipeline:        mit
-workflow_engine: bash
+workflow_backend: bash
 gatk_version:    gatk-3.5
 input_dir:       CNAG999_exome/CNAG99901P_ex
 ```
@@ -124,8 +124,8 @@ input_dir:       CNAG999_exome/CNAG99901P_ex
 ```yaml
 mode:             cohort
 pipeline:         sarek
-workflow_engine:  nextflow
-workflow_version: nf-core
+workflow_backend:  nextflow
+workflow_provider: nf-core
 resource:         nf-core-sarek-managed-resources-v1
 nfcore_profile: singularity
 nfcore_singularity_cache_dir: nxf-singularity-cache
@@ -144,8 +144,8 @@ nfcore_parameters:
 ```yaml
 mode:             single
 pipeline:         demo
-workflow_engine:  nextflow
-workflow_version: nf-core
+workflow_backend:  nextflow
+workflow_provider: nf-core
 resource:         nf-core-demo-managed-resources-v1
 nfcore_profile: test,singularity
 nfcore_parameters:    {}
@@ -165,7 +165,7 @@ Use backend-specific parameter blocks for values that belong to an execution bac
 For targeted Snakemake execution, set a Snakemake target:
 
 ```yaml
-workflow_engine: snakemake
+workflow_backend: snakemake
 snakemake_parameters:
   target: call_variants
 ```
@@ -173,7 +173,7 @@ snakemake_parameters:
 For native CBIcall Nextflow workflows, pass extra workflow parameters with:
 
 ```yaml
-workflow_engine: nextflow
+workflow_backend: nextflow
 nextflow_parameters:
   publish_debug_files: true
 ```
@@ -207,7 +207,7 @@ CBIcall is designed for multi-core Linux desktop, workstation, server, and HPC e
 | CPU | At least 4 cores |
 | RAM | At least 8 GB for single-sample runs; more for cohort joint genotyping |
 | Disk | At least 250 GB, depending on input size and whether BAM cleanup is enabled |
-| Source installation | Python 3.8+, Java 8, plus Snakemake or Nextflow when using those workflow engines |
+| Source installation | Python 3.8+, Java 8, plus Snakemake or Nextflow when using those workflow backends |
 
 ## Next Steps
 

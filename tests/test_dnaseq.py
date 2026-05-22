@@ -7,9 +7,9 @@ from cbicall.errors import WorkflowExecutionError, WorkflowResolutionError
 def test_dnaseq_builds_bash_command_with_flags(tmp_path, monkeypatch):
     recorded = {}
 
-    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update(
-            {"cmd": cmd, "cwd": cwd, "log_path": log_path, "env": env, "engine": engine}
+            {"cmd": cmd, "cwd": cwd, "log_path": log_path, "env": env, "backend": backend}
         )
 
     monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
@@ -30,7 +30,7 @@ def test_dnaseq_builds_bash_command_with_flags(tmp_path, monkeypatch):
         "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
-            "engine": "bash",
+            "backend": "bash",
             "pipeline": "wes",
             "mode": "single",
             "gatk_version": "gatk-4.6",
@@ -50,13 +50,13 @@ def test_dnaseq_builds_bash_command_with_flags(tmp_path, monkeypatch):
     assert "--sample-map" in recorded["cmd"]
     assert recorded["env"]["GENOME"] == "b37"
     assert recorded["cwd"] == project_dir
-    assert recorded["engine"] == "bash"
+    assert recorded["backend"] == "bash"
 
 
 def test_dnaseq_passes_resolved_env_file_to_bash(tmp_path, monkeypatch):
     recorded = {}
 
-    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"env": env})
 
     monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
@@ -76,7 +76,7 @@ def test_dnaseq_passes_resolved_env_file_to_bash(tmp_path, monkeypatch):
         "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
-            "engine": "bash",
+            "backend": "bash",
             "pipeline": "wes",
             "mode": "single",
             "gatk_version": "gatk-4.6",
@@ -91,7 +91,7 @@ def test_dnaseq_passes_resolved_env_file_to_bash(tmp_path, monkeypatch):
 
 
 def test_dnaseq_debug_prints(monkeypatch, tmp_path, capsys):
-    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         return None
 
     monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
@@ -110,7 +110,7 @@ def test_dnaseq_debug_prints(monkeypatch, tmp_path, capsys):
         "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
-            "engine": "bash",
+            "backend": "bash",
             "pipeline": "wes",
             "mode": "single",
             "gatk_version": "gatk-3.5",
@@ -129,7 +129,7 @@ def test_dnaseq_debug_prints(monkeypatch, tmp_path, capsys):
 def test_dnaseq_builds_bash_command_gatk35_has_no_extra_flags(tmp_path, monkeypatch):
     recorded = {}
 
-    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"cmd": cmd})
 
     monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
@@ -150,7 +150,7 @@ def test_dnaseq_builds_bash_command_gatk35_has_no_extra_flags(tmp_path, monkeypa
         "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
-            "engine": "bash",
+            "backend": "bash",
             "pipeline": "wes",
             "mode": "single",
             "gatk_version": "gatk-3.5",
@@ -167,8 +167,8 @@ def test_dnaseq_builds_bash_command_gatk35_has_no_extra_flags(tmp_path, monkeypa
 def test_dnaseq_builds_snakemake_command_and_config(tmp_path, monkeypatch):
     recorded = {}
 
-    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
-        recorded.update({"cmd": cmd, "engine": engine})
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "backend": backend})
 
     monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
 
@@ -187,7 +187,7 @@ def test_dnaseq_builds_snakemake_command_and_config(tmp_path, monkeypatch):
         "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
-            "engine": "snakemake",
+            "backend": "snakemake",
             "pipeline": "wes",
             "mode": "single",
             "gatk_version": "gatk-4.6",
@@ -204,14 +204,14 @@ def test_dnaseq_builds_snakemake_command_and_config(tmp_path, monkeypatch):
     assert str(tmp_path / "config.yaml") in cmd
     assert "genome=hg38" in cmd
     assert "pipeline=wes" in cmd
-    assert recorded["engine"] == "snakemake"
+    assert recorded["backend"] == "snakemake"
 
 
 def test_dnaseq_builds_snakemake_partial_rule_command(tmp_path, monkeypatch):
     recorded = {}
 
-    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
-        recorded.update({"cmd": cmd, "engine": engine})
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "backend": backend})
 
     monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
 
@@ -230,7 +230,7 @@ def test_dnaseq_builds_snakemake_partial_rule_command(tmp_path, monkeypatch):
         "nextflow_parameters": {},
         "run_mode": "partial",
         "workflow": {
-            "engine": "snakemake",
+            "backend": "snakemake",
             "pipeline": "wes",
             "mode": "single",
             "gatk_version": "gatk-4.6",
@@ -247,8 +247,8 @@ def test_dnaseq_builds_snakemake_partial_rule_command(tmp_path, monkeypatch):
 def test_dnaseq_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
     recorded = {}
 
-    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
-        recorded.update({"cmd": cmd, "engine": engine})
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "backend": backend})
 
     monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
 
@@ -269,7 +269,7 @@ def test_dnaseq_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
         "run_mode": "full",
         "cleanup_bam": True,
         "workflow": {
-            "engine": "nextflow",
+            "backend": "nextflow",
             "pipeline": "wgs",
             "mode": "single",
             "gatk_version": "gatk-4.6",
@@ -294,14 +294,14 @@ def test_dnaseq_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
     assert "--vcf2hash_script" in cmd
     assert "--emit_report" in cmd
     assert "--scatter_count" in cmd and "2" in cmd
-    assert recorded["engine"] == "nextflow"
+    assert recorded["backend"] == "nextflow"
 
 
 def test_dnaseq_builds_nextflow_cohort_command_with_sample_map(tmp_path, monkeypatch):
     recorded = {}
 
-    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
-        recorded.update({"cmd": cmd, "engine": engine})
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "backend": backend})
 
     monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
 
@@ -322,7 +322,7 @@ def test_dnaseq_builds_nextflow_cohort_command_with_sample_map(tmp_path, monkeyp
         "run_mode": "full",
         "cleanup_bam": False,
         "workflow": {
-            "engine": "nextflow",
+            "backend": "nextflow",
             "pipeline": "wes",
             "mode": "cohort",
             "gatk_version": "gatk-4.6",
@@ -354,7 +354,7 @@ def test_dnaseq_nextflow_cohort_requires_sample_map(tmp_path):
         "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
-            "engine": "nextflow",
+            "backend": "nextflow",
             "pipeline": "wes",
             "mode": "cohort",
             "gatk_version": "gatk-4.6",
@@ -372,8 +372,8 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
     recorded = {}
     monkeypatch.setattr(dnaseq.platform, "machine", lambda: "x86_64")
 
-    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
-        recorded.update({"cmd": cmd, "cwd": cwd, "log_path": log_path, "engine": engine, "env": env})
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "cwd": cwd, "log_path": log_path, "backend": backend, "env": env})
 
     monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
 
@@ -401,7 +401,7 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
         "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
-            "engine": "nextflow",
+            "backend": "nextflow",
             "pipeline": "sarek",
             "mode": "cohort",
             "gatk_version": "nf-core",
@@ -410,7 +410,7 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
             "config_file": None,
             "helpers": {},
             "metadata": {
-                "source_type": "nf-core",
+                "provider": "nf-core",
                 "source": "nf-core/sarek",
                 "release": "3.8.1",
                 "default_outdir": "sarek",
@@ -447,15 +447,15 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
     assert "NXF_APPTAINER_LIBRARYDIR" not in recorded["env"]
     assert recorded["cwd"] == project_dir
     assert recorded["log_path"] == project_dir / "nf-core_sarek_cohort.log"
-    assert recorded["engine"] == "nextflow"
+    assert recorded["backend"] == "nextflow"
 
 
 def test_dnaseq_nfcore_sarek_pins_amd64_docker_platform_on_arm64(tmp_path, monkeypatch):
     recorded = {}
     monkeypatch.setattr(dnaseq.platform, "machine", lambda: "aarch64")
 
-    def fake_run_cmd(cmd, cwd, log_path, env=None, engine=None):
-        recorded.update({"cmd": cmd, "cwd": cwd, "engine": engine})
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "cwd": cwd, "backend": backend})
 
     monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
 
@@ -481,7 +481,7 @@ def test_dnaseq_nfcore_sarek_pins_amd64_docker_platform_on_arm64(tmp_path, monke
         "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
-            "engine": "nextflow",
+            "backend": "nextflow",
             "pipeline": "sarek",
             "mode": "cohort",
             "gatk_version": "nf-core",
@@ -490,7 +490,7 @@ def test_dnaseq_nfcore_sarek_pins_amd64_docker_platform_on_arm64(tmp_path, monke
             "config_file": None,
             "helpers": {},
             "metadata": {
-                "source_type": "nf-core",
+                "provider": "nf-core",
                 "source": "nf-core/sarek",
                 "release": "3.8.1",
                 "default_outdir": "sarek",
@@ -519,7 +519,7 @@ def test_snakemake_missing_snakefile_raises(tmp_path):
         "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
-            "engine": "snakemake",
+            "backend": "snakemake",
             "pipeline": "wes",
             "mode": "single",
             "gatk_version": "gatk-4.6",
@@ -544,7 +544,7 @@ def test_dnaseq_raises_if_projectdir_missing(tmp_path):
         "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
-            "engine": "bash",
+            "backend": "bash",
             "pipeline": "wes",
             "mode": "single",
             "gatk_version": "gatk-3.5",
@@ -570,7 +570,7 @@ def test_variant_calling_raises_on_invalid_engine(tmp_path):
         "nextflow_parameters": {},
         "run_mode": "full",
         "workflow": {
-            "engine": "nope",
+            "backend": "nope",
             "pipeline": "wes",
             "mode": "single",
             "gatk_version": "gatk-3.5",
@@ -579,7 +579,7 @@ def test_variant_calling_raises_on_invalid_engine(tmp_path):
             "helpers": {},
         },
     }
-    with pytest.raises(WorkflowResolutionError, match="Invalid workflow_engine"):
+    with pytest.raises(WorkflowResolutionError, match="Invalid workflow_backend"):
         dnaseq.DNAseq(settings).variant_calling()
 
 
@@ -597,10 +597,10 @@ def test_run_cmd_nonzero_return_raises(monkeypatch, tmp_path):
             cwd=tmp_path,
             log_path=tmp_path / "log.txt",
             env=None,
-            engine="bash",
+            backend="bash",
         )
     msg = str(excinfo.value)
-    assert "engine=bash" in msg
+    assert "backend=bash" in msg
     assert "Command: false" in msg
     assert f"Working directory: {tmp_path}" in msg
 
@@ -616,8 +616,8 @@ def test_run_cmd_exception_raises(monkeypatch, tmp_path):
             cwd=tmp_path,
             log_path=tmp_path / "log.txt",
             env=None,
-            engine="snakemake",
+            backend="snakemake",
         )
     msg = str(excinfo.value)
-    assert "engine=snakemake" in msg
+    assert "backend=snakemake" in msg
     assert "Command: echo ok" in msg

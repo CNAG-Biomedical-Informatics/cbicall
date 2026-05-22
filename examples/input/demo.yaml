@@ -1,7 +1,7 @@
 mode:             single
 pipeline:         demo
-workflow_engine:  nextflow
-workflow_version: nf-core
+workflow_backend:  nextflow
+workflow_provider: nf-core
 resource:         nf-core-demo-managed-resources-v1
 
 nfcore_profile: test,singularity

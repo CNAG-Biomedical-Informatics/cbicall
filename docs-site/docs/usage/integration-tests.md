@@ -56,10 +56,10 @@ bin/cbicall test --wes-bash -t 1 --runtime-profile cnag-hpc
 | `bin/cbicall test --wes-snakemake -t 1` | Optional Snakemake WES test. Requires `snakemake` on `PATH` and compares the resulting VCF to the same Bash reference VCF. |
 | `bin/cbicall test --wes-nextflow -t 1` | Optional Nextflow WES test. Requires `nextflow` on `PATH` and compares the resulting VCF to the same Bash reference VCF. |
 | `bin/cbicall test --mit-bash -t 1` | Optional mtDNA Bash integration test after the WES path is working. |
-| `bin/cbicall test --all -t 1` | Run all bundled integration examples. Optional engine tests are skipped when their engine is not installed. |
+| `bin/cbicall test --all -t 1` | Run all bundled integration examples. Optional backend tests are skipped when their backend is not installed. |
 | `bin/cbicall test --wes-bash -t 1 --runtime-profile cnag-hpc` | Run a bundled test through a non-local CBIcall runtime profile. |
 
-:::note[Workflow engine dependencies]
+:::note[Workflow backend dependencies]
 Snakemake and Nextflow are not part of the CBIcall resource bundle. Install them
 in the runtime environment before running their backend-specific tests.
 On CNAG HPC, load Nextflow first:

@@ -16,7 +16,7 @@ pipeline: wes
 mode: single
 ```
 
-The workflow backend is configured separately with `workflow_engine`. See
+The workflow backend is configured separately with `workflow_backend`. See
 [Native Backends](../backends/native) for Bash, Snakemake, Nextflow, and
 external nf-core execution.
 

@@ -15,11 +15,11 @@ export LC_ALL=C
 # Check arguments
 if [ $# -ne 1 ]
  then
-  echo "$0 <workflow_engine>"
+  echo "$0 <workflow_backend>"
   exit 1
 fi
 
-workflow_engine=$1
+workflow_backend=$1
 
 # Determine the directory where the script resides
 BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -27,7 +27,7 @@ BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source env.sh from the same directory
 source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
 
-dir=../*_{ex,wg}/cbicall_${workflow_engine}_wes_single*/02_varcall
+dir=../*_{ex,wg}/cbicall_${workflow_backend}_wes_single*/02_varcall
 
 for vcf1 in $( ls -1 "$dir"/*.*QC.vcf )
 do

@@ -11,7 +11,7 @@ The workflow backend controls how the selected pipeline is launched.
 | --- | --- | --- |
 | Bash | Runs CBIcall-maintained shell workflows directly | Production runs with the bundled WES, WGS, and mtDNA scripts |
 | Snakemake | Runs CBIcall-maintained Snakemake workflows | Rule-based execution and partial workflow targets |
-| Nextflow | Runs CBIcall-maintained Nextflow workflows | Alternative workflow-engine backend for WES/WGS |
+| Nextflow | Runs CBIcall-maintained Nextflow workflows | Alternative workflow-backend implementation for WES/WGS |
 
 ### Bash
 
@@ -37,23 +37,23 @@ layout and runtime assumptions. See [nf-core](nf-core).
 
 ## Backend Selection
 
-For CBIcall-native workflows, select the backend with `workflow_engine`:
+For CBIcall-native workflows, select the backend with `workflow_backend`:
 
 ```yaml
 pipeline:        wes
-workflow_engine: bash
+workflow_backend: bash
 gatk_version:    gatk-4.6
 ```
 
 ```yaml
 pipeline:        wes
-workflow_engine: snakemake
+workflow_backend: snakemake
 gatk_version:    gatk-4.6
 ```
 
 ```yaml
 pipeline:        wgs
-workflow_engine: nextflow
+workflow_backend: nextflow
 gatk_version:    gatk-4.6
 ```
 

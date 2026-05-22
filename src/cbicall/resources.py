@@ -32,7 +32,7 @@ def _catalog_entry_for_fingerprint(entry: dict) -> dict:
 def _workflow_key(cfg_in: dict, workflow: WorkflowSpec = None) -> str:
     pipeline_version = workflow.pipeline_version if workflow else cfg_in.get("pipeline_version")
     parts = [
-        cfg_in["workflow_engine"],
+        cfg_in["workflow_backend"],
         cfg_in["pipeline"],
         cfg_in["mode"],
         cfg_in["gatk_version"],
@@ -291,12 +291,12 @@ def _datadir_from_snakemake_config(config_file: str) -> str:
 
 
 def _resolve_workflow_datadir(workflow: WorkflowSpec) -> dict:
-    if workflow.engine == "bash":
+    if workflow.backend == "bash":
         source = workflow.helpers.get("env")
         datadir = _datadir_from_bash_env(source) if source else None
         return {"source": source, "source_key": "workflow.helpers.env", "datadir": datadir}
 
-    if workflow.engine in {"snakemake", "nextflow"}:
+    if workflow.backend in {"snakemake", "nextflow"}:
         source = workflow.config_file
         datadir = _datadir_from_snakemake_config(source) if source else None
         return {"source": source, "source_key": "workflow.config_file", "datadir": datadir}

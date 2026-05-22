@@ -61,12 +61,12 @@ def _run_cmd(
     log_path: Path,
     env: Optional[Dict[str, str]] = None,
     *,
-    engine: Optional[str] = None,
+    backend: Optional[str] = None,
 ) -> None:
     """
     Run command and redirect stdout/stderr to the same log file.
     """
-    engine_str = f"engine={engine}, " if engine else ""
+    backend_str = f"backend={backend}, " if backend else ""
     cmd_str = _cmd_to_string(cmd)
 
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -84,7 +84,7 @@ def _run_cmd(
     except Exception as e:
         msg = (
             "Failed to execute workflow (could not start command).\n"
-            f"{engine_str}Command: {cmd_str}\n"
+            f"{backend_str}Command: {cmd_str}\n"
             f"Working directory: {cwd}\n"
             f"Log file: {log_path}\n"
         )
@@ -93,7 +93,7 @@ def _run_cmd(
     if proc.returncode != 0:
         msg = (
             f"Failed to execute workflow (returncode={proc.returncode}).\n"
-            f"{engine_str}Command: {cmd_str}\n"
+            f"{backend_str}Command: {cmd_str}\n"
             f"Working directory: {cwd}\n"
             f"Log file: {log_path}\n"
         )
@@ -113,8 +113,8 @@ class BaseRunner:
         self.cmd_to_string = cmd_to_string
 
     @property
-    def engine(self) -> str:
-        return str(self.settings.workflow.engine)
+    def backend(self) -> str:
+        return str(self.settings.workflow.backend)
 
     @property
     def pipeline(self) -> str:
@@ -150,10 +150,10 @@ class BaseRunner:
 
     @property
     def log_path(self) -> Path:
-        if self.workflow.metadata.get("source_type") == "nf-core":
+        if self.workflow.metadata.get("provider") == "nf-core":
             log_name = f"nf-core_{self.suffix}.log"
         else:
-            log_name = f"{self.engine}_{self.suffix}_{self.genome}_{self.gatk_version}.log"
+            log_name = f"{self.backend}_{self.suffix}_{self.genome}_{self.gatk_version}.log"
         return self.workdir / log_name
 
     def _base_env(self) -> Dict[str, str]:
@@ -184,7 +184,7 @@ class BaseRunner:
             cwd=self.workdir,
             log_path=self.log_path,
             env=env,
-            engine=self.engine,
+            backend=self.backend,
         )
 
 
@@ -270,7 +270,7 @@ class SnakemakeRunner(BaseRunner):
 
 class NextflowRunner(BaseRunner):
     def _is_nfcore_workflow(self) -> bool:
-        return self.workflow.metadata.get("source_type") == "nf-core"
+        return self.workflow.metadata.get("provider") == "nf-core"
 
     def _build_external_nextflow_command(self) -> List[str]:
         source = self.workflow.metadata.get("source") or self.workflow.entrypoint
@@ -380,7 +380,7 @@ class NextflowRunner(BaseRunner):
         if self.mode == "cohort":
             if not sample_map:
                 raise WorkflowResolutionError(
-                    "sample_map is required for workflow_engine='nextflow' with mode='cohort'."
+                    "sample_map is required for workflow_backend='nextflow' with mode='cohort'."
                 )
             cmd += [
                 "--sample_map",
@@ -405,7 +405,7 @@ class NextflowRunner(BaseRunner):
 
 class DNAseq:
     """
-    Dispatcher for engine-specific workflow runners.
+    Dispatcher for backend-specific workflow runners.
     """
 
     def __init__(self, settings: Union[RunSettings, Dict]):
@@ -413,30 +413,30 @@ class DNAseq:
 
     def _make_runner(self) -> BaseRunner:
         settings = self.settings
-        engine = settings.workflow.engine
+        backend = settings.workflow.backend
 
-        if engine == "bash":
+        if backend == "bash":
             return BashRunner(
                 settings,
                 run_cmd=self._run_cmd,
                 cmd_to_string=self._cmd_to_string,
             )
 
-        if engine == "snakemake":
+        if backend == "snakemake":
             return SnakemakeRunner(
                 settings,
                 run_cmd=self._run_cmd,
                 cmd_to_string=self._cmd_to_string,
             )
 
-        if engine == "nextflow":
+        if backend == "nextflow":
             return NextflowRunner(
                 settings,
                 run_cmd=self._run_cmd,
                 cmd_to_string=self._cmd_to_string,
             )
 
-        raise WorkflowResolutionError(f"Invalid workflow_engine: {engine!r}")
+        raise WorkflowResolutionError(f"Invalid workflow_backend: {backend!r}")
 
     def variant_calling(self) -> bool:
         runner = self._make_runner()
@@ -450,9 +450,9 @@ class DNAseq:
         log_path: Path,
         env: Optional[Dict[str, str]] = None,
         *,
-        engine: Optional[str] = None,
+        backend: Optional[str] = None,
     ) -> None:
-        _run_cmd(cmd=cmd, cwd=cwd, log_path=log_path, env=env, engine=engine)
+        _run_cmd(cmd=cmd, cwd=cwd, log_path=log_path, env=env, backend=backend)
 
     @staticmethod
     def _cmd_to_string(

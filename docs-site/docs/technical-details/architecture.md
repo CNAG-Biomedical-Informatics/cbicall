@@ -4,7 +4,7 @@ CBIcall is a thin orchestration layer around one or more concrete pipelines. Its
 
 - Reading a parameters YAML file
 - Validating required parameters and paths
-- Resolving the selected pipeline and workflow engine
+- Resolving the selected pipeline and workflow backend
 - Preparing the project directory structure
 - Calling the appropriate workflow scripts (Bash, Snakemake, or Nextflow)
 - Managing logs and collecting results in a standard layout
@@ -17,7 +17,7 @@ The actual bioinformatics work (alignment, variant calling, QC) is implemented i
 
 ![CBIcall architecture diagram](/img/architecture-diagram.png)
 
-_CBIcall resolves a validated parameters YAML into a concrete workflow engine and pipeline implementation._
+_CBIcall resolves a validated parameters YAML into a concrete workflow backend and pipeline implementation._
 
 ---
 
@@ -34,7 +34,7 @@ At a high level, CBIcall consists of:
   <div className="cbicallCard">
     <span className="cbicallCardLabel">Registry</span>
     <h3>Workflow resolver</h3>
-    <p>Maps engine, GATK version, pipeline, and mode to a concrete script or Snakefile.</p>
+    <p>Maps backend, GATK version, pipeline, and mode to a concrete script or Snakefile.</p>
   </div>
   <div className="cbicallCard">
     <span className="cbicallCardLabel">Workflows</span>
@@ -51,9 +51,9 @@ At a high level, CBIcall consists of:
 | Component | Role | Main files or directories |
 | --- | --- | --- |
 | Python execution driver | Reads the YAML configuration, validates parameters, resolves paths, and dispatches execution to the selected workflow. | `src/cbicall/config.py`, `src/cbicall/dnaseq.py` |
-| Workflow registry | Developer-facing map that connects parameters YAML choices (`workflow_engine`, `gatk_version`, `pipeline`, `mode`, and pipeline implementation version) to concrete workflow scripts. Validate it with `bin/cbicall validate-registry` after editing. | `workflows/registry/cbicall-workflow-registry.yaml`, `src/cbicall/workflow_registry.py` |
+| Workflow registry | Developer-facing map that connects parameters YAML choices (`workflow_backend`, `gatk_version`, `pipeline`, `mode`, and pipeline implementation version) to concrete workflow scripts. Validate it with `bin/cbicall validate-registry` after editing. | `workflows/registry/cbicall-workflow-registry.yaml`, `src/cbicall/workflow_registry.py` |
 | Pipelines | Implement WES, WGS, and mtDNA analyses. A pipeline may provide Bash, Snakemake, or Nextflow workflows. | `workflows/bash/`, `workflows/snakemake/`, `workflows/nextflow/` |
-| Workflow engines | Execute the resolved workflow. Bash is transparent and direct; Snakemake and Nextflow add engine-managed orchestration for bundled workflows. | `BashRunner`, `SnakemakeRunner`, `NextflowRunner` in `src/cbicall/dnaseq.py` |
+| Workflow backends | Execute the resolved workflow. Bash is transparent and direct; Snakemake and Nextflow add backend-managed orchestration for bundled workflows. | `BashRunner`, `SnakemakeRunner`, `NextflowRunner` in `src/cbicall/dnaseq.py` |
 | Run directory | Stores outputs, logs, and `log.json` for one execution. | `01_bam/`, `02_varcall/`, `03_stats/`, `logs/` |
 | External data | Provides third-party tools, reference genomes, known-sites resources, and accessory databases. | `DATADIR`, `NGSUTILS`, `Databases` |
 
@@ -87,14 +87,14 @@ CBIcall supports two execution modes:
 - **Cohort mode**  
   Joint analysis using per-sample gVCFs from previous single runs.
 
-The workflow engine is selected in the YAML:
+The workflow backend is selected in the YAML:
 
-- `workflow_engine: bash`
-- `workflow_engine: snakemake`
-- `workflow_engine: nextflow`
+- `workflow_backend: bash`
+- `workflow_backend: snakemake`
+- `workflow_backend: nextflow`
 
 <div className="cbicallNotePanel">
-  <p><strong>Rule of thumb:</strong> Bash workflows are direct and transparent. Snakemake and Nextflow workflows provide engine-managed orchestration for bundled CBIcall workflows.</p>
+  <p><strong>Rule of thumb:</strong> Bash workflows are direct and transparent. Snakemake and Nextflow workflows provide backend-managed orchestration for bundled CBIcall workflows.</p>
 </div>
 
 ---
@@ -123,7 +123,7 @@ Date: March-2026
 
 New pipelines can be added without modifying the core system:
 
-- Each pipeline lives under `workflows/<engine>/<name>`
+- Each pipeline lives under `workflows/<backend>/<name>`
 - The execution driver resolves the pipeline implementation through the workflow registry
 - Pipelines reuse the same directory layout and logging conventions
 - Pipelines may support single and/or cohort mode

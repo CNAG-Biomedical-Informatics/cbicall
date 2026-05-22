@@ -55,7 +55,7 @@ Key points:
 - Support for WES, WGS, and mtDNA analysis modes
 - Registry-backed support for selected external nf-core/Nextflow workflows
 - Structured run logging and traceable runtime metadata
-- Optional partial workflow starts for supported engines
+- Optional partial workflow starts for supported backends
 
 Workflow sources:
 

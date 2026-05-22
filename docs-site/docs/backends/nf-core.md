@@ -67,8 +67,8 @@ For an HPC or Apptainer/Singularity test:
 ```yaml
 mode:             single
 pipeline:         demo
-workflow_engine:  nextflow
-workflow_version: nf-core
+workflow_backend:  nextflow
+workflow_provider: nf-core
 resource:         nf-core-demo-managed-resources-v1
 nfcore_profile: test,singularity
 nfcore_parameters:    {}
@@ -101,8 +101,8 @@ workflow. CBIcall passes `nfcore_parameters` to the generated Nextflow params fi
 ```yaml
 mode:             cohort
 pipeline:         sarek
-workflow_engine:  nextflow
-workflow_version: nf-core
+workflow_backend:  nextflow
+workflow_provider: nf-core
 resource:         nf-core-sarek-managed-resources-v1
 nfcore_profile: singularity
 nfcore_singularity_cache_dir: nxf-singularity-cache
@@ -255,5 +255,5 @@ ls -la .command*
 If those files are absent, the task likely failed before execution, commonly
 because the scheduler allocation was smaller than the task request. See the
 [Nextflow troubleshooting documentation](https://www.nextflow.io/docs/latest/troubleshooting.html)
-for generic engine-level debugging.
+for generic backend-level debugging.
 :::

@@ -62,7 +62,7 @@ Before editing files, define the resource entry.
 | --- | --- | --- |
 | Resource key | `my-center-germline-v1` | The value users set as `resource`. |
 | Compatible workflows | `bash/wes/single/gatk-4.6/v1` | Prevents incompatible workflow/resource combinations. |
-| Runtime location | `DATADIR`, Snakemake/Nextflow `datadir`, or external engine profile | Tells the selected backend where files are installed or managed. |
+| Runtime location | `DATADIR`, Snakemake/Nextflow `datadir`, or external backend profile | Tells the selected backend where files are installed or managed. |
 | Integrity metadata | archive checksum or resource identifier | Lets CBIcall verify downloaded or installed bundle identity. |
 
 For a custom resource, users select it in the run YAML:
@@ -107,7 +107,7 @@ Add the resource under `resources` and declare its type:
 `compatible_workflows` uses:
 
 ```text
-engine/pipeline/mode/gatk_version/pipeline_version
+backend/pipeline/mode/gatk_version/pipeline_version
 ```
 
 The workflow keys must exist in `workflows/registry/cbicall-workflow-registry.yaml`.
@@ -231,7 +231,7 @@ workflow and bundle together:
 ```yaml
 pipeline: wes
 mode: single
-workflow_engine: bash
+workflow_backend: bash
 gatk_version: gatk-4.6
 resource: my-center-germline-v1
 genome: b37

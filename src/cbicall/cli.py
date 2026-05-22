@@ -143,7 +143,7 @@ def _sha256_file(path: Path) -> str:
 def _workflow_key(workflow) -> str:
     return "/".join(
         [
-            str(workflow.engine),
+            str(workflow.backend),
             str(workflow.pipeline),
             str(workflow.mode),
             str(workflow.gatk_version),
@@ -153,7 +153,7 @@ def _workflow_key(workflow) -> str:
 
 
 def _workflow_file_manifest(workflow) -> dict:
-    if workflow.metadata.get("source_type") == "nf-core":
+    if workflow.metadata.get("provider") == "nf-core":
         source = workflow.metadata.get("source") or workflow.entrypoint
         release = workflow.metadata.get("release")
         payload = f"{source}@{release}".encode("utf-8")
@@ -315,7 +315,7 @@ def _source_bash_env_variable(env_file: str, variable: str) -> dict:
 
 
 def _configured_native_java_report(workflow) -> Optional[dict]:
-    if workflow is None or workflow.metadata.get("source_type") == "nf-core":
+    if workflow is None or workflow.metadata.get("provider") == "nf-core":
         return None
 
     java_path = None
@@ -323,7 +323,7 @@ def _configured_native_java_report(workflow) -> Optional[dict]:
     status = "not_configured"
     arch = _architecture_key()
 
-    if workflow.engine == "bash":
+    if workflow.backend == "bash":
         env_file = workflow.helpers.get("env")
         if not env_file:
             return None
@@ -334,7 +334,7 @@ def _configured_native_java_report(workflow) -> Optional[dict]:
         if not java_path:
             env_report["name"] = "configured_java"
             return env_report
-    elif workflow.engine in {"snakemake", "nextflow"}:
+    elif workflow.backend in {"snakemake", "nextflow"}:
         config_file = workflow.config_file
         if not config_file:
             return None
@@ -362,7 +362,7 @@ def _configured_native_java_report(workflow) -> Optional[dict]:
     return version_report
 
 
-def _runtime_report(engine: str, workflow=None) -> dict:
+def _runtime_report(backend: str, workflow=None) -> dict:
     commands = {
         "bash": ("bash", ["--version"]),
         "snakemake": ("snakemake", ["--version"]),
@@ -375,12 +375,12 @@ def _runtime_report(engine: str, workflow=None) -> dict:
         },
         "java": _command_version("java", ["-version"]),
     }
-    if engine in commands:
-        command, args = commands[engine]
-        payload["engine"] = _command_version(command, args)
+    if backend in commands:
+        command, args = commands[backend]
+        payload["backend"] = _command_version(command, args)
     else:
-        payload["engine"] = {
-            "name": engine,
+        payload["backend"] = {
+            "name": backend,
             "path": None,
             "status": "unsupported",
             "version": None,
@@ -569,7 +569,7 @@ def _external_nextflow_summary(workflow_output_dir: Path, canonical_outputs: Lis
 
 def _external_nextflow_outputs(resolved_config: ResolvedConfig, project_dir: Path) -> dict:
     workflow = resolved_config.workflow
-    if workflow.metadata.get("source_type") != "nf-core":
+    if workflow.metadata.get("provider") != "nf-core":
         return {}
 
     params_file = project_dir / "cbicall_external_nextflow.params.yaml"
@@ -1139,11 +1139,11 @@ def _run_report_html(payload: dict) -> str:
         _html_section(
             "Analysis",
             [
-                ("Engine", _nested(payload, "workflow", "engine")),
+                ("Backend", _nested(payload, "workflow", "backend")),
                 ("Pipeline", _nested(payload, "workflow", "pipeline")),
                 ("Mode", _nested(payload, "workflow", "mode")),
                 ("Genome", _nested(payload, "run", "genome")),
-                ("GATK / workflow version", _nested(payload, "workflow", "gatk_version")),
+                ("GATK / provider version", _nested(payload, "workflow", "gatk_version")),
                 ("Pipeline version", _nested(payload, "workflow", "pipeline_version")),
                 ("Runtime profile", payload.get("profile")),
                 ("Threads", _nested(payload, "run", "threads")),
@@ -1159,9 +1159,9 @@ def _run_report_html(payload: dict) -> str:
                 ("Java path", _nested(payload, "runtime", "java", "path")),
                 ("Configured Java", _nested(payload, "runtime", "configured_java", "version")),
                 ("Configured Java path", _nested(payload, "runtime", "configured_java", "path")),
-                ("Workflow engine", _nested(payload, "runtime", "engine", "name")),
-                ("Engine version", _nested(payload, "runtime", "engine", "version")),
-                ("Engine path", _nested(payload, "runtime", "engine", "path")),
+                ("Workflow backend", _nested(payload, "runtime", "backend", "name")),
+                ("Backend version", _nested(payload, "runtime", "backend", "version")),
+                ("Backend path", _nested(payload, "runtime", "backend", "path")),
             ],
         ),
         _html_section(
@@ -1541,7 +1541,7 @@ def _run_report_html(payload: dict) -> str:
     <div class="summary" aria-label="Run summary">
       <div class="metric"><span>Status</span><strong><span class="pill">""" + html.escape(str(payload.get("status", "unknown"))) + """</span></strong></div>
       <div class="metric"><span>Pipeline</span><strong>""" + html.escape(str(_nested(payload, "workflow", "pipeline") or "(undef)")) + """</strong></div>
-      <div class="metric"><span>Engine</span><strong>""" + html.escape(str(_nested(payload, "workflow", "engine") or "(undef)")) + """</strong></div>
+      <div class="metric"><span>Backend</span><strong>""" + html.escape(str(_nested(payload, "workflow", "backend") or "(undef)")) + """</strong></div>
       <div class="metric"><span>Run ID</span><strong>""" + html.escape(str(_nested(payload, "run", "run_id") or "(undef)")) + """</strong></div>
     </div>
     <div class="tabs">
@@ -1611,7 +1611,7 @@ def write_run_report(
             "name": "CBIcall",
             "version": resolved_config.version or VERSION,
         },
-        "runtime": _runtime_report(workflow.engine, workflow),
+        "runtime": _runtime_report(workflow.backend, workflow),
         "profile": resolved_config.profile,
         "workflow": _workflow_report(workflow),
         "resources": resolved_config.resources,
@@ -1675,11 +1675,13 @@ def _run_validate_parameters_command(argv: List[str]) -> int:
     bundle = resolved_config.resources.get("bundle", {})
     _row("Param file", _short_path(args.paramfile))
     _row("Runtime profile", resolved_config.profile)
-    _row("Workflow", f"{workflow.engine} -> {workflow.pipeline} -> {workflow.mode}")
-    _row("Workflow ver", workflow.gatk_version)
+    _row("Workflow", f"{workflow.backend} -> {workflow.pipeline} -> {workflow.mode}")
+    _row("Workflow provider", resolved_config.workflow_provider)
+    if resolved_config.workflow_provider == "cbicall":
+        _row("GATK", workflow.gatk_version)
     _row("Pipeline ver", workflow.pipeline_version)
     _row("Genome", resolved_config.genome or "b37")
-    if workflow.metadata.get("source_type") == "nf-core":
+    if workflow.metadata.get("provider") == "nf-core":
         _row("Source", workflow.metadata.get("source"))
         _row("Release", workflow.metadata.get("release"))
         _row("NF profile", resolved_config.nfcore_profile)
@@ -1688,9 +1690,9 @@ def _run_validate_parameters_command(argv: List[str]) -> int:
             _row("NF cache", _short_path(resolved_config.nfcore_singularity_cache_dir))
     else:
         _row("Entrypoint", _short_path(workflow.entrypoint))
-    if workflow.engine == "bash":
+    if workflow.backend == "bash":
         _row("Env file", _short_path(workflow.helpers.get("env")))
-    elif workflow.engine in {"snakemake", "nextflow"} and not workflow.metadata.get("source_type"):
+    elif workflow.backend in {"snakemake", "nextflow"} and not workflow.metadata.get("provider"):
         _row("Config", _short_path(workflow.config_file))
     _row("Resource key", bundle.get("key"))
     _row("Resource ver", bundle.get("version"))
@@ -1706,9 +1708,9 @@ def _collect_external_sources(value) -> List[str]:
 
     def visit(node):
         if isinstance(node, dict):
-            source_type = node.get("source_type")
-            if source_type:
-                sources.add(str(source_type))
+            provider = node.get("provider")
+            if provider:
+                sources.add(str(provider))
             for child in node.values():
                 visit(child)
         elif isinstance(node, list):
@@ -2137,7 +2139,7 @@ def _print_multi_run_comparison(reports: List[dict]) -> None:
     _multi_status("Python ver", baseline, reports, lambda report: _nested(report, "runtime", "python", "version"))
     _multi_status("Java ver", baseline, reports, lambda report: _nested(report, "runtime", "java", "version"))
     _multi_status("Configured Java", baseline, reports, lambda report: _nested(report, "runtime", "configured_java", "version"))
-    _multi_status("Engine ver", baseline, reports, lambda report: _nested(report, "runtime", "engine", "version"))
+    _multi_status("Backend ver", baseline, reports, lambda report: _nested(report, "runtime", "backend", "version"))
 
     print()
     _section("Execution", BLUE)
@@ -2204,7 +2206,7 @@ def _print_run_comparison(left: dict, right: dict) -> None:
     _compare_row("Python ver", _nested(left, "runtime", "python", "version"), _nested(right, "runtime", "python", "version"))
     _compare_row("Java ver", _nested(left, "runtime", "java", "version"), _nested(right, "runtime", "java", "version"))
     _compare_row("Configured Java", _nested(left, "runtime", "configured_java", "version"), _nested(right, "runtime", "configured_java", "version"))
-    _compare_row("Engine ver", _nested(left, "runtime", "engine", "version"), _nested(right, "runtime", "engine", "version"))
+    _compare_row("Backend ver", _nested(left, "runtime", "backend", "version"), _nested(right, "runtime", "backend", "version"))
 
     print()
     _section("Execution", BLUE)
@@ -2883,7 +2885,7 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
     )
 
     workflow = resolved_config.workflow
-    _row("Workflow", f"{workflow.engine} -> {workflow.pipeline} -> {workflow.mode}")
+    _row("Workflow", f"{workflow.backend} -> {workflow.pipeline} -> {workflow.mode}")
     print("  This workflow may take a while depending on input size and pipeline.")
 
     wes = DNAseq(settings)
@@ -2901,10 +2903,10 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
     elapsed = time.time() - start_time
     _row("Elapsed", _format_duration(elapsed))
     genome = resolved_config.genome or "b37"
-    if workflow.metadata.get("source_type") == "nf-core":
+    if workflow.metadata.get("provider") == "nf-core":
         log_name = f"nf-core_{workflow.pipeline}_{workflow.mode}.log"
     else:
-        log_name = f"{workflow.engine}_{workflow.pipeline}_{workflow.mode}_{genome}_{workflow.gatk_version}.log"
+        log_name = f"{workflow.backend}_{workflow.pipeline}_{workflow.mode}_{genome}_{workflow.gatk_version}.log"
     workflow_log = Path(resolved_config.project_dir) / log_name
     report_path = write_run_report(
         resolved_config,
@@ -2917,7 +2919,7 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
     _row("Log", workflow_log)
     _row("Report", report_path)
     _row("HTML", html_report_path)
-    if workflow.metadata.get("source_type") == "nf-core":
+    if workflow.metadata.get("provider") == "nf-core":
         report_data = json.loads(report_path.read_text(encoding="utf-8"))
         _print_external_output_pointers(report_data)
     if arg.get("verbose"):

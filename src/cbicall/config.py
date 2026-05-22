@@ -41,9 +41,9 @@ MODE_VALUES = {"single", "cohort"}
 PIPELINE_VALUES = {"wes", "wgs", "mit"}
 ORGANISM_VALUES = {"Homo sapiens", "Mus musculus"}
 TECHNOLOGY_VALUES = {"Illumina HiSeq", "NovaSeq"}
-WORKFLOW_ENGINE_VALUES = {"bash", "nextflow", "snakemake"}
+WORKFLOW_BACKEND_VALUES = {"bash", "nextflow", "snakemake"}
+WORKFLOW_PROVIDER_VALUES = {"cbicall", "nf-core"}
 GATK_VALUES = {"gatk-3.5", "gatk-4.6"}
-WORKFLOW_VERSION_VALUES = GATK_VALUES | {"nf-core"}
 GENOME_VALUES = {"b37", "hg38", "rsrs", "external"}
 
 
@@ -56,7 +56,7 @@ _DEFAULTS = {
     "pipeline": "wes",
     "organism": "Homo sapiens",
     "technology": "Illumina HiSeq",
-    "workflow_engine": "bash",
+    "workflow_backend": "bash",
     "profile": "local",
     "snakemake_parameters": {},
     "nextflow_parameters": {},
@@ -64,7 +64,7 @@ _DEFAULTS = {
     "nfcore_parameters": {},
     "nfcore_singularity_cache_dir": None,
     "gatk_version": "gatk-3.5",
-    "workflow_version": None,
+    "workflow_provider": "cbicall",
     "pipeline_version": None,
     "project_dir": "cbicall",
     "cleanup_bam": False,
@@ -74,6 +74,11 @@ _DEFAULTS = {
 
 _RUNTIME_ONLY_KEYS = {
     "profile": "profile is a runtime option; use --runtime-profile instead of setting it in the parameters YAML.",
+}
+
+_REMOVED_KEYS = {
+    "workflow_engine": "workflow_engine was renamed to workflow_backend.",
+    "workflow_version": "workflow_version was renamed to workflow_provider.",
 }
 
 
@@ -123,36 +128,36 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
     """
     # Block unsupported union: snakemake + gatk-3.5
     if (
-        cfg.get("workflow_engine") == "snakemake"
+        cfg.get("workflow_backend") == "snakemake"
         and cfg.get("gatk_version") == "gatk-3.5"
     ):
         raise ParameterValidationError(
-            "workflow_engine='snakemake' is not supported for gatk_version='gatk-3.5'. "
-            "Use workflow_engine='bash' or select gatk_version='gatk-4.6'."
+            "workflow_backend='snakemake' is not supported for gatk_version='gatk-3.5'. "
+            "Use workflow_backend='bash' or select gatk_version='gatk-4.6'."
         )
 
     # Block unsupported union: mit + snakemake
-    if cfg.get("pipeline") == "mit" and cfg.get("workflow_engine") == "snakemake":
+    if cfg.get("pipeline") == "mit" and cfg.get("workflow_backend") == "snakemake":
         raise ParameterValidationError(
-            "The combination pipeline='mit' with workflow_engine='snakemake' is not supported."
+            "The combination pipeline='mit' with workflow_backend='snakemake' is not supported."
         )
 
-    if cfg.get("workflow_engine") == "nextflow":
+    if cfg.get("workflow_backend") == "nextflow":
         if cfg.get("gatk_version") not in {"gatk-4.6", "nf-core"}:
             raise ParameterValidationError(
-                "workflow_engine='nextflow' is supported only for workflow versions 'gatk-4.6' or 'nf-core'."
+                "workflow_backend='nextflow' is supported for native gatk_version='gatk-4.6' or workflow_provider='nf-core'."
             )
         if cfg.get("pipeline") == "mit":
             raise ParameterValidationError(
-                "The combination pipeline='mit' with workflow_engine='nextflow' is not supported."
+                "The combination pipeline='mit' with workflow_backend='nextflow' is not supported."
             )
 
-    if cfg.get("gatk_version") == "nf-core":
-        if cfg.get("workflow_engine") != "nextflow":
-            raise ParameterValidationError("workflow_version='nf-core' requires workflow_engine='nextflow'.")
+    if cfg.get("workflow_provider") == "nf-core":
+        if cfg.get("workflow_backend") != "nextflow":
+            raise ParameterValidationError("workflow_provider='nf-core' requires workflow_backend='nextflow'.")
         if user_provided_genome and cfg.get("genome") != "external":
             raise ParameterValidationError(
-                "For workflow_version='nf-core', genome is managed by the external Nextflow workflow. "
+                "For workflow_provider='nf-core', genome is managed by the external Nextflow workflow. "
                 "Remove 'genome' from the YAML or set genome='external'."
             )
         cfg["genome"] = "external"
@@ -180,7 +185,7 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
 
 def _validate_enums_except_genome(cfg: dict) -> None:
     _validate_enum("mode", cfg["mode"], MODE_VALUES)
-    if cfg.get("workflow_version") == "nf-core":
+    if cfg.get("workflow_provider") == "nf-core":
         pipeline = cfg.get("pipeline")
         if pipeline is None or not str(pipeline).strip():
             raise ParameterValidationError("pipeline must be a non-empty value.")
@@ -190,7 +195,8 @@ def _validate_enums_except_genome(cfg: dict) -> None:
         _validate_enum("gatk_version", cfg["gatk_version"], GATK_VALUES)
     _validate_enum("organism", cfg["organism"], ORGANISM_VALUES)
     _validate_enum("technology", cfg["technology"], TECHNOLOGY_VALUES)
-    _validate_enum("workflow_engine", cfg["workflow_engine"], WORKFLOW_ENGINE_VALUES)
+    _validate_enum("workflow_backend", cfg["workflow_backend"], WORKFLOW_BACKEND_VALUES)
+    _validate_enum("workflow_provider", cfg["workflow_provider"], WORKFLOW_PROVIDER_VALUES)
 
 
 def _validate_mapping_parameter(cfg: dict, key: str) -> dict:
@@ -207,10 +213,10 @@ def _validate_backend_parameter_settings(cfg: dict) -> None:
     snakemake_parameters = _validate_mapping_parameter(cfg, "snakemake_parameters")
     nextflow_parameters = _validate_mapping_parameter(cfg, "nextflow_parameters")
 
-    if snakemake_parameters and cfg.get("workflow_engine") != "snakemake":
-        raise ParameterValidationError("snakemake_parameters requires workflow_engine='snakemake'.")
-    if nextflow_parameters and (cfg.get("workflow_engine") != "nextflow" or cfg.get("gatk_version") == "nf-core"):
-        raise ParameterValidationError("nextflow_parameters requires a native workflow_engine='nextflow' run.")
+    if snakemake_parameters and cfg.get("workflow_backend") != "snakemake":
+        raise ParameterValidationError("snakemake_parameters requires workflow_backend='snakemake'.")
+    if nextflow_parameters and (cfg.get("workflow_backend") != "nextflow" or cfg.get("workflow_provider") == "nf-core"):
+        raise ParameterValidationError("nextflow_parameters requires a native workflow_backend='nextflow' run.")
 
     target = snakemake_parameters.get("target")
     if target is not None:
@@ -274,40 +280,35 @@ def _validate_pipeline_version_settings(cfg: dict) -> None:
     cfg["pipeline_version"] = cfg["pipeline_version"].strip()
 
 
-def _normalize_workflow_version_settings(cfg: dict) -> None:
-    workflow_version = cfg.get("workflow_version")
-    if workflow_version is None:
-        return
-    workflow_version = str(workflow_version).strip()
-    if not workflow_version:
-        raise ParameterValidationError("workflow_version must be a non-empty value when provided.")
-    _validate_enum("workflow_version", workflow_version, WORKFLOW_VERSION_VALUES)
-    if (
-        cfg.get("gatk_version") != _DEFAULTS["gatk_version"]
-        and cfg.get("gatk_version") != workflow_version
-    ):
-        raise ParameterValidationError(
-            "workflow_version and gatk_version refer to the same workflow family version; "
-            "set only one of them or use matching values."
-        )
-    cfg["workflow_version"] = workflow_version
-    cfg["gatk_version"] = workflow_version
+def _normalize_workflow_provider_settings(cfg: dict) -> None:
+    workflow_provider = cfg.get("workflow_provider")
+    if workflow_provider is None:
+        workflow_provider = "cbicall"
+    workflow_provider = str(workflow_provider).strip()
+    if not workflow_provider:
+        raise ParameterValidationError("workflow_provider must be a non-empty value when provided.")
+    _validate_enum("workflow_provider", workflow_provider, WORKFLOW_PROVIDER_VALUES)
+    cfg["workflow_provider"] = workflow_provider
+    if workflow_provider == "nf-core":
+        cfg["gatk_version"] = "nf-core"
 
 
 def _validate_nfcore_settings(cfg: dict) -> None:
     cache_dir = cfg.get("nfcore_singularity_cache_dir")
-    if cfg.get("gatk_version") != "nf-core":
+    if cfg.get("workflow_provider") != "nf-core":
+        if cfg.get("nfcore_profile") is not None or cfg.get("nfcore_parameters"):
+            raise ParameterValidationError("nfcore_profile and nfcore_parameters require workflow_provider='nf-core'.")
         if cache_dir is not None:
             raise ParameterValidationError(
-                "nfcore_singularity_cache_dir requires workflow_version='nf-core'."
+                "nfcore_singularity_cache_dir requires workflow_provider='nf-core'."
             )
         return
-    if cfg.get("workflow_engine") != "nextflow":
-        raise ParameterValidationError("workflow_version='nf-core' requires workflow_engine='nextflow'.")
+    if cfg.get("workflow_backend") != "nextflow":
+        raise ParameterValidationError("workflow_provider='nf-core' requires workflow_backend='nextflow'.")
 
     profile = cfg.get("nfcore_profile")
     if profile is None or not str(profile).strip():
-        raise ParameterValidationError("workflow_version='nf-core' requires 'nfcore_profile'.")
+        raise ParameterValidationError("workflow_provider='nf-core' requires 'nfcore_profile'.")
     cfg["nfcore_profile"] = str(profile).strip()
 
     nfcore_parameters = cfg.get("nfcore_parameters")
@@ -373,12 +374,14 @@ def read_param_file(yaml_file: str) -> dict:
     for key, value in params.items():
         if key in _RUNTIME_ONLY_KEYS:
             raise ParameterValidationError(_RUNTIME_ONLY_KEYS[key])
+        if key in _REMOVED_KEYS:
+            raise ParameterValidationError(_REMOVED_KEYS[key])
         if key not in cfg:
             raise ParameterValidationError(f"Parameter '{key}' does not exist (typo?)")
         cfg[key] = value
 
     # Validate enums (except genome; it may be None until rules apply)
-    _normalize_workflow_version_settings(cfg)
+    _normalize_workflow_provider_settings(cfg)
     _validate_enums_except_genome(cfg)
     _validate_profile_settings(cfg)
     _validate_pipeline_version_settings(cfg)
@@ -422,10 +425,15 @@ def read_param_file(yaml_file: str) -> dict:
 
 def _merge_and_validate_param_values(params: dict) -> dict:
     """Merge defaults with user parameters and run semantic validation."""
+    for key in params:
+        if key in _REMOVED_KEYS:
+            raise ParameterValidationError(_REMOVED_KEYS[key])
+        if key not in _DEFAULTS:
+            raise ParameterValidationError(f"Parameter {key!r} does not exist (typo?)")
     cfg_in = copy.deepcopy(_DEFAULTS)
     cfg_in.update(params)
     # Validate enums (except genome), then apply genome rules, then validate genome
-    _normalize_workflow_version_settings(cfg_in)
+    _normalize_workflow_provider_settings(cfg_in)
     _validate_enums_except_genome(cfg_in)
     _validate_profile_settings(cfg_in)
     _validate_pipeline_version_settings(cfg_in)
@@ -450,12 +458,12 @@ def _build_runtime_identity(cfg_in: dict) -> dict:
     run_id = f"{now}{pid % 100000:05d}"
     run_date = time.ctime()
 
-    if cfg_in["gatk_version"] == "nf-core":
+    if cfg_in["workflow_provider"] == "nf-core":
         name_parts = [cfg_in["project_dir"], "nf-core", cfg_in["pipeline"], cfg_in["mode"], run_id]
     else:
         name_parts = [
             cfg_in["project_dir"],
-            cfg_in["workflow_engine"],
+            cfg_in["workflow_backend"],
             cfg_in["pipeline"],
             cfg_in["mode"],
             cfg_in["genome"],
@@ -505,7 +513,7 @@ def _build_host_runtime_metadata(cfg_in: dict) -> dict:
     else:
         metadata["compression_cmd"] = "/bin/gunzip"
 
-    if cfg_in["gatk_version"] != "nf-core" and cfg_in["pipeline"] != "wgs":
+    if cfg_in["workflow_provider"] != "nf-core" and cfg_in["pipeline"] != "wgs":
         if cfg_in["pipeline"] == "mit":
             metadata["capture_label"] = f"MToolBox_{cfg_in['genome']}"
         elif cfg_in["gatk_version"] == "gatk-3.5":
@@ -537,13 +545,13 @@ def _apply_runtime_profile(cfg_in: dict, workflow: WorkflowSpec) -> WorkflowSpec
     if helper_overrides is None:
         raise WorkflowResolutionError(
             f"profile='{profile}' is not declared for workflow "
-            f"{workflow.engine}/{workflow.gatk_version}/{workflow.pipeline}/{workflow.mode}."
+            f"{workflow.backend}/{workflow.gatk_version}/{workflow.pipeline}/{workflow.mode}."
         )
 
     helpers = dict(workflow.helpers)
     helpers.update(helper_overrides)
     return WorkflowSpec(
-        engine=workflow.engine,
+        backend=workflow.backend,
         pipeline=workflow.pipeline,
         mode=workflow.mode,
         gatk_version=workflow.gatk_version,
@@ -576,7 +584,8 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
 
     config = ResolvedConfig(
         user="",
-        workflow_engine=cfg_in["workflow_engine"],
+        workflow_backend=cfg_in["workflow_backend"],
+        workflow_provider=cfg_in["workflow_provider"],
         profile=cfg_in["profile"],
         snakemake_parameters=cfg_in.get("snakemake_parameters", {}),
         nextflow_parameters=cfg_in.get("nextflow_parameters", {}),
@@ -608,7 +617,8 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
     host_metadata = _build_host_runtime_metadata(cfg_in)
     return ResolvedConfig(
         user=runtime_identity["user"],
-        workflow_engine=config.workflow_engine,
+        workflow_backend=config.workflow_backend,
+        workflow_provider=config.workflow_provider,
         profile=config.profile,
         snakemake_parameters=config.snakemake_parameters,
         nextflow_parameters=config.nextflow_parameters,

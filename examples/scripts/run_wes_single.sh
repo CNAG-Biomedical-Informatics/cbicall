@@ -18,7 +18,7 @@ do
     cat <<EOF > "$SAMPLE.smk_wes_single.yaml"
 mode: single
 pipeline: wes
-workflow_engine: snakemake
+workflow_backend: snakemake
 gatk_version: gatk-4.6
 input_dir: $DIR/$DIRNAME/$SAMPLE
 EOF

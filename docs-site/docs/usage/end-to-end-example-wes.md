@@ -37,7 +37,7 @@ Create a YAML file, e.g. `wes_single.yaml`:
 ```yaml
 mode:            single
 pipeline:        wes
-workflow_engine: bash
+workflow_backend: bash
 gatk_version:    gatk-4.6
 input_dir:       CNAG999_exome/CNAG99901P_ex
 genome:          b37
@@ -48,7 +48,7 @@ Notes:
 
 - `mode` selects single-sample or cohort (joint genotyping).  
 - `pipeline` switches between WES, WGS or mtDNA.  
-- `workflow_engine` chooses the backend (bash, snakemake, or nextflow).
+- `workflow_backend` chooses the backend (bash, snakemake, or nextflow).
 - See [Configuration Reference](../help/configuration-reference) for all YAML keys and supported combinations.
 
 > **How can I perform WGS?**
@@ -57,7 +57,7 @@ Notes:
     ```yaml
     mode:            single
     pipeline:        wgs
-    workflow_engine: bash
+    workflow_backend: bash
     gatk_version:    gatk-4.6
     input_dir:       CNAG999_exome/CNAG99901P_ex
     genome:          b37
@@ -189,7 +189,7 @@ Create a YAML file, e.g. `wes_cohort.yaml`:
 ```yaml
 mode:            cohort
 pipeline:        wes
-workflow_engine: bash
+workflow_backend: bash
 gatk_version:    gatk-4.6
 genome:          b37
 sample_map:      ./sample_map.tsv

@@ -361,7 +361,7 @@ if [ "$RUN_WES_SNAKEMAKE" -eq 1 ]; then
     cat > "$WES_SMK_PARAM" <<EOF
 mode: single
 pipeline: wes
-workflow_engine: snakemake
+workflow_backend: snakemake
 gatk_version: gatk-4.6
 resource: "cbicall-germline-resources-v1"
 input_dir: CNAG999_exome/CNAG99901P_ex
@@ -454,7 +454,7 @@ if [ "$RUN_WES_NEXTFLOW" -eq 1 ]; then
     cat > "$WES_NF_PARAM" <<EOF
 mode: single
 pipeline: wes
-workflow_engine: nextflow
+workflow_backend: nextflow
 gatk_version: gatk-4.6
 resource: "cbicall-germline-resources-v1"
 input_dir: CNAG999_exome/CNAG99901P_ex

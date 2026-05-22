@@ -114,7 +114,7 @@ def test_read_param_file_snakemake_gatk35_is_blocked(tmp_path):
     p.write_text(
         "mode: single\n"
         "pipeline: wes\n"
-        "workflow_engine: snakemake\n"
+        "workflow_backend: snakemake\n"
         "gatk_version: gatk-3.5\n",
         encoding="utf-8",
     )
@@ -127,11 +127,11 @@ def test_read_param_file_mit_snakemake_blocked(tmp_path):
     p.write_text(
         "mode: single\n"
         "pipeline: mit\n"
-        "workflow_engine: snakemake\n"
+        "workflow_backend: snakemake\n"
         "gatk_version: gatk-4.6\n",
         encoding="utf-8",
     )
-    with pytest.raises(ParameterValidationError, match="pipeline='mit'.*workflow_engine='snakemake'"):
+    with pytest.raises(ParameterValidationError, match="pipeline='mit'.*workflow_backend='snakemake'"):
         config_mod.read_param_file(str(p))
 
 
@@ -140,7 +140,7 @@ def test_read_param_file_mit_forces_rsrs_and_rejects_other_genome(tmp_path):
     p.write_text(
         "mode: single\n"
         "pipeline: mit\n"
-        "workflow_engine: bash\n"
+        "workflow_backend: bash\n"
         "gatk_version: gatk-3.5\n"
         "genome: b37\n",
         encoding="utf-8",
@@ -154,7 +154,7 @@ def test_read_param_file_hg38_only_allowed_for_wgs(tmp_path):
     p.write_text(
         "mode: single\n"
         "pipeline: wes\n"
-        "workflow_engine: bash\n"
+        "workflow_backend: bash\n"
         "gatk_version: gatk-4.6\n"
         "genome: hg38\n",
         encoding="utf-8",
@@ -168,7 +168,7 @@ def test_read_param_file_empty_pipeline_version_raises(tmp_path):
     p.write_text(
         "mode: single\n"
         "pipeline: wes\n"
-        "workflow_engine: bash\n"
+        "workflow_backend: bash\n"
         "gatk_version: gatk-4.6\n"
         "pipeline_version: ''\n",
         encoding="utf-8",
@@ -185,7 +185,7 @@ def test_read_param_file_resolves_input_dir_relative_to_yaml(tmp_path):
     p.write_text(
         "mode: single\n"
         "pipeline: wes\n"
-        "workflow_engine: bash\n"
+        "workflow_backend: bash\n"
         "gatk_version: gatk-4.6\n"
         "input_dir: inputs/SAMPLE_001\n",
         encoding="utf-8",
@@ -200,7 +200,7 @@ def test_read_param_file_accepts_project_dir(tmp_path):
     p1.write_text(
         "mode: single\n"
         "pipeline: wes\n"
-        "workflow_engine: bash\n"
+        "workflow_backend: bash\n"
         "gatk_version: gatk-4.6\n"
         "project_dir: my_run\n",
         encoding="utf-8",
@@ -214,7 +214,7 @@ def test_read_param_file_rejects_removed_workflow_rule_key(tmp_path):
     p.write_text(
         "mode: single\n"
         "pipeline: wes\n"
-        "workflow_engine: snakemake\n"
+        "workflow_backend: snakemake\n"
         "gatk_version: gatk-4.6\n"
         "workflow_rule: call_variants\n",
         encoding="utf-8",
@@ -228,7 +228,7 @@ def test_read_param_file_accepts_snakemake_target_parameter(tmp_path):
     p.write_text(
         "mode: single\n"
         "pipeline: wes\n"
-        "workflow_engine: snakemake\n"
+        "workflow_backend: snakemake\n"
         "gatk_version: gatk-4.6\n"
         "snakemake_parameters:\n"
         "  target: call_variants\n",
@@ -243,7 +243,7 @@ def test_read_param_file_accepts_resource(tmp_path):
     p.write_text(
         "mode: single\n"
         "pipeline: wes\n"
-        "workflow_engine: bash\n"
+        "workflow_backend: bash\n"
         "gatk_version: gatk-4.6\n"
         "resource: \"cbicall-germline-resources-v1\"\n",
         encoding="utf-8",
@@ -257,7 +257,7 @@ def test_read_param_file_rejects_removed_resource_bundle_key(tmp_path):
     p.write_text(
         "mode: single\n"
         "pipeline: wes\n"
-        "workflow_engine: bash\n"
+        "workflow_backend: bash\n"
         "gatk_version: gatk-4.6\n"
         "resource_bundle: \"cbicall-germline-resources-v1\"\n",
         encoding="utf-8",
@@ -271,7 +271,7 @@ def test_read_param_file_rejects_profile_runtime_option(tmp_path):
     p.write_text(
         "mode: single\n"
         "pipeline: wes\n"
-        "workflow_engine: bash\n"
+        "workflow_backend: bash\n"
         "gatk_version: gatk-4.6\n"
         "profile: cnag-hpc\n",
         encoding="utf-8",
@@ -294,7 +294,7 @@ def test_set_config_values_registry_missing_raises(monkeypatch, tmp_path):
 
     with pytest.raises(FileNotFoundError, match="Workflow registry not found"):
         config_mod.set_config_values(
-            {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+            {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
         )
 
 
@@ -307,7 +307,7 @@ def test_set_config_values_schema_missing_raises(monkeypatch, tmp_path):
 
     with pytest.raises(FileNotFoundError, match="Workflow schema not found"):
         config_mod.set_config_values(
-            {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+            {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
         )
 
 
@@ -326,7 +326,7 @@ def test_set_config_values_invalid_enum_mode_raises(monkeypatch, tmp_path):
 
     with pytest.raises(ParameterValidationError, match="Invalid value for 'mode'"):
         config_mod.set_config_values(
-            {"mode": "banana", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+            {"mode": "banana", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
         )
 
 
@@ -343,7 +343,7 @@ def test_set_config_values_partial_run_metadata(monkeypatch, tmp_path):
         {
             "mode": "single",
             "pipeline": "wes",
-            "workflow_engine": "snakemake",
+            "workflow_backend": "snakemake",
             "gatk_version": "gatk-4.6",
             "snakemake_parameters": {"target": "call_variants"},
             "nextflow_parameters": {},
@@ -387,7 +387,7 @@ def test_set_config_values_records_resources_bundle(monkeypatch, tmp_path):
         {
             "mode": "single",
             "pipeline": "wes",
-            "workflow_engine": "bash",
+            "workflow_backend": "bash",
             "gatk_version": "gatk-4.6",
             "resource": "cbicall-germline-resources-v1",
         }
@@ -430,7 +430,7 @@ def test_set_config_values_requires_versioned_resource_compatibility(monkeypatch
 
     with pytest.raises(ParameterValidationError, match="bash/wes/single/gatk-4.6/v1"):
         config_mod.set_config_values(
-            {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+            {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-4.6"}
         )
 
 
@@ -583,7 +583,7 @@ def test_set_config_values_verifies_installed_resource_identifier(monkeypatch, t
     )
 
     cfg = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-4.6"}
     )
 
     runtime_check = cfg["resources"]["bundle"]["runtime_check"]
@@ -634,7 +634,7 @@ def test_set_config_values_verifies_installation_manifest_fingerprint(monkeypatc
     )
 
     cfg = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-4.6"}
     )
 
     runtime_check = cfg["resources"]["bundle"]["runtime_check"]
@@ -658,7 +658,7 @@ def test_set_config_values_rejects_mismatched_installed_resource_identifier(monk
 
     with pytest.raises(ParameterValidationError, match="identifier does not match"):
         config_mod.set_config_values(
-            {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+            {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-4.6"}
         )
 
 
@@ -687,7 +687,7 @@ def test_set_config_values_rejects_mismatched_installation_manifest_fingerprint(
 
     with pytest.raises(ParameterValidationError, match="manifest fingerprint does not match"):
         config_mod.set_config_values(
-            {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+            {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-4.6"}
         )
 
 
@@ -701,7 +701,7 @@ def test_set_config_values_uses_registry_default_pipeline_version(monkeypatch, t
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
 
     cfg = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-4.6"}
     )
 
     assert cfg["pipeline_version"] == "v1"
@@ -721,7 +721,7 @@ def test_set_config_values_accepts_explicit_pipeline_version(monkeypatch, tmp_pa
         {
             "mode": "single",
             "pipeline": "wes",
-            "workflow_engine": "bash",
+            "workflow_backend": "bash",
             "gatk_version": "gatk-4.6",
             "pipeline_version": "v1",
         }
@@ -744,7 +744,7 @@ def test_set_config_values_unknown_pipeline_version_raises(monkeypatch, tmp_path
             {
                 "mode": "single",
                 "pipeline": "wes",
-                "workflow_engine": "bash",
+                "workflow_backend": "bash",
                 "gatk_version": "gatk-4.6",
                 "pipeline_version": "v2",
             }
@@ -775,7 +775,7 @@ def test_set_config_values_rejects_unknown_bundle_resource(monkeypatch, tmp_path
             {
                 "mode": "single",
                 "pipeline": "wes",
-                "workflow_engine": "bash",
+                "workflow_backend": "bash",
                 "gatk_version": "gatk-4.6",
                 "resource": "missing-bundle",
             }
@@ -794,7 +794,7 @@ def test_set_config_values_invalid_combo_raises(monkeypatch, tmp_path):
     # wgs is not allowed for gatk-3.5 in _ALLOWED_COMBOS
     with pytest.raises(ParameterValidationError, match="not supported for GATK version"):
         config_mod.set_config_values(
-            {"mode": "single", "pipeline": "wgs", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+            {"mode": "single", "pipeline": "wgs", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
         )
 
 
@@ -856,7 +856,7 @@ def test__validate_with_schema_formats_root_and_nested_locations():
 # Registry wiring errors (engine/version/pipeline/mode)
 # ---------------------------------------------
 
-def test_set_config_values_engine_not_in_registry_raises(monkeypatch, tmp_path):
+def test_set_config_values_backend_not_in_registry_raises(monkeypatch, tmp_path):
     root = _mk_fake_root(monkeypatch, tmp_path)
 
     # Registry defines only bash, request snakemake
@@ -883,12 +883,12 @@ def test_set_config_values_engine_not_in_registry_raises(monkeypatch, tmp_path):
     _write_registry_and_schema(root, registry_lines=reg)
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
 
-    with pytest.raises(WorkflowResolutionError, match="Engine not defined in workflow registry"):
+    with pytest.raises(WorkflowResolutionError, match="Backend not defined in workflow registry"):
         config_mod.set_config_values(
             {
                 "mode": "single",
                 "pipeline": "wes",
-                "workflow_engine": "snakemake",  # not present in registry
+                "workflow_backend": "snakemake",  # not present in registry
                 "gatk_version": "gatk-4.6",      # avoids snakemake+3.5 guardrail
                 "genome": "b37",
             }
@@ -924,7 +924,7 @@ def test_set_config_values_version_not_in_registry_raises(monkeypatch, tmp_path)
 
     with pytest.raises(WorkflowResolutionError, match="Version not defined"):
         config_mod.set_config_values(
-            {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+            {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-4.6"}
         )
 
 
@@ -957,7 +957,7 @@ def test_set_config_values_pipeline_not_in_registry_raises(monkeypatch, tmp_path
 
     with pytest.raises(WorkflowResolutionError, match="Pipeline not defined"):
         config_mod.set_config_values(
-            {"mode": "single", "pipeline": "mit", "workflow_engine": "bash", "gatk_version": "gatk-3.5", "genome": "rsrs"}
+            {"mode": "single", "pipeline": "mit", "workflow_backend": "bash", "gatk_version": "gatk-3.5", "genome": "rsrs"}
         )
 
 
@@ -990,7 +990,7 @@ def test_set_config_values_mode_not_in_registry_raises(monkeypatch, tmp_path):
 
     with pytest.raises(WorkflowResolutionError, match="Mode not defined"):
         config_mod.set_config_values(
-            {"mode": "cohort", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+            {"mode": "cohort", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
         )
 
 
@@ -1023,7 +1023,7 @@ def test_set_config_values_bash_missing_helper_keys_raises(monkeypatch, tmp_path
 
     with pytest.raises(WorkflowResolutionError, match="missing helper keys for bash"):
         config_mod.set_config_values(
-            {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+            {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
         )
 
 
@@ -1060,7 +1060,7 @@ def test_set_config_values_snakemake_missing_helper_config_raises(monkeypatch, t
 
     with pytest.raises(WorkflowResolutionError, match="missing helper key 'config'"):
         config_mod.set_config_values(
-            {"mode": "cohort", "pipeline": "wgs", "workflow_engine": "snakemake", "gatk_version": "gatk-4.6"}
+            {"mode": "cohort", "pipeline": "wgs", "workflow_backend": "snakemake", "gatk_version": "gatk-4.6"}
         )
 
 
@@ -1095,7 +1095,7 @@ def test_set_config_values_snakemake_missing_files_triggers_guard(monkeypatch, t
     # so the snakemake must_exist / missing_files guard triggers.
     with pytest.raises(WorkflowResolutionError, match="referenced in the registry do not exist"):
         config_mod.set_config_values(
-            {"mode": "cohort", "pipeline": "wgs", "workflow_engine": "snakemake", "gatk_version": "gatk-4.6"}
+            {"mode": "cohort", "pipeline": "wgs", "workflow_backend": "snakemake", "gatk_version": "gatk-4.6"}
         )
 
 
@@ -1131,10 +1131,10 @@ def test_set_config_values_nextflow_single_gatk46_resolves(monkeypatch, tmp_path
     _touch_nextflow_files(root, "gatk-4.6", "wes_wgs_single.nf")
 
     cfg = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wgs", "workflow_engine": "nextflow", "gatk_version": "gatk-4.6", "genome": "hg38"}
+        {"mode": "single", "pipeline": "wgs", "workflow_backend": "nextflow", "gatk_version": "gatk-4.6", "genome": "hg38"}
     )
 
-    assert cfg["workflow"]["engine"] == "nextflow"
+    assert cfg["workflow"]["backend"] == "nextflow"
     assert cfg["workflow"]["entrypoint"].endswith("wes_wgs_single.nf")
     assert cfg["workflow"]["config_file"].endswith("config.yaml")
     assert cfg["workflow"]["helpers"]["vcf2hash"].endswith("vcf2hash.sh")
@@ -1168,10 +1168,10 @@ def test_set_config_values_nextflow_cohort_gatk46_resolves(monkeypatch, tmp_path
     _touch_nextflow_files(root, "gatk-4.6", "wes_wgs_cohort.nf")
 
     cfg = config_mod.set_config_values(
-        {"mode": "cohort", "pipeline": "wgs", "workflow_engine": "nextflow", "gatk_version": "gatk-4.6", "genome": "hg38"}
+        {"mode": "cohort", "pipeline": "wgs", "workflow_backend": "nextflow", "gatk_version": "gatk-4.6", "genome": "hg38"}
     )
 
-    assert cfg["workflow"]["engine"] == "nextflow"
+    assert cfg["workflow"]["backend"] == "nextflow"
     assert cfg["workflow"]["entrypoint"].endswith("wes_wgs_cohort.nf")
 
 
@@ -1182,8 +1182,8 @@ def test_read_param_file_accepts_sarek_external_nextflow(tmp_path):
     p.write_text(
         "mode: cohort\n"
         "pipeline: sarek\n"
-        "workflow_engine: nextflow\n"
-        "workflow_version: nf-core\n"
+        "workflow_backend: nextflow\n"
+        "workflow_provider: nf-core\n"
         "resource: nf-core-sarek-managed-resources-v1\n"
         "nfcore_profile: docker\n"
         "nfcore_singularity_cache_dir: nxf-cache\n"
@@ -1207,8 +1207,8 @@ def test_read_param_file_sarek_requires_nfcore_profile(tmp_path):
     p.write_text(
         "mode: cohort\n"
         "pipeline: sarek\n"
-        "workflow_engine: nextflow\n"
-        "workflow_version: nf-core\n"
+        "workflow_backend: nextflow\n"
+        "workflow_provider: nf-core\n"
         "resource: nf-core-sarek-managed-resources-v1\n"
         "nfcore_parameters:\n"
         "  input: samplesheet.csv\n"
@@ -1226,7 +1226,7 @@ def test_read_param_file_rejects_nfcore_as_gatk_version(tmp_path):
     p.write_text(
         "mode: cohort\n"
         "pipeline: wes\n"
-        "workflow_engine: nextflow\n"
+        "workflow_backend: nextflow\n"
         "gatk_version: nf-core\n"
         "resource: nf-core-sarek-managed-resources-v1\n",
         encoding="utf-8",
@@ -1241,7 +1241,7 @@ def test_read_param_file_rejects_nfcore_cache_dir_for_native_workflow(tmp_path):
     p.write_text(
         "mode: single\n"
         "pipeline: wes\n"
-        "workflow_engine: bash\n"
+        "workflow_backend: bash\n"
         "gatk_version: gatk-4.6\n"
         "nfcore_singularity_cache_dir: nxf-cache\n",
         encoding="utf-8",
@@ -1267,7 +1267,7 @@ def test_set_config_values_sarek_resolves_external_nfcore_workflow(monkeypatch, 
           "              default: \"v1\"\n"
           "              versions:\n"
           "                v1:\n"
-          "                  source_type: \"nf-core\"\n"
+          "                  provider: \"nf-core\"\n"
           "                  source: \"nf-core/sarek\"\n"
           "                  release: \"3.8.1\"\n"
           "                  default_outdir: \"sarek\"\n"
@@ -1300,8 +1300,8 @@ def test_set_config_values_sarek_resolves_external_nfcore_workflow(monkeypatch, 
         {
             "mode": "cohort",
             "pipeline": "sarek",
-            "workflow_engine": "nextflow",
-            "workflow_version": "nf-core",
+            "workflow_backend": "nextflow",
+            "workflow_provider": "nf-core",
             "resource": "nf-core-sarek-managed-resources-v1",
             "nfcore_profile": "docker",
             "nfcore_singularity_cache_dir": str(tmp_path / "nxf-cache"),
@@ -1314,7 +1314,7 @@ def test_set_config_values_sarek_resolves_external_nfcore_workflow(monkeypatch, 
     )
 
     assert cfg["workflow"]["entrypoint"] == "nf-core/sarek"
-    assert cfg["workflow"]["metadata"]["source_type"] == "nf-core"
+    assert cfg["workflow"]["metadata"]["provider"] == "nf-core"
     assert cfg["workflow"]["metadata"]["release"] == "3.8.1"
     assert cfg["workflow"]["metadata"]["canonical_outputs"][0]["name"] == "haplotypecaller_vcf"
     assert cfg["nfcore_profile"] == "docker"
@@ -1349,7 +1349,7 @@ def test_set_config_values_sample_sets_output_basename(monkeypatch, tmp_path):
         {
             "mode": "single",
             "pipeline": "wes",
-            "workflow_engine": "bash",
+            "workflow_backend": "bash",
             "gatk_version": "gatk-3.5",
             "input_dir": str(sample_dir),
         }
@@ -1369,10 +1369,10 @@ def test_set_config_values_builds_normalized_workflow_structure(monkeypatch, tmp
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
 
     cfg = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6"}
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-4.6"}
     )
 
-    assert cfg["workflow"]["engine"] == "bash"
+    assert cfg["workflow"]["backend"] == "bash"
     assert cfg["workflow"]["pipeline"] == "wes"
     assert cfg["workflow"]["mode"] == "single"
     assert cfg["workflow"]["gatk_version"] == "gatk-4.6"
@@ -1402,7 +1402,7 @@ def test_set_config_values_applies_cnag_hpc_profile(monkeypatch, tmp_path):
         {
             "mode": "single",
             "pipeline": "wes",
-            "workflow_engine": "bash",
+            "workflow_backend": "bash",
             "gatk_version": "gatk-4.6",
             "profile": "cnag-hpc",
         }
@@ -1426,7 +1426,7 @@ def test_set_config_values_undeclared_profile_raises(monkeypatch, tmp_path):
             {
                 "mode": "single",
                 "pipeline": "wes",
-                "workflow_engine": "bash",
+                "workflow_backend": "bash",
                 "gatk_version": "gatk-4.6",
                 "profile": "cnag-hpc",
             }
@@ -1443,7 +1443,7 @@ def test_set_config_values_capture_branches(monkeypatch, tmp_path):
     )
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
     cfg = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
     )
     assert cfg["capture_label"] == "Agilent SureSelect"
 
@@ -1458,7 +1458,7 @@ def test_set_config_values_capture_branches(monkeypatch, tmp_path):
     monkeypatch.setattr(config_mod.platform, "machine", lambda: "x86_64")
 
     cfg2 = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "mit", "workflow_engine": "bash", "gatk_version": "gatk-3.5", "genome": "rsrs"}
+        {"mode": "single", "pipeline": "mit", "workflow_backend": "bash", "gatk_version": "gatk-3.5", "genome": "rsrs"}
     )
     assert cfg2["capture_label"] == "MToolBox_rsrs"
 
@@ -1471,7 +1471,7 @@ def test_set_config_values_capture_branches(monkeypatch, tmp_path):
     )
     _touch_bash_files(root3, "gatk-4.6", "wes_single.sh")
     cfg3 = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6", "genome": "b37"}
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-4.6", "genome": "b37"}
     )
     assert cfg3["capture_label"] == "GATK_bundle_b37"
 
@@ -1489,7 +1489,7 @@ def test_set_config_values_mit_on_arm64_raises(monkeypatch, tmp_path):
 
     with pytest.raises(WorkflowResolutionError, match=r"mit_single cannot be performed"):
         config_mod.set_config_values(
-            {"mode": "single", "pipeline": "mit", "workflow_engine": "bash", "gatk_version": "gatk-3.5", "genome": "rsrs"}
+            {"mode": "single", "pipeline": "mit", "workflow_backend": "bash", "gatk_version": "gatk-3.5", "genome": "rsrs"}
         )
 
 
@@ -1510,7 +1510,7 @@ def test_set_config_values_nproc_success_path(monkeypatch, tmp_path):
     monkeypatch.setattr(config_mod.os, "popen", lambda _: FakePopen())
 
     cfg = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
     )
     assert cfg["host_threads"] == 16
     assert cfg["host_threads_minus_one"] == 15
@@ -1534,7 +1534,7 @@ def test_set_config_values_getpass_fallback_user_unknown(monkeypatch, tmp_path):
     )
 
     cfg = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
     )
     assert cfg["user"] == "unknown"
 
@@ -1551,7 +1551,7 @@ def test_set_config_values_arch_aarch64_maps_to_arm64(monkeypatch, tmp_path):
     monkeypatch.setattr(config_mod.platform, "machine", lambda: "aarch64")
 
     cfg = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6", "genome": "b37"}
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-4.6", "genome": "b37"}
     )
     assert cfg["arch"] == "arm64"
 
@@ -1579,7 +1579,7 @@ def test_set_config_values_nproc_read_fails_falls_back_to_cpu_count(monkeypatch,
     monkeypatch.setattr(config_mod.os, "cpu_count", lambda: 7)
 
     cfg = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
     )
     assert cfg["host_threads"] == 7
     assert cfg["host_threads_minus_one"] == 6
@@ -1598,7 +1598,7 @@ def test_set_config_values_nproc_not_found_uses_cpu_count(monkeypatch, tmp_path)
     monkeypatch.setattr(config_mod.os, "cpu_count", lambda: 5)
 
     cfg = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
     )
     assert cfg["host_threads"] == 5
     assert cfg["host_threads_minus_one"] == 4
@@ -1624,7 +1624,7 @@ def test_set_config_values_pigz_missing_sets_gunzip(monkeypatch, tmp_path):
     monkeypatch.setattr(config_mod.os, "access", fake_access)
 
     cfg = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
     )
     assert cfg["compression_cmd"] == "/bin/gunzip"
 
@@ -1641,7 +1641,7 @@ def test_set_config_values_arch_other_string(monkeypatch, tmp_path):
     monkeypatch.setattr(config_mod.platform, "machine", lambda: "mips64")
 
     cfg = config_mod.set_config_values(
-        {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-4.6", "genome": "b37"}
+        {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-4.6", "genome": "b37"}
     )
     assert cfg["arch"] == "mips64"
 
@@ -1682,7 +1682,7 @@ def test_set_config_values_missing_workflow_files_raises(monkeypatch, tmp_path):
 
     with pytest.raises(WorkflowResolutionError, match="referenced in the registry do not exist"):
         config_mod.set_config_values(
-            {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+            {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
         )
 
 
@@ -1716,5 +1716,5 @@ def test_set_config_values_not_executable_bash_raises(monkeypatch, tmp_path):
 
     with pytest.raises(WorkflowResolutionError, match="Missing \\+x"):
         config_mod.set_config_values(
-            {"mode": "single", "pipeline": "wes", "workflow_engine": "bash", "gatk_version": "gatk-3.5"}
+            {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "gatk_version": "gatk-3.5"}
         )

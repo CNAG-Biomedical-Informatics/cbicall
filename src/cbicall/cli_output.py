@@ -85,7 +85,7 @@ def _print_run_summary(
     genome = resolved_config.genome or "b37"
     _section(f"CBIcall {version}", colors["cyan"], colors["bold"], colors["reset"])
     _row("Executable", _short_path(cbicall_path))
-    _row("Workflow", f"{workflow.engine} -> {workflow.pipeline} -> {workflow.mode}")
+    _row("Workflow", f"{workflow.backend} -> {workflow.pipeline} -> {workflow.mode}")
     _row("Runtime profile", resolved_config.profile)
     _row("Genome", genome)
     _row("Threads", arg.get("threads"))
@@ -109,9 +109,11 @@ def _print_run_summary(
     _row("Param file", _short_path(arg.get("paramfile")))
     _row("Input dir", _short_path(resolved_config.inputs.input_dir))
     _row("Sample map", _short_path(resolved_config.inputs.sample_map))
-    _row("Workflow ver", workflow.gatk_version)
+    _row("Workflow provider", resolved_config.workflow_provider)
+    if resolved_config.workflow_provider == "cbicall":
+        _row("GATK", workflow.gatk_version)
     _row("Pipeline ver", workflow.pipeline_version)
-    if workflow.metadata.get("source_type") == "nf-core":
+    if workflow.metadata.get("provider") == "nf-core":
         _row("NF profile", resolved_config.nfcore_profile)
         _row("NF parameters", ", ".join(sorted(resolved_config.nfcore_parameters)) or "(none)")
         if resolved_config.nfcore_singularity_cache_dir:
@@ -119,14 +121,14 @@ def _print_run_summary(
     print()
 
     _section("Resolved", colors["blue"], colors["bold"], colors["reset"])
-    if workflow.engine == "bash":
+    if workflow.backend == "bash":
         _row("Entrypoint", _short_path(workflow.entrypoint))
         _row("Env file", _short_path(workflow.helpers.get("env")))
-    elif workflow.engine == "snakemake":
+    elif workflow.backend == "snakemake":
         _row("Snakefile", _short_path(workflow.entrypoint))
         _row("Config", _short_path(workflow.config_file))
-    elif workflow.engine == "nextflow":
-        if workflow.metadata.get("source_type") == "nf-core":
+    elif workflow.backend == "nextflow":
+        if workflow.metadata.get("provider") == "nf-core":
             _row("Nextflow", workflow.metadata.get("source"))
             _row("Release", workflow.metadata.get("release"))
             _row("Outdir", Path(resolved_config.project_dir) / workflow.metadata.get("default_outdir", workflow.pipeline))
@@ -134,9 +136,9 @@ def _print_run_summary(
             _row("Nextflow", _short_path(workflow.entrypoint))
             _row("Config", _short_path(workflow.config_file))
 
-    if workflow.metadata.get("source_type") == "nf-core":
+    if workflow.metadata.get("provider") == "nf-core":
         log_name = f"nf-core_{workflow.pipeline}_{workflow.mode}.log"
     else:
-        log_name = f"{workflow.engine}_{workflow.pipeline}_{workflow.mode}_{genome}_{workflow.gatk_version}.log"
+        log_name = f"{workflow.backend}_{workflow.pipeline}_{workflow.mode}_{genome}_{workflow.gatk_version}.log"
     _row("Log", Path(resolved_config.project_dir) / log_name)
     print()

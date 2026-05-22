@@ -33,37 +33,37 @@ def resolve_registry_context(project_root: Path) -> dict:
 
 
 def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> WorkflowSpec:
-    engine = cfg_in["workflow_engine"]
+    backend = cfg_in["workflow_backend"]
     version = cfg_in["gatk_version"]
     pipeline = cfg_in["pipeline"]
     mode = cfg_in["mode"]
     requested_pipeline_version = cfg_in.get("pipeline_version")
 
     workflows = registry["workflows"]
-    if engine not in workflows:
-        raise WorkflowResolutionError(f"Engine not defined in workflow registry: {engine}")
+    if backend not in workflows:
+        raise WorkflowResolutionError(f"Backend not defined in workflow registry: {backend}")
 
-    eng_cfg = workflows[engine]
-    versions_cfg = eng_cfg["versions"]
+    backend_cfg = workflows[backend]
+    versions_cfg = backend_cfg["versions"]
     if version not in versions_cfg:
-        raise WorkflowResolutionError(f"Version not defined for engine '{engine}': {version}")
+        raise WorkflowResolutionError(f"Version not defined for backend '{backend}': {version}")
 
     ver_cfg = versions_cfg[version]
     helpers = ver_cfg.get("helpers", {})
     pipelines_cfg = ver_cfg["pipelines"]
 
     if pipeline not in pipelines_cfg:
-        raise WorkflowResolutionError(f"Pipeline not defined for {engine}/{version}: {pipeline}")
+        raise WorkflowResolutionError(f"Pipeline not defined for {backend}/{version}: {pipeline}")
     if mode not in pipelines_cfg[pipeline]:
         raise WorkflowResolutionError(
-            f"Mode not defined for pipeline '{pipeline}' in {engine}/{version}: {mode}"
+            f"Mode not defined for pipeline '{pipeline}' in {backend}/{version}: {mode}"
         )
 
-    base_dir = (project_root / eng_cfg["base_dir"] / version).resolve()
+    base_dir = (project_root / backend_cfg["base_dir"] / version).resolve()
     pipeline_version, implementation = _resolve_pipeline_implementation(
         pipelines_cfg[pipeline][mode],
         requested_pipeline_version,
-        engine=engine,
+        backend=backend,
         gatk_version=version,
         pipeline=pipeline,
         mode=mode,
@@ -74,7 +74,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
         script_name = implementation
     profiles = _resolve_profiles(ver_cfg.get("profiles", {}), base_dir)
 
-    if engine == "bash":
+    if backend == "bash":
         needed_helpers = ["env", "coverage", "jaccard", "vcf2sex", "vcf2hash"]
         missing_helpers = [k for k in needed_helpers if k not in helpers]
         if missing_helpers:
@@ -82,7 +82,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
                 f"Workflow registry is missing helper keys for bash/{version}: {missing_helpers}"
             )
         return WorkflowSpec(
-            engine=engine,
+            backend=backend,
             pipeline=pipeline,
             mode=mode,
             gatk_version=version,
@@ -98,13 +98,13 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
             profiles=profiles,
         )
 
-    if engine == "snakemake":
+    if backend == "snakemake":
         if "config" not in helpers:
             raise WorkflowResolutionError(
                 f"Workflow registry is missing helper key 'config' for snakemake/{version}"
             )
         return WorkflowSpec(
-            engine=engine,
+            backend=backend,
             pipeline=pipeline,
             mode=mode,
             gatk_version=version,
@@ -114,10 +114,10 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
             profiles=profiles,
         )
 
-    if engine == "nextflow":
-        if isinstance(implementation, dict) and implementation.get("source_type") == "nf-core":
+    if backend == "nextflow":
+        if isinstance(implementation, dict) and implementation.get("provider") == "nf-core":
             return WorkflowSpec(
-                engine=engine,
+                backend=backend,
                 pipeline=pipeline,
                 mode=mode,
                 gatk_version=version,
@@ -127,7 +127,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
                 helpers={},
                 profiles=profiles,
                 metadata={
-                    "source_type": str(implementation["source_type"]),
+                    "provider": str(implementation["provider"]),
                     "source": str(implementation["source"]),
                     "release": str(implementation["release"]),
                     "default_outdir": str(implementation.get("default_outdir", pipeline)),
@@ -149,7 +149,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
                 f"Workflow registry is missing helper keys for nextflow/{version}: {missing_helpers}"
             )
         return WorkflowSpec(
-            engine=engine,
+            backend=backend,
             pipeline=pipeline,
             mode=mode,
             gatk_version=version,
@@ -164,19 +164,19 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
             profiles=profiles,
         )
 
-    raise WorkflowResolutionError(f"Unsupported workflow_engine: {engine}")
+    raise WorkflowResolutionError(f"Unsupported workflow_backend: {backend}")
 
 
 def validate_resolved_workflow_files(workflow: WorkflowSpec) -> None:
-    if workflow.metadata.get("source_type") == "nf-core":
+    if workflow.metadata.get("provider") == "nf-core":
         return
 
     must_exist = [("workflow.entrypoint", workflow.entrypoint)]
-    if workflow.engine == "bash":
+    if workflow.backend == "bash":
         must_exist.extend((f"workflow.helpers.{name}", path) for name, path in workflow.helpers.items())
-    elif workflow.engine in {"snakemake", "nextflow"}:
+    elif workflow.backend in {"snakemake", "nextflow"}:
         must_exist.append(("workflow.config_file", workflow.config_file))
-        if workflow.engine == "nextflow":
+        if workflow.backend == "nextflow":
             must_exist.extend((f"workflow.helpers.{name}", path) for name, path in workflow.helpers.items())
 
     missing_files = [(label, path) for label, path in must_exist if path and not Path(path).exists()]
@@ -186,7 +186,7 @@ def validate_resolved_workflow_files(workflow: WorkflowSpec) -> None:
             + ", ".join(f"{label} -> {path}" for label, path in missing_files)
         )
 
-    if workflow.engine == "bash":
+    if workflow.backend == "bash":
         exe_paths = [("workflow.entrypoint", workflow.entrypoint)]
         exe_paths.extend((f"workflow.helpers.{name}", path) for name, path in workflow.helpers.items())
         not_exe = [(label, path) for label, path in exe_paths if path and not os.access(path, os.X_OK)]
@@ -195,7 +195,7 @@ def validate_resolved_workflow_files(workflow: WorkflowSpec) -> None:
                 "Missing +x on one or more workflow scripts: "
                 + ", ".join(f"{label} -> {path}" for label, path in not_exe)
             )
-    elif workflow.engine == "nextflow":
+    elif workflow.backend == "nextflow":
         exe_paths = [(f"workflow.helpers.{name}", path) for name, path in workflow.helpers.items()]
         not_exe = [(label, path) for label, path in exe_paths if path and not os.access(path, os.X_OK)]
         if not_exe:
@@ -224,12 +224,12 @@ def _resolve_pipeline_implementation(
     mode_cfg,
     requested_pipeline_version,
     *,
-    engine: str,
+    backend: str,
     gatk_version: str,
     pipeline: str,
     mode: str,
 ) -> Tuple[str, Any]:
-    label = f"{engine}/{gatk_version}/{pipeline}/{mode}"
+    label = f"{backend}/{gatk_version}/{pipeline}/{mode}"
     if isinstance(mode_cfg, str):
         if requested_pipeline_version:
             raise WorkflowResolutionError(
@@ -263,7 +263,7 @@ def _resolve_pipeline_implementation(
     if isinstance(implementation, dict):
         if implementation.get("script"):
             return selected_version, str(implementation["script"])
-        if implementation.get("source_type") == "nf-core":
+        if implementation.get("provider") == "nf-core":
             missing = [key for key in ("source", "release") if not implementation.get(key)]
             if missing:
                 raise WorkflowResolutionError(

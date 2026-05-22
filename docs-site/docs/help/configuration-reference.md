@@ -15,7 +15,7 @@ selected on the CLI.
 ```yaml
 mode:            single
 pipeline:        wes
-workflow_engine: bash
+workflow_backend: bash
 gatk_version:    gatk-4.6
 input_dir:       CNAG999_exome/CNAG99901P_ex
 genome:          b37
@@ -27,10 +27,10 @@ genome:          b37
 | Key | Default | Values | Use |
 | --- | --- | --- | --- |
 | `mode` | `single` | `single`, `cohort` | Selects one-sample processing or cohort-level processing. |
-| `pipeline` | `wes` | `wes`, `wgs`, `mit`; external names are registry-defined | Selects the analysis type. For `workflow_version: nf-core`, the value is resolved through the workflow registry. |
-| `workflow_engine` | `bash` | `bash`, `snakemake`, `nextflow` | Selects the execution backend supported by the current workflows. |
+| `pipeline` | `wes` | `wes`, `wgs`, `mit`; external names are registry-defined | Selects the analysis type. For `workflow_provider: nf-core`, the value is resolved through the workflow registry. |
+| `workflow_backend` | `bash` | `bash`, `snakemake`, `nextflow` | Selects the execution backend supported by the current workflows. |
 | `gatk_version` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the GATK release for CBIcall-native workflows. Use `gatk-4.6` for current bundled WES/WGS workflows. |
-| `workflow_version` | `null` | `gatk-3.5`, `gatk-4.6`, `nf-core` | Selects the workflow family when it is not just a GATK release. Use `workflow_version: nf-core` for external nf-core workflows. |
+| `workflow_provider` | `cbicall` | `cbicall`, `nf-core` | Selects whether the workflow is a CBIcall-maintained implementation or an external nf-core workflow. Use `workflow_provider: nf-core` for external nf-core workflows. |
 | `resource` | `cbicall-germline-resources-v1` | resource key | Selects one entry from `resources/cbicall-resource-catalog.json`. |
 | `genome` | inferred | `b37`, `hg38`, `rsrs`, `external` | Reference genome. If omitted, CBIcall uses `b37` for WES/WGS, `rsrs` for mtDNA, and `external` for nf-core/Sarek. |
 | `input_dir` | `null` | path | Input sample or project directory. Relative paths are resolved from the YAML file location. |
@@ -74,7 +74,7 @@ Use `input_dir` pointing to the sample directory containing paired FASTQ files.
 ```yaml
 mode:            single
 pipeline:        wes
-workflow_engine: bash
+workflow_backend: bash
 gatk_version:    gatk-4.6
 input_dir:       CNAG999_exome/CNAG99901P_ex
 genome:          b37
@@ -87,7 +87,7 @@ Use `sample_map` pointing to a TSV with sample identifiers and gVCF paths.
 ```yaml
 mode:            cohort
 pipeline:        wes
-workflow_engine: bash
+workflow_backend: bash
 gatk_version:    gatk-4.6
 genome:          b37
 sample_map:      ./sample_map.tsv
@@ -100,7 +100,7 @@ mtDNA workflows consume BAMs from previous WES/WGS runs. They do not start from 
 ```yaml
 mode:            single
 pipeline:        mit
-workflow_engine: bash
+workflow_backend: bash
 gatk_version:    gatk-3.5
 input_dir:       CNAG999_exome/CNAG99901P_ex
 ```
@@ -113,8 +113,8 @@ modeling a full biological workflow. It uses the nf-core `test` profile.
 ```yaml
 mode:             single
 pipeline:         demo
-workflow_engine:  nextflow
-workflow_version: nf-core
+workflow_backend:  nextflow
+workflow_provider: nf-core
 resource:         nf-core-demo-managed-resources-v1
 nfcore_profile: test,singularity
 nfcore_parameters:    {}
@@ -136,8 +136,8 @@ directory, and leaves Sarek outputs in their native layout under `sarek/`.
 ```yaml
 mode:             cohort
 pipeline:         sarek
-workflow_engine:  nextflow
-workflow_version: nf-core
+workflow_backend:  nextflow
+workflow_provider: nf-core
 resource:         nf-core-sarek-managed-resources-v1
 nfcore_profile: singularity
 nfcore_singularity_cache_dir: nxf-singularity-cache
@@ -222,7 +222,7 @@ directory or log file.
 | `bin/cbicall validate-resources` | Check the resource catalog and, optionally, one resource key. |
 | `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare two or more run directories or `run-report.json` files. |
 | `bin/cbicall render-report RUN_DIR` | Regenerate `run-report.html` from an existing `run-report.json` without rerunning the workflow. |
-| `bin/cbicall test --wes-bash [--runtime-profile cnag-hpc]`, `--wes-snakemake`, `--wes-nextflow`, `--mit-bash`, or `--all` | Runs the bundled integration examples without remembering the script path. `--runtime-profile` is forwarded to the internal `cbicall run` calls. `--wes-bash` is the required baseline test; Snakemake and Nextflow tests require their engines on `PATH`. |
+| `bin/cbicall test --wes-bash [--runtime-profile cnag-hpc]`, `--wes-snakemake`, `--wes-nextflow`, `--mit-bash`, or `--all` | Runs the bundled integration examples without remembering the script path. `--runtime-profile` is forwarded to the internal `cbicall run` calls. `--wes-bash` is the required baseline test; Snakemake and Nextflow tests require their backends on `PATH`. |
 
 For a higher-level explanation of included pipelines versus execution backends,
 see [Included Pipelines](../pipelines/overview) and
@@ -250,7 +250,7 @@ Use `snakemake_parameters`, `nextflow_parameters`, and `nfcore_parameters` only 
 Every run gets a generated directory:
 
 ```text
-<project_dir>_<workflow_engine>_<pipeline>_<mode>_<genome>_<gatk_version>_<run-id>/
+<project_dir>_<workflow_backend>_<pipeline>_<mode>_<genome>_<gatk_version>_<run-id>/
 ```
 
 External nf-core workflows use a shorter name because their reference genome and

@@ -20,7 +20,7 @@ class InputsSpec:
 
 @dataclass(frozen=True)
 class WorkflowSpec:
-    engine: str
+    backend: str
     pipeline: str
     mode: str
     gatk_version: str
@@ -34,7 +34,7 @@ class WorkflowSpec:
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "WorkflowSpec":
         return cls(
-            engine=str(data["engine"]),
+            backend=str(data["backend"]),
             pipeline=str(data["pipeline"]),
             mode=str(data["mode"]),
             gatk_version=str(data["gatk_version"]),
@@ -48,7 +48,8 @@ class WorkflowSpec:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "engine": self.engine,
+            "backend": self.backend,
+            "provider": str(self.metadata.get("provider", "cbicall")),
             "pipeline": self.pipeline,
             "mode": self.mode,
             "gatk_version": self.gatk_version,
@@ -123,7 +124,8 @@ class RunSettings:
 @dataclass(frozen=True)
 class ResolvedConfig:
     user: str
-    workflow_engine: str
+    workflow_backend: str
+    workflow_provider: str
     profile: str
     genome: Optional[str]
     pipeline: str
@@ -153,7 +155,8 @@ class ResolvedConfig:
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "ResolvedConfig":
-        workflow_engine = data["workflow_engine"] if "workflow_engine" in data else data["workflow"]["engine"]
+        workflow_backend = data["workflow_backend"] if "workflow_backend" in data else data["workflow"]["backend"]
+        workflow_provider = data["workflow_provider"] if "workflow_provider" in data else data["workflow"].get("provider", "cbicall")
         pipeline = data["pipeline"] if "pipeline" in data else data["workflow"]["pipeline"]
         mode = data["mode"] if "mode" in data else data["workflow"]["mode"]
         gatk_version = data["gatk_version"] if "gatk_version" in data else data["workflow"]["gatk_version"]
@@ -164,7 +167,8 @@ class ResolvedConfig:
         project_dir = data["project_dir"]
         return cls(
             user=str(data.get("user", "")),
-            workflow_engine=str(workflow_engine),
+            workflow_backend=str(workflow_backend),
+            workflow_provider=str(workflow_provider),
             profile=str(data.get("profile", "local")),
             snakemake_parameters=dict(data.get("snakemake_parameters", {})),
             nextflow_parameters=dict(data.get("nextflow_parameters", {})),
@@ -196,7 +200,8 @@ class ResolvedConfig:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "user": self.user,
-            "workflow_engine": self.workflow_engine,
+            "workflow_backend": self.workflow_backend,
+            "workflow_provider": self.workflow_provider,
             "profile": self.profile,
             "snakemake_parameters": dict(self.snakemake_parameters),
             "nextflow_parameters": dict(self.nextflow_parameters),

@@ -140,7 +140,7 @@ workflows:
               default: "v1"
               versions:
                 v1:
-                  source_type: "nf-core"
+                  provider: "nf-core"
                   source: "nf-core/demo"
                   release: "1.1.0"
                   default_outdir: "demo"
@@ -149,7 +149,7 @@ workflows:
               default: "v1"
               versions:
                 v1:
-                  source_type: "nf-core"
+                  provider: "nf-core"
                   source: "nf-core/sarek"
                   release: "3.8.1"
                   default_outdir: "sarek"

@@ -38,7 +38,7 @@ can be checked for the same declared external dependency set.
 
 This bundle is compatible with the packaged workflows below.
 
-| Engine | WES | WGS | mtDNA |
+| Backend | WES | WGS | mtDNA |
 | --- | --- | --- | --- |
 | `bash` | `single`, `cohort` with `gatk-3.5` or `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-3.5` |
 | `snakemake` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | Not supported |

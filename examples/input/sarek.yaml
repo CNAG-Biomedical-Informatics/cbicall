@@ -1,7 +1,7 @@
 mode:             cohort
 pipeline:         sarek
-workflow_engine:  nextflow
-workflow_version: nf-core
+workflow_backend:  nextflow
+workflow_provider: nf-core
 resource:         nf-core-sarek-managed-resources-v1
 
 nfcore_profile: singularity

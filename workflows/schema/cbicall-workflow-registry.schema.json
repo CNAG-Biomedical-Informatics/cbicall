@@ -10,9 +10,9 @@
       "additionalProperties": false,
       "required": ["bash"],
       "properties": {
-        "bash": { "$ref": "#/$defs/engine" },
-        "snakemake": { "$ref": "#/$defs/engine" },
-        "nextflow": { "$ref": "#/$defs/engine" }
+        "bash": { "$ref": "#/$defs/backend" },
+        "snakemake": { "$ref": "#/$defs/backend" },
+        "nextflow": { "$ref": "#/$defs/backend" }
       }
     }
   },
@@ -21,7 +21,7 @@
       "type": "string",
       "minLength": 1
     },
-    "engine": {
+    "backend": {
       "type": "object",
       "additionalProperties": false,
       "required": ["base_dir", "versions"],
@@ -103,11 +103,11 @@
       "additionalProperties": false,
       "oneOf": [
         { "required": ["script"] },
-        { "required": ["source_type", "source", "release"] }
+        { "required": ["provider", "source", "release"] }
       ],
       "properties": {
         "script": { "$ref": "#/$defs/pathString" },
-        "source_type": { "enum": ["nf-core"] },
+        "provider": { "enum": ["nf-core"] },
         "source": { "$ref": "#/$defs/pathString" },
         "release": { "$ref": "#/$defs/pathString" },
         "default_outdir": { "$ref": "#/$defs/pathString" },
