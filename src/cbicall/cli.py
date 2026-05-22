@@ -1836,6 +1836,14 @@ def _load_run_report(path: str) -> dict:
     return report
 
 
+def _report_html_status(report_path: Path, written_html_path: Optional[Path]) -> str:
+    html_path = written_html_path or report_path.with_suffix(".html")
+    status = "exists" if html_path.is_file() else "missing"
+    if written_html_path is not None:
+        status = "written" if html_path.is_file() else status
+    return f"{html_path} ({status})"
+
+
 def _print_single_run_report(payload: dict, report_path: Path, html_path: Optional[Path], refreshed: bool) -> None:
     workflow = payload.get("workflow") or {}
     runtime = payload.get("runtime") or {}
@@ -1856,7 +1864,7 @@ def _print_single_run_report(payload: dict, report_path: Path, html_path: Option
     _row("Run ID", run.get("run_id"))
     _row("Elapsed", _format_duration(float(payload.get("elapsed_seconds") or 0)))
     _row("Project", _short_path(run.get("project_dir")))
-    _row("HTML", html_path if html_path else "(not requested)")
+    _row("HTML", _report_html_status(report_path, html_path))
     _row("Refreshed", "outputs" if refreshed else "no")
 
     _section("Workflow", BLUE)

@@ -690,6 +690,8 @@ def test_report_command_summarizes_run_without_writing_by_default(tmp_path, caps
     assert "Outputs" in out
     assert "bash/wes/single/gatk-4.6/v1" in out
     assert "cbicall-germline-resources-v1" in out
+    assert "run-report.html" in out
+    assert "missing" in out
     assert "VCF hashes" in out
     assert "0" in out
     assert report_path.read_text(encoding="utf-8") == original
@@ -729,6 +731,8 @@ def test_report_command_refreshes_and_writes_html_when_requested(tmp_path, capsy
     out = capsys.readouterr().out
     assert "Refreshed" in out
     assert "outputs" in out
+    assert "run-report.html" in out
+    assert "written" in out
     refreshed = json.loads(report_path.read_text(encoding="utf-8"))
     assert refreshed["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] == "normalized-report"
     html_text = (run_dir / "run-report.html").read_text(encoding="utf-8")
