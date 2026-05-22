@@ -1,18 +1,19 @@
-# nf-core External Workflows
+# nf-core Provider
 
-CBIcall can launch registered [nf-core](https://nf-co.re/) workflows through
+CBIcall can launch registered [nf-core](https://nf-co.re/) pipelines through
 [Nextflow](https://www.nextflow.io/docs/latest/). CBIcall validates the YAML,
 pins the registered nf-core release, writes the Nextflow params/config files,
-and records the run metadata. The nf-core workflow keeps its own native output
+and records the run metadata. The nf-core pipeline keeps its own native output
 layout and runtime behavior.
 
-nf-core workflows are external workflows in CBIcall. They are launched through
-the Nextflow backend, but they are not one of the shipped WES/WGS/mtDNA
-analysis pipelines. Use this page when testing registered nf-core
+In CBIcall terms, nf-core is a **workflow provider** and Nextflow is the
+**workflow backend**. Registered nf-core entries are launched through the
+Nextflow backend, but they are not one of the shipped CBIcall WES/WGS/mtDNA
+pipeline implementations. Use this page when testing registered nf-core
 examples on a workstation or on a cluster.
 
 :::note[Run directory location]
-External nf-core run directories are created where `cbicall run` is launched,
+nf-core run directories are created where `cbicall run` is launched,
 for example `cbicall_nf-core_sarek_cohort_<run-id>/`.
 This differs from native CBIcall WES/WGS/mtDNA pipelines, whose run directories
 are created under the discovered sample/input directory.
@@ -26,7 +27,7 @@ different part of the runtime configuration.
 
 | Profile | What it does |
 | --- | --- |
-| `test` | Uses the nf-core workflow's built-in test data and smoke-test settings. It is not a software runtime. |
+| `test` | Uses the nf-core pipeline's built-in test data and smoke-test settings. It is not a software runtime. |
 | `docker` | Runs tasks with Docker. Images are pulled into the local Docker image store. |
 | `singularity` | Runs tasks with Singularity/Apptainer. Images are pulled into the Nextflow/Singularity cache. |
 | `conda` | Builds Conda environments when the workflow supports it. Useful in some setups, but not the recommended CBIcall HPC path. |
@@ -43,12 +44,12 @@ CBIcall's `nfcore_singularity_cache_dir` setting.
 ## How CBIcall Complements nf-core
 
 CBIcall is not a replacement for nf-core. nf-core provides community-maintained
-Nextflow workflows; CBIcall adds a project-level execution contract around
-selected registered workflows.
+pipelines run by Nextflow; CBIcall adds a project-level execution contract
+around selected registered provider entries.
 
 | Aspect | nf-core / Nextflow | CBIcall |
 | --- | --- | --- |
-| Main role | Community workflow ecosystem | Project-level execution contract |
+| Main role | Community pipeline ecosystem | Project-level execution contract |
 | Validation | Parameter and samplesheet schemas | Pipeline/mode/genome/backend/resource compatibility |
 | Configuration | Samplesheets, params, profiles, configs | User YAML plus controlled registries |
 | Outputs | Pipeline-native layout | Deterministic run directory and output inventory |
@@ -57,8 +58,8 @@ selected registered workflows.
 
 ## Demo Smoke Test
 
-Use [`nf-core/demo`](https://nf-co.re/demo) as a lightweight external
-Nextflow smoke test. The checked-in `examples/input/demo.yaml` uses
+Use [`nf-core/demo`](https://nf-co.re/demo) as a lightweight nf-core provider
+smoke test through the Nextflow backend. The checked-in `examples/input/demo.yaml` uses
 `test,singularity` because that is the practical profile on HPC systems where
 Docker is not available.
 
@@ -95,8 +96,9 @@ run with `-t 1`, but demo generally cannot.
 
 ## Sarek Example
 
-[`nf-core/sarek`](https://nf-co.re/sarek) is launched as an external nf-core
-workflow. CBIcall passes `nfcore_parameters` to the generated Nextflow params file.
+[`nf-core/sarek`](https://nf-co.re/sarek) is launched as an nf-core provider
+entry through the Nextflow backend. CBIcall passes `nfcore_parameters` to the
+generated Nextflow params file.
 
 ```yaml
 mode:             cohort
@@ -120,7 +122,7 @@ Use `max_memory` to cap nf-core/Sarek process memory requests. CBIcall writes it
 to the generated nf-core parameters file and mirrors it in Nextflow
 `process.resourceLimits`, so the scheduler sees the same memory ceiling.
 The example interval file is a tiny GRCh38 chr22 BED stored with the registered
-Sarek workflow support files.
+Sarek support files.
 The example also skips Sarek's HaplotypeCaller filtering step because tiny
 single-chromosome smoke tests may not contain enough overlapping resource
 variants for GATK `FilterVariantTranches`.
@@ -150,7 +152,7 @@ CNAG99901P_ex,CNAG99901P_ex,L001,/path/to/R1.fastq.gz,/path/to/R2.fastq.gz
 ```
 
 Keep the header. Without it, Sarek may parse the first sample row as column
-names and fail before launching the expected workflow steps. For the full
+names and fail before launching the expected pipeline steps. For the full
 samplesheet schema and advanced use cases, use the
 [nf-core/Sarek documentation](https://nf-co.re/sarek).
 
@@ -182,7 +184,7 @@ source /software/biomed/cbicall/examples/scripts/cnag_hpc_cbicall_env.sh
 ```
 
 This loads the Python runtime required by CBIcall before the Python entrypoint
-starts. It also tries to load Nextflow for nf-core workflows.
+starts. It also tries to load Nextflow for nf-core provider entries.
 
 :::tip[Container profile name]
 Many nf-core configs still use the profile name `singularity`, even when the
