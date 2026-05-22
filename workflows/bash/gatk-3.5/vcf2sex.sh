@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#    Sex Determination script
+#   Sex Determination script
 #
 #   Last Modified; March/05/2025
 #

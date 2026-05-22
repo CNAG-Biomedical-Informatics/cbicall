@@ -137,7 +137,7 @@ nfcore_parameters:
   tools: haplotypecaller
   skip_tools: haplotypecaller_filter
   wes: true
-  intervals: ../../workflows/nf-core/sarek/grch38_chr22_test.bed
+  intervals: ../../workflows/nextflow/nf-core/sarek/grch38_chr22_test.bed
   max_memory: 30.GB
 ```
 
