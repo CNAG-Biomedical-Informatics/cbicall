@@ -1,0 +1,2 @@
+patient,sample,lane,fastq_1,fastq_2
+CNAG99901P_ex,CNAG99901P_ex,L001,../CNAG999_exome/CNAG99901P_ex/CNAG99901P_ex_S2_L001_R1_001.fastq.gz,../CNAG999_exome/CNAG99901P_ex/CNAG99901P_ex_S2_L001_R2_001.fastq.gz
