@@ -140,15 +140,18 @@ When `--output compare-report.txt` is used, the default HTML path is
 the current directory. Use `--html custom-name.html` to choose another path, or
 `--no-html` for automation that only needs stdout or the text report.
 
-To regenerate the HTML report for a completed run without rerunning the workflow:
+To inspect one completed run without rerunning the workflow:
 
 ```bash
-bin/cbicall render-report completed_run/
+bin/cbicall report completed_run/
 ```
 
 This reads the existing `run-report.json`, refreshes output-derived fields such
 as the file inventory and VCF hash sidecars when the run directory is available,
-and writes `run-report.html` next to the JSON report.
+prints a compact terminal summary, and writes `run-report.html` next to the JSON
+report when that HTML file does not already exist. Use `-O/--overwrite` to
+replace an existing HTML report, or `--json` when automation needs the refreshed
+structured metadata on stdout.
 
 ![Screenshot of the CBIcall HTML run comparison report showing the combined status KPI and legend row, overview cards, and detailed comparison tabs.](/img/compare-runs-html-report.png)
 

@@ -640,7 +640,7 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     assert "vcf-c" in out
 
 
-def test_render_report_command_refreshes_output_hashes_and_regenerates_html(tmp_path, capsys):
+def test_report_command_summarizes_run_and_regenerates_html(tmp_path, capsys):
     run_dir = tmp_path / "run"
     run_dir.mkdir()
     stats_dir = run_dir / "03_stats"
@@ -648,36 +648,96 @@ def test_render_report_command_refreshes_output_hashes_and_regenerates_html(tmp_
     (stats_dir / "sample.vcf.sha256.txt").write_text(
         "FILE=02_varcall/sample.vcf.gz\n"
         "ALGORITHM=sha256\n"
-        "NORMALIZED_SHA256=normalized-refresh\n",
+        "NORMALIZED_SHA256=normalized-report\n",
         encoding="utf-8",
     )
     payload = {
         "status": "success",
-        "elapsed_seconds": 1,
+        "elapsed_seconds": 65,
         "workflow_log": str(run_dir / "workflow.log"),
         "framework": {"version": "1.2.3"},
-        "runtime": {"python": {}, "backend": {}, "java": {}},
-        "workflow": {"backend": "bash", "pipeline": "wes", "mode": "single", "files": []},
-        "resources": {"bundle": {}},
+        "runtime": {"python": {}, "backend": {"version": "5.2"}, "java": {}},
+        "workflow": {
+            "backend": "bash",
+            "software_stack": "gatk-4.6",
+            "pipeline": "wes",
+            "mode": "single",
+            "pipeline_version": "v1",
+            "key": "bash/wes/single/gatk-4.6/v1",
+            "fingerprint": "workflow-hash",
+            "files": [],
+        },
+        "resources": {
+            "bundle": {
+                "key": "cbicall-germline-resources-v1",
+                "version": "v1",
+                "fingerprint": "resource-hash",
+            }
+        },
         "outputs": {"file_inventory": {"paths": [], "total_bytes": 0}, "vcf_hash_reports": []},
         "run": {"project_dir": str(run_dir), "run_id": "RID", "threads": 1},
     }
     report_path = run_dir / "run-report.json"
     report_path.write_text(json.dumps(payload), encoding="utf-8")
 
-    assert cli_mod._run_render_report_command([str(run_dir), "--no-color"]) == 0
+    assert cli_mod._run_report_command([str(run_dir), "--no-color"]) == 0
 
     out = capsys.readouterr().out
-    assert "Report Rendered" in out
-    assert "Refreshed" in out
-    assert "outputs" in out
-    assert "run-report.html" in out
+    assert "Run Report" in out
+    assert "Workflow" in out
+    assert "Resources" in out
+    assert "Outputs" in out
+    assert "bash/wes/single/gatk-4.6/v1" in out
+    assert "cbicall-germline-resources-v1" in out
+    assert "VCF hashes" in out
+    assert "1" in out
     refreshed = json.loads(report_path.read_text(encoding="utf-8"))
-    assert refreshed["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] == "normalized-refresh"
+    assert refreshed["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] == "normalized-report"
     html_text = (run_dir / "run-report.html").read_text(encoding="utf-8")
     assert "CBIcall Run Report" in html_text
-    assert "Output Dashboard" in html_text
-    assert "normalized-refresh" in html_text
+    assert "normalized-report" in html_text
+
+
+def test_report_command_can_print_json_without_html(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    payload = {
+        "status": "success",
+        "elapsed_seconds": 1,
+        "workflow": {"key": "bash/wes/single/gatk-4.6/v1"},
+        "outputs": {"file_inventory": {"paths": [], "total_bytes": 0}},
+        "run": {"run_id": "RID"},
+    }
+    (run_dir / "run-report.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    assert cli_mod._run_report_command([str(run_dir), "--json"]) == 0
+
+    out = capsys.readouterr().out
+    data = json.loads(out)
+    assert data["workflow"]["key"] == "bash/wes/single/gatk-4.6/v1"
+    assert not (run_dir / "run-report.html").exists()
+
+
+def test_report_command_requires_overwrite_for_existing_html(tmp_path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    payload = {
+        "status": "success",
+        "elapsed_seconds": 1,
+        "workflow": {"key": "bash/wes/single/gatk-4.6/v1"},
+        "outputs": {"file_inventory": {"paths": [], "total_bytes": 0}},
+        "run": {"run_id": "RID"},
+    }
+    (run_dir / "run-report.json").write_text(json.dumps(payload), encoding="utf-8")
+    html_path = run_dir / "run-report.html"
+    html_path.write_text("keep me\n", encoding="utf-8")
+
+    with pytest.raises(FileExistsError, match="Use -O/--overwrite"):
+        cli_mod._run_report_command([str(run_dir), "--no-color"])
+
+    assert html_path.read_text(encoding="utf-8") == "keep me\n"
+    assert cli_mod._run_report_command([str(run_dir), "--no-color", "--overwrite"]) == 0
+    assert "CBIcall Run Report" in html_path.read_text(encoding="utf-8")
 
 
 def test_run_with_spinner_no_spinner_calls_function():

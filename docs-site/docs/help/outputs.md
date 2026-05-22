@@ -28,7 +28,7 @@ point anywhere, CBIcall creates the run directory in the directory where
 | --- | --- |
 | `log.json` | Structured record of CLI arguments, resolved configuration, selected runtime profile, compact `resources.bundle` provenance, and runtime parameters. |
 | `run-report.json` | Compact audit report with CBIcall version, Python version, Java version, workflow backend version, status, elapsed time, workflow file fingerprints, resource key/version/fingerprint, output file inventory fingerprint, output fingerprints when available, and workflow log path. |
-| `run-report.html` | Human-readable tabbed rendering of `run-report.json` for browsing a completed run without reading JSON directly. It separates overview, evidence, outputs, and raw JSON views; links the main run evidence; and shows software-version evidence when available. Regenerate it from an existing run with `bin/cbicall render-report RUN_DIR`. |
+| `run-report.html` | Human-readable tabbed rendering of `run-report.json` for browsing a completed run without reading JSON directly. It separates overview, evidence, outputs, and raw JSON views; links the main run evidence; and shows software-version evidence when available. Generate it from an existing run with `bin/cbicall report RUN_DIR`. |
 | `<backend>_<software-stack>_<pipeline>_<mode>_<genome>.log` | Main workflow log for the selected backend. |
 | `logs/*.log` | Per-rule or per-step logs for Snakemake/GATK 4.6 workflows. |
 

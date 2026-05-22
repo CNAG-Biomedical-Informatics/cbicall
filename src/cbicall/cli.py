@@ -1836,16 +1836,75 @@ def _load_run_report(path: str) -> dict:
     return report
 
 
-def _run_render_report_command(argv: List[str]) -> int:
+def _print_single_run_report(payload: dict, report_path: Path, html_path: Optional[Path], refreshed: bool) -> None:
+    workflow = payload.get("workflow") or {}
+    runtime = payload.get("runtime") or {}
+    backend = runtime.get("backend") or {}
+    resources = payload.get("resources") or {}
+    bundle = resources.get("bundle") or {}
+    outputs = payload.get("outputs") or {}
+    inventory = outputs.get("file_inventory") or {}
+    vcf_reports = outputs.get("vcf_hash_reports") or []
+    canonical_outputs = outputs.get("canonical_outputs") or []
+    execution_trace = payload.get("execution_trace") or {}
+    software_versions = payload.get("software_versions") or {}
+    run = payload.get("run") or {}
+
+    _section("Run Report", GREEN if payload.get("status") == "success" else YELLOW)
+    _row("Report", report_path)
+    _row("Status", payload.get("status"))
+    _row("Run ID", run.get("run_id"))
+    _row("Elapsed", _format_duration(float(payload.get("elapsed_seconds") or 0)))
+    _row("Project", _short_path(run.get("project_dir")))
+    _row("HTML", html_path if html_path else "(not written)")
+    _row("Refreshed", "outputs" if refreshed else "no")
+
+    _section("Workflow", BLUE)
+    _row("Key", workflow.get("key"))
+    _row("Backend", workflow.get("backend"))
+    _row("Software stack", workflow.get("software_stack"))
+    _row("Pipeline", workflow.get("pipeline"))
+    _row("Mode", workflow.get("mode"))
+    _row("Pipeline ver", workflow.get("pipeline_version"))
+    _row("Fingerprint", workflow.get("fingerprint"))
+    _row("Backend ver", backend.get("version"))
+
+    _section("Resources", CYAN)
+    _row("Resource key", bundle.get("key"))
+    _row("Resource ver", bundle.get("version"))
+    _row("Resource hash", bundle.get("fingerprint"))
+
+    _section("Outputs", WHITE)
+    _row("Inventory files", inventory.get("entries"))
+    _row("Inventory size", inventory.get("total_bytes_human") or inventory.get("total_bytes"))
+    _row("Inventory hash", inventory.get("sha256"))
+    _row("VCF hashes", len(vcf_reports))
+    _row("Canonical outputs", len(canonical_outputs))
+    if execution_trace:
+        _row("Trace tasks", execution_trace.get("task_count"))
+        _row("Max RSS", execution_trace.get("max_peak_rss_human"))
+    if software_versions:
+        _row("Software scope", software_versions.get("scope"))
+        _row("Software hash", software_versions.get("sha256"))
+
+
+def _run_report_command(argv: List[str]) -> int:
     parser = argparse.ArgumentParser(
-        prog="cbicall render-report",
-        description="Regenerate run-report.html from an existing CBIcall run-report.json.",
+        prog="cbicall report",
+        description="Summarize an existing CBIcall run-report.json or run directory.",
     )
     parser.add_argument("run", help="Run directory or run-report.json file.")
+    parser.add_argument("--json", action="store_true", help="Print the refreshed run-report JSON instead of a text summary.")
+    parser.add_argument("--html", help="Write the HTML run report to this path. Defaults to run-report.html for text summaries.")
+    parser.add_argument("--no-html", action="store_true", help="Do not write the default HTML run report.")
+    parser.add_argument("-O", "--overwrite", action="store_true", help="Overwrite an existing HTML report.")
     parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
     args = parser.parse_args(argv)
 
-    if args.nocolor:
+    if args.no_html and args.html:
+        parser.error("--html and --no-html cannot be used together")
+
+    if args.nocolor or args.json:
         os.environ["ANSI_COLORS_DISABLED"] = "1"
     _refresh_colors()
 
@@ -1858,11 +1917,20 @@ def _run_render_report_command(argv: List[str]) -> int:
     refreshed = _refresh_report_output_fields(report_path, payload)
     if refreshed:
         report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
-    html_path = _write_run_report_html(report_path, payload)
-    _section("Report Rendered", GREEN)
-    _row("Report", report_path)
-    _row("Refreshed", "outputs" if refreshed else "no")
-    _row("HTML", html_path)
+
+    html_path = None
+    should_write_html = bool(args.html) or (not args.no_html and not args.json)
+    if should_write_html:
+        html_path = Path(args.html) if args.html else report_path.with_suffix(".html")
+        if html_path.exists() and not args.overwrite:
+            raise FileExistsError(f"HTML report already exists: {html_path}. Use -O/--overwrite to replace it.")
+        html_path.parent.mkdir(parents=True, exist_ok=True)
+        html_path.write_text(_run_report_html(payload), encoding="utf-8")
+
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        _print_single_run_report(payload, report_path, html_path, refreshed)
     return 0
 
 
@@ -2964,8 +3032,8 @@ def main() -> int:
         return _run_validate_resources_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "compare-runs":
         return _run_compare_runs_command(sys.argv[2:])
-    if len(sys.argv) > 1 and sys.argv[1] == "render-report":
-        return _run_render_report_command(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "report":
+        return _run_report_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "test":
         return _run_test_command(sys.argv[2:])
 
