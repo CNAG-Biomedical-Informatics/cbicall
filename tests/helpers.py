@@ -150,7 +150,7 @@ def _append_pipeline_modes(lines: List[str], modes: Dict[str, str], indent: str)
 def write_registry(
     path: Path,
     *,
-    gatk_ver: str,
+    software_stack: str,
     include_bash: bool = True,
     include_snakemake: bool = False,
     bash_pipelines: Optional[Dict[str, Dict[str, str]]] = None,
@@ -170,7 +170,7 @@ def write_registry(
             "  bash:",
             "    base_dir: \"workflows/bash\"",
             "    software_stacks:",
-            f"      {gatk_ver}:",
+            f"      {software_stack}:",
             "        helpers:",
             "          env: \"env.sh\"",
             "          coverage: \"coverage.sh\"",
@@ -194,7 +194,7 @@ def write_registry(
             "  snakemake:",
             "    base_dir: \"workflows/snakemake\"",
             "    software_stacks:",
-            f"      {gatk_ver}:",
+            f"      {software_stack}:",
             "        helpers:",
             "          config: \"config.yaml\"",
         ]
@@ -216,7 +216,7 @@ def fake_project(
     monkeypatch,
     tmp_path: Path,
     *,
-    gatk_ver: str,
+    software_stack: str,
     registry_kwargs: Dict[str, Any],
 ) -> Path:
     """
@@ -236,7 +236,7 @@ def fake_project(
     cfg_dir.mkdir(parents=True, exist_ok=True)
     sch_dir.mkdir(parents=True, exist_ok=True)
 
-    write_registry(cfg_dir / "cbicall-workflow-registry.yaml", gatk_ver=gatk_ver, **registry_kwargs)
+    write_registry(cfg_dir / "cbicall-workflow-registry.yaml", software_stack=software_stack, **registry_kwargs)
     write_workflow_schema(sch_dir / "cbicall-workflow-registry.schema.json")
 
     return root

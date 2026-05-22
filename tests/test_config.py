@@ -38,20 +38,20 @@ def _write_registry_and_schema(root: Path, *, registry_lines: str) -> None:
     write_workflow_schema(sch_dir / "cbicall-workflow-registry.schema.json")
 
 
-def _touch_snakemake_files(root: Path, gatk_ver: str, snakefile_name: str) -> Path:
-    smk_dir = root / "workflows" / "snakemake" / gatk_ver
+def _touch_snakemake_files(root: Path, software_stack: str, snakefile_name: str) -> Path:
+    smk_dir = root / "workflows" / "snakemake" / software_stack
     smk_dir.mkdir(parents=True, exist_ok=True)
     (smk_dir / snakefile_name).write_text("# dummy\n", encoding="utf-8")
     (smk_dir / "config.yaml").write_text("dummy: 1\n", encoding="utf-8")
     return smk_dir
 
 
-def _touch_nextflow_files(root: Path, gatk_ver: str, workflow_name: str) -> Path:
-    nf_dir = root / "workflows" / "nextflow" / gatk_ver
+def _touch_nextflow_files(root: Path, software_stack: str, workflow_name: str) -> Path:
+    nf_dir = root / "workflows" / "nextflow" / software_stack
     nf_dir.mkdir(parents=True, exist_ok=True)
     (nf_dir / workflow_name).write_text("// dummy\n", encoding="utf-8")
     (nf_dir / "config.yaml").write_text("datadir: /tmp\n", encoding="utf-8")
-    bash_dir = root / "workflows" / "bash" / gatk_ver
+    bash_dir = root / "workflows" / "bash" / software_stack
     bash_dir.mkdir(parents=True, exist_ok=True)
     for name in ["coverage.sh", "vcf2sex.sh", "vcf2hash.sh"]:
         p = bash_dir / name
@@ -60,8 +60,8 @@ def _touch_nextflow_files(root: Path, gatk_ver: str, workflow_name: str) -> Path
     return nf_dir
 
 
-def _touch_bash_files(root: Path, gatk_ver: str, script_name: str, *, make_exec: bool = True) -> Path:
-    bash_dir = root / "workflows" / "bash" / gatk_ver
+def _touch_bash_files(root: Path, software_stack: str, script_name: str, *, make_exec: bool = True) -> Path:
+    bash_dir = root / "workflows" / "bash" / software_stack
     bash_dir.mkdir(parents=True, exist_ok=True)
 
     for name in ["env.sh", "coverage.sh", "jaccard.sh", "vcf2sex.sh", "vcf2hash.sh", script_name]:
@@ -72,18 +72,18 @@ def _touch_bash_files(root: Path, gatk_ver: str, script_name: str, *, make_exec:
     return bash_dir
 
 
-def _point_env_to_datadir(root: Path, gatk_ver: str, datadir: Path) -> None:
-    env = root / "workflows" / "bash" / gatk_ver / "env.sh"
+def _point_env_to_datadir(root: Path, software_stack: str, datadir: Path) -> None:
+    env = root / "workflows" / "bash" / software_stack / "env.sh"
     env.write_text(f"#!/bin/sh\nDATADIR={datadir}\n", encoding="utf-8")
 
 
-def _minimal_bash_registry_block(gatk_ver: str = "gatk-4.6") -> str:
+def _minimal_bash_registry_block(software_stack: str = "gatk-4.6") -> str:
     # NOTE: schema requires workflows.bash to exist (required=["bash"])
     return (
         "  bash:\n"
         "    base_dir: \"workflows/bash\"\n"
         "    software_stacks:\n"
-        f"      {gatk_ver}:\n"
+        f"      {software_stack}:\n"
         "        helpers:\n"
         "          env: \"env.sh\"\n"
         "          coverage: \"coverage.sh\"\n"
@@ -319,7 +319,7 @@ def test_set_config_values_invalid_enum_mode_raises(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-3.5",
+        software_stack="gatk-3.5",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
@@ -334,7 +334,7 @@ def test_set_config_values_partial_run_metadata(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs=dict(include_snakemake=True, snakemake_pipelines={"wes": {"single": "wes_single.smk"}}),
     )
     _touch_snakemake_files(root, "gatk-4.6", "wes_single.smk")
@@ -357,7 +357,7 @@ def test_set_config_values_records_resources_bundle(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs=dict(
             include_bash=True,
             bash_pipelines={"wes": {"single": "wes_single.sh"}},
@@ -406,7 +406,7 @@ def test_set_config_values_requires_versioned_resource_compatibility(monkeypatch
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
     )
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
@@ -551,7 +551,7 @@ def test_set_config_values_verifies_installed_resource_identifier(monkeypatch, t
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
     )
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
@@ -596,7 +596,7 @@ def test_set_config_values_verifies_installation_manifest_fingerprint(monkeypatc
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
     )
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
@@ -647,7 +647,7 @@ def test_set_config_values_rejects_mismatched_installed_resource_identifier(monk
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
     )
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
@@ -666,7 +666,7 @@ def test_set_config_values_rejects_mismatched_installation_manifest_fingerprint(
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
     )
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
@@ -695,7 +695,7 @@ def test_set_config_values_uses_registry_default_pipeline_version(monkeypatch, t
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
     )
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
@@ -712,7 +712,7 @@ def test_set_config_values_accepts_explicit_pipeline_version(monkeypatch, tmp_pa
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
     )
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
@@ -734,7 +734,7 @@ def test_set_config_values_unknown_pipeline_version_raises(monkeypatch, tmp_path
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs={"bash_pipelines": {"wes": {"single": "wes_single.sh"}}},
     )
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
@@ -755,7 +755,7 @@ def test_set_config_values_rejects_unknown_bundle_resource(monkeypatch, tmp_path
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs=dict(
             include_bash=True,
             bash_pipelines={"wes": {"single": "wes_single.sh"}},
@@ -786,7 +786,7 @@ def test_set_config_values_invalid_combo_raises(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-3.5",
+        software_stack="gatk-3.5",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
@@ -1336,7 +1336,7 @@ def test_set_config_values_sample_sets_output_basename(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-3.5",
+        software_stack="gatk-3.5",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
@@ -1362,7 +1362,7 @@ def test_set_config_values_builds_normalized_workflow_structure(monkeypatch, tmp
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
@@ -1385,7 +1385,7 @@ def test_set_config_values_applies_cnag_hpc_profile(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs=dict(
             include_bash=True,
             bash_pipelines={"wes": {"single": "wes_single.sh"}},
@@ -1415,7 +1415,7 @@ def test_set_config_values_undeclared_profile_raises(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
@@ -1437,7 +1437,7 @@ def test_set_config_values_capture_branches(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-3.5",
+        software_stack="gatk-3.5",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
@@ -1450,7 +1450,7 @@ def test_set_config_values_capture_branches(monkeypatch, tmp_path):
     root2 = fake_project(
         monkeypatch,
         tmp_path / "root2",
-        gatk_ver="gatk-3.5",
+        software_stack="gatk-3.5",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"mit": {"single": "mit_single.sh"}}),
     )
     _touch_bash_files(root2, "gatk-3.5", "mit_single.sh")
@@ -1465,7 +1465,7 @@ def test_set_config_values_capture_branches(monkeypatch, tmp_path):
     root3 = fake_project(
         monkeypatch,
         tmp_path / "root3",
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root3, "gatk-4.6", "wes_single.sh")
@@ -1479,7 +1479,7 @@ def test_set_config_values_mit_on_arm64_raises(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-3.5",
+        software_stack="gatk-3.5",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"mit": {"single": "mit_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-3.5", "mit_single.sh")
@@ -1496,7 +1496,7 @@ def test_set_config_values_nproc_success_path(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-3.5",
+        software_stack="gatk-3.5",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
@@ -1519,7 +1519,7 @@ def test_set_config_values_getpass_fallback_user_unknown(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-3.5",
+        software_stack="gatk-3.5",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
@@ -1542,7 +1542,7 @@ def test_set_config_values_arch_aarch64_maps_to_arm64(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
@@ -1563,7 +1563,7 @@ def test_set_config_values_nproc_read_fails_falls_back_to_cpu_count(monkeypatch,
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-3.5",
+        software_stack="gatk-3.5",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
@@ -1588,7 +1588,7 @@ def test_set_config_values_nproc_not_found_uses_cpu_count(monkeypatch, tmp_path)
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-3.5",
+        software_stack="gatk-3.5",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
@@ -1607,7 +1607,7 @@ def test_set_config_values_pigz_missing_sets_gunzip(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-3.5",
+        software_stack="gatk-3.5",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-3.5", "wes_single.sh")
@@ -1632,7 +1632,7 @@ def test_set_config_values_arch_other_string(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
-        gatk_ver="gatk-4.6",
+        software_stack="gatk-4.6",
         registry_kwargs=dict(include_bash=True, bash_pipelines={"wes": {"single": "wes_single.sh"}}),
     )
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
