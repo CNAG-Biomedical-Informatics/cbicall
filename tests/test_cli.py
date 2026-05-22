@@ -730,7 +730,7 @@ def test_report_command_refreshes_and_writes_html_when_requested(tmp_path, capsy
 
     out = capsys.readouterr().out
     assert "Refreshed" in out
-    assert "outputs" in out
+    assert "outputs (written to JSON)" in out
     assert "run-report.html" in out
     assert "written" in out
     refreshed = json.loads(report_path.read_text(encoding="utf-8"))

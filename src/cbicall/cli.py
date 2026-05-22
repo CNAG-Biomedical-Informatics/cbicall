@@ -1844,7 +1844,21 @@ def _report_html_status(report_path: Path, written_html_path: Optional[Path]) ->
     return f"{html_path} ({status})"
 
 
-def _print_single_run_report(payload: dict, report_path: Path, html_path: Optional[Path], refreshed: bool) -> None:
+def _refresh_status(refreshed: bool, wrote_json: bool) -> str:
+    if wrote_json:
+        return "outputs (written to JSON)"
+    if refreshed:
+        return "outputs (not written)"
+    return "no"
+
+
+def _print_single_run_report(
+    payload: dict,
+    report_path: Path,
+    html_path: Optional[Path],
+    refreshed: bool,
+    wrote_json: bool = False,
+) -> None:
     workflow = payload.get("workflow") or {}
     runtime = payload.get("runtime") or {}
     backend = runtime.get("backend") or {}
@@ -1865,7 +1879,7 @@ def _print_single_run_report(payload: dict, report_path: Path, html_path: Option
     _row("Elapsed", _format_duration(float(payload.get("elapsed_seconds") or 0)))
     _row("Project", _short_path(run.get("project_dir")))
     _row("HTML", _report_html_status(report_path, html_path))
-    _row("Refreshed", "outputs" if refreshed else "no")
+    _row("Refreshed", _refresh_status(refreshed, wrote_json))
 
     _section("Workflow", BLUE)
     _row("Key", workflow.get("key"))
@@ -1926,12 +1940,14 @@ def _run_report_command(argv: List[str]) -> int:
         raise ValueError(f"Invalid run report JSON: {report_path}") from exc
 
     refreshed = False
+    wrote_json = False
     if args.refresh:
         refreshed = _refresh_report_output_fields(report_path, payload)
         if refreshed and not args.overwrite:
             raise FileExistsError(f"run-report.json would be updated: {report_path}. Use -O/--overwrite to replace it.")
         if refreshed:
             report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+            wrote_json = True
 
     html_path = None
     if args.html is not None:
@@ -1944,7 +1960,7 @@ def _run_report_command(argv: List[str]) -> int:
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
     else:
-        _print_single_run_report(payload, report_path, html_path, refreshed)
+        _print_single_run_report(payload, report_path, html_path, refreshed, wrote_json)
     return 0
 
 
