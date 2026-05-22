@@ -49,7 +49,7 @@ repeated runs, see [Run Comparison](run-comparison).
 | `bin/cbicall test --mit-bash -t 1` | **Native mtDNA**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | x86_64 host | Run report fields, expected files, **prioritized variants hash**, **raw JSON hash** |
 | `bin/cbicall test --nf-core-demo -t 4` | **nf-core/demo** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile | Generated params/config, run reports, **pipeline info**, **MultiQC anchors** |
 | `bin/cbicall test --nf-core-sarek -t 4` | **nf-core/Sarek** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile and Sarek inputs/resources | Generated params/config, run reports, **pipeline info**, **MultiQC anchors**, declared canonical outputs when produced |
-| `bin/cbicall test --all -t 1` | **Native tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Optional engines skipped if missing | Runs WES Bash, WES Snakemake, WES Nextflow, and mtDNA contracts |
+| `bin/cbicall test --all -t 1` | **Native tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Optional backends skipped if missing | Runs WES Bash, WES Snakemake, WES Nextflow, and mtDNA contracts |
 
 Useful variants:
 

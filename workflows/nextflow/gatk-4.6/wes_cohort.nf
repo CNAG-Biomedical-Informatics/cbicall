@@ -2,7 +2,7 @@
 nextflow.enable.dsl=2
 
 /*
- * wes_wgs_cohort.nf
+ * wes_cohort.nf
  * Nextflow DSL2 replica of the GATK 4.6 WES/WGS cohort joint-genotyping workflow.
  */
 

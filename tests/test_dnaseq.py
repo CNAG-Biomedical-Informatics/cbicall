@@ -254,7 +254,7 @@ def test_dnaseq_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
-    workflow = str(tmp_path / "wes_wgs_single.nf")
+    workflow = str(tmp_path / "wgs_single.nf")
     config = str(tmp_path / "config.yaml")
 
     settings = {
@@ -326,7 +326,7 @@ def test_dnaseq_builds_nextflow_cohort_command_with_sample_map(tmp_path, monkeyp
             "pipeline": "wes",
             "mode": "cohort",
             "software_stack": "gatk-4.6",
-            "entrypoint": str(tmp_path / "wes_wgs_cohort.nf"),
+            "entrypoint": str(tmp_path / "wes_cohort.nf"),
             "config_file": str(tmp_path / "config.yaml"),
             "helpers": {"vcf2hash": str(tmp_path / "vcf2hash.sh")},
         },
@@ -358,7 +358,7 @@ def test_dnaseq_nextflow_cohort_requires_sample_map(tmp_path):
             "pipeline": "wes",
             "mode": "cohort",
             "software_stack": "gatk-4.6",
-            "entrypoint": str(tmp_path / "wes_wgs_cohort.nf"),
+            "entrypoint": str(tmp_path / "wes_cohort.nf"),
             "config_file": str(tmp_path / "config.yaml"),
             "helpers": {},
         },
@@ -557,7 +557,7 @@ def test_dnaseq_raises_if_projectdir_missing(tmp_path):
         dnaseq.DNAseq(settings).variant_calling()
 
 
-def test_variant_calling_raises_on_invalid_engine(tmp_path):
+def test_variant_calling_raises_on_invalid_backend(tmp_path):
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
     settings = {

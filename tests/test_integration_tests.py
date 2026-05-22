@@ -215,7 +215,7 @@ def test_run_integration_tests_keeps_external_work_when_requested(tmp_path, monk
     assert (workdir / "cbicall_nextflow_nf-core_demo_single_no-genome_001" / "work").is_dir()
 
 
-def test_run_integration_tests_skips_missing_optional_engine_under_all(tmp_path, monkeypatch, capsys):
+def test_run_integration_tests_skips_missing_optional_backend_under_all(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(integration_mod.shutil, "which", lambda name: None)
 
     rc = integration_mod.run_integration_tests(
@@ -230,7 +230,7 @@ def test_run_integration_tests_skips_missing_optional_engine_under_all(tmp_path,
     assert "skipped" in capsys.readouterr().out
 
 
-def test_run_integration_tests_fails_missing_explicit_engine(tmp_path, monkeypatch, capsys):
+def test_run_integration_tests_fails_missing_explicit_backend(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(integration_mod.shutil, "which", lambda name: None)
 
     rc = integration_mod.run_integration_tests(
@@ -242,4 +242,4 @@ def test_run_integration_tests_fails_missing_explicit_engine(tmp_path, monkeypat
     )
 
     assert rc == 1
-    assert "requires snakemake" in capsys.readouterr().out
+    assert "requires backend executable snakemake" in capsys.readouterr().out

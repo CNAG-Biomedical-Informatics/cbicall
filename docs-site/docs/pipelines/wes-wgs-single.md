@@ -18,7 +18,7 @@ A user-focused guide to processing whole-exome (WES) and whole-genome (WGS) data
 </TabItem>
 <TabItem value="nextflow" label="Nextflow">
 
-**Source:** [View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/nextflow/gatk-4.6/wes_wgs_single.nf)
+**Source:** [View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/nextflow/gatk-4.6/wes_single.nf)
 
 </TabItem>
 </Tabs>

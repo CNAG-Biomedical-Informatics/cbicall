@@ -23,7 +23,7 @@ class TestSelection:
     key: str
     label: str
     fixture: str
-    engine: Optional[str] = None
+    backend_executable: Optional[str] = None
     optional_in_all: bool = False
 
 
@@ -33,14 +33,14 @@ TESTS: Dict[str, TestSelection] = {
         "wes-snakemake",
         "WES Snakemake",
         "native-wes-snakemake.yaml",
-        engine="snakemake",
+        backend_executable="snakemake",
         optional_in_all=True,
     ),
     "wes-nextflow": TestSelection(
         "wes-nextflow",
         "WES Nextflow",
         "native-wes-nextflow.yaml",
-        engine="nextflow",
+        backend_executable="nextflow",
         optional_in_all=True,
     ),
     "mit-bash": TestSelection("mit-bash", "MIT Bash", "native-mit-bash.yaml"),
@@ -48,13 +48,13 @@ TESTS: Dict[str, TestSelection] = {
         "nf-core-demo",
         "nf-core Demo",
         "nf-core-demo.yaml",
-        engine="nextflow",
+        backend_executable="nextflow",
     ),
     "nf-core-sarek": TestSelection(
         "nf-core-sarek",
         "nf-core Sarek",
         "nf-core-sarek.yaml",
-        engine="nextflow",
+        backend_executable="nextflow",
     ),
 }
 
@@ -285,12 +285,12 @@ def _run_one(
     skip_missing_optional: bool,
     keep_external_work: bool,
 ) -> Tuple[str, str, str]:
-    if selection.engine and shutil.which(selection.engine) is None:
-        detail = f"{selection.engine} not found"
+    if selection.backend_executable and shutil.which(selection.backend_executable) is None:
+        detail = f"backend executable {selection.backend_executable} not found"
         if skip_missing_optional and selection.optional_in_all:
-            print(f"SKIP: {selection.label} requires {selection.engine} on PATH.")
+            print(f"SKIP: {selection.label} requires backend executable {selection.backend_executable} on PATH.")
             return selection.label, "skipped", detail
-        raise IntegrationTestError(f"{selection.label} requires {selection.engine} on PATH.")
+        raise IntegrationTestError(f"{selection.label} requires backend executable {selection.backend_executable} on PATH.")
 
     contract = load_contract(project_root, selection)
     workdir = _project_path(project_root, contract.get("workdir", "examples/input"))

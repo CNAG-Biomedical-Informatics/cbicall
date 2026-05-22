@@ -405,7 +405,7 @@ class NextflowRunner(BaseRunner):
 
 class DNAseq:
     """
-    Dispatcher for backend-specific workflow runners.
+    Backend-specific workflow runner facade.
     """
 
     def __init__(self, settings: Union[RunSettings, Dict]):

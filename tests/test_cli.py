@@ -938,7 +938,7 @@ def test_validate_parameters_command_prints_parameters_ok(monkeypatch, tmp_path,
                     "key": "cbicall-germline-resources-v1",
                     "version": "v1",
                     "fingerprint": "abc",
-                    "runtime_check": {"status": "ok", "datadir": "/tmp/resources"},
+                    "runtime_check": {"status": "verified", "datadir": "/tmp/resources"},
                 }
             },
         },
@@ -951,6 +951,51 @@ def test_validate_parameters_command_prints_parameters_ok(monkeypatch, tmp_path,
     assert "Parameters OK" in out
     assert "Configuration OK" not in out
     assert "Param file" in out
+
+
+def test_validate_parameters_command_fails_unverified_bundle(monkeypatch, tmp_path):
+    param_file = tmp_path / "parameters.yaml"
+    param_file.write_text("pipeline: wes\n", encoding="utf-8")
+
+    monkeypatch.setattr(cli_mod.config_mod, "read_param_file", lambda _: {"pipeline": "wes"})
+    monkeypatch.setattr(
+        cli_mod.config_mod,
+        "set_config_values",
+        lambda _: {
+            "project_dir": str(tmp_path / "run"),
+            "run_id": "RIDPARAM",
+            "workflow_backend": "bash",
+            "profile": "local",
+            "genome": "b37",
+            "pipeline": "wes",
+            "mode": "single",
+            "software_stack": "gatk-4.6",
+            "registry_version": "v1",
+            "inputs": {"input_dir": None, "sample_map": None},
+            "workflow": {
+                "backend": "bash",
+                "pipeline": "wes",
+                "mode": "single",
+                "software_stack": "gatk-4.6",
+                "registry_version": "v1",
+                "entrypoint": "/tmp/wes_single.sh",
+                "config_file": None,
+                "helpers": {"env": "/tmp/env.sh"},
+            },
+            "resources": {
+                "bundle": {
+                    "key": "cbicall-germline-resources-v1",
+                    "type": "bundle",
+                    "version": "v1",
+                    "fingerprint": "abc",
+                    "runtime_check": {"status": "datadir_missing", "datadir": "/missing"},
+                }
+            },
+        },
+    )
+
+    with pytest.raises(cli_mod.ParameterValidationError, match="could not be verified"):
+        cli_mod._run_validate_parameters_command(["-p", str(param_file), "--no-color"])
 
 
 def test_validate_registry_command_uses_default_registry(capsys):
@@ -1346,7 +1391,7 @@ def test_main_partial_run_warning_and_metadata(monkeypatch, tmp_path, capsys):
     assert seen["settings"].run_mode == "partial"
 
 
-def test_run_test_command_all_selects_native_engines_and_skips_missing(monkeypatch, tmp_path):
+def test_run_test_command_all_selects_native_backends_and_skips_missing(monkeypatch, tmp_path):
     seen = {}
 
     def fake_run_integration_tests(**kwargs):
@@ -1370,7 +1415,7 @@ def test_run_test_command_all_selects_native_engines_and_skips_missing(monkeypat
     assert seen["keep_external_work"] is False
 
 
-def test_run_test_command_explicit_snakemake_requires_engine(monkeypatch, tmp_path):
+def test_run_test_command_explicit_snakemake_requires_backend(monkeypatch, tmp_path):
     seen = {}
 
     def fake_run_integration_tests(**kwargs):
@@ -1385,7 +1430,7 @@ def test_run_test_command_explicit_snakemake_requires_engine(monkeypatch, tmp_pa
     assert seen["skip_missing_optional"] is False
 
 
-def test_run_test_command_explicit_nextflow_requires_engine(monkeypatch, tmp_path):
+def test_run_test_command_explicit_nextflow_requires_backend(monkeypatch, tmp_path):
     seen = {}
 
     def fake_run_integration_tests(**kwargs):

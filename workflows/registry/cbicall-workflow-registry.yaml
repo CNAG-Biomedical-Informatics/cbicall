@@ -115,23 +115,23 @@ workflows:
               default_registry_version: "v1"
               registry_versions:
                 v1:
-                  script: "wes_wgs_single.nf"
+                  script: "wes_single.nf"
             cohort:
               default_registry_version: "v1"
               registry_versions:
                 v1:
-                  script: "wes_wgs_cohort.nf"
+                  script: "wes_cohort.nf"
           wgs:
             single:
               default_registry_version: "v1"
               registry_versions:
                 v1:
-                  script: "wes_wgs_single.nf"
+                  script: "wgs_single.nf"
             cohort:
               default_registry_version: "v1"
               registry_versions:
                 v1:
-                  script: "wes_wgs_cohort.nf"
+                  script: "wgs_cohort.nf"
 
       nf-core:
         pipelines:

@@ -18,7 +18,7 @@ title: About
   <article className="about-card">
     <span className="about-kicker">Core software</span>
     <h3><a href="https://github.com/mrueda">Manuel Rueda</a></h3>
-    <p>Workflow dispatcher, pipeline integration, command-line interface, and documentation.</p>
+    <p>Workflow backend integration, command-line interface, and documentation.</p>
   </article>
   <article className="about-card">
     <span className="about-kicker">Documentation</span>

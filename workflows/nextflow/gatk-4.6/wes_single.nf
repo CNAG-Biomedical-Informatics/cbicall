@@ -4,7 +4,7 @@ nextflow.enable.dsl=2
 import groovy.json.StringEscapeUtils
 
 /*
- * wes_wgs_single.nf
+ * wes_single.nf
  * Nextflow DSL2 replica of the GATK 4.6 single-sample WES/WGS workflow.
  *
  * Run with:

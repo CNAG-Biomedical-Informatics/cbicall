@@ -156,8 +156,10 @@ Native Nextflow workflows live under the selected software stack:
 ```text
 workflows/nextflow/gatk-4.6/
   config.yaml
-  wes_wgs_single.nf
-  wes_wgs_cohort.nf
+  wes_single.nf
+  wgs_single.nf -> wes_single.nf
+  wes_cohort.nf
+  wgs_cohort.nf -> wes_cohort.nf
 ```
 
 CBIcall launches the resolved `.nf` file with CBIcall-managed parameters,

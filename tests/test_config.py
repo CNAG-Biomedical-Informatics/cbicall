@@ -853,7 +853,7 @@ def test__validate_with_schema_formats_root_and_nested_locations():
 
 
 # ---------------------------------------------
-# Registry wiring errors (engine/version/pipeline/mode)
+# Registry wiring errors (backend/registry-version/pipeline/mode)
 # ---------------------------------------------
 
 def test_set_config_values_backend_not_in_registry_raises(monkeypatch, tmp_path):
@@ -1124,18 +1124,18 @@ def test_set_config_values_nextflow_single_gatk46_resolves(monkeypatch, tmp_path
           "              default_registry_version: \"v1\"\n"
           "              registry_versions:\n"
           "                v1:\n"
-          "                  script: \"wes_wgs_single.nf\"\n"
+          "                  script: \"wgs_single.nf\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
-    _touch_nextflow_files(root, "gatk-4.6", "wes_wgs_single.nf")
+    _touch_nextflow_files(root, "gatk-4.6", "wgs_single.nf")
 
     cfg = config_mod.set_config_values(
         {"mode": "single", "pipeline": "wgs", "workflow_backend": "nextflow", "software_stack": "gatk-4.6", "genome": "hg38"}
     )
 
     assert cfg["workflow"]["backend"] == "nextflow"
-    assert cfg["workflow"]["entrypoint"].endswith("wes_wgs_single.nf")
+    assert cfg["workflow"]["entrypoint"].endswith("wgs_single.nf")
     assert cfg["workflow"]["config_file"].endswith("config.yaml")
     assert cfg["workflow"]["helpers"]["vcf2hash"].endswith("vcf2hash.sh")
 
@@ -1161,18 +1161,18 @@ def test_set_config_values_nextflow_cohort_gatk46_resolves(monkeypatch, tmp_path
           "              default_registry_version: \"v1\"\n"
           "              registry_versions:\n"
           "                v1:\n"
-          "                  script: \"wes_wgs_cohort.nf\"\n"
+          "                  script: \"wgs_cohort.nf\"\n"
     )
     _write_registry_and_schema(root, registry_lines=reg)
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
-    _touch_nextflow_files(root, "gatk-4.6", "wes_wgs_cohort.nf")
+    _touch_nextflow_files(root, "gatk-4.6", "wgs_cohort.nf")
 
     cfg = config_mod.set_config_values(
         {"mode": "cohort", "pipeline": "wgs", "workflow_backend": "nextflow", "software_stack": "gatk-4.6", "genome": "hg38"}
     )
 
     assert cfg["workflow"]["backend"] == "nextflow"
-    assert cfg["workflow"]["entrypoint"].endswith("wes_wgs_cohort.nf")
+    assert cfg["workflow"]["entrypoint"].endswith("wgs_cohort.nf")
 
 
 def test_read_param_file_accepts_sarek_external_nextflow(tmp_path):

@@ -31,6 +31,7 @@ from .cli_output import (
     _section,
 )
 from .dnaseq import DNAseq
+from .errors import ParameterValidationError
 from .helpmod import usage, parse_args as _parse_args, parse_run_args as _parse_run_args
 from .integration_tests import run_integration_tests, selected_tests_from_args
 from .models import ResolvedConfig, RunSettings
@@ -1658,6 +1659,30 @@ def write_run_report(
     return report_path
 
 
+def _require_verified_resource(resolved_config: ResolvedConfig) -> None:
+    bundle = (resolved_config.resources or {}).get("bundle") or {}
+    if not bundle:
+        return
+    resource_type = bundle.get("type")
+    if resource_type not in {None, "bundle"}:
+        return
+
+    runtime_check = bundle.get("runtime_check") or {}
+    status = runtime_check.get("status")
+    if status == "verified":
+        return
+
+    details = [
+        f"Selected bundle resource could not be verified (status={status or 'unknown'}).",
+        f"  resource: {bundle.get('key') or '(undef)'}",
+    ]
+    if runtime_check.get("datadir"):
+        details.append(f"  DATADIR: {runtime_check.get('datadir')}")
+    if runtime_check.get("source"):
+        details.append(f"  source: {runtime_check.get('source')}")
+    details.append("Run validate-resources and check the configured resource directory before launching.")
+    raise ParameterValidationError("\n".join(details))
+
 def _apply_cli_runtime_overrides(params: dict, arg: dict) -> dict:
     params = dict(params)
     if arg.get("profile") is not None:
@@ -1684,6 +1709,7 @@ def _run_validate_parameters_command(argv: List[str]) -> int:
     params = config_mod.read_param_file(args.paramfile)
     params = _apply_cli_runtime_overrides(params, vars(args))
     resolved_config = ResolvedConfig.from_mapping({**config_mod.set_config_values(params), "version": VERSION})
+    _require_verified_resource(resolved_config)
 
     _section("Parameters OK", GREEN)
     workflow = resolved_config.workflow
@@ -2882,7 +2908,7 @@ def _run_test_command(argv: List[str]) -> int:
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Run all native bundled integration tests. Optional engine tests are skipped if their engine is not installed.",
+        help="Run all native bundled integration tests. Optional backend tests are skipped if their backend executable is not installed.",
     )
     parser.add_argument("-t", "--threads", type=int, default=1, help="Number of threads to use.")
     parser.add_argument("--runtime-profile", dest="profile", default="local", help="CBIcall runtime profile for native workflow tests.")
@@ -2973,6 +2999,7 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
     params = config_mod.read_param_file(arg["paramfile"])
     params = _apply_cli_runtime_overrides(params, arg)
     resolved_config = ResolvedConfig.from_mapping({**config_mod.set_config_values(params), "version": VERSION})
+    _require_verified_resource(resolved_config)
 
     if params.get("genome") is None and resolved_config.genome is not None:
         _warn(f"Genome not provided; using inferred default '{resolved_config.genome}'.", BOLD, YELLOW, RESET)
