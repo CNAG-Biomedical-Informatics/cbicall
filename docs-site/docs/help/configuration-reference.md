@@ -220,7 +220,7 @@ directory or log file.
 | `bin/cbicall validate-parameters -p parameters.yaml [--runtime-profile cnag-hpc]` | Dry-run preflight for one concrete run. It validates the parameters YAML, workflow, runtime profile env file, and selected resource without launching the workflow. |
 | `bin/cbicall validate-resources` | Check the resource catalog and, optionally, one resource key. |
 | `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare two or more run directories or `run-report.json` files. |
-| `bin/cbicall report RUN_DIR` | Summarize one completed run, refresh output-derived metadata when possible, and write `run-report.html` if it does not already exist. Use `-O/--overwrite` to replace HTML or `--json` for structured output. |
+| `bin/cbicall report RUN_DIR` | Read-only summary of one completed run. Add `--html` to write `run-report.html`, `--refresh` to update output-derived metadata in `run-report.json`, and `-O/--overwrite` to replace existing files. Use `--json` for structured output. |
 | `bin/cbicall test --wes-bash [--runtime-profile cnag-hpc]`, `--wes-snakemake`, `--wes-nextflow`, `--mit-bash`, `--nf-core-demo`, `--nf-core-sarek`, or `--all` | Runs contract-based integration examples. `--runtime-profile` is forwarded to the internal `cbicall run` calls. `--wes-bash` is the required native baseline test; Snakemake, Nextflow, and nf-core tests require their backends on `PATH`. |
 
 For a higher-level explanation of included pipelines versus execution backends,

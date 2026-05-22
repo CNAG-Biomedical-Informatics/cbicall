@@ -146,12 +146,21 @@ To inspect one completed run without rerunning the workflow:
 bin/cbicall report completed_run/
 ```
 
-This reads the existing `run-report.json`, refreshes output-derived fields such
-as the file inventory and VCF hash sidecars when the run directory is available,
-prints a compact terminal summary, and writes `run-report.html` next to the JSON
-report when that HTML file does not already exist. Use `-O/--overwrite` to
-replace an existing HTML report, or `--json` when automation needs the refreshed
-structured metadata on stdout.
+This is read-only by default: it reads the existing `run-report.json` and prints
+a compact terminal summary without rewriting JSON or HTML.
+
+Use explicit flags when you want artifacts to be generated or refreshed:
+
+```bash
+bin/cbicall report completed_run/ --html
+bin/cbicall report completed_run/ --refresh -O
+bin/cbicall report completed_run/ --refresh --html -O
+```
+
+`--html` writes `run-report.html`; `--refresh` updates output-derived metadata
+such as the file inventory and VCF hash sidecars in `run-report.json`.
+Existing files are not replaced unless `-O/--overwrite` is supplied. Use
+`--json` when automation needs structured metadata on stdout.
 
 ![Screenshot of the CBIcall HTML run comparison report showing the combined status KPI and legend row, overview cards, and detailed comparison tabs.](/img/compare-runs-html-report.png)
 

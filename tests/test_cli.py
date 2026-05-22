@@ -640,7 +640,7 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     assert "vcf-c" in out
 
 
-def test_report_command_summarizes_run_and_regenerates_html(tmp_path, capsys):
+def test_report_command_summarizes_run_without_writing_by_default(tmp_path, capsys):
     run_dir = tmp_path / "run"
     run_dir.mkdir()
     stats_dir = run_dir / "03_stats"
@@ -679,6 +679,7 @@ def test_report_command_summarizes_run_and_regenerates_html(tmp_path, capsys):
     }
     report_path = run_dir / "run-report.json"
     report_path.write_text(json.dumps(payload), encoding="utf-8")
+    original = report_path.read_text(encoding="utf-8")
 
     assert cli_mod._run_report_command([str(run_dir), "--no-color"]) == 0
 
@@ -690,7 +691,44 @@ def test_report_command_summarizes_run_and_regenerates_html(tmp_path, capsys):
     assert "bash/wes/single/gatk-4.6/v1" in out
     assert "cbicall-germline-resources-v1" in out
     assert "VCF hashes" in out
-    assert "1" in out
+    assert "0" in out
+    assert report_path.read_text(encoding="utf-8") == original
+    assert not (run_dir / "run-report.html").exists()
+
+
+def test_report_command_refreshes_and_writes_html_when_requested(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    stats_dir = run_dir / "03_stats"
+    stats_dir.mkdir()
+    (stats_dir / "sample.vcf.sha256.txt").write_text(
+        "FILE=02_varcall/sample.vcf.gz\n"
+        "ALGORITHM=sha256\n"
+        "NORMALIZED_SHA256=normalized-report\n",
+        encoding="utf-8",
+    )
+    payload = {
+        "status": "success",
+        "elapsed_seconds": 65,
+        "workflow_log": str(run_dir / "workflow.log"),
+        "framework": {"version": "1.2.3"},
+        "runtime": {"python": {}, "backend": {"version": "5.2"}, "java": {}},
+        "workflow": {"backend": "bash", "pipeline": "wes", "mode": "single", "files": []},
+        "resources": {"bundle": {}},
+        "outputs": {"file_inventory": {"paths": [], "total_bytes": 0}, "vcf_hash_reports": []},
+        "run": {"project_dir": str(run_dir), "run_id": "RID", "threads": 1},
+    }
+    report_path = run_dir / "run-report.json"
+    report_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(FileExistsError, match="run-report.json would be updated"):
+        cli_mod._run_report_command([str(run_dir), "--refresh", "--no-color"])
+
+    assert cli_mod._run_report_command([str(run_dir), "--refresh", "--html", "--overwrite", "--no-color"]) == 0
+
+    out = capsys.readouterr().out
+    assert "Refreshed" in out
+    assert "outputs" in out
     refreshed = json.loads(report_path.read_text(encoding="utf-8"))
     assert refreshed["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] == "normalized-report"
     html_text = (run_dir / "run-report.html").read_text(encoding="utf-8")
@@ -733,10 +771,10 @@ def test_report_command_requires_overwrite_for_existing_html(tmp_path):
     html_path.write_text("keep me\n", encoding="utf-8")
 
     with pytest.raises(FileExistsError, match="Use -O/--overwrite"):
-        cli_mod._run_report_command([str(run_dir), "--no-color"])
+        cli_mod._run_report_command([str(run_dir), "--html", "--no-color"])
 
     assert html_path.read_text(encoding="utf-8") == "keep me\n"
-    assert cli_mod._run_report_command([str(run_dir), "--no-color", "--overwrite"]) == 0
+    assert cli_mod._run_report_command([str(run_dir), "--html", "--no-color", "--overwrite"]) == 0
     assert "CBIcall Run Report" in html_path.read_text(encoding="utf-8")
 
 

@@ -1856,7 +1856,7 @@ def _print_single_run_report(payload: dict, report_path: Path, html_path: Option
     _row("Run ID", run.get("run_id"))
     _row("Elapsed", _format_duration(float(payload.get("elapsed_seconds") or 0)))
     _row("Project", _short_path(run.get("project_dir")))
-    _row("HTML", html_path if html_path else "(not written)")
+    _row("HTML", html_path if html_path else "(not requested)")
     _row("Refreshed", "outputs" if refreshed else "no")
 
     _section("Workflow", BLUE)
@@ -1894,15 +1894,18 @@ def _run_report_command(argv: List[str]) -> int:
         description="Summarize an existing CBIcall run-report.json or run directory.",
     )
     parser.add_argument("run", help="Run directory or run-report.json file.")
-    parser.add_argument("--json", action="store_true", help="Print the refreshed run-report JSON instead of a text summary.")
-    parser.add_argument("--html", help="Write the HTML run report to this path. Defaults to run-report.html for text summaries.")
-    parser.add_argument("--no-html", action="store_true", help="Do not write the default HTML run report.")
-    parser.add_argument("-O", "--overwrite", action="store_true", help="Overwrite an existing HTML report.")
+    parser.add_argument("--json", action="store_true", help="Print run-report JSON instead of a text summary.")
+    parser.add_argument("--refresh", action="store_true", help="Refresh output-derived metadata and write run-report.json.")
+    parser.add_argument(
+        "--html",
+        nargs="?",
+        const=True,
+        metavar="HTML",
+        help="Write an HTML run report. Defaults to run-report.html unless a path is provided.",
+    )
+    parser.add_argument("-O", "--overwrite", action="store_true", help="Overwrite files written by --refresh or --html.")
     parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
     args = parser.parse_args(argv)
-
-    if args.no_html and args.html:
-        parser.error("--html and --no-html cannot be used together")
 
     if args.nocolor or args.json:
         os.environ["ANSI_COLORS_DISABLED"] = "1"
@@ -1914,14 +1917,17 @@ def _run_report_command(argv: List[str]) -> int:
     except json.JSONDecodeError as exc:
         raise ValueError(f"Invalid run report JSON: {report_path}") from exc
 
-    refreshed = _refresh_report_output_fields(report_path, payload)
-    if refreshed:
-        report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+    refreshed = False
+    if args.refresh:
+        refreshed = _refresh_report_output_fields(report_path, payload)
+        if refreshed and not args.overwrite:
+            raise FileExistsError(f"run-report.json would be updated: {report_path}. Use -O/--overwrite to replace it.")
+        if refreshed:
+            report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
 
     html_path = None
-    should_write_html = bool(args.html) or (not args.no_html and not args.json)
-    if should_write_html:
-        html_path = Path(args.html) if args.html else report_path.with_suffix(".html")
+    if args.html is not None:
+        html_path = report_path.with_suffix(".html") if args.html is True else Path(args.html)
         if html_path.exists() and not args.overwrite:
             raise FileExistsError(f"HTML report already exists: {html_path}. Use -O/--overwrite to replace it.")
         html_path.parent.mkdir(parents=True, exist_ok=True)
