@@ -547,7 +547,7 @@ def write_manifest(
         "catalog_entry": public_metadata,
         "catalog_source": metadata.get("_catalog_source") or metadata.get("_catalog_path"),
         "remote_identifier": resource_identifier,
-        "installed_at_utc": _dt.datetime.now(_dt.UTC)
+        "installed_at_utc": _dt.datetime.now(_dt.timezone.utc)
         .replace(microsecond=0)
         .isoformat()
         .replace("+00:00", "Z"),
