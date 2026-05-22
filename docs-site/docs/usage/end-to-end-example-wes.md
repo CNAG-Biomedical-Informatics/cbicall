@@ -38,7 +38,7 @@ Create a YAML file, e.g. `wes_single.yaml`:
 mode:            single
 pipeline:        wes
 workflow_backend: bash
-gatk_version:    gatk-4.6
+software_stack:    gatk-4.6
 input_dir:       CNAG999_exome/CNAG99901P_ex
 genome:          b37
 cleanup_bam:     false
@@ -58,7 +58,7 @@ Notes:
     mode:            single
     pipeline:        wgs
     workflow_backend: bash
-    gatk_version:    gatk-4.6
+    software_stack:    gatk-4.6
     input_dir:       CNAG999_exome/CNAG99901P_ex
     genome:          b37
     cleanup_bam:     false
@@ -84,20 +84,20 @@ CBIcall 1.0.0
   Workflow     => bash -> wes -> single
   Genome       => b37
   Threads      => 4
-  Project      => .../CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_177447031761843
+  Project      => .../CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_177447031761843
   Run ID       => 177447031761843
 
 Inputs
   Param file   => wes_single.yaml
   Input dir    => .../input/CNAG999_exome/CNAG99901P_ex
   Sample map   => (undef)
-  GATK         => gatk-4.6
+  Software stack => gatk-4.6
   Pipeline ver => v1
 
 Resolved
   Entrypoint   => .../bash/gatk-4.6/wes_single.sh
   Env file     => .../bash/gatk-4.6/env.sh
-  Log          => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_177447031761843/bash_wes_single_b37_gatk-4.6.log
+  Log          => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_177447031761843/bash_gatk-4.6_wes_single_b37.log
 
 Running
   Workflow     => bash -> wes -> single
@@ -106,9 +106,9 @@ Running
 Completed
   Status       => Finished successfully
   Elapsed      => 1m 30s
-  Log          => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_177447031761843/bash_wes_single_b37_gatk-4.6.log
-  Report       => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_177447031761843/run-report.json
-  HTML         => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_177447031761843/run-report.html
+  Log          => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_177447031761843/bash_gatk-4.6_wes_single_b37.log
+  Report       => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_177447031761843/run-report.json
+  HTML         => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_177447031761843/run-report.html
 Do Widzenia
 ```
 ---
@@ -117,7 +117,7 @@ Do Widzenia
 
 After completion, you will find:
 ```
-CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_*/
+CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_*/
   01_bam/
   02_varcall/
   03_stats/
@@ -190,7 +190,7 @@ Create a YAML file, e.g. `wes_cohort.yaml`:
 mode:            cohort
 pipeline:        wes
 workflow_backend: bash
-gatk_version:    gatk-4.6
+software_stack:    gatk-4.6
 genome:          b37
 sample_map:      ./sample_map.tsv
 ```
@@ -212,7 +212,7 @@ bin/cbicall run -p wes_cohort.yaml -t 4
 
 After completion, you will find:
 ```
-cbicall_bash_wes_cohort_b37_gatk-4.6_*/
+cbicall_bash_gatk-4.6_wes_cohort_b37_*/
   02_varcall/
   logs/
 ```

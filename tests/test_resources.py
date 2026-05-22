@@ -13,7 +13,7 @@ def _workflow(backend="bash", *, env_file=None, config_file=None):
         backend=backend,
         pipeline="wes",
         mode="single",
-        gatk_version="gatk-4.6",
+        software_stack="gatk-4.6",
         pipeline_version="v1",
         entrypoint="/workflow.sh",
         config_file=str(config_file) if config_file else None,
@@ -69,7 +69,7 @@ def test_validate_resource_catalog_reports_bundle_shape_errors(tmp_path):
     assert "failed resource catalog schema validation" in message
     assert "description" in message
     assert "has non-unique elements" in message
-    assert "is too short" in message
+    assert "is too short" in message or "should be non-empty" in message
     assert "does not match" in message
     assert "is not of type 'object'" in message
     assert "'crc32' is not one of" in message
@@ -100,11 +100,11 @@ def test_validate_resource_catalog_reports_semantic_errors_after_schema_passes(t
         resources_mod.validate_resource_catalog(catalog)
 
     message = str(excinfo.value)
-    assert "engine/pipeline/mode/gatk_version/pipeline_version" in message
+    assert "backend/pipeline/mode/software_stack/pipeline_version" in message
     assert "expected.resource_key must match the resource key" in message
 
 
-def test_validate_resource_catalog_accepts_legacy_registry_string_keys(tmp_path):
+def test_validate_resource_catalog_rejects_unversioned_registry_string_keys(tmp_path):
     catalog = tmp_path / "catalog.json"
     catalog.write_text(
         json.dumps(
@@ -124,7 +124,7 @@ def test_validate_resource_catalog_accepts_legacy_registry_string_keys(tmp_path)
     registry = {
         "workflows": {
             "bash": {
-                "versions": {
+                "software_stacks": {
                     "gatk-4.6": {
                         "pipelines": {
                             "wes": {
@@ -139,7 +139,7 @@ def test_validate_resource_catalog_accepts_legacy_registry_string_keys(tmp_path)
         }
     }
 
-    with pytest.raises(ParameterValidationError, match="engine/pipeline/mode"):
+    with pytest.raises(ParameterValidationError, match="backend/pipeline/mode"):
         resources_mod.validate_resource_catalog(catalog, registry)
 
     assert "bash/wes/single/gatk-4.6" in resources_mod._registry_workflow_keys(registry)
@@ -224,7 +224,7 @@ def test_build_resource_metadata_accepts_non_bundle_resource(tmp_path):
         backend="nextflow",
         pipeline="sarek",
         mode="cohort",
-        gatk_version="nf-core",
+        software_stack="nf-core",
         pipeline_version="v1",
         entrypoint="nf-core/sarek",
         metadata={"provider": "nf-core"},
@@ -236,7 +236,7 @@ def test_build_resource_metadata_accepts_non_bundle_resource(tmp_path):
             "workflow_backend": "nextflow",
             "pipeline": "sarek",
             "mode": "cohort",
-            "gatk_version": "nf-core",
+            "software_stack": "nf-core",
         },
         tmp_path,
         workflow,

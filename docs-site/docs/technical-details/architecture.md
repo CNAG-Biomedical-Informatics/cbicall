@@ -34,7 +34,7 @@ At a high level, CBIcall consists of:
   <div className="cbicallCard">
     <span className="cbicallCardLabel">Registry</span>
     <h3>Workflow resolver</h3>
-    <p>Maps backend, GATK version, pipeline, and mode to a concrete script or Snakefile.</p>
+    <p>Maps backend, software stack, pipeline, and mode to a concrete script or Snakefile.</p>
   </div>
   <div className="cbicallCard">
     <span className="cbicallCardLabel">Workflows</span>
@@ -51,7 +51,7 @@ At a high level, CBIcall consists of:
 | Component | Role | Main files or directories |
 | --- | --- | --- |
 | Python execution driver | Reads the YAML configuration, validates parameters, resolves paths, and dispatches execution to the selected workflow. | `src/cbicall/config.py`, `src/cbicall/dnaseq.py` |
-| Workflow registry | Developer-facing map that connects parameters YAML choices (`workflow_backend`, `gatk_version`, `pipeline`, `mode`, and pipeline implementation version) to concrete workflow scripts. Validate it with `bin/cbicall validate-registry` after editing. | `workflows/registry/cbicall-workflow-registry.yaml`, `src/cbicall/workflow_registry.py` |
+| Workflow registry | Developer-facing map that connects parameters YAML choices (`workflow_backend`, `software_stack`, `pipeline`, `mode`, and pipeline implementation version) to concrete workflow scripts. Validate it with `bin/cbicall validate-registry` after editing. | `workflows/registry/cbicall-workflow-registry.yaml`, `src/cbicall/workflow_registry.py` |
 | Pipelines | Implement WES, WGS, and mtDNA analyses. A pipeline may provide Bash, Snakemake, or Nextflow workflows. | `workflows/bash/`, `workflows/snakemake/`, `workflows/nextflow/` |
 | Workflow backends | Execute the resolved workflow. Bash is transparent and direct; Snakemake and Nextflow add backend-managed orchestration for bundled workflows. | `BashRunner`, `SnakemakeRunner`, `NextflowRunner` in `src/cbicall/dnaseq.py` |
 | Run directory | Stores outputs, logs, and `log.json` for one execution. | `01_bam/`, `02_varcall/`, `03_stats/`, `logs/` |
@@ -101,7 +101,7 @@ The workflow backend is selected in the YAML:
 
 ## Supported pipelines
 
-| Pipeline | Mode | Genome | GATK version | Status / Notes |
+| Pipeline | Mode | Genome | Software stack | Status / Notes |
 |---------|------|--------|--------------|---------------|
 | **WES** | `single` | `b37` (default) | `gatk-3.5`, `gatk-4.6` | ✓ Supported |
 | **WES** | `cohort` | `b37` (default) | `gatk-3.5`, `gatk-4.6` | ✓ Supported |

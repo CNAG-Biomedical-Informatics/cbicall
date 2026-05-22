@@ -23,7 +23,7 @@ class WorkflowSpec:
     backend: str
     pipeline: str
     mode: str
-    gatk_version: str
+    software_stack: str
     pipeline_version: str
     entrypoint: Optional[str]
     config_file: Optional[str] = None
@@ -37,7 +37,7 @@ class WorkflowSpec:
             backend=str(data["backend"]),
             pipeline=str(data["pipeline"]),
             mode=str(data["mode"]),
-            gatk_version=str(data["gatk_version"]),
+            software_stack=str(data["software_stack"]),
             pipeline_version=str(data.get("pipeline_version", "legacy")),
             entrypoint=data.get("entrypoint"),
             config_file=data.get("config_file"),
@@ -52,7 +52,7 @@ class WorkflowSpec:
             "provider": str(self.metadata.get("provider", "cbicall")),
             "pipeline": self.pipeline,
             "mode": self.mode,
-            "gatk_version": self.gatk_version,
+            "software_stack": self.software_stack,
             "pipeline_version": self.pipeline_version,
             "entrypoint": self.entrypoint,
             "config_file": self.config_file,
@@ -128,9 +128,10 @@ class ResolvedConfig:
     workflow_provider: str
     profile: str
     genome: Optional[str]
+    display_genome: Optional[str]
     pipeline: str
     mode: str
-    gatk_version: str
+    software_stack: str
     pipeline_version: str
     inputs: InputsSpec
     workflow: WorkflowSpec
@@ -159,7 +160,7 @@ class ResolvedConfig:
         workflow_provider = data["workflow_provider"] if "workflow_provider" in data else data["workflow"].get("provider", "cbicall")
         pipeline = data["pipeline"] if "pipeline" in data else data["workflow"]["pipeline"]
         mode = data["mode"] if "mode" in data else data["workflow"]["mode"]
-        gatk_version = data["gatk_version"] if "gatk_version" in data else data["workflow"]["gatk_version"]
+        software_stack = data["software_stack"] if "software_stack" in data else data["workflow"]["software_stack"]
         pipeline_version = data.get("pipeline_version")
         if pipeline_version is None and "workflow" in data:
             pipeline_version = data["workflow"].get("pipeline_version")
@@ -176,9 +177,10 @@ class ResolvedConfig:
             nfcore_parameters=dict(data.get("nfcore_parameters", {})),
             nfcore_singularity_cache_dir=data.get("nfcore_singularity_cache_dir"),
             genome=data.get("genome"),
+            display_genome=data.get("display_genome"),
             pipeline=str(pipeline),
             mode=str(mode),
-            gatk_version=str(gatk_version),
+            software_stack=str(software_stack),
             pipeline_version=str(pipeline_version) if pipeline_version is not None else "legacy",
             inputs=InputsSpec.from_mapping(data.get("inputs", {})),
             workflow=WorkflowSpec.from_mapping(data["workflow"]),
@@ -209,9 +211,10 @@ class ResolvedConfig:
             "nfcore_parameters": dict(self.nfcore_parameters),
             "nfcore_singularity_cache_dir": self.nfcore_singularity_cache_dir,
             "genome": self.genome,
+            "display_genome": self.display_genome,
             "pipeline": self.pipeline,
             "mode": self.mode,
-            "gatk_version": self.gatk_version,
+            "software_stack": self.software_stack,
             "pipeline_version": self.pipeline_version,
             "inputs": self.inputs.to_dict(),
             "workflow": self.workflow.to_dict(),

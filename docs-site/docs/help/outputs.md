@@ -3,7 +3,7 @@
 CBIcall writes each run into a run directory named from the workflow choices:
 
 ```text
-cbicall_<backend>_<pipeline>_<mode>_<genome>_<gatk-version>_<run-id>/
+cbicall_<backend>_<software-stack>_<pipeline>_<mode>_<genome>_<run-id>/
 ```
 
 The exact files depend on the selected pipeline and mode. The tables below are derived from the workflow output definitions and the checked-in example runs.
@@ -29,7 +29,7 @@ point anywhere, CBIcall creates the run directory in the directory where
 | `log.json` | Structured record of CLI arguments, resolved configuration, selected runtime profile, compact `resources.bundle` provenance, and runtime parameters. |
 | `run-report.json` | Compact audit report with CBIcall version, Python version, Java version, workflow backend version, status, elapsed time, workflow file fingerprints, resource key/version/fingerprint, output file inventory fingerprint, output fingerprints when available, and workflow log path. |
 | `run-report.html` | Human-readable tabbed rendering of `run-report.json` for browsing a completed run without reading JSON directly. It separates overview, evidence, outputs, and raw JSON views; links the main run evidence; and shows software-version evidence when available. Regenerate it from an existing run with `bin/cbicall render-report RUN_DIR`. |
-| `<backend>_<pipeline>_<mode>_<genome>_<gatk-version>.log` | Main workflow log for the selected backend. |
+| `<backend>_<software-stack>_<pipeline>_<mode>_<genome>.log` | Main workflow log for the selected backend. |
 | `logs/*.log` | Per-rule or per-step logs for Snakemake/GATK 4.6 workflows. |
 
 Use `config.resources.bundle.fingerprint` inside `log.json` to check whether two runs used the same declared external dependency set.

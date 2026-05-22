@@ -107,7 +107,7 @@ Add the resource under `resources` and declare its type:
 `compatible_workflows` uses:
 
 ```text
-backend/pipeline/mode/gatk_version/pipeline_version
+backend/pipeline/mode/software_stack/pipeline_version
 ```
 
 The workflow keys must exist in `workflows/registry/cbicall-workflow-registry.yaml`.
@@ -232,7 +232,7 @@ workflow and bundle together:
 pipeline: wes
 mode: single
 workflow_backend: bash
-gatk_version: gatk-4.6
+software_stack: gatk-4.6
 resource: my-center-germline-v1
 genome: b37
 input_dir: SAMPLE01

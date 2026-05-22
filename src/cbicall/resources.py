@@ -35,7 +35,7 @@ def _workflow_key(cfg_in: dict, workflow: WorkflowSpec = None) -> str:
         cfg_in["workflow_backend"],
         cfg_in["pipeline"],
         cfg_in["mode"],
-        cfg_in["gatk_version"],
+        cfg_in["software_stack"],
     ]
     if pipeline_version:
         parts.append(str(pipeline_version))
@@ -46,8 +46,8 @@ def _registry_workflow_keys(registry: dict) -> set:
     keys = set()
     workflows = registry.get("workflows", {}) if isinstance(registry, dict) else {}
     for engine, engine_cfg in workflows.items():
-        versions = engine_cfg.get("versions", {}) if isinstance(engine_cfg, dict) else {}
-        for gatk_version, version_cfg in versions.items():
+        software_stacks = engine_cfg.get("software_stacks", {}) if isinstance(engine_cfg, dict) else {}
+        for software_stack, version_cfg in software_stacks.items():
             pipelines = version_cfg.get("pipelines", {}) if isinstance(version_cfg, dict) else {}
             for pipeline, modes in pipelines.items():
                 if not isinstance(modes, dict):
@@ -62,13 +62,13 @@ def _registry_workflow_keys(registry: dict) -> set:
                                         str(engine),
                                         str(pipeline),
                                         str(mode),
-                                        str(gatk_version),
+                                        str(software_stack),
                                         str(pipeline_version),
                                     ]
                                 )
                             )
                     elif isinstance(mode_cfg, str):
-                        keys.add("/".join([str(engine), str(pipeline), str(mode), str(gatk_version)]))
+                        keys.add("/".join([str(engine), str(pipeline), str(mode), str(software_stack)]))
     return keys
 
 
@@ -155,7 +155,7 @@ def validate_resource_catalog(
             if not _validate_workflow_key_format(workflow_key):
                 errors.append(
                     f"{label}.compatible_workflows entry must use "
-                    "engine/pipeline/mode/gatk_version/pipeline_version: "
+                    "backend/pipeline/mode/software_stack/pipeline_version: "
                     f"{workflow_key}"
                 )
             elif known_workflows is not None and workflow_key not in known_workflows:

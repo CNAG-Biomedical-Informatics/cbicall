@@ -82,7 +82,7 @@ def _print_run_summary(
     colors: dict,
 ) -> None:
     workflow = resolved_config.workflow
-    genome = resolved_config.genome or "b37"
+    genome = resolved_config.display_genome or resolved_config.genome or "b37"
     _section(f"CBIcall {version}", colors["cyan"], colors["bold"], colors["reset"])
     _row("Executable", _short_path(cbicall_path))
     _row("Workflow", f"{workflow.backend} -> {workflow.pipeline} -> {workflow.mode}")
@@ -110,8 +110,7 @@ def _print_run_summary(
     _row("Input dir", _short_path(resolved_config.inputs.input_dir))
     _row("Sample map", _short_path(resolved_config.inputs.sample_map))
     _row("Workflow provider", resolved_config.workflow_provider)
-    if resolved_config.workflow_provider == "cbicall":
-        _row("GATK", workflow.gatk_version)
+    _row("Software stack", workflow.software_stack)
     _row("Pipeline ver", workflow.pipeline_version)
     if workflow.metadata.get("provider") == "nf-core":
         _row("NF profile", resolved_config.nfcore_profile)
@@ -139,6 +138,6 @@ def _print_run_summary(
     if workflow.metadata.get("provider") == "nf-core":
         log_name = f"nf-core_{workflow.pipeline}_{workflow.mode}.log"
     else:
-        log_name = f"{workflow.backend}_{workflow.pipeline}_{workflow.mode}_{genome}_{workflow.gatk_version}.log"
+        log_name = f"{workflow.backend}_{workflow.software_stack}_{workflow.pipeline}_{workflow.mode}_{genome}.log"
     _row("Log", Path(resolved_config.project_dir) / log_name)
     print()

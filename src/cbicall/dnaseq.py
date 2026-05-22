@@ -129,8 +129,8 @@ class BaseRunner:
         return str(self.settings.genome or "b37")
 
     @property
-    def gatk_version(self) -> str:
-        return str(self.settings.workflow.gatk_version)
+    def software_stack(self) -> str:
+        return str(self.settings.workflow.software_stack)
 
     @property
     def workflow(self):
@@ -153,7 +153,7 @@ class BaseRunner:
         if self.workflow.metadata.get("provider") == "nf-core":
             log_name = f"nf-core_{self.suffix}.log"
         else:
-            log_name = f"{self.backend}_{self.suffix}_{self.genome}_{self.gatk_version}.log"
+            log_name = f"{self.backend}_{self.software_stack}_{self.suffix}_{self.genome}.log"
         return self.workdir / log_name
 
     def _base_env(self) -> Dict[str, str]:
@@ -207,7 +207,7 @@ class BashRunner(BaseRunner):
 
         cmd: List[str] = [str(script), "-t", str(int(self.settings.threads))]
 
-        if self.gatk_version != "gatk-3.5":
+        if self.software_stack != "gatk-3.5":
             cmd += ["--pipeline", self.pipeline]
 
             if bool(self.settings.cleanup_bam):
@@ -249,7 +249,7 @@ class SnakemakeRunner(BaseRunner):
 
         snk_config_kvs: List[str] = [f"genome={self.genome}"]
 
-        if self.gatk_version != "gatk-3.5":
+        if self.software_stack != "gatk-3.5":
             snk_config_kvs.append(f"pipeline={self.pipeline}")
 
             sample_map = self.inputs.sample_map

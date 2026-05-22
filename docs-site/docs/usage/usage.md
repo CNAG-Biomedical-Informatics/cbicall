@@ -82,7 +82,7 @@ For most WES/WGS runs, start with **4 threads per task**. See [Performance](../h
 mode:            single
 pipeline:        wes
 workflow_backend: bash
-gatk_version:    gatk-4.6
+software_stack:    gatk-4.6
 input_dir:       CNAG999_exome/CNAG99901P_ex
 genome:          b37
 ```
@@ -93,7 +93,7 @@ genome:          b37
 mode:            cohort
 pipeline:        wes
 workflow_backend: bash
-gatk_version:    gatk-4.6
+software_stack:    gatk-4.6
 genome:          b37
 sample_map:      ./sample_map.tsv
 ```
@@ -104,7 +104,7 @@ sample_map:      ./sample_map.tsv
 mode:            single
 pipeline:        wgs
 workflow_backend: nextflow
-gatk_version:    gatk-4.6
+software_stack:    gatk-4.6
 input_dir:       CNAG999_genome/CNAG99901P_wg
 genome:          hg38
 ```
@@ -115,7 +115,7 @@ genome:          hg38
 mode:            single
 pipeline:        mit
 workflow_backend: bash
-gatk_version:    gatk-3.5
+software_stack:    gatk-3.5
 input_dir:       CNAG999_exome/CNAG99901P_ex
 ```
 

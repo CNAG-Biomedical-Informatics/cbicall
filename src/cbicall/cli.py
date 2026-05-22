@@ -146,7 +146,7 @@ def _workflow_key(workflow) -> str:
             str(workflow.backend),
             str(workflow.pipeline),
             str(workflow.mode),
-            str(workflow.gatk_version),
+            str(workflow.software_stack),
             str(workflow.pipeline_version),
         ]
     )
@@ -1142,8 +1142,8 @@ def _run_report_html(payload: dict) -> str:
                 ("Backend", _nested(payload, "workflow", "backend")),
                 ("Pipeline", _nested(payload, "workflow", "pipeline")),
                 ("Mode", _nested(payload, "workflow", "mode")),
-                ("Genome", _nested(payload, "run", "genome")),
-                ("GATK / provider version", _nested(payload, "workflow", "gatk_version")),
+                ("Genome", _nested(payload, "run", "display_genome") or _nested(payload, "run", "genome")),
+                ("Software stack", _nested(payload, "workflow", "software_stack")),
                 ("Pipeline version", _nested(payload, "workflow", "pipeline_version")),
                 ("Runtime profile", payload.get("profile")),
                 ("Threads", _nested(payload, "run", "threads")),
@@ -1621,6 +1621,7 @@ def write_run_report(
             "project_dir": resolved_config.project_dir,
             "threads": arg.get("threads"),
             "genome": resolved_config.genome,
+            "display_genome": resolved_config.display_genome,
             "run_mode": resolved_config.run_mode,
         },
         "inputs": resolved_config.inputs.to_dict(),
@@ -1677,8 +1678,7 @@ def _run_validate_parameters_command(argv: List[str]) -> int:
     _row("Runtime profile", resolved_config.profile)
     _row("Workflow", f"{workflow.backend} -> {workflow.pipeline} -> {workflow.mode}")
     _row("Workflow provider", resolved_config.workflow_provider)
-    if resolved_config.workflow_provider == "cbicall":
-        _row("GATK", workflow.gatk_version)
+    _row("Software stack", workflow.software_stack)
     _row("Pipeline ver", workflow.pipeline_version)
     _row("Genome", resolved_config.genome or "b37")
     if workflow.metadata.get("provider") == "nf-core":
@@ -2902,11 +2902,11 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
     _row("Status", "Finished successfully")
     elapsed = time.time() - start_time
     _row("Elapsed", _format_duration(elapsed))
-    genome = resolved_config.genome or "b37"
+    genome = resolved_config.display_genome or resolved_config.genome or "b37"
     if workflow.metadata.get("provider") == "nf-core":
         log_name = f"nf-core_{workflow.pipeline}_{workflow.mode}.log"
     else:
-        log_name = f"{workflow.backend}_{workflow.pipeline}_{workflow.mode}_{genome}_{workflow.gatk_version}.log"
+        log_name = f"{workflow.backend}_{workflow.software_stack}_{workflow.pipeline}_{workflow.mode}_{genome}.log"
     workflow_log = Path(resolved_config.project_dir) / log_name
     report_path = write_run_report(
         resolved_config,

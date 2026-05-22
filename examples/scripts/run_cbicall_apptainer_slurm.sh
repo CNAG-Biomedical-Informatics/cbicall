@@ -89,7 +89,7 @@ cat <<YAML > "\${YAML_FILE}"
 mode: single
 pipeline: ${PIPELINE}
 workflow_backend: bash
-gatk_version: gatk-4.6
+software_stack: gatk-4.6
 resource: "cbicall-germline-resources-v1"
 input_dir: ${WORKDIR}
 project_dir: ${SAMPLE_ID}_cbicall

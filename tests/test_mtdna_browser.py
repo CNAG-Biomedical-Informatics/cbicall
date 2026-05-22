@@ -105,7 +105,7 @@ def test_mtb2json_converts_reference_mtdna_report_for_browser():
     report = (
         REPO_ROOT
         / "examples/input/CNAG999_exome/CNAG99901P_ex"
-        / "ref_cbicall_bash_mit_single_rsrs_gatk-3.5_649547582283533"
+        / "ref_cbicall_bash_gatk-3.5_mit_single_rsrs_649547582283533"
         / "01_mtoolbox/mit_prioritized_variants.txt"
     )
 

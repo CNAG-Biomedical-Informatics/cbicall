@@ -24,17 +24,17 @@
     "backend": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["base_dir", "versions"],
+      "required": ["base_dir", "software_stacks"],
       "properties": {
         "base_dir": { "$ref": "#/$defs/pathString" },
-        "versions": {
+        "software_stacks": {
           "type": "object",
           "minProperties": 1,
-          "additionalProperties": { "$ref": "#/$defs/version" }
+          "additionalProperties": { "$ref": "#/$defs/softwareStack" }
         }
       }
     },
-    "version": {
+    "softwareStack": {
       "type": "object",
       "additionalProperties": false,
       "required": ["pipelines"],

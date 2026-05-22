@@ -19,7 +19,7 @@ do
 mode: single
 pipeline: wes
 workflow_backend: snakemake
-gatk_version: gatk-4.6
+software_stack: gatk-4.6
 input_dir: $DIR/$DIRNAME/$SAMPLE
 EOF
 

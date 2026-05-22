@@ -41,17 +41,17 @@ def write_workflow_schema(path: Path) -> None:
             "backend": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["base_dir", "versions"],
+                "required": ["base_dir", "software_stacks"],
                 "properties": {
                     "base_dir": {"type": "string", "minLength": 1},
-                    "versions": {
+                    "software_stacks": {
                         "type": "object",
                         "minProperties": 1,
-                        "additionalProperties": {"$ref": "#/$defs/version"},
+                        "additionalProperties": {"$ref": "#/$defs/softwareStack"},
                     },
                 },
             },
-            "version": {
+            "softwareStack": {
                 "type": "object",
                 "additionalProperties": False,
                 "required": ["pipelines"],
@@ -169,7 +169,7 @@ def write_registry(
         lines += [
             "  bash:",
             "    base_dir: \"workflows/bash\"",
-            "    versions:",
+            "    software_stacks:",
             f"      {gatk_ver}:",
             "        helpers:",
             "          env: \"env.sh\"",
@@ -193,7 +193,7 @@ def write_registry(
         lines += [
             "  snakemake:",
             "    base_dir: \"workflows/snakemake\"",
-            "    versions:",
+            "    software_stacks:",
             f"      {gatk_ver}:",
             "        helpers:",
             "          config: \"config.yaml\"",

@@ -16,7 +16,7 @@ selected on the CLI.
 mode:            single
 pipeline:        wes
 workflow_backend: bash
-gatk_version:    gatk-4.6
+software_stack:    gatk-4.6
 input_dir:       CNAG999_exome/CNAG99901P_ex
 genome:          b37
 ```
@@ -29,7 +29,7 @@ genome:          b37
 | `mode` | `single` | `single`, `cohort` | Selects one-sample processing or cohort-level processing. |
 | `pipeline` | `wes` | `wes`, `wgs`, `mit`; external names are registry-defined | Selects the analysis type. For `workflow_provider: nf-core`, the value is resolved through the workflow registry. |
 | `workflow_backend` | `bash` | `bash`, `snakemake`, `nextflow` | Selects the execution backend supported by the current workflows. |
-| `gatk_version` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the GATK release for CBIcall-native workflows. Use `gatk-4.6` for current bundled WES/WGS workflows. |
+| `software_stack` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the GATK release for CBIcall-native workflows. Use `gatk-4.6` for current bundled WES/WGS workflows. |
 | `workflow_provider` | `cbicall` | `cbicall`, `nf-core` | Selects whether the workflow is a CBIcall-maintained implementation or an external nf-core workflow. Use `workflow_provider: nf-core` for external nf-core workflows. |
 | `resource` | `cbicall-germline-resources-v1` | resource key | Selects one entry from `resources/cbicall-resource-catalog.json`. |
 | `genome` | inferred | `b37`, `hg38`, `rsrs`, `external` | Reference genome. If omitted, CBIcall uses `b37` for WES/WGS, `rsrs` for mtDNA, and `external` for nf-core/Sarek. |
@@ -75,7 +75,7 @@ Use `input_dir` pointing to the sample directory containing paired FASTQ files.
 mode:            single
 pipeline:        wes
 workflow_backend: bash
-gatk_version:    gatk-4.6
+software_stack:    gatk-4.6
 input_dir:       CNAG999_exome/CNAG99901P_ex
 genome:          b37
 ```
@@ -88,7 +88,7 @@ Use `sample_map` pointing to a TSV with sample identifiers and gVCF paths.
 mode:            cohort
 pipeline:        wes
 workflow_backend: bash
-gatk_version:    gatk-4.6
+software_stack:    gatk-4.6
 genome:          b37
 sample_map:      ./sample_map.tsv
 ```
@@ -101,7 +101,7 @@ mtDNA workflows consume BAMs from previous WES/WGS runs. They do not start from 
 mode:            single
 pipeline:        mit
 workflow_backend: bash
-gatk_version:    gatk-3.5
+software_stack:    gatk-3.5
 input_dir:       CNAG999_exome/CNAG99901P_ex
 ```
 
@@ -250,14 +250,14 @@ Use `snakemake_parameters`, `nextflow_parameters`, and `nfcore_parameters` only 
 Every run gets a generated directory:
 
 ```text
-<project_dir>_<workflow_backend>_<pipeline>_<mode>_<genome>_<gatk_version>_<run-id>/
+<project_dir>_<workflow_backend>_<software_stack>_<pipeline>_<mode>_<genome>_<run-id>/
 ```
 
-External nf-core workflows use a shorter name because their reference genome and
-runtime details are workflow-specific and recorded in `run-report.json`:
+External nf-core workflows use `software_stack: nf-core`; the displayed genome
+label is inferred from `nfcore_parameters.genome` when present:
 
 ```text
-<project_dir>_nf-core_<pipeline>_<mode>_<run-id>/
+<project_dir>_nextflow_nf-core_<pipeline>_<mode>_<display-genome>_<run-id>/
 ```
 
 When `input_dir` is set, this directory is created inside `input_dir`.

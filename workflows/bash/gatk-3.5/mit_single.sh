@@ -26,7 +26,7 @@ MA00047_exome
     ├── MA0004701P_ex_S5_L001_R2_001.fastq.gz
     ├── MA0004701P_ex_S5_L002_R1_001.fastq.gz
     ├── MA0004701P_ex_S5_L002_R2_001.fastq.gz
-    └── cbicall_bash_mit_single_gatk-3.5_* <- The script expects that you are submitting the job from inside this directory
+    └── cbicall_bash_gatk-3.5_mit_single_rsrs_* <- The script expects that you are submitting the job from inside this directory
     """
     echo "$USAGE"
     exit 1
@@ -85,7 +85,7 @@ out_raw=$mtb_id.bam
 
 bam_raw=""
 
-p35='../../*_bash_wes_single_*gatk-3.5*/01_bam/input.merged.filtered.realigned.fixed.bam'
+p35='../../*_bash_gatk-3.5_wes_single_*/01_bam/input.merged.filtered.realigned.fixed.bam'
 list35=$(ls -1 $p35 2>/dev/null | grep -v 'ref_cbicall' || true)
 n35=$(printf "%s\n" "$list35" | sed '/^$/d' | wc -l)
 
@@ -99,7 +99,7 @@ elif [ "$n35" -eq 1 ]; then
 fi
 
 if [ -z "$bam_raw" ]; then
-  p46="../../*_bash_w[ge]s_single_*gatk-4.6*/01_bam/${id}.rg.merged.dedup.recal.bam"
+  p46="../../*_bash_gatk-4.6_w[ge]s_single_*/01_bam/${id}.rg.merged.dedup.recal.bam"
   list46=$(ls -1 $p46 2>/dev/null | grep -v 'ref_cbicall' || true)
   n46=$(printf "%s\n" "$list46" | sed '/^$/d' | wc -l)
 
@@ -124,7 +124,7 @@ BAMDIR=$(dirname "$bam_raw")
 bam_raw_index="${bam_raw%.bam}.bai"
 
 case "$bam_raw" in
-  *_b37_gatk-*)
+  *_b37_*)
     chrM=MT
     ;;
   *)

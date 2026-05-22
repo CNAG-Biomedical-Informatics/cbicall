@@ -14,7 +14,7 @@ examples on a workstation or on a cluster.
 
 :::note[Run directory location]
 nf-core run directories are created where `cbicall run` is launched,
-for example `cbicall_nf-core_sarek_cohort_<run-id>/`.
+for example `cbicall_nextflow_nf-core_sarek_cohort_GATK.GRCh38_<run-id>/`.
 This differs from native CBIcall WES/WGS/mtDNA pipelines, whose run directories
 are created under the discovered sample/input directory.
 :::
@@ -235,7 +235,7 @@ and the [Nextflow container documentation](https://www.nextflow.io/docs/latest/c
 CBIcall writes the main Nextflow launcher log in the run directory:
 
 ```text
-cbicall_nf-core_<pipeline>_<mode>_<run_id>/
+cbicall_nextflow_nf-core_<pipeline>_<mode>_<display-genome>_<run_id>/
   nf-core_<pipeline>_<mode>.log
   .nextflow.log
   cbicall_external_nextflow.params.yaml

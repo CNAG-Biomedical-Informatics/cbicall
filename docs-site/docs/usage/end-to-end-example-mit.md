@@ -26,7 +26,7 @@ CBIcall expects a BAM file from a previous WES/WGS run:
 ```
 CNAG999_exome
 └── CNAG99901P_ex  <--- ID taken from here
-    └── *cbicall_bash_w?s_single_gatk-* <- The script expects that you have a BAM file inside this directory
+    └── *cbicall_bash_gatk-*_w?s_single_* <- The script expects that you have a BAM file inside this directory
 ```
 
 > **Note on nomenclature**
@@ -68,7 +68,7 @@ bin/cbicall run -p mit_single.yaml -t 4
 
 After completion, you will find:
 ```
-CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_rsrs_gatk-3.5_*/
+CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-3.5_mit_single_rsrs_*/
   01_mtoolbox/
   02_browser/
 ```
@@ -151,9 +151,9 @@ CBIcall expects BAM files from previous WES/WGS runs:
 ```
 CNAG999_exome
 └── CNAG99901P_ex  <--- ID taken from here
-    └── *cbicall_bash_w?s_single_gatk-* <- The script expects that you have a BAM file inside this directory
+    └── *cbicall_bash_gatk-*_w?s_single_* <- The script expects that you have a BAM file inside this directory
     CNAG99902M_ex  <--- ID taken from here
-    └── *cbicall_bash_w?s_single_gatk-* <- The script expects that you have a BAM file inside this directory
+    └── *cbicall_bash_gatk-*_w?s_single_* <- The script expects that you have a BAM file inside this directory
 ```
 
 > **Note on nomenclature**
@@ -168,7 +168,7 @@ Create a YAML file, e.g. `mit_cohort.yaml`:
 mode:            cohort
 pipeline:        mit
 workflow_backend: bash
-gatk_version:    gatk-3.5
+software_stack:    gatk-3.5
 input_dir:       CNAG999_exome
 ```
 
@@ -191,7 +191,7 @@ bin/cbicall run -p mit_cohort.yaml -t 4
 
 After completion, you will find:
 ```
-CNAG999_exome/cbicall_bash_mit_cohort_rsrs_gatk-3.5*
+CNAG999_exome/cbicall_bash_gatk-3.5_mit_cohort_rsrs_*
   01_mtoolbox/
   02_browser/
 ```

@@ -42,19 +42,19 @@ For CBIcall-native workflows, select the backend with `workflow_backend`:
 ```yaml
 pipeline:        wes
 workflow_backend: bash
-gatk_version:    gatk-4.6
+software_stack:    gatk-4.6
 ```
 
 ```yaml
 pipeline:        wes
 workflow_backend: snakemake
-gatk_version:    gatk-4.6
+software_stack:    gatk-4.6
 ```
 
 ```yaml
 pipeline:        wgs
 workflow_backend: nextflow
-gatk_version:    gatk-4.6
+software_stack:    gatk-4.6
 ```
 
 ## What to Read Next

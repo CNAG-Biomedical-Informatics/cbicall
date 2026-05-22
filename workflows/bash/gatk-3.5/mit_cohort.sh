@@ -20,9 +20,9 @@ function usage {
 
 MA00024_exome  <-- ID taken from here
 ├── MA0002401P_ex
-│   └── cbicall_*_wes_single_*gatk-*/...
+│   └── cbicall_*_gatk-*_wes_single_*/...
 ├── MA0002402M_ex
-│   └── cbicall_*_wes_single_*gatk-*/...
+│   └── cbicall_*_gatk-*_wes_single_*/...
 └── cbicall_bash_mit_cohort_* <- Submit from inside this directory
     """
     echo "$USAGE"
@@ -113,7 +113,7 @@ for sdir in $sample_dirs; do
   bam_raw=""
 
   # --- Prefer GATK 3.5 bam layout (wes_single, fixed.bam) ---
-  p35="$sdir/"*_bash_wes_single_*gatk-3.5*/01_bam/input.merged.filtered.realigned.fixed.bam
+  p35="$sdir/"*_bash_gatk-3.5_wes_single_*/01_bam/input.merged.filtered.realigned.fixed.bam
   list35=$(ls -1 $p35 2>/dev/null | grep -v 'ref_cbicall' || true)
   n35=$(printf "%s\n" "$list35" | sed '/^$/d' | wc -l)
 
@@ -128,7 +128,7 @@ for sdir in $sample_dirs; do
 
   # --- Otherwise try GATK 4.6 bam layout (wes/wgs single, recal.bam) ---
   if [ -z "$bam_raw" ]; then
-    p46="$sdir/"*_bash_w[ge]s_single_*gatk-4.6*/01_bam/"$sid".rg.merged.dedup.recal.bam
+    p46="$sdir/"*_bash_gatk-4.6_w[ge]s_single_*/01_bam/"$sid".rg.merged.dedup.recal.bam
     list46=$(ls -1 $p46 2>/dev/null | grep -v 'ref_cbicall' || true)
     n46=$(printf "%s\n" "$list46" | sed '/^$/d' | wc -l)
 
@@ -159,7 +159,7 @@ for sdir in $sample_dirs; do
   out_raw="${mtb_id}.bam"
 
   case "$bam_raw" in
-    *_b37_gatk-*)
+    *_b37_*)
       chrM="MT"
       ;;
     *)

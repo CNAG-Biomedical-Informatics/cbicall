@@ -43,7 +43,7 @@ ORGANISM_VALUES = {"Homo sapiens", "Mus musculus"}
 TECHNOLOGY_VALUES = {"Illumina HiSeq", "NovaSeq"}
 WORKFLOW_BACKEND_VALUES = {"bash", "nextflow", "snakemake"}
 WORKFLOW_PROVIDER_VALUES = {"cbicall", "nf-core"}
-GATK_VALUES = {"gatk-3.5", "gatk-4.6"}
+SOFTWARE_STACK_VALUES = {"gatk-3.5", "gatk-4.6"}
 GENOME_VALUES = {"b37", "hg38", "rsrs", "external"}
 
 
@@ -63,7 +63,7 @@ _DEFAULTS = {
     "nfcore_profile": None,
     "nfcore_parameters": {},
     "nfcore_singularity_cache_dir": None,
-    "gatk_version": "gatk-3.5",
+    "software_stack": "gatk-3.5",
     "workflow_provider": "cbicall",
     "pipeline_version": None,
     "project_dir": "cbicall",
@@ -79,10 +79,11 @@ _RUNTIME_ONLY_KEYS = {
 _REMOVED_KEYS = {
     "workflow_engine": "workflow_engine was renamed to workflow_backend.",
     "workflow_version": "workflow_version was renamed to workflow_provider.",
+    "gatk_version": "gatk_version was renamed to software_stack.",
 }
 
 
-# Allowed pipeline-mode combinations per GATK version
+# Allowed pipeline-mode combinations per software stack
 _ALLOWED_COMBOS = {
     "gatk-3.5": {
         "wes": ["single", "cohort"],
@@ -105,19 +106,19 @@ def _validate_enum(name, value, allowed):
 
 
 def _validate_combos(cfg: dict) -> None:
-    """Validate pipeline/mode combo for selected GATK version."""
-    version = cfg["gatk_version"]
-    if version == "nf-core":
+    """Validate pipeline/mode combo for selected software stack."""
+    software_stack = cfg["software_stack"]
+    if software_stack == "nf-core":
         return
     pipeline = cfg["pipeline"]
     mode = cfg["mode"]
 
-    allowed_for_version = _ALLOWED_COMBOS.get(version, {})
+    allowed_for_version = _ALLOWED_COMBOS.get(software_stack, {})
     modes_for_pipeline = allowed_for_version.get(pipeline, [])
 
     if mode not in modes_for_pipeline:
         raise ParameterValidationError(
-            f"Pipeline-mode '{pipeline}_{mode}' is not supported for GATK version {version}"
+            f"Pipeline-mode '{pipeline}_{mode}' is not supported for software_stack '{software_stack}'"
         )
 
 
@@ -129,11 +130,11 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
     # Block unsupported union: snakemake + gatk-3.5
     if (
         cfg.get("workflow_backend") == "snakemake"
-        and cfg.get("gatk_version") == "gatk-3.5"
+        and cfg.get("software_stack") == "gatk-3.5"
     ):
         raise ParameterValidationError(
-            "workflow_backend='snakemake' is not supported for gatk_version='gatk-3.5'. "
-            "Use workflow_backend='bash' or select gatk_version='gatk-4.6'."
+            "workflow_backend='snakemake' is not supported for software_stack='gatk-3.5'. "
+            "Use workflow_backend='bash' or select software_stack='gatk-4.6'."
         )
 
     # Block unsupported union: mit + snakemake
@@ -143,9 +144,9 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
         )
 
     if cfg.get("workflow_backend") == "nextflow":
-        if cfg.get("gatk_version") not in {"gatk-4.6", "nf-core"}:
+        if cfg.get("software_stack") not in {"gatk-4.6", "nf-core"}:
             raise ParameterValidationError(
-                "workflow_backend='nextflow' is supported for native gatk_version='gatk-4.6' or workflow_provider='nf-core'."
+                "workflow_backend='nextflow' is supported for native software_stack='gatk-4.6' or workflow_provider='nf-core'."
             )
         if cfg.get("pipeline") == "mit":
             raise ParameterValidationError(
@@ -192,7 +193,7 @@ def _validate_enums_except_genome(cfg: dict) -> None:
         cfg["pipeline"] = str(pipeline).strip()
     else:
         _validate_enum("pipeline", cfg["pipeline"], PIPELINE_VALUES)
-        _validate_enum("gatk_version", cfg["gatk_version"], GATK_VALUES)
+        _validate_enum("software_stack", cfg["software_stack"], SOFTWARE_STACK_VALUES)
     _validate_enum("organism", cfg["organism"], ORGANISM_VALUES)
     _validate_enum("technology", cfg["technology"], TECHNOLOGY_VALUES)
     _validate_enum("workflow_backend", cfg["workflow_backend"], WORKFLOW_BACKEND_VALUES)
@@ -290,7 +291,24 @@ def _normalize_workflow_provider_settings(cfg: dict) -> None:
     _validate_enum("workflow_provider", workflow_provider, WORKFLOW_PROVIDER_VALUES)
     cfg["workflow_provider"] = workflow_provider
     if workflow_provider == "nf-core":
-        cfg["gatk_version"] = "nf-core"
+        cfg["software_stack"] = "nf-core"
+
+
+def _path_label(value: str) -> str:
+    text = str(value).strip() if value is not None else ""
+    if not text:
+        return "no-genome"
+    for char in (" ", "\t", "\n", "/", "\\", ":"):
+        text = text.replace(char, "-")
+    while "--" in text:
+        text = text.replace("--", "-")
+    return text.strip("-") or "no-genome"
+
+
+def _display_genome(cfg: dict) -> str:
+    if cfg.get("workflow_provider") == "nf-core":
+        return _path_label(cfg.get("nfcore_parameters", {}).get("genome", "no-genome"))
+    return str(cfg.get("genome") or "b37")
 
 
 def _validate_nfcore_settings(cfg: dict) -> None:
@@ -417,7 +435,7 @@ def read_param_file(yaml_file: str) -> dict:
             cache_dir = yaml_path.parent / cache_dir
         cfg["nfcore_singularity_cache_dir"] = str(cache_dir.resolve())
 
-    # Validate pipeline-mode combination for selected GATK version
+    # Validate pipeline-mode combination for selected software stack
     _validate_combos(cfg)
 
     return cfg
@@ -458,18 +476,15 @@ def _build_runtime_identity(cfg_in: dict) -> dict:
     run_id = f"{now}{pid % 100000:05d}"
     run_date = time.ctime()
 
-    if cfg_in["workflow_provider"] == "nf-core":
-        name_parts = [cfg_in["project_dir"], "nf-core", cfg_in["pipeline"], cfg_in["mode"], run_id]
-    else:
-        name_parts = [
-            cfg_in["project_dir"],
-            cfg_in["workflow_backend"],
-            cfg_in["pipeline"],
-            cfg_in["mode"],
-            cfg_in["genome"],
-            cfg_in["gatk_version"],
-            run_id,
-        ]
+    name_parts = [
+        cfg_in["project_dir"],
+        cfg_in["workflow_backend"],
+        cfg_in["software_stack"],
+        cfg_in["pipeline"],
+        cfg_in["mode"],
+        _display_genome(cfg_in),
+        run_id,
+    ]
     tmp_str = "_".join(name_parts)
 
     input_dir = cfg_in.get("input_dir")
@@ -516,7 +531,7 @@ def _build_host_runtime_metadata(cfg_in: dict) -> dict:
     if cfg_in["workflow_provider"] != "nf-core" and cfg_in["pipeline"] != "wgs":
         if cfg_in["pipeline"] == "mit":
             metadata["capture_label"] = f"MToolBox_{cfg_in['genome']}"
-        elif cfg_in["gatk_version"] == "gatk-3.5":
+        elif cfg_in["software_stack"] == "gatk-3.5":
             metadata["capture_label"] = "Agilent SureSelect"
         else:
             metadata["capture_label"] = f"GATK_bundle_{cfg_in['genome']}"
@@ -545,7 +560,7 @@ def _apply_runtime_profile(cfg_in: dict, workflow: WorkflowSpec) -> WorkflowSpec
     if helper_overrides is None:
         raise WorkflowResolutionError(
             f"profile='{profile}' is not declared for workflow "
-            f"{workflow.backend}/{workflow.gatk_version}/{workflow.pipeline}/{workflow.mode}."
+            f"{workflow.backend}/{workflow.software_stack}/{workflow.pipeline}/{workflow.mode}."
         )
 
     helpers = dict(workflow.helpers)
@@ -554,7 +569,7 @@ def _apply_runtime_profile(cfg_in: dict, workflow: WorkflowSpec) -> WorkflowSpec
         backend=workflow.backend,
         pipeline=workflow.pipeline,
         mode=workflow.mode,
-        gatk_version=workflow.gatk_version,
+        software_stack=workflow.software_stack,
         pipeline_version=workflow.pipeline_version,
         entrypoint=workflow.entrypoint,
         config_file=workflow.config_file,
@@ -593,9 +608,10 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         nfcore_parameters=cfg_in.get("nfcore_parameters", {}),
         nfcore_singularity_cache_dir=cfg_in.get("nfcore_singularity_cache_dir"),
         genome=cfg_in["genome"],
+        display_genome=_display_genome(cfg_in),
         pipeline=cfg_in["pipeline"],
         mode=cfg_in["mode"],
-        gatk_version=cfg_in["gatk_version"],
+        software_stack=cfg_in["software_stack"],
         pipeline_version=workflow.pipeline_version,
         inputs=InputsSpec(
             input_dir=cfg_in.get("input_dir"),
@@ -626,9 +642,10 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         nfcore_parameters=config.nfcore_parameters,
         nfcore_singularity_cache_dir=config.nfcore_singularity_cache_dir,
         genome=config.genome,
+        display_genome=config.display_genome,
         pipeline=config.pipeline,
         mode=config.mode,
-        gatk_version=config.gatk_version,
+        software_stack=config.software_stack,
         pipeline_version=config.pipeline_version,
         inputs=config.inputs,
         workflow=config.workflow,

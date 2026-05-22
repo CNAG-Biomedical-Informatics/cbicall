@@ -34,7 +34,7 @@ def resolve_registry_context(project_root: Path) -> dict:
 
 def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> WorkflowSpec:
     backend = cfg_in["workflow_backend"]
-    version = cfg_in["gatk_version"]
+    software_stack = cfg_in["software_stack"]
     pipeline = cfg_in["pipeline"]
     mode = cfg_in["mode"]
     requested_pipeline_version = cfg_in.get("pipeline_version")
@@ -44,27 +44,27 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
         raise WorkflowResolutionError(f"Backend not defined in workflow registry: {backend}")
 
     backend_cfg = workflows[backend]
-    versions_cfg = backend_cfg["versions"]
-    if version not in versions_cfg:
-        raise WorkflowResolutionError(f"Version not defined for backend '{backend}': {version}")
+    software_stacks_cfg = backend_cfg["software_stacks"]
+    if software_stack not in software_stacks_cfg:
+        raise WorkflowResolutionError(f"Software stack not defined for backend '{backend}': {software_stack}")
 
-    ver_cfg = versions_cfg[version]
+    ver_cfg = software_stacks_cfg[software_stack]
     helpers = ver_cfg.get("helpers", {})
     pipelines_cfg = ver_cfg["pipelines"]
 
     if pipeline not in pipelines_cfg:
-        raise WorkflowResolutionError(f"Pipeline not defined for {backend}/{version}: {pipeline}")
+        raise WorkflowResolutionError(f"Pipeline not defined for {backend}/{software_stack}: {pipeline}")
     if mode not in pipelines_cfg[pipeline]:
         raise WorkflowResolutionError(
-            f"Mode not defined for pipeline '{pipeline}' in {backend}/{version}: {mode}"
+            f"Mode not defined for pipeline '{pipeline}' in {backend}/{software_stack}: {mode}"
         )
 
-    base_dir = (project_root / backend_cfg["base_dir"] / version).resolve()
+    base_dir = (project_root / backend_cfg["base_dir"] / software_stack).resolve()
     pipeline_version, implementation = _resolve_pipeline_implementation(
         pipelines_cfg[pipeline][mode],
         requested_pipeline_version,
         backend=backend,
-        gatk_version=version,
+        software_stack=software_stack,
         pipeline=pipeline,
         mode=mode,
     )
@@ -79,13 +79,13 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
         missing_helpers = [k for k in needed_helpers if k not in helpers]
         if missing_helpers:
             raise WorkflowResolutionError(
-                f"Workflow registry is missing helper keys for bash/{version}: {missing_helpers}"
+                f"Workflow registry is missing helper keys for bash/{software_stack}: {missing_helpers}"
             )
         return WorkflowSpec(
             backend=backend,
             pipeline=pipeline,
             mode=mode,
-            gatk_version=version,
+            software_stack=software_stack,
             pipeline_version=pipeline_version,
             entrypoint=str(base_dir / script_name),
             helpers={
@@ -101,13 +101,13 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
     if backend == "snakemake":
         if "config" not in helpers:
             raise WorkflowResolutionError(
-                f"Workflow registry is missing helper key 'config' for snakemake/{version}"
+                f"Workflow registry is missing helper key 'config' for snakemake/{software_stack}"
             )
         return WorkflowSpec(
             backend=backend,
             pipeline=pipeline,
             mode=mode,
-            gatk_version=version,
+            software_stack=software_stack,
             pipeline_version=pipeline_version,
             entrypoint=str(base_dir / script_name),
             config_file=str(base_dir / helpers["config"]),
@@ -120,7 +120,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
                 backend=backend,
                 pipeline=pipeline,
                 mode=mode,
-                gatk_version=version,
+                software_stack=software_stack,
                 pipeline_version=pipeline_version,
                 entrypoint=str(implementation["source"]),
                 config_file=None,
@@ -146,13 +146,13 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
         missing_helpers = [k for k in needed_helpers if k not in helpers]
         if missing_helpers:
             raise WorkflowResolutionError(
-                f"Workflow registry is missing helper keys for nextflow/{version}: {missing_helpers}"
+                f"Workflow registry is missing helper keys for nextflow/{software_stack}: {missing_helpers}"
             )
         return WorkflowSpec(
             backend=backend,
             pipeline=pipeline,
             mode=mode,
-            gatk_version=version,
+            software_stack=software_stack,
             pipeline_version=pipeline_version,
             entrypoint=str(base_dir / script_name),
             config_file=str(base_dir / helpers["config"]),
@@ -225,11 +225,11 @@ def _resolve_pipeline_implementation(
     requested_pipeline_version,
     *,
     backend: str,
-    gatk_version: str,
+    software_stack: str,
     pipeline: str,
     mode: str,
 ) -> Tuple[str, Any]:
-    label = f"{backend}/{gatk_version}/{pipeline}/{mode}"
+    label = f"{backend}/{software_stack}/{pipeline}/{mode}"
     if isinstance(mode_cfg, str):
         if requested_pipeline_version:
             raise WorkflowResolutionError(

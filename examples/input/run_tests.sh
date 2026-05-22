@@ -259,11 +259,11 @@ if [ "$RUN_WES_BASH" -eq 1 ]; then
   echo "TEST: WES Bash"
   echo "========================================"
 
-  REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_wes_single_b37_gatk-4.6_765963065360466/02_varcall/CNAG99901P.hc.QC.vcf.gz'
+  REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_gatk-4.6_wes_single_b37_765963065360466/02_varcall/CNAG99901P.hc.QC.vcf.gz'
   PARAM_WES='param.yaml'
   BASE_DIR='CNAG999_exome/CNAG99901P_ex'
-  RUN_GLOB='cbicall_bash_wes_single_b37_gatk-4.6_*'
-  WORKFLOW_LOG_NAME='bash_wes_single_b37_gatk-4.6.log'
+  RUN_GLOB='cbicall_bash_gatk-4.6_wes_single_b37_*'
+  WORKFLOW_LOG_NAME='bash_gatk-4.6_wes_single_b37.log'
 
   # Ensure reference directory exists
   check_ref_dir "$REF_VCF"
@@ -333,10 +333,10 @@ if [ "$RUN_WES_SNAKEMAKE" -eq 1 ]; then
   echo "TEST: WES Snakemake"
   echo "========================================"
 
-  REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_wes_single_b37_gatk-4.6_765963065360466/02_varcall/CNAG99901P.hc.QC.vcf.gz'
+  REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_gatk-4.6_wes_single_b37_765963065360466/02_varcall/CNAG99901P.hc.QC.vcf.gz'
   BASE_DIR='CNAG999_exome/CNAG99901P_ex'
-  RUN_GLOB='cbicall_snakemake_wes_single_b37_gatk-4.6_*'
-  WORKFLOW_LOG_NAME='snakemake_wes_single_b37_gatk-4.6.log'
+  RUN_GLOB='cbicall_snakemake_gatk-4.6_wes_single_b37_*'
+  WORKFLOW_LOG_NAME='snakemake_gatk-4.6_wes_single_b37.log'
 
   check_ref_dir "$REF_VCF"
 
@@ -362,7 +362,7 @@ if [ "$RUN_WES_SNAKEMAKE" -eq 1 ]; then
 mode: single
 pipeline: wes
 workflow_backend: snakemake
-gatk_version: gatk-4.6
+software_stack: gatk-4.6
 resource: "cbicall-germline-resources-v1"
 input_dir: CNAG999_exome/CNAG99901P_ex
 EOF
@@ -426,10 +426,10 @@ if [ "$RUN_WES_NEXTFLOW" -eq 1 ]; then
   echo "TEST: WES Nextflow"
   echo "========================================"
 
-  REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_wes_single_b37_gatk-4.6_765963065360466/02_varcall/CNAG99901P.hc.QC.vcf.gz'
+  REF_VCF='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_gatk-4.6_wes_single_b37_765963065360466/02_varcall/CNAG99901P.hc.QC.vcf.gz'
   BASE_DIR='CNAG999_exome/CNAG99901P_ex'
-  RUN_GLOB='cbicall_nextflow_wes_single_b37_gatk-4.6_*'
-  WORKFLOW_LOG_NAME='nextflow_wes_single_b37_gatk-4.6.log'
+  RUN_GLOB='cbicall_nextflow_gatk-4.6_wes_single_b37_*'
+  WORKFLOW_LOG_NAME='nextflow_gatk-4.6_wes_single_b37.log'
 
   check_ref_dir "$REF_VCF"
 
@@ -455,7 +455,7 @@ if [ "$RUN_WES_NEXTFLOW" -eq 1 ]; then
 mode: single
 pipeline: wes
 workflow_backend: nextflow
-gatk_version: gatk-4.6
+software_stack: gatk-4.6
 resource: "cbicall-germline-resources-v1"
 input_dir: CNAG999_exome/CNAG99901P_ex
 EOF
@@ -519,12 +519,12 @@ if [ "$RUN_MIT_BASH" -eq 1 ]; then
   echo "TEST: MIT Bash"
   echo "========================================"
 
-  REF_MIT='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_mit_single_rsrs_gatk-3.5_649547582283533/01_mtoolbox/mit_prioritized_variants.txt'
-  REF_MIT_JSON='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_mit_single_rsrs_gatk-3.5_649547582283533/01_mtoolbox/mit.raw.json'
+  REF_MIT='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_gatk-3.5_mit_single_rsrs_649547582283533/01_mtoolbox/mit_prioritized_variants.txt'
+  REF_MIT_JSON='CNAG999_exome/CNAG99901P_ex/ref_cbicall_bash_gatk-3.5_mit_single_rsrs_649547582283533/01_mtoolbox/mit.raw.json'
   PARAM_MIT='mit_single.yaml'
   BASE_DIR='CNAG999_exome/CNAG99901P_ex'
-  RUN_GLOB='cbicall_bash_mit_single_rsrs_gatk-3.5_*'
-  WORKFLOW_LOG_NAME='bash_mit_single_rsrs_gatk-3.5.log'
+  RUN_GLOB='cbicall_bash_gatk-3.5_mit_single_rsrs_*'
+  WORKFLOW_LOG_NAME='bash_gatk-3.5_mit_single_rsrs.log'
 
   # Ensure reference files exist
   check_ref_dir "$REF_MIT"

@@ -1,7 +1,7 @@
 mode: cohort
 pipeline: wes
 workflow_backend: bash
-gatk_version: gatk-3.5
+software_stack: gatk-3.5
 resource: "cbicall-germline-resources-v1"
 input_dir: CNAG999_exome
 cleanup_bam: true

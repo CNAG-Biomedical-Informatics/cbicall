@@ -79,7 +79,7 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
                 "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
-                "gatk_version": "gatk-4.6",
+                "software_stack": "gatk-4.6",
                 "pipeline_version": "v1",
                 "entrypoint": str(entrypoint),
                 "config_file": None,
@@ -284,7 +284,7 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
                 "backend": "nextflow",
                 "pipeline": "sarek",
                 "mode": "cohort",
-                "gatk_version": "nf-core",
+                "software_stack": "nf-core",
                 "pipeline_version": "v1",
                 "entrypoint": "nf-core/sarek",
                 "config_file": None,
@@ -817,14 +817,14 @@ def test_validate_parameters_command_prints_parameters_ok(monkeypatch, tmp_path,
             "genome": "b37",
             "pipeline": "wes",
             "mode": "single",
-            "gatk_version": "gatk-4.6",
+            "software_stack": "gatk-4.6",
             "pipeline_version": "v1",
             "inputs": {"input_dir": None, "sample_map": None},
             "workflow": {
                 "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
-                "gatk_version": "gatk-4.6",
+                "software_stack": "gatk-4.6",
                 "pipeline_version": "v1",
                 "entrypoint": "/tmp/wes_single.sh",
                 "config_file": None,
@@ -917,7 +917,7 @@ def test_main_happy_path(monkeypatch, tmp_path):
         "input_dir": None,
         "sample_map": None,
         "workflow_backend": "bash",
-        "gatk_version": "gatk-3.5",
+        "software_stack": "gatk-3.5",
         "cleanup_bam": False,
     }
 
@@ -934,7 +934,7 @@ def test_main_happy_path(monkeypatch, tmp_path):
                 "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
-                "gatk_version": "gatk-3.5",
+                "software_stack": "gatk-3.5",
                 "entrypoint": "/x.sh",
                 "config_file": None,
                 "helpers": {},
@@ -985,7 +985,7 @@ def test_main_run_subcommand_happy_path(monkeypatch, tmp_path, capsys):
         "input_dir": None,
         "sample_map": None,
         "workflow_backend": "bash",
-        "gatk_version": "gatk-4.6",
+        "software_stack": "gatk-4.6",
         "cleanup_bam": False,
     }
 
@@ -1004,7 +1004,7 @@ def test_main_run_subcommand_happy_path(monkeypatch, tmp_path, capsys):
                 "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
-                "gatk_version": "gatk-4.6",
+                "software_stack": "gatk-4.6",
                 "entrypoint": "/x_run.sh",
                 "config_file": None,
                 "helpers": {},
@@ -1065,7 +1065,7 @@ def test_main_verbose_prints(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(
         cli_mod.config_mod, "read_param_file", lambda _: {
             "pipeline": "wes", "mode": "single", "input_dir": None, "sample_map": None,
-            "workflow_backend": "bash", "gatk_version": "gatk-3.5", "cleanup_bam": False
+            "workflow_backend": "bash", "software_stack": "gatk-3.5", "cleanup_bam": False
         }
     )
     monkeypatch.setattr(
@@ -1078,7 +1078,7 @@ def test_main_verbose_prints(monkeypatch, tmp_path, capsys):
                 "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
-                "gatk_version": "gatk-3.5",
+                "software_stack": "gatk-3.5",
                 "entrypoint": "/x.sh",
                 "config_file": None,
                 "helpers": {},
@@ -1104,7 +1104,7 @@ def test_main_verbose_prints(monkeypatch, tmp_path, capsys):
     assert "Resolved Configuration" in out
     assert "Input Parameters" in out
     assert "Log" in out
-    assert str(tmp_path / "proj_verbose" / "bash_wes_single_b37_gatk-3.5.log") in out
+    assert str(tmp_path / "proj_verbose" / "bash_gatk-3.5_wes_single_b37.log") in out
 
 
 def test_main_warns_when_genome_is_inferred(monkeypatch, tmp_path, capsys):
@@ -1127,7 +1127,7 @@ def test_main_warns_when_genome_is_inferred(monkeypatch, tmp_path, capsys):
             "input_dir": None,
             "sample_map": None,
             "workflow_backend": "bash",
-            "gatk_version": "gatk-3.5",
+            "software_stack": "gatk-3.5",
             "cleanup_bam": False,
         },
     )
@@ -1143,7 +1143,7 @@ def test_main_warns_when_genome_is_inferred(monkeypatch, tmp_path, capsys):
                 "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
-                "gatk_version": "gatk-3.5",
+                "software_stack": "gatk-3.5",
                 "entrypoint": "/x.sh",
                 "config_file": None,
                 "helpers": {},
@@ -1188,7 +1188,7 @@ def test_main_partial_run_warning_and_metadata(monkeypatch, tmp_path, capsys):
             "input_dir": None,
             "sample_map": None,
             "workflow_backend": "snakemake",
-            "gatk_version": "gatk-4.6",
+            "software_stack": "gatk-4.6",
             "cleanup_bam": False,
             "snakemake_parameters": {"target": "call_variants"},
             "nextflow_parameters": {},
@@ -1209,7 +1209,7 @@ def test_main_partial_run_warning_and_metadata(monkeypatch, tmp_path, capsys):
                 "backend": "snakemake",
                 "pipeline": "wes",
                 "mode": "single",
-                "gatk_version": "gatk-4.6",
+                "software_stack": "gatk-4.6",
                 "entrypoint": "/x.smk",
                 "config_file": "/cfg.yaml",
                 "helpers": {},
@@ -1348,7 +1348,7 @@ def test_main_no_color_disables_ansi_output(monkeypatch, tmp_path, capsys):
             "input_dir": None,
             "sample_map": None,
             "workflow_backend": "bash",
-            "gatk_version": "gatk-3.5",
+            "software_stack": "gatk-3.5",
             "cleanup_bam": False,
         },
     )
@@ -1364,7 +1364,7 @@ def test_main_no_color_disables_ansi_output(monkeypatch, tmp_path, capsys):
                 "backend": "bash",
                 "pipeline": "wes",
                 "mode": "single",
-                "gatk_version": "gatk-3.5",
+                "software_stack": "gatk-3.5",
                 "entrypoint": "/x.sh",
                 "config_file": None,
                 "helpers": {},
@@ -1410,7 +1410,7 @@ def test_main_passes_wgs_cohort_workflow_keys(monkeypatch, tmp_path):
         "input_dir": None,
         "sample_map": str(tmp_path / "sample_map.tsv"),
         "workflow_backend": "bash",
-        "gatk_version": "gatk-4.6",
+        "software_stack": "gatk-4.6",
         "cleanup_bam": False,
     }
 
@@ -1427,7 +1427,7 @@ def test_main_passes_wgs_cohort_workflow_keys(monkeypatch, tmp_path):
                 "backend": "bash",
                 "pipeline": "wgs",
                 "mode": "cohort",
-                "gatk_version": "gatk-4.6",
+                "software_stack": "gatk-4.6",
                 "entrypoint": "/x_wgs_cohort.sh",
                 "config_file": "/x_config.yaml",
                 "helpers": {},
@@ -1472,7 +1472,7 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
         "sample_map": str(sample_map),
         "workflow_backend": "nextflow",
         "workflow_provider": "nf-core",
-        "gatk_version": "nf-core",
+        "software_stack": "nf-core",
         "resource": "nf-core-sarek-managed-resources-v1",
         "nfcore_profile": "docker",
         "nfcore_parameters": {
@@ -1496,7 +1496,7 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
             "genome": "external",
             "pipeline": "sarek",
             "mode": "cohort",
-            "gatk_version": "nf-core",
+            "software_stack": "nf-core",
             "pipeline_version": "v1",
             "nfcore_parameters": {
                 "input": str(sample_map),
@@ -1508,7 +1508,7 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
                 "backend": "nextflow",
                 "pipeline": "sarek",
                 "mode": "cohort",
-                "gatk_version": "nf-core",
+                "software_stack": "nf-core",
                 "pipeline_version": "v1",
                 "entrypoint": "nf-core/sarek",
                 "config_file": None,

@@ -18,7 +18,7 @@ do
     cat <<EOF > "$SAMPLE.smk_wgs_single.yaml"
 mode: single
 pipeline: wgs
-gatk_version: gatk-4.6
+software_stack: gatk-4.6
 input_dir: $DIR/$DIRNAME/$SAMPLE
 EOF
 

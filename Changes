@@ -15,6 +15,7 @@ Revision history for cbicall:
     - Add run-report.json audit summaries with CBIcall version, workflow file hashes, software-version evidence, resource provenance, output file inventory hashes, output sizes, execution trace summaries, and output fingerprints.
     - Add text and HTML run comparison reports for two or more runs.
     - Rename workflow_engine/workflow_version YAML terminology to workflow_backend/workflow_provider.
+    - Rename gatk_version YAML/report terminology to software_stack and place the software stack earlier in run directory and workflow log names.
 
 1.0.0  2026-03-23
 

@@ -85,7 +85,7 @@ reports, and `compare-runs`.
 For WES, the run directory looks like:
 
 ```text
-CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_*/
+CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_*/
   01_bam/
   02_varcall/
   03_stats/
@@ -93,15 +93,15 @@ CNAG999_exome/CNAG99901P_ex/cbicall_bash_wes_single_b37_gatk-4.6_*/
 ```
 
 The optional Snakemake WES test uses the same input and expected VCF records, but
-the run directory starts with `cbicall_snakemake_wes_single_b37_gatk-4.6_*`.
+the run directory starts with `cbicall_snakemake_gatk-4.6_wes_single_b37_*`.
 
 The optional Nextflow WES test uses the same input and expected VCF records, but
-the run directory starts with `cbicall_nextflow_wes_single_b37_gatk-4.6_*`.
+the run directory starts with `cbicall_nextflow_gatk-4.6_wes_single_b37_*`.
 
 For mtDNA, the run directory looks like:
 
 ```text
-CNAG999_exome/CNAG99901P_ex/cbicall_bash_mit_single_rsrs_gatk-3.5_*/
+CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-3.5_mit_single_rsrs_*/
   01_mtoolbox/
   02_browser/
 ```

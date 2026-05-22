@@ -27,7 +27,7 @@ def test_dnaseq_snakemake_with_sample_map_adds_workspace_and_sample_map(tmp_path
             "backend": "snakemake",
             "pipeline": "wgs",
             "mode": "cohort",
-            "gatk_version": "gatk-4.6",
+            "software_stack": "gatk-4.6",
             "entrypoint": str(tmp_path / "wgs_cohort.smk"),
             "config_file": None,
             "helpers": {},
