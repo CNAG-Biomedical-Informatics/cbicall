@@ -15,24 +15,24 @@ workflows:
         pipelines:
           wes:
             single:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wes_single.sh"
             cohort:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wes_cohort.sh"
           mit:
             single:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "mit_single.sh"
             cohort:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "mit_cohort.sh"
 
@@ -49,24 +49,24 @@ workflows:
         pipelines:
           wes:
             single:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wes_single.sh"
             cohort:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wes_cohort.sh"
           wgs:
             single:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wgs_single.sh"
             cohort:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wgs_cohort.sh"
 
@@ -79,24 +79,24 @@ workflows:
         pipelines:
           wes:
             single:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wes_single.smk"
             cohort:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wes_cohort.smk"
           wgs:
             single:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wgs_single.smk"
             cohort:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wgs_cohort.smk"
 
@@ -112,24 +112,24 @@ workflows:
         pipelines:
           wes:
             single:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wes_wgs_single.nf"
             cohort:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wes_wgs_cohort.nf"
           wgs:
             single:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wes_wgs_single.nf"
             cohort:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   script: "wes_wgs_cohort.nf"
 
@@ -137,8 +137,8 @@ workflows:
         pipelines:
           demo:
             single:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   provider: "nf-core"
                   source: "nf-core/demo"
@@ -146,8 +146,8 @@ workflows:
                   default_outdir: "demo"
           sarek:
             cohort:
-              default: "v1"
-              versions:
+              default_registry_version: "v1"
+              registry_versions:
                 v1:
                   provider: "nf-core"
                   source: "nf-core/sarek"

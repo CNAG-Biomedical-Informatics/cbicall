@@ -23,7 +23,7 @@ json_expectations:
     equals: single
   - path: workflow.software_stack
     equals: gatk-4.6
-  - path: workflow.pipeline_version
+  - path: workflow.registry_version
     equals: v1
   - path: resources.bundle.key
     equals: cbicall-germline-resources-v1

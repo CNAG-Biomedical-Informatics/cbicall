@@ -65,7 +65,7 @@ _DEFAULTS = {
     "nfcore_singularity_cache_dir": None,
     "software_stack": "gatk-3.5",
     "workflow_provider": "cbicall",
-    "pipeline_version": None,
+    "registry_version": None,
     "project_dir": "cbicall",
     "cleanup_bam": False,
     "genome": None,  # Option 1: effective default assigned in _apply_genome_rules
@@ -271,14 +271,14 @@ def _validate_profile_settings(cfg: dict) -> None:
     cfg["profile"] = cfg["profile"].strip()
 
 
-def _validate_pipeline_version_settings(cfg: dict) -> None:
-    pipeline_version = cfg.get("pipeline_version")
-    if pipeline_version is None:
+def _validate_registry_version_settings(cfg: dict) -> None:
+    registry_version = cfg.get("registry_version")
+    if registry_version is None:
         return
-    cfg["pipeline_version"] = str(pipeline_version)
-    if not cfg["pipeline_version"].strip():
-        raise ParameterValidationError("pipeline_version must be a non-empty value when provided.")
-    cfg["pipeline_version"] = cfg["pipeline_version"].strip()
+    cfg["registry_version"] = str(registry_version)
+    if not cfg["registry_version"].strip():
+        raise ParameterValidationError("registry_version must be a non-empty value when provided.")
+    cfg["registry_version"] = cfg["registry_version"].strip()
 
 
 def _normalize_workflow_provider_settings(cfg: dict) -> None:
@@ -402,7 +402,7 @@ def read_param_file(yaml_file: str) -> dict:
     _normalize_workflow_provider_settings(cfg)
     _validate_enums_except_genome(cfg)
     _validate_profile_settings(cfg)
-    _validate_pipeline_version_settings(cfg)
+    _validate_registry_version_settings(cfg)
     _validate_backend_parameter_settings(cfg)
     _validate_resource_settings(cfg)
     _validate_nfcore_settings(cfg)
@@ -454,7 +454,7 @@ def _merge_and_validate_param_values(params: dict) -> dict:
     _normalize_workflow_provider_settings(cfg_in)
     _validate_enums_except_genome(cfg_in)
     _validate_profile_settings(cfg_in)
-    _validate_pipeline_version_settings(cfg_in)
+    _validate_registry_version_settings(cfg_in)
     _validate_backend_parameter_settings(cfg_in)
     _validate_resource_settings(cfg_in)
     _validate_nfcore_settings(cfg_in)
@@ -570,7 +570,7 @@ def _apply_runtime_profile(cfg_in: dict, workflow: WorkflowSpec) -> WorkflowSpec
         pipeline=workflow.pipeline,
         mode=workflow.mode,
         software_stack=workflow.software_stack,
-        pipeline_version=workflow.pipeline_version,
+        registry_version=workflow.registry_version,
         entrypoint=workflow.entrypoint,
         config_file=workflow.config_file,
         helpers=helpers,
@@ -612,7 +612,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         pipeline=cfg_in["pipeline"],
         mode=cfg_in["mode"],
         software_stack=cfg_in["software_stack"],
-        pipeline_version=workflow.pipeline_version,
+        registry_version=workflow.registry_version,
         inputs=InputsSpec(
             input_dir=cfg_in.get("input_dir"),
             sample_map=cfg_in.get("sample_map"),
@@ -646,7 +646,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         pipeline=config.pipeline,
         mode=config.mode,
         software_stack=config.software_stack,
-        pipeline_version=config.pipeline_version,
+        registry_version=config.registry_version,
         inputs=config.inputs,
         workflow=config.workflow,
         run_id=runtime_identity["run_id"],

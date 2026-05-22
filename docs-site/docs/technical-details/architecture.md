@@ -5,7 +5,7 @@ Its main responsibilities are:
 
 - Reading a parameters YAML file
 - Validating required parameters, compatibility rules, and runtime resources
-- Resolving the selected **workflow backend**, **software stack**, **pipeline**, **mode**, and **pipeline version**
+- Resolving the selected **workflow backend**, **software stack**, **pipeline**, **mode**, and **registry version**
 - Preparing a deterministic run directory
 - Dispatching the appropriate Bash, Snakemake, Nextflow, or nf-core workflow
 - Recording logs, workflow fingerprints, resource provenance, and compact run reports
@@ -33,7 +33,7 @@ _CBIcall resolves a validated parameters YAML into one registered workflow imple
 | Component | Role | Main files or directories |
 | --- | --- | --- |
 | **CLI and validation layer** | Reads the parameters YAML, applies defaults, checks schema-level and compatibility rules, resolves runtime profiles, and starts the selected command. | `src/cbicall/cli.py`, `src/cbicall/config.py` |
-| **Workflow registry** | Developer-facing routing table that maps `workflow_backend`, `software_stack`, `pipeline`, `mode`, and `pipeline_version` to one implementation. Validate it with `bin/cbicall validate-registry` after editing. | `workflows/registry/cbicall-workflow-registry.yaml`, `src/cbicall/workflow_registry.py` |
+| **Workflow registry** | Developer-facing routing table that maps `workflow_backend`, `software_stack`, `pipeline`, `mode`, and `registry_version` to one implementation. Validate it with `bin/cbicall validate-registry` after editing. | `workflows/registry/cbicall-workflow-registry.yaml`, `src/cbicall/workflow_registry.py` |
 | **Resource catalog** | Declares external dependency sets, resource identifiers, compatible workflow keys, and checksum metadata for downloadable CBIcall bundles. | `resources/cbicall-resource-catalog.json`, `src/cbicall/resources.py` |
 | **Workflow runners** | Execute the resolved implementation. Bash runs local scripts directly; Snakemake and native Nextflow run bundled workflow files; external nf-core entries are launched through Nextflow. | `src/cbicall/dnaseq.py` |
 | **Workflow implementations** | Contain the analysis logic for native WES, WGS, and mtDNA pipelines, plus registered external nf-core workflows. | `workflows/bash/`, `workflows/snakemake/`, `workflows/nextflow/` |
@@ -89,11 +89,11 @@ pipeline: wes
 mode: single
 ```
 
-CBIcall then resolves the default `pipeline_version` from the registry unless an
-advanced run pins a specific implementation version:
+CBIcall then resolves `default_registry_version` from the registry unless an
+advanced run pins a specific `registry_version`:
 
 ```yaml
-pipeline_version: v1
+registry_version: v1
 ```
 
 For native CBIcall workflows, `software_stack` identifies the implementation
@@ -105,7 +105,7 @@ entry.
 The selected run is therefore identified by:
 
 ```text
-workflow_backend + software_stack + pipeline + mode + pipeline_version
+workflow_backend + software_stack + pipeline + mode + registry_version
 ```
 
 Resource compatibility is resolved separately through the resource catalog. This
@@ -216,7 +216,7 @@ New native pipelines can be added without modifying the core execution contract:
 
 - Register the workflow under `workflows/registry/cbicall-workflow-registry.yaml`.
 - Place implementation files under the backend and software-stack directory.
-- Add a `pipeline_version` entry so changes can be pinned and audited.
+- Add a `registry_versions` entry so changes can be pinned and audited.
 - Add or update resource catalog compatibility when the workflow needs a CBIcall bundle.
 - Add an integration-test fixture when a small runnable example exists.
 

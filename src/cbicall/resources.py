@@ -30,15 +30,15 @@ def _catalog_entry_for_fingerprint(entry: dict) -> dict:
 
 
 def _workflow_key(cfg_in: dict, workflow: WorkflowSpec = None) -> str:
-    pipeline_version = workflow.pipeline_version if workflow else cfg_in.get("pipeline_version")
+    registry_version = workflow.registry_version if workflow else cfg_in.get("registry_version")
     parts = [
         cfg_in["workflow_backend"],
         cfg_in["pipeline"],
         cfg_in["mode"],
         cfg_in["software_stack"],
     ]
-    if pipeline_version:
-        parts.append(str(pipeline_version))
+    if registry_version:
+        parts.append(str(registry_version))
     return "/".join(parts)
 
 
@@ -54,8 +54,8 @@ def _registry_workflow_keys(registry: dict) -> set:
                     continue
                 for mode, mode_cfg in modes.items():
                     if isinstance(mode_cfg, dict):
-                        implementations = mode_cfg.get("versions", {})
-                        for pipeline_version in implementations:
+                        registry_versions = mode_cfg.get("registry_versions", {})
+                        for registry_version in registry_versions:
                             keys.add(
                                 "/".join(
                                     [
@@ -63,7 +63,7 @@ def _registry_workflow_keys(registry: dict) -> set:
                                         str(pipeline),
                                         str(mode),
                                         str(software_stack),
-                                        str(pipeline_version),
+                                        str(registry_version),
                                     ]
                                 )
                             )
@@ -155,7 +155,7 @@ def validate_resource_catalog(
             if not _validate_workflow_key_format(workflow_key):
                 errors.append(
                     f"{label}.compatible_workflows entry must use "
-                    "backend/pipeline/mode/software_stack/pipeline_version: "
+                    "backend/pipeline/mode/software_stack/registry_version: "
                     f"{workflow_key}"
                 )
             elif known_workflows is not None and workflow_key not in known_workflows:

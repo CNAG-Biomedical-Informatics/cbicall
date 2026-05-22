@@ -43,7 +43,7 @@ bin/cbicall compare-runs baseline_run/ repeat_1/ repeat_2/ repeat_3/ --output co
 | Layer | Fields |
 | --- | --- |
 | Framework | CBIcall version, Python version, Java version, configured native Java version, and workflow backend version recorded in `run-report.json`. |
-| Pipeline | Workflow key, pipeline implementation version, entrypoint, and workflow fingerprint. |
+| Pipeline | Workflow key, registry version, entrypoint, and workflow fingerprint. |
 | Execution | Task count and peak RAM summaries when the backend provides an execution trace. |
 | Software | Software-version fingerprint when available. Native runs use declared tool versions from the resource catalog; nf-core runs use the workflow-reported software versions YAML. |
 | Workflow files | Entrypoint and helper/config file paths plus their SHA-256 values. |

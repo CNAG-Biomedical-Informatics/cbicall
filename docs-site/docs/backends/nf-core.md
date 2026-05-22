@@ -9,7 +9,7 @@ layout and runtime behavior.
 In CBIcall terms, nf-core is a **workflow provider** and Nextflow is the
 **workflow backend**. Registered nf-core entries are launched through the
 Nextflow backend, but they are not one of the shipped CBIcall WES/WGS/mtDNA
-pipeline implementations. Use this page when testing registered nf-core
+native CBIcall implementations. Use this page when testing registered nf-core
 examples on a workstation or on a cluster.
 
 :::note[Run directory location]

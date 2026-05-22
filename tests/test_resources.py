@@ -14,7 +14,7 @@ def _workflow(backend="bash", *, env_file=None, config_file=None):
         pipeline="wes",
         mode="single",
         software_stack="gatk-4.6",
-        pipeline_version="v1",
+        registry_version="v1",
         entrypoint="/workflow.sh",
         config_file=str(config_file) if config_file else None,
         helpers={"env": str(env_file)} if env_file else {},
@@ -100,7 +100,7 @@ def test_validate_resource_catalog_reports_semantic_errors_after_schema_passes(t
         resources_mod.validate_resource_catalog(catalog)
 
     message = str(excinfo.value)
-    assert "backend/pipeline/mode/software_stack/pipeline_version" in message
+    assert "backend/pipeline/mode/software_stack/registry_version" in message
     assert "expected.resource_key must match the resource key" in message
 
 
@@ -225,7 +225,7 @@ def test_build_resource_metadata_accepts_non_bundle_resource(tmp_path):
         pipeline="sarek",
         mode="cohort",
         software_stack="nf-core",
-        pipeline_version="v1",
+        registry_version="v1",
         entrypoint="nf-core/sarek",
         metadata={"provider": "nf-core"},
     )

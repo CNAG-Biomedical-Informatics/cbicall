@@ -32,7 +32,7 @@ Expected evidence:
 | Evidence | Meaning |
 | --- | --- |
 | `validate-resources` succeeds | The resource catalog is well formed and points to declared workflows. |
-| `validate-parameters` resolves the run | The parameters YAML resolves to a concrete workflow, profile, pipeline version, and resource. |
+| `validate-parameters` resolves the run | The parameters YAML resolves to a concrete workflow, profile, registry version, and resource. |
 | `test --wes-bash` succeeds | The generated WES VCF matches the normalized hash declared by the integration-test contract. |
 | Normalized [SHA-256](https://en.wikipedia.org/wiki/SHA-2) is printed | The test computes this on the fly from the filtered, sorted reference and test VCF records. |
 | `run-report.json` exists | The cloud run records workflow and resource provenance. |

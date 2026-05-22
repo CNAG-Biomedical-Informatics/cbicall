@@ -111,8 +111,10 @@ def _print_run_summary(
     _row("Sample map", _short_path(resolved_config.inputs.sample_map))
     _row("Workflow provider", resolved_config.workflow_provider)
     _row("Software stack", workflow.software_stack)
-    _row("Pipeline ver", workflow.pipeline_version)
+    _row("Registry ver", workflow.registry_version)
     if workflow.metadata.get("provider") == "nf-core":
+        _row("External workflow", workflow.metadata.get("source"))
+        _row("External release", workflow.metadata.get("release"))
         _row("NF profile", resolved_config.nfcore_profile)
         _row("NF parameters", ", ".join(sorted(resolved_config.nfcore_parameters)) or "(none)")
         if resolved_config.nfcore_singularity_cache_dir:
@@ -128,8 +130,8 @@ def _print_run_summary(
         _row("Config", _short_path(workflow.config_file))
     elif workflow.backend == "nextflow":
         if workflow.metadata.get("provider") == "nf-core":
-            _row("Nextflow", workflow.metadata.get("source"))
-            _row("Release", workflow.metadata.get("release"))
+            _row("External workflow", workflow.metadata.get("source"))
+            _row("External release", workflow.metadata.get("release"))
             _row("Outdir", Path(resolved_config.project_dir) / workflow.metadata.get("default_outdir", workflow.pipeline))
         else:
             _row("Nextflow", _short_path(workflow.entrypoint))

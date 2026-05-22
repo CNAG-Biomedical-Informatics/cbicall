@@ -81,25 +81,25 @@ def write_workflow_schema(path: Path) -> None:
                 "type": "object",
                 "additionalProperties": False,
                 "properties": {
-                    "single": {"$ref": "#/$defs/pipelineImplementationSet"},
-                    "cohort": {"$ref": "#/$defs/pipelineImplementationSet"},
+                    "single": {"$ref": "#/$defs/registryVersionSet"},
+                    "cohort": {"$ref": "#/$defs/registryVersionSet"},
                 },
                 "minProperties": 1,
             },
-            "pipelineImplementationSet": {
+            "registryVersionSet": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["default", "versions"],
+                "required": ["default_registry_version", "registry_versions"],
                 "properties": {
-                    "default": {"type": "string", "minLength": 1},
-                    "versions": {
+                    "default_registry_version": {"type": "string", "minLength": 1},
+                    "registry_versions": {
                         "type": "object",
                         "minProperties": 1,
-                        "additionalProperties": {"$ref": "#/$defs/pipelineImplementation"},
+                        "additionalProperties": {"$ref": "#/$defs/registryImplementation"},
                     },
                 },
             },
-            "pipelineImplementation": {
+            "registryImplementation": {
                 "type": "object",
                 "additionalProperties": False,
                 "oneOf": [
@@ -139,8 +139,8 @@ def _append_pipeline_modes(lines: List[str], modes: Dict[str, str], indent: str)
         lines.extend(
             [
                 f"{indent}{mode}:",
-                f"{indent}  default: \"v1\"",
-                f"{indent}  versions:",
+                f"{indent}  default_registry_version: \"v1\"",
+                f"{indent}  registry_versions:",
                 f"{indent}    v1:",
                 f"{indent}      script: \"{script}\"",
             ]

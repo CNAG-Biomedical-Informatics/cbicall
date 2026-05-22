@@ -93,8 +93,8 @@ def _minimal_bash_registry_block(software_stack: str = "gatk-4.6") -> str:
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
-        "              default: \"v1\"\n"
-        "              versions:\n"
+        "              default_registry_version: \"v1\"\n"
+        "              registry_versions:\n"
         "                v1:\n"
         "                  script: \"wes_single.sh\"\n"
     )
@@ -163,17 +163,17 @@ def test_read_param_file_hg38_only_allowed_for_wgs(tmp_path):
         config_mod.read_param_file(str(p))
 
 
-def test_read_param_file_empty_pipeline_version_raises(tmp_path):
+def test_read_param_file_empty_registry_version_raises(tmp_path):
     p = tmp_path / "params.yaml"
     p.write_text(
         "mode: single\n"
         "pipeline: wes\n"
         "workflow_backend: bash\n"
         "software_stack: gatk-4.6\n"
-        "pipeline_version: ''\n",
+        "registry_version: ''\n",
         encoding="utf-8",
     )
-    with pytest.raises(ParameterValidationError, match="pipeline_version must be a non-empty"):
+    with pytest.raises(ParameterValidationError, match="registry_version must be a non-empty"):
         config_mod.read_param_file(str(p))
 
 
@@ -464,8 +464,8 @@ def test_validate_resource_catalog_accepts_registry_workflow_keys(tmp_path):
                         "pipelines": {
                             "wes": {
                                 "single": {
-                                    "default": "v1",
-                                    "versions": {"v1": {"script": "wes_single.sh"}},
+                                    "default_registry_version": "v1",
+                                    "registry_versions": {"v1": {"script": "wes_single.sh"}},
                                 }
                             }
                         }
@@ -506,8 +506,8 @@ def test_validate_resource_catalog_rejects_unknown_workflow_key(tmp_path):
                         "pipelines": {
                             "wes": {
                                 "single": {
-                                    "default": "v1",
-                                    "versions": {"v1": {"script": "wes_single.sh"}},
+                                    "default_registry_version": "v1",
+                                    "registry_versions": {"v1": {"script": "wes_single.sh"}},
                                 }
                             }
                         }
@@ -691,7 +691,7 @@ def test_set_config_values_rejects_mismatched_installation_manifest_fingerprint(
         )
 
 
-def test_set_config_values_uses_registry_default_pipeline_version(monkeypatch, tmp_path):
+def test_set_config_values_uses_registry_default_registry_version(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
@@ -704,11 +704,11 @@ def test_set_config_values_uses_registry_default_pipeline_version(monkeypatch, t
         {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "software_stack": "gatk-4.6"}
     )
 
-    assert cfg["pipeline_version"] == "v1"
-    assert cfg["workflow"]["pipeline_version"] == "v1"
+    assert cfg["registry_version"] == "v1"
+    assert cfg["workflow"]["registry_version"] == "v1"
 
 
-def test_set_config_values_accepts_explicit_pipeline_version(monkeypatch, tmp_path):
+def test_set_config_values_accepts_explicit_registry_version(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
@@ -723,14 +723,14 @@ def test_set_config_values_accepts_explicit_pipeline_version(monkeypatch, tmp_pa
             "pipeline": "wes",
             "workflow_backend": "bash",
             "software_stack": "gatk-4.6",
-            "pipeline_version": "v1",
+            "registry_version": "v1",
         }
     )
 
-    assert cfg["workflow"]["pipeline_version"] == "v1"
+    assert cfg["workflow"]["registry_version"] == "v1"
 
 
-def test_set_config_values_unknown_pipeline_version_raises(monkeypatch, tmp_path):
+def test_set_config_values_unknown_registry_version_raises(monkeypatch, tmp_path):
     root = fake_project(
         monkeypatch,
         tmp_path,
@@ -739,14 +739,14 @@ def test_set_config_values_unknown_pipeline_version_raises(monkeypatch, tmp_path
     )
     _touch_bash_files(root, "gatk-4.6", "wes_single.sh")
 
-    with pytest.raises(WorkflowResolutionError, match="pipeline_version='v2' is not defined"):
+    with pytest.raises(WorkflowResolutionError, match="registry_version='v2' is not defined"):
         config_mod.set_config_values(
             {
                 "mode": "single",
                 "pipeline": "wes",
                 "workflow_backend": "bash",
                 "software_stack": "gatk-4.6",
-                "pipeline_version": "v2",
+                "registry_version": "v2",
             }
         )
 
@@ -875,8 +875,8 @@ def test_set_config_values_backend_not_in_registry_raises(monkeypatch, tmp_path)
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
-        "              default: \"v1\"\n"
-        "              versions:\n"
+        "              default_registry_version: \"v1\"\n"
+        "              registry_versions:\n"
         "                v1:\n"
         "                  script: \"wes_single.sh\"\n"
     )
@@ -914,8 +914,8 @@ def test_set_config_values_version_not_in_registry_raises(monkeypatch, tmp_path)
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
-        "              default: \"v1\"\n"
-        "              versions:\n"
+        "              default_registry_version: \"v1\"\n"
+        "              registry_versions:\n"
         "                v1:\n"
         "                  script: \"wes_single.sh\"\n"
     )
@@ -947,8 +947,8 @@ def test_set_config_values_pipeline_not_in_registry_raises(monkeypatch, tmp_path
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
-        "              default: \"v1\"\n"
-        "              versions:\n"
+        "              default_registry_version: \"v1\"\n"
+        "              registry_versions:\n"
         "                v1:\n"
         "                  script: \"wes_single.sh\"\n"
     )
@@ -980,8 +980,8 @@ def test_set_config_values_mode_not_in_registry_raises(monkeypatch, tmp_path):
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
-        "              default: \"v1\"\n"
-        "              versions:\n"
+        "              default_registry_version: \"v1\"\n"
+        "              registry_versions:\n"
         "                v1:\n"
         "                  script: \"wes_single.sh\"\n"
     )
@@ -1013,8 +1013,8 @@ def test_set_config_values_bash_missing_helper_keys_raises(monkeypatch, tmp_path
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
-        "              default: \"v1\"\n"
-        "              versions:\n"
+        "              default_registry_version: \"v1\"\n"
+        "              registry_versions:\n"
         "                v1:\n"
         "                  script: \"wes_single.sh\"\n"
     )
@@ -1043,8 +1043,8 @@ def test_set_config_values_snakemake_missing_helper_config_raises(monkeypatch, t
           "        pipelines:\n"
           "          wgs:\n"
           "            cohort:\n"
-          "              default: \"v1\"\n"
-          "              versions:\n"
+          "              default_registry_version: \"v1\"\n"
+          "              registry_versions:\n"
           "                v1:\n"
           "                  script: \"wgs_cohort.smk\"\n"
     )
@@ -1079,8 +1079,8 @@ def test_set_config_values_snakemake_missing_files_triggers_guard(monkeypatch, t
           "        pipelines:\n"
           "          wgs:\n"
           "            cohort:\n"
-          "              default: \"v1\"\n"
-          "              versions:\n"
+          "              default_registry_version: \"v1\"\n"
+          "              registry_versions:\n"
           "                v1:\n"
           "                  script: \"wgs_cohort.smk\"\n"
     )
@@ -1121,8 +1121,8 @@ def test_set_config_values_nextflow_single_gatk46_resolves(monkeypatch, tmp_path
           "        pipelines:\n"
           "          wgs:\n"
           "            single:\n"
-          "              default: \"v1\"\n"
-          "              versions:\n"
+          "              default_registry_version: \"v1\"\n"
+          "              registry_versions:\n"
           "                v1:\n"
           "                  script: \"wes_wgs_single.nf\"\n"
     )
@@ -1158,8 +1158,8 @@ def test_set_config_values_nextflow_cohort_gatk46_resolves(monkeypatch, tmp_path
           "        pipelines:\n"
           "          wgs:\n"
           "            cohort:\n"
-          "              default: \"v1\"\n"
-          "              versions:\n"
+          "              default_registry_version: \"v1\"\n"
+          "              registry_versions:\n"
           "                v1:\n"
           "                  script: \"wes_wgs_cohort.nf\"\n"
     )
@@ -1264,8 +1264,8 @@ def test_set_config_values_sarek_resolves_external_nfcore_workflow(monkeypatch, 
           "        pipelines:\n"
           "          sarek:\n"
           "            cohort:\n"
-          "              default: \"v1\"\n"
-          "              versions:\n"
+          "              default_registry_version: \"v1\"\n"
+          "              registry_versions:\n"
           "                v1:\n"
           "                  provider: \"nf-core\"\n"
           "                  source: \"nf-core/sarek\"\n"
@@ -1667,8 +1667,8 @@ def test_set_config_values_missing_workflow_files_raises(monkeypatch, tmp_path):
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
-        "              default: \"v1\"\n"
-        "              versions:\n"
+        "              default_registry_version: \"v1\"\n"
+        "              registry_versions:\n"
         "                v1:\n"
         "                  script: \"wes_single.sh\"\n"
     )
@@ -1703,8 +1703,8 @@ def test_set_config_values_not_executable_bash_raises(monkeypatch, tmp_path):
         "        pipelines:\n"
         "          wes:\n"
         "            single:\n"
-        "              default: \"v1\"\n"
-        "              versions:\n"
+        "              default_registry_version: \"v1\"\n"
+        "              registry_versions:\n"
         "                v1:\n"
         "                  script: \"wes_single.sh\"\n"
     )

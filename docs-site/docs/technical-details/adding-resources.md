@@ -107,7 +107,7 @@ Add the resource under `resources` and declare its type:
 `compatible_workflows` uses:
 
 ```text
-backend/pipeline/mode/software_stack/pipeline_version
+backend/pipeline/mode/software_stack/registry_version
 ```
 
 The workflow keys must exist in `workflows/registry/cbicall-workflow-registry.yaml`.

@@ -148,7 +148,7 @@ def _workflow_key(workflow) -> str:
             str(workflow.pipeline),
             str(workflow.mode),
             str(workflow.software_stack),
-            str(workflow.pipeline_version),
+            str(workflow.registry_version),
         ]
     )
 
@@ -1125,6 +1125,28 @@ def _run_report_html(payload: dict) -> str:
     execution_trace_rows = _execution_trace_rows_html(payload, base_dir)
 
     output_dashboard = _output_dashboard_html(payload, base_dir)
+    workflow_metadata = _nested(payload, "workflow", "metadata") or {}
+    analysis_rows = [
+        ("Backend", _nested(payload, "workflow", "backend")),
+        ("Pipeline", _nested(payload, "workflow", "pipeline")),
+        ("Mode", _nested(payload, "workflow", "mode")),
+        ("Genome", _nested(payload, "run", "display_genome") or _nested(payload, "run", "genome")),
+        ("Software stack", _nested(payload, "workflow", "software_stack")),
+        ("Registry version", _nested(payload, "workflow", "registry_version")),
+    ]
+    if workflow_metadata.get("provider") == "nf-core":
+        analysis_rows.extend(
+            [
+                ("External workflow", workflow_metadata.get("source")),
+                ("External release", workflow_metadata.get("release")),
+            ]
+        )
+    analysis_rows.extend(
+        [
+            ("Runtime profile", payload.get("profile")),
+            ("Threads", _nested(payload, "run", "threads")),
+        ]
+    )
 
     sections = [
         _html_section(
@@ -1139,16 +1161,7 @@ def _run_report_html(payload: dict) -> str:
         ),
         _html_section(
             "Analysis",
-            [
-                ("Backend", _nested(payload, "workflow", "backend")),
-                ("Pipeline", _nested(payload, "workflow", "pipeline")),
-                ("Mode", _nested(payload, "workflow", "mode")),
-                ("Genome", _nested(payload, "run", "display_genome") or _nested(payload, "run", "genome")),
-                ("Software stack", _nested(payload, "workflow", "software_stack")),
-                ("Pipeline version", _nested(payload, "workflow", "pipeline_version")),
-                ("Runtime profile", payload.get("profile")),
-                ("Threads", _nested(payload, "run", "threads")),
-            ],
+            analysis_rows,
         ),
         _html_section(
             "Runtime",
@@ -1680,11 +1693,11 @@ def _run_validate_parameters_command(argv: List[str]) -> int:
     _row("Workflow", f"{workflow.backend} -> {workflow.pipeline} -> {workflow.mode}")
     _row("Workflow provider", resolved_config.workflow_provider)
     _row("Software stack", workflow.software_stack)
-    _row("Pipeline ver", workflow.pipeline_version)
+    _row("Registry ver", workflow.registry_version)
     _row("Genome", resolved_config.genome or "b37")
     if workflow.metadata.get("provider") == "nf-core":
-        _row("Source", workflow.metadata.get("source"))
-        _row("Release", workflow.metadata.get("release"))
+        _row("External workflow", workflow.metadata.get("source"))
+        _row("External release", workflow.metadata.get("release"))
         _row("NF profile", resolved_config.nfcore_profile)
         _row("NF parameters", ", ".join(sorted(resolved_config.nfcore_parameters)) or "(none)")
         if resolved_config.nfcore_singularity_cache_dir:
@@ -1889,7 +1902,11 @@ def _print_single_run_report(
     _row("Software stack", workflow.get("software_stack"))
     _row("Pipeline", workflow.get("pipeline"))
     _row("Mode", workflow.get("mode"))
-    _row("Pipeline ver", workflow.get("pipeline_version"))
+    _row("Registry ver", workflow.get("registry_version"))
+    metadata = workflow.get("metadata") or {}
+    if metadata.get("provider") == "nf-core":
+        _row("External workflow", metadata.get("source"))
+        _row("External release", metadata.get("release"))
     _row("Fingerprint", workflow.get("fingerprint"))
     _row("Backend ver", backend.get("version"))
 
@@ -2251,7 +2268,9 @@ def _print_multi_run_comparison(reports: List[dict]) -> None:
     print()
     _section("Pipeline", BLUE)
     _multi_status("Workflow key", baseline, reports, lambda report: _nested(report, "workflow", "key"))
-    _multi_status("Pipeline ver", baseline, reports, lambda report: _nested(report, "workflow", "pipeline_version"))
+    _multi_status("Registry ver", baseline, reports, lambda report: _nested(report, "workflow", "registry_version"))
+    _multi_status("External workflow", baseline, reports, lambda report: _nested(report, "workflow", "metadata", "source"))
+    _multi_status("External release", baseline, reports, lambda report: _nested(report, "workflow", "metadata", "release"))
     _multi_status("Entrypoint", baseline, reports, lambda report: _nested(report, "workflow", "entrypoint"))
     _multi_status("Workflow hash", baseline, reports, lambda report: _nested(report, "workflow", "fingerprint"))
 
@@ -2318,7 +2337,9 @@ def _print_run_comparison(left: dict, right: dict) -> None:
     print()
     _section("Pipeline", BLUE)
     _compare_row("Workflow key", _nested(left, "workflow", "key"), _nested(right, "workflow", "key"))
-    _compare_row("Pipeline ver", _nested(left, "workflow", "pipeline_version"), _nested(right, "workflow", "pipeline_version"))
+    _compare_row("Registry ver", _nested(left, "workflow", "registry_version"), _nested(right, "workflow", "registry_version"))
+    _compare_row("External workflow", _nested(left, "workflow", "metadata", "source"), _nested(right, "workflow", "metadata", "source"))
+    _compare_row("External release", _nested(left, "workflow", "metadata", "release"), _nested(right, "workflow", "metadata", "release"))
     _compare_row("Entrypoint", _nested(left, "workflow", "entrypoint"), _nested(right, "workflow", "entrypoint"))
     _compare_row("Workflow hash", _nested(left, "workflow", "fingerprint"), _nested(right, "workflow", "fingerprint"))
 

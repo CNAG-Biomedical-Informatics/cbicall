@@ -37,7 +37,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
     software_stack = cfg_in["software_stack"]
     pipeline = cfg_in["pipeline"]
     mode = cfg_in["mode"]
-    requested_pipeline_version = cfg_in.get("pipeline_version")
+    requested_registry_version = cfg_in.get("registry_version")
 
     workflows = registry["workflows"]
     if backend not in workflows:
@@ -60,9 +60,9 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
         )
 
     base_dir = (project_root / backend_cfg["base_dir"] / software_stack).resolve()
-    pipeline_version, implementation = _resolve_pipeline_implementation(
+    registry_version, implementation = _resolve_pipeline_implementation(
         pipelines_cfg[pipeline][mode],
-        requested_pipeline_version,
+        requested_registry_version,
         backend=backend,
         software_stack=software_stack,
         pipeline=pipeline,
@@ -86,7 +86,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
             pipeline=pipeline,
             mode=mode,
             software_stack=software_stack,
-            pipeline_version=pipeline_version,
+            registry_version=registry_version,
             entrypoint=str(base_dir / script_name),
             helpers={
                 "env": str(base_dir / helpers["env"]),
@@ -108,7 +108,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
             pipeline=pipeline,
             mode=mode,
             software_stack=software_stack,
-            pipeline_version=pipeline_version,
+            registry_version=registry_version,
             entrypoint=str(base_dir / script_name),
             config_file=str(base_dir / helpers["config"]),
             profiles=profiles,
@@ -121,7 +121,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
                 pipeline=pipeline,
                 mode=mode,
                 software_stack=software_stack,
-                pipeline_version=pipeline_version,
+                registry_version=registry_version,
                 entrypoint=str(implementation["source"]),
                 config_file=None,
                 helpers={},
@@ -153,7 +153,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
             pipeline=pipeline,
             mode=mode,
             software_stack=software_stack,
-            pipeline_version=pipeline_version,
+            registry_version=registry_version,
             entrypoint=str(base_dir / script_name),
             config_file=str(base_dir / helpers["config"]),
             helpers={
@@ -222,7 +222,7 @@ def _resolve_profiles(profiles_cfg: dict, base_dir: Path) -> dict:
 
 def _resolve_pipeline_implementation(
     mode_cfg,
-    requested_pipeline_version,
+    requested_registry_version,
     *,
     backend: str,
     software_stack: str,
@@ -231,47 +231,47 @@ def _resolve_pipeline_implementation(
 ) -> Tuple[str, Any]:
     label = f"{backend}/{software_stack}/{pipeline}/{mode}"
     if isinstance(mode_cfg, str):
-        if requested_pipeline_version:
+        if requested_registry_version:
             raise WorkflowResolutionError(
-                f"pipeline_version was set to '{requested_pipeline_version}', but {label} "
-                "uses legacy registry syntax without implementation versions."
+                f"registry_version was set to '{requested_registry_version}', but {label} "
+                "uses legacy registry syntax without registry versions."
             )
         return "legacy", mode_cfg
 
     if not isinstance(mode_cfg, dict):
         raise WorkflowResolutionError(f"Invalid registry entry for {label}: expected a versioned object.")
 
-    implementations = mode_cfg.get("versions")
-    if not isinstance(implementations, dict) or not implementations:
-        raise WorkflowResolutionError(f"Registry entry for {label} must define implementation versions.")
+    registry_versions = mode_cfg.get("registry_versions")
+    if not isinstance(registry_versions, dict) or not registry_versions:
+        raise WorkflowResolutionError(f"Registry entry for {label} must define registry versions.")
 
-    default_version = mode_cfg.get("default")
-    selected_version = requested_pipeline_version or default_version
-    if not selected_version:
-        raise WorkflowResolutionError(f"Registry entry for {label} must define a default implementation version.")
-    selected_version = str(selected_version)
+    default_registry_version = mode_cfg.get("default_registry_version")
+    selected_registry_version = requested_registry_version or default_registry_version
+    if not selected_registry_version:
+        raise WorkflowResolutionError(f"Registry entry for {label} must define a default registry version.")
+    selected_registry_version = str(selected_registry_version)
 
-    if selected_version not in implementations:
-        available = ", ".join(sorted(str(k) for k in implementations))
+    if selected_registry_version not in registry_versions:
+        available = ", ".join(sorted(str(k) for k in registry_versions))
         raise WorkflowResolutionError(
-            f"pipeline_version='{selected_version}' is not defined for {label}. Available: {available}"
+            f"registry_version='{selected_registry_version}' is not defined for {label}. Available: {available}"
         )
 
-    implementation = implementations[selected_version]
+    implementation = registry_versions[selected_registry_version]
     if isinstance(implementation, str):
-        return selected_version, implementation
+        return selected_registry_version, implementation
     if isinstance(implementation, dict):
         if implementation.get("script"):
-            return selected_version, str(implementation["script"])
+            return selected_registry_version, str(implementation["script"])
         if implementation.get("provider") == "nf-core":
             missing = [key for key in ("source", "release") if not implementation.get(key)]
             if missing:
                 raise WorkflowResolutionError(
-                    f"Implementation {selected_version!r} for {label} is missing keys: {missing}"
+                    f"Implementation {selected_registry_version!r} for {label} is missing keys: {missing}"
                 )
-            return selected_version, implementation
+            return selected_registry_version, implementation
     raise WorkflowResolutionError(
-        f"Implementation {selected_version!r} for {label} must define a script path or external source."
+        f"Implementation {selected_registry_version!r} for {label} must define a script path or external source."
     )
 
 

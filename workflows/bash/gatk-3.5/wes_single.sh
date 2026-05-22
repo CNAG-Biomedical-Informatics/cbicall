@@ -7,7 +7,7 @@
 #
 #   Last Modified; March/05/2025
 #
-#   Pipeline version: v1
+#   Registry version: v1
 #
 #   Copyright (C) 2025-2026 Manuel Rueda - CNAG (manuel.rueda@cnag.eu)
 

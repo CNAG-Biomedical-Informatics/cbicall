@@ -92,7 +92,7 @@ Inputs
   Input dir    => .../input/CNAG999_exome/CNAG99901P_ex
   Sample map   => (undef)
   Software stack => gatk-4.6
-  Pipeline ver => v1
+  Registry ver => v1
 
 Resolved
   Entrypoint   => .../bash/gatk-4.6/wes_single.sh

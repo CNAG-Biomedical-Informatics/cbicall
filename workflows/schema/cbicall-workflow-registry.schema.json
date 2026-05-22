@@ -81,24 +81,24 @@
       "additionalProperties": false,
       "minProperties": 1,
       "properties": {
-        "single": { "$ref": "#/$defs/pipelineImplementationSet" },
-        "cohort": { "$ref": "#/$defs/pipelineImplementationSet" }
+        "single": { "$ref": "#/$defs/registryVersionSet" },
+        "cohort": { "$ref": "#/$defs/registryVersionSet" }
       }
     },
-    "pipelineImplementationSet": {
+    "registryVersionSet": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["default", "versions"],
+      "required": ["default_registry_version", "registry_versions"],
       "properties": {
-        "default": { "$ref": "#/$defs/pathString" },
-        "versions": {
+        "default_registry_version": { "$ref": "#/$defs/pathString" },
+        "registry_versions": {
           "type": "object",
           "minProperties": 1,
-          "additionalProperties": { "$ref": "#/$defs/pipelineImplementation" }
+          "additionalProperties": { "$ref": "#/$defs/registryImplementation" }
         }
       }
     },
-    "pipelineImplementation": {
+    "registryImplementation": {
       "type": "object",
       "additionalProperties": false,
       "oneOf": [

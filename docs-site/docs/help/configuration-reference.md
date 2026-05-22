@@ -179,14 +179,14 @@ workflow and records resource key, version, and fingerprint provenance in
 Use [Resource Validation](../usage/resource-validation) for resource checks and
 [Run Comparison](../usage/run-comparison) to compare repeated runs.
 
-## Pipeline Implementation Version
+## Registry Version
 
-Each workflow registry entry has a CBIcall pipeline implementation version,
-currently `v1` for the bundled workflows. Normal YAML files do not need to set
-this; the registry provides the default.
+Each workflow registry entry has a CBIcall registry version, currently `v1` for
+the bundled workflows. Normal YAML files do not need to set this; the registry
+provides `default_registry_version`.
 
-Set `pipeline_version` only when a registry entry exposes more than one
-implementation and a run must pin a non-default one.
+Set `registry_version` only when a registry entry exposes more than one
+registry version and a run must pin a non-default one.
 
 ## Runtime Profiles
 
@@ -231,7 +231,7 @@ see [Included Pipelines](../pipelines/overview) and
 
 | Key | Default | Use |
 | --- | --- | --- |
-| `pipeline_version` | Registry default, currently `v1` | Advanced pin for a specific CBIcall pipeline implementation. Leave unset for normal runs. |
+| `registry_version` | Registry default, currently `v1` | Advanced pin for a specific CBIcall registry version. Leave unset for normal runs. |
 | `snakemake_parameters` | `{}` | Snakemake-specific options. `target` selects a Snakemake target instead of the default `all`; other keys are passed through as extra `--config key=value` entries after CBIcall-managed config values. |
 | `nextflow_parameters` | `{}` | Native CBIcall Nextflow parameters passed as `--key value`. CBIcall blocks keys it owns, such as `pipeline`, `genome`, `threads`, helper scripts, and cohort workspace settings. |
 | `nfcore_profile` | `null` | nf-core profile passed to external nf-core workflows, for example `docker`, `singularity`, or `test,singularity`. |

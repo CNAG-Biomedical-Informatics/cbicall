@@ -24,7 +24,7 @@ class WorkflowSpec:
     pipeline: str
     mode: str
     software_stack: str
-    pipeline_version: str
+    registry_version: str
     entrypoint: Optional[str]
     config_file: Optional[str] = None
     helpers: Dict[str, str] = field(default_factory=dict)
@@ -38,7 +38,7 @@ class WorkflowSpec:
             pipeline=str(data["pipeline"]),
             mode=str(data["mode"]),
             software_stack=str(data["software_stack"]),
-            pipeline_version=str(data.get("pipeline_version", "legacy")),
+            registry_version=str(data.get("registry_version", "legacy")),
             entrypoint=data.get("entrypoint"),
             config_file=data.get("config_file"),
             helpers=dict(data.get("helpers", {})),
@@ -53,7 +53,7 @@ class WorkflowSpec:
             "pipeline": self.pipeline,
             "mode": self.mode,
             "software_stack": self.software_stack,
-            "pipeline_version": self.pipeline_version,
+            "registry_version": self.registry_version,
             "entrypoint": self.entrypoint,
             "config_file": self.config_file,
             "helpers": dict(self.helpers),
@@ -132,7 +132,7 @@ class ResolvedConfig:
     pipeline: str
     mode: str
     software_stack: str
-    pipeline_version: str
+    registry_version: str
     inputs: InputsSpec
     workflow: WorkflowSpec
     run_id: str
@@ -161,9 +161,9 @@ class ResolvedConfig:
         pipeline = data["pipeline"] if "pipeline" in data else data["workflow"]["pipeline"]
         mode = data["mode"] if "mode" in data else data["workflow"]["mode"]
         software_stack = data["software_stack"] if "software_stack" in data else data["workflow"]["software_stack"]
-        pipeline_version = data.get("pipeline_version")
-        if pipeline_version is None and "workflow" in data:
-            pipeline_version = data["workflow"].get("pipeline_version")
+        registry_version = data.get("registry_version")
+        if registry_version is None and "workflow" in data:
+            registry_version = data["workflow"].get("registry_version")
         run_id = data["run_id"] if "run_id" in data else data["id"]
         project_dir = data["project_dir"]
         return cls(
@@ -181,7 +181,7 @@ class ResolvedConfig:
             pipeline=str(pipeline),
             mode=str(mode),
             software_stack=str(software_stack),
-            pipeline_version=str(pipeline_version) if pipeline_version is not None else "legacy",
+            registry_version=str(registry_version) if registry_version is not None else "legacy",
             inputs=InputsSpec.from_mapping(data.get("inputs", {})),
             workflow=WorkflowSpec.from_mapping(data["workflow"]),
             run_id=str(run_id),
@@ -215,7 +215,7 @@ class ResolvedConfig:
             "pipeline": self.pipeline,
             "mode": self.mode,
             "software_stack": self.software_stack,
-            "pipeline_version": self.pipeline_version,
+            "registry_version": self.registry_version,
             "inputs": self.inputs.to_dict(),
             "workflow": self.workflow.to_dict(),
             "run_id": self.run_id,

@@ -1,5 +1,5 @@
 # w[eg]s_cohort.smk 
-# Pipeline version: v1
+# Registry version: v1
 import os
 import platform
 import shlex

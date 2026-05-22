@@ -1,5 +1,5 @@
 # wes_single.smk - bash-replica of wes_single.sh (GATK4.6) with per-rule logs
-# Pipeline version: v1
+# Registry version: v1
 import os
 import glob
 import platform
