@@ -1,0 +1,40 @@
+workdir: examples/input
+workflow_log: nf-core_sarek_cohort.log
+run:
+  parameter_file: nf-core-sarek.yaml
+  base_dir: .
+  run_glob: cbicall_nextflow_nf-core_sarek_cohort_*_*
+required_files:
+  - log.json
+  - run-report.json
+  - run-report.html
+  - cbicall_external_nextflow.params.yaml
+  - cbicall_external_nextflow.config
+  - nf-core_sarek_cohort.log
+  - sarek/multiqc/multiqc_report.html
+required_globs:
+  - sarek/pipeline_info/params_*.json
+  - sarek/pipeline_info/execution_trace_*.txt
+  - sarek/pipeline_info/*software*versions*.yml
+json_expectations:
+  - path: status
+    equals: success
+  - path: workflow.backend
+    equals: nextflow
+  - path: workflow.pipeline
+    equals: sarek
+  - path: workflow.mode
+    equals: cohort
+  - path: workflow.software_stack
+    equals: nf-core
+  - path: workflow.entrypoint
+    equals: nf-core/sarek
+  - path: workflow.metadata.provider
+    equals: nf-core
+  - path: workflow.metadata.source
+    equals: nf-core/sarek
+  - path: resources.bundle.key
+    equals: nf-core-sarek-managed-resources-v1
+cleanup_paths:
+  - work
+  - .nextflow

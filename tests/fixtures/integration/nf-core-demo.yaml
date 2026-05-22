@@ -1,0 +1,42 @@
+workdir: examples/input
+workflow_log: nf-core_demo_single.log
+run:
+  parameter_file: nf-core-demo.yaml
+  base_dir: .
+  run_glob: cbicall_nextflow_nf-core_demo_single_no-genome_*
+required_files:
+  - log.json
+  - run-report.json
+  - run-report.html
+  - cbicall_external_nextflow.params.yaml
+  - cbicall_external_nextflow.config
+  - nf-core_demo_single.log
+  - demo/multiqc/multiqc_report.html
+required_globs:
+  - demo/pipeline_info/params_*.json
+  - demo/pipeline_info/execution_trace_*.txt
+  - demo/pipeline_info/*software*versions*.yml
+json_expectations:
+  - path: status
+    equals: success
+  - path: workflow.backend
+    equals: nextflow
+  - path: workflow.pipeline
+    equals: demo
+  - path: workflow.mode
+    equals: single
+  - path: workflow.software_stack
+    equals: nf-core
+  - path: workflow.entrypoint
+    equals: nf-core/demo
+  - path: workflow.metadata.provider
+    equals: nf-core
+  - path: workflow.metadata.source
+    equals: nf-core/demo
+  - path: resources.bundle.key
+    equals: nf-core-demo-managed-resources-v1
+  - path: run.display_genome
+    equals: no-genome
+cleanup_paths:
+  - work
+  - .nextflow

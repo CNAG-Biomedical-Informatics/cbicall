@@ -18,13 +18,13 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'doc',
-          id: 'installation/google-cloud-docker',
-          label: 'Google Cloud',
+          id: 'installation/apptainer',
+          label: 'Apptainer / Singularity',
         },
         {
           type: 'doc',
-          id: 'installation/apptainer',
-          label: 'Apptainer / Singularity',
+          id: 'installation/google-cloud-docker',
+          label: 'Google Cloud',
         },
         {
           type: 'doc',

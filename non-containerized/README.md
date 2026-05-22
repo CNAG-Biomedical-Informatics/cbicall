@@ -11,7 +11,7 @@ git clone https://github.com/CNAG-Biomedical-Informatics/cbicall.git
 cd cbicall
 ```
 
-If you only new to update to the lastest version do:
+If you only need to update to the latest version do:
 
 ```bash
 git pull
@@ -37,9 +37,35 @@ Testing the deployment:
 pytest
 ```
 
-### Downloading Required Databases and Software
+### Choose a workflow path
 
-> Note: this process can be lenghty.
+CBIcall can now be installed and used before downloading the large CBIcall
+germline resource bundle.
+
+| Workflow path | Resource bundle required? | Extra runtime |
+| --- | --- | --- |
+| `workflow_provider: nf-core` | No | Nextflow plus the selected nf-core runtime profile, such as Docker or Singularity/Apptainer. |
+| Native CBIcall Bash/Snakemake/Nextflow WES/WGS/mtDNA | Yes | The CBIcall resource bundle installed as `DATADIR`. |
+
+For a quick nf-core test from a source checkout:
+
+```bash
+cd examples/input
+../../bin/cbicall validate-parameters -p nf-core-demo.yaml --no-color
+../../bin/cbicall run -p nf-core-demo.yaml -t 4 --no-color
+```
+
+This uses nf-core's own test data and does not require the CBIcall-provided
+bundle. Install or load Nextflow and the selected container/runtime profile
+before running it.
+
+### Download the Resource Bundle for Native Workflows
+
+> Note: this process can be lengthy.
+
+This section is required for the native CBIcall WES/WGS/mtDNA workflows. It is
+not required for nf-core provider workflows where resources are managed by
+Nextflow/nf-core.
 
 Choose a directory where the databases and bundled external tools should be installed. This directory will become your `DATADIR`.
 
@@ -89,9 +115,9 @@ If disk space is tight and the checksum has passed, add `--remove-parts` to remo
 
 CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.json`. The GDrive bundle only needs a small identifier file, for example `cbicall-resource-id.json` containing `{"resource_key": "cbicall-germline-resources-v1"}`. When that identifier file is available, the registry can store its Google Drive file ID and SHA-256 so the downloader can verify that the remote bundle matches the local CBIcall catalog entry.
 
-### Point CBIcall to your resource directory
+### Point Native Workflows to your resource directory
 
-CBIcall workflows read resource paths from Bash `env.sh` files and from
+Native CBIcall workflows read resource paths from Bash `env.sh` files and from
 Snakemake/Nextflow `config.yaml` files. In a non-containerized installation,
 point those files
 to the host directory where you installed the CBIcall-provided resource bundle:

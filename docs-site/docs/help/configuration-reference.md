@@ -221,7 +221,7 @@ directory or log file.
 | `bin/cbicall validate-resources` | Check the resource catalog and, optionally, one resource key. |
 | `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare two or more run directories or `run-report.json` files. |
 | `bin/cbicall render-report RUN_DIR` | Regenerate `run-report.html` from an existing `run-report.json` without rerunning the workflow. |
-| `bin/cbicall test --wes-bash [--runtime-profile cnag-hpc]`, `--wes-snakemake`, `--wes-nextflow`, `--mit-bash`, or `--all` | Runs the bundled integration examples without remembering the script path. `--runtime-profile` is forwarded to the internal `cbicall run` calls. `--wes-bash` is the required baseline test; Snakemake and Nextflow tests require their backends on `PATH`. |
+| `bin/cbicall test --wes-bash [--runtime-profile cnag-hpc]`, `--wes-snakemake`, `--wes-nextflow`, `--mit-bash`, `--nf-core-demo`, `--nf-core-sarek`, or `--all` | Runs contract-based integration examples. `--runtime-profile` is forwarded to the internal `cbicall run` calls. `--wes-bash` is the required native baseline test; Snakemake, Nextflow, and nf-core tests require their backends on `PATH`. |
 
 For a higher-level explanation of included pipelines versus execution backends,
 see [Included Pipelines](../pipelines/overview) and

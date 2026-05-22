@@ -79,14 +79,14 @@ In this setup:
 
 - the container image is read-only
 - configuration files and workflows are stored in a writable host directory
-- external databases are downloaded outside the container and bind-mounted at runtime
+- native CBIcall resources, when needed, are downloaded outside the container and bind-mounted at runtime
 
 Recommended workflow:
 
 1. Pull the CBIcall container image using Apptainer.
-2. Download the required databases on the host filesystem.
-3. Create a writable copy of the CBIcall workflow directory.
-4. Run the pipeline by bind-mounting the writable copy and data directory.
+2. Create a writable copy of the CBIcall workflow directory.
+3. Choose `workflow_provider: nf-core` for a no-bundle first run, or download the CBIcall resource bundle for native WES/WGS/mtDNA workflows.
+4. Run the pipeline with the writable copy, adding the data bind only for native workflows.
 
 See [HPC with Apptainer / Singularity](../installation/apptainer).
 

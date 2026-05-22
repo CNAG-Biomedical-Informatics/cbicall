@@ -4,13 +4,138 @@ This section describes how to install and run **CBIcall** on High-Performance Co
 
 Apptainer can execute Docker images directly, but container images are **read-only by design**. As a result, databases, configuration files, and workflows must be stored outside the container and bind-mounted at runtime.
 
+## Storage and Environment Model
+
+An Apptainer setup has three separate paths. They can live in `$HOME`, a project
+directory, or a shared software area depending on your site policy and quota.
+
+| Variable | Host path | Bound inside container | Purpose |
+| --- | --- | --- | --- |
+| `SIF_IMAGE` | Path to the CBIcall `.sif` file you pulled | image itself | Immutable CBIcall application image |
+| `CBICALL_WRITABLE` | Writable copy of the CBIcall installation | `/usr/share/cbicall` | Place where profiles, examples, `env.sh`, configs, and run files can be edited |
+| `CBICALL_DATA` | Installed CBIcall resource bundle | `/cbicall-data` | Native CBIcall WES/WGS/mtDNA databases and external tools |
+
+For nf-core workflows, Nextflow may also use a Singularity/Apptainer cache for
+task containers. That cache is separate from `SIF_IMAGE`; it stores containers
+used by nf-core pipeline tasks, not the CBIcall application image.
+
+```bash
+# Choose where you want to keep the reusable CBIcall Apptainer image.
+export SIF_IMAGE=/path/you/choose/cbicall_latest.sif
+
+# Per-user writable CBIcall copy. This path is bind-mounted over /usr/share/cbicall.
+export CBICALL_WRITABLE=$HOME/cbicall
+
+# Native CBIcall resource bundle. Not required for nf-core-only runs.
+export CBICALL_DATA=/path/to/cbicall-data
+
+# Optional: Nextflow task-container cache for nf-core workflows.
+export NXF_SINGULARITY_CACHEDIR=/path/to/nextflow-singularity-cache
+export NXF_SINGULARITY_LIBRARYDIR=/path/to/nextflow-singularity-cache
+```
+
+`SIF_IMAGE` can be stored wherever you pull it. `CBICALL_WRITABLE` is commonly
+per-user because it contains editable configuration. `CBICALL_DATA` is often
+shared by an administrator for native workflows.
+
+## Installing the Container Image
+
+### Loading Apptainer
+
+If your HPC system uses environment modules, load Apptainer first:
+
+```bash
+module load apptainer
+```
+
+> **Note:** On some HPC systems, `apptainer` is already available by default and does not need to be loaded explicitly.
+
 ---
 
-## Downloading Required Databases and Software
+### Obtaining the CBIcall Container Image
+
+There are two ways to run the CBIcall container with Apptainer.  
+For most users and all production workflows, **explicitly pulling the image is recommended**.
+
+---
+
+#### Option A: Pull the image explicitly (`apptainer pull`) — **recommended**
+
+Pull the latest CBIcall image from Docker Hub and save it as a Singularity Image File (`.sif`):
+
+```bash
+apptainer pull "$SIF_IMAGE" docker://manuelrueda/cbicall:latest
+```
+
+This command:
+
+- downloads the image once
+- creates a reusable `.sif` file
+- avoids reliance on the user cache
+- is suitable for batch scheduling and offline execution
+
+This step only needs to be performed once.
+
+---
+
+#### Option B: Run directly from Docker Hub (`apptainer run`)
+
+Apptainer can execute the CBIcall container directly from Docker Hub without explicitly pulling the image first:
+
+```bash
+apptainer run docker://manuelrueda/cbicall:latest
+```
+
+On first use, the image is automatically downloaded, converted to a Singularity Image File (`.sif`), and cached locally. Subsequent runs reuse the cached image.
+
+This method does **not** create a persistent `.sif` file in the working directory. The cached image is stored in Apptainer’s user cache directory.
+
+This option is suitable for:
+- quick testing
+- exploratory or interactive use
+
+For reproducible workflows, offline execution, or batch jobs, explicitly pulling the image (Option A) is strongly recommended.
+
+---
+
+### Preparing a Writable CBIcall Directory
+
+The CBIcall installation inside the container (`/usr/share/cbicall`) is **read-only**.  
+To allow configuration changes and execution of tests, create a writable copy in your home directory:
+
+```bash
+apptainer exec "$SIF_IMAGE" \
+  bash -lc 'mkdir -p "$CBICALL_WRITABLE" && cp -a /usr/share/cbicall/. "$CBICALL_WRITABLE"/'
+```
+
+This step only needs to be done once.
+
+---
+
+## Choose a Workflow Path
+
+CBIcall can be used with registered nf-core workflows before downloading the
+large CBIcall germline resource bundle.
+
+| Workflow path | Resource bundle required? | Runtime requirement |
+| --- | --- | --- |
+| `workflow_provider: nf-core` | No | Nextflow plus Singularity/Apptainer, usually provided by the HPC environment. |
+| Native CBIcall Bash/Snakemake/Nextflow WES/WGS/mtDNA | Yes | Bind the CBIcall resource bundle and configure `DATADIR`. |
+
+Use the resource download steps below for native CBIcall workflows. For nf-core
+provider runs, start with the checked-in `examples/input/nf-core-demo.yaml` and
+the nf-core Provider page in the online documentation.
+
+---
+
+## Download the Resource Bundle for Native Workflows
 
 > **Note:** this process can be lengthy.
 
-Begin by downloading the required databases and software. Save the data **outside the container**; this preserves it across container runs and avoids repeated downloads.
+Begin by downloading the required databases and software for native CBIcall
+workflows. Save the data **outside the container**; this preserves it across
+container runs and avoids repeated downloads. Skip this section for nf-core
+provider runs that use Nextflow/nf-core-managed resources.
 
 Install the Python dependency (on the host):
 
@@ -21,7 +146,6 @@ pip3 install --user gdown
 Choose a location on the host filesystem where the databases will be stored:
 
 ```bash
-CBICALL_DATA=/software/biomed/cbicall-data
 mkdir -p "$CBICALL_DATA"
 cd "$CBICALL_DATA"
 ```
@@ -74,97 +198,33 @@ CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.
 
 ---
 
-## Installing the Container Image
+## Running and Interacting with the Container
 
-### Loading Apptainer
-
-If your HPC system uses environment modules, load Apptainer first:
-
-```bash
-module load apptainer
-```
-
-> **Note:** On some HPC systems, `apptainer` is already available by default and does not need to be loaded explicitly.
-
----
-
-### Obtaining the CBIcall Container Image
-
-There are two ways to run the CBIcall container with Apptainer.  
-For most users and all production workflows, **explicitly pulling the image is recommended**.
-
----
-
-#### Option A: Pull the image explicitly (`apptainer pull`) — **recommended**
-
-Pull the latest CBIcall image from Docker Hub and save it as a Singularity Image File (`.sif`):
-
-```bash
-apptainer pull cbicall_latest.sif docker://manuelrueda/cbicall:latest
-```
-
-This command:
-
-- downloads the image once
-- creates a reusable `.sif` file
-- avoids reliance on the user cache
-- is suitable for batch scheduling and offline execution
-
-This step only needs to be performed once.
-
----
-
-#### Option B: Run directly from Docker Hub (`apptainer run`)
-
-Apptainer can execute the CBIcall container directly from Docker Hub without explicitly pulling the image first:
-
-```bash
-apptainer run docker://manuelrueda/cbicall:latest
-```
-
-On first use, the image is automatically downloaded, converted to a Singularity Image File (`.sif`), and cached locally. Subsequent runs reuse the cached image.
-
-This method does **not** create a persistent `.sif` file in the working directory. The cached image is stored in Apptainer’s user cache directory.
-
-This option is suitable for:
-- quick testing
-- exploratory or interactive use
-
-For reproducible workflows, offline execution, or batch jobs, explicitly pulling the image (Option A) is strongly recommended.
-
----
-
-### Preparing a Writable CBIcall Directory
-
-The CBIcall installation inside the container (`/usr/share/cbicall`) is **read-only**.  
-To allow configuration changes and execution of tests, create a writable copy in your home directory:
-
-```bash
-apptainer exec cbicall_latest.sif \
-  bash -lc 'mkdir -p $HOME/cbicall && cp -a /usr/share/cbicall/. $HOME/cbicall/'
-```
-
-This step only needs to be done once.
-
----
-
-### Running and Interacting with the Container
-
-Start an interactive shell inside the container, overlaying the writable CBIcall copy and binding the external data directory:
+Start an interactive shell inside the container, overlaying the writable CBIcall
+copy. For native CBIcall workflows, also bind the external data directory:
 
 ```bash
 apptainer shell \
   --pwd /usr/share/cbicall \
-  --bind "$HOME/cbicall":/usr/share/cbicall \
+  --bind "$CBICALL_WRITABLE":/usr/share/cbicall \
   --bind "$CBICALL_DATA":/cbicall-data \
-  cbicall_latest.sif
+  "$SIF_IMAGE"
 ```
 
 You will start directly in the CBIcall working directory.
 
-### Point CBIcall to `/cbicall-data`
+For nf-core-only validation, the CBIcall data bind is not required:
 
-CBIcall workflows read resource paths from Bash `env.sh` files and from
+```bash
+apptainer shell \
+  --pwd /usr/share/cbicall \
+  --bind "$CBICALL_WRITABLE":/usr/share/cbicall \
+  "$SIF_IMAGE"
+```
+
+### Point Native Workflows to `/cbicall-data`
+
+Native CBIcall workflows read resource paths from Bash `env.sh` files and from
 Snakemake/Nextflow `config.yaml` files. In Apptainer, bind your external
 resource directory as
 `/cbicall-data` and point CBIcall to that container path:
@@ -207,7 +267,10 @@ bin/cbicall test --mit-bash -t 1
 ## Notes
 
 - `$HOME` inside the container corresponds to your **host home directory**.
-- All configuration changes are performed on the writable copy in `$HOME/cbicall`.
+- All configuration changes are performed on the writable copy in `CBICALL_WRITABLE`.
+- `SIF_IMAGE` is only the CBIcall application image. It is independent from
+  `NXF_SINGULARITY_CACHEDIR` and `NXF_SINGULARITY_LIBRARYDIR`, which are used by
+  Nextflow for nf-core task containers.
 - The container image itself remains immutable, ensuring reproducibility and HPC safety.
 
 ## How to run a job in **Slurm**
@@ -227,7 +290,7 @@ To delete a CBIcall container image (`.sif` file), simply remove it:
 
 ```bash
 cd  # home directory
-rm cbicall_latest.sif
+rm "$SIF_IMAGE"
 ```
 
 If the image is currently in use by a running job, the removal will fail until the job finishes.
@@ -236,10 +299,10 @@ If the image is currently in use by a running job, the removal will fail until t
 
 ### Removing the Writable CBIcall Copy (Optional)
 
-If you created a writable copy of the CBIcall installation in your home directory and want to reset it:
+If you created a writable copy of the CBIcall installation and want to reset it:
 
 ```bash
-rm -rf $HOME/cbicall
+rm -rf "$CBICALL_WRITABLE"
 ```
 
 This does **not** affect the container image itself.

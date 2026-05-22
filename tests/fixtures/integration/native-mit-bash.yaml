@@ -1,0 +1,42 @@
+workdir: examples/input
+workflow_log: bash_gatk-3.5_mit_single_rsrs.log
+run:
+  parameter_file: mit_single.yaml
+  base_dir: CNAG999_exome/CNAG99901P_ex
+  run_glob: cbicall_bash_gatk-3.5_mit_single_rsrs_*
+required_files:
+  - log.json
+  - run-report.json
+  - run-report.html
+  - bash_gatk-3.5_mit_single_rsrs.log
+  - 01_mtoolbox/mit_prioritized_variants.txt
+  - 01_mtoolbox/mit.raw.json
+  - 02_browser/mit.json
+json_expectations:
+  - path: status
+    equals: success
+  - path: workflow.backend
+    equals: bash
+  - path: workflow.pipeline
+    equals: mit
+  - path: workflow.mode
+    equals: single
+  - path: workflow.software_stack
+    equals: gatk-3.5
+  - path: workflow.pipeline_version
+    equals: v1
+  - path: resources.bundle.key
+    equals: cbicall-germline-resources-v1
+  - path: run.display_genome
+    equals: rsrs
+hashes:
+  - name: mit_prioritized_variants
+    type: normalized_text
+    path: 01_mtoolbox/mit_prioritized_variants.txt
+    pattern: ^#
+    records: 1119
+    sha256: 77e0b6f8ebb2a4b1fb38964d016216b97d3ab5d4f75bd17803f3cdfbaa85bd41
+  - name: mit_raw_json
+    type: canonical_json
+    path: 01_mtoolbox/mit.raw.json
+    sha256: bd786c7e71e3030ee1cac845004535f16cf0095f729988af8812d43ef6bc5365

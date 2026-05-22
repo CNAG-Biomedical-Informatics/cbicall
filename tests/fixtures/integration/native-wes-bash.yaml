@@ -1,0 +1,38 @@
+workdir: examples/input
+workflow_log: bash_gatk-4.6_wes_single_b37.log
+run:
+  parameter_file: param.yaml
+  base_dir: CNAG999_exome/CNAG99901P_ex
+  run_glob: cbicall_bash_gatk-4.6_wes_single_b37_*
+required_files:
+  - log.json
+  - run-report.json
+  - run-report.html
+  - bash_gatk-4.6_wes_single_b37.log
+  - 02_varcall/CNAG99901P.hc.QC.vcf.gz
+  - 03_stats/CNAG99901P.coverage.txt
+  - 03_stats/CNAG99901P.sex.txt
+json_expectations:
+  - path: status
+    equals: success
+  - path: workflow.backend
+    equals: bash
+  - path: workflow.pipeline
+    equals: wes
+  - path: workflow.mode
+    equals: single
+  - path: workflow.software_stack
+    equals: gatk-4.6
+  - path: workflow.pipeline_version
+    equals: v1
+  - path: resources.bundle.key
+    equals: cbicall-germline-resources-v1
+  - path: run.display_genome
+    equals: b37
+hashes:
+  - name: wes_filtered_vcf
+    type: normalized_vcf
+    path: 02_varcall/CNAG99901P.hc.QC.vcf.gz
+    pattern: ^#
+    records: 6
+    sha256: 621373dda8e79602e84f24b5e5082914b046c341ba64c7e15c8ce97172559baf

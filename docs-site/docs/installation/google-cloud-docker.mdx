@@ -10,8 +10,11 @@ parameters YAML, and selected resource resolve and run outside your local or
 institutional environment.
 
 :::info[Scope]
-This is not a cloud-scale production benchmark. It runs the bundled one-sample
-WES integration test and checks framework portability.
+This is not a cloud-scale production benchmark. It runs the native bundled
+one-sample WES integration test and checks framework portability. Because that
+test uses a native CBIcall workflow, it requires the CBIcall resource bundle.
+For an nf-core provider first run, use the Docker installation guide or the
+Quickstart; the CBIcall bundle is not required for that path.
 :::
 
 ## What This Checks
@@ -30,15 +33,15 @@ Expected evidence:
 | --- | --- |
 | `validate-resources` succeeds | The resource catalog is well formed and points to declared workflows. |
 | `validate-parameters` resolves the run | The parameters YAML resolves to a concrete workflow, profile, pipeline version, and resource. |
-| `test --wes-bash` succeeds | The generated WES VCF matches the shipped reference output under the integration-test comparison. |
+| `test --wes-bash` succeeds | The generated WES VCF matches the normalized hash declared by the integration-test contract. |
 | Normalized [SHA-256](https://en.wikipedia.org/wiki/SHA-2) is printed | The test computes this on the fly from the filtered, sorted reference and test VCF records. |
 | `run-report.json` exists | The cloud run records workflow and resource provenance. |
 
 :::note[VCF hash files]
-The shipped reference directory does not need a stored `03_stats/*.vcf.sha256.txt`
-file for `test --wes-bash`. The integration test computes the normalized hashes
-during the comparison. New WES/WGS runs also write `03_stats/*.vcf.sha256.txt`
-as a provenance artifact for later run-report and `compare-runs` workflows.
+The integration test does not need a copied `ref_*` run directory. It computes
+the normalized hash from the generated VCF and compares it with the small
+contract fixture. New WES/WGS runs also write `03_stats/*.vcf.sha256.txt` as a
+provenance artifact for later run-report and `compare-runs` workflows.
 :::
 
 ## Prerequisites
@@ -124,7 +127,7 @@ sudo docker image inspect "$CBICALL_IMAGE" --format '{{index .RepoDigests 0}}'
 
 Keep those two values with the run artifacts.
 
-## 4. Prepare the Resource Directory
+## 4. Prepare the Native Resource Directory
 
 Create a host directory that will be mounted as `/cbicall-data` inside Docker:
 
@@ -173,7 +176,7 @@ cbicall_docker python3 scripts/download_cbicall_bundle.py \
   --skip-download
 ```
 
-## 5. Point CBIcall to `/cbicall-data`
+## 5. Point Native Workflows to `/cbicall-data`
 
 The Docker container sees the mounted resource directory as `/cbicall-data`.
 Update the local checkout before launching CBIcall:

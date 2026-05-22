@@ -1,10 +1,67 @@
 # Containerized Installation
 
-## Downloading Required Databases and Software
+## Install CBIcall with Docker
+
+CBIcall installation and CBIcall resource installation are separate steps. Pull
+or build the CBIcall image first; download the native CBIcall resource bundle
+only if the workflow path you choose needs it.
+
+### Method 1: Installing from Docker Hub (fast)
+
+Pull the latest Docker image from [Docker Hub](https://hub.docker.com/r/manuelrueda/cbicall):
+
+```bash
+docker pull manuelrueda/cbicall:latest
+docker image tag manuelrueda/cbicall:latest cnag/cbicall:latest
+```
+
+### Method 2: Installing from Dockerfile (slow)
+
+Download the `Dockerfile` from [GitHub](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/Dockerfile):
+
+```bash
+wget https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/main/docker/Dockerfile
+```
+
+Then build the container:
+
+The Dockerfile installs the CBIcall Python dependencies, including
+Snakemake, and a pinned Nextflow launcher. Bash workflows do not need either
+engine, but the image can run the packaged Snakemake and Nextflow WES/WGS
+workflows without extra engine installation.
+
+- **For Docker version 19.03 and above (supports buildx):**
+
+  ```bash
+  docker buildx build --no-cache -t cnag/cbicall:latest .
+  ```
+
+- **For Docker versions older than 19.03 (no buildx support):**
+
+  ```bash
+  docker build --no-cache -t cnag/cbicall:latest .
+  ```
+
+## Choose a Workflow Path
+
+| Workflow path | Needs `/cbicall-data`? | Notes |
+| --- | --- | --- |
+| `workflow_provider: nf-core` | No CBIcall bundle required | Nextflow/nf-core manage their own test data, references, and containers. The selected runtime profile must still work in your environment. |
+| Native CBIcall Bash/Snakemake/Nextflow WES/WGS/mtDNA | Yes | Mount the CBIcall resource bundle as `/cbicall-data` and configure `DATADIR`. |
+
+For Docker-based nf-core tests, make sure the selected nf-core profile can run
+from your container setup. Many users run nf-core directly on the host with
+Docker or on HPC with Singularity/Apptainer.
+
+## Download the Resource Bundle for Native Workflows
 
 > Note: this process can be lengthy.
 
-Begin by downloading the required databases and software. Save the data outside the container; this preserves it across container restarts and lets you update the software without downloading the data again.
+Begin by downloading the required databases and software for native CBIcall
+workflows. Save the data outside the container; this preserves it across
+container restarts and lets you update the software without downloading the data
+again. Skip this section when you only want to validate or run registered
+nf-core provider workflows.
 
 Install dependencies for Python 3:
 
@@ -59,9 +116,9 @@ If disk space is tight and the checksum has passed, add `--remove-parts` to remo
 
 CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.json`. The GDrive bundle only needs a small identifier file, for example `cbicall-resource-id.json` containing `{"resource_key": "cbicall-germline-resources-v1"}`. When that identifier file is available, the registry can store its Google Drive file ID and SHA-256 so the downloader can verify that the remote bundle matches the local CBIcall catalog entry.
 
-### Point CBIcall to your resource directory
+### Point Native Workflows to your resource directory
 
-CBIcall workflows read resource paths from Bash `env.sh` files and from
+Native CBIcall workflows read resource paths from Bash `env.sh` files and from
 Snakemake/Nextflow `config.yaml` files. In Docker, mount your host resource
 directory as
 `/cbicall-data` and point CBIcall to that container path:
@@ -74,51 +131,22 @@ sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/co
 
 The native Nextflow config is a symlink to this shared GATK 4.6 backend config, so one edit updates both Snakemake and Nextflow native workflows.
 
-### Method 1: Installing from Docker Hub (fast)
-
-Pull the latest Docker image from [Docker Hub](https://hub.docker.com/r/manuelrueda/cbicall):
-
-```bash
-docker pull manuelrueda/cbicall:latest
-docker image tag manuelrueda/cbicall:latest cnag/cbicall:latest
-```
-
-### Method 2: Installing from Dockerfile (slow)
-
-Download the `Dockerfile` from [GitHub](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/Dockerfile):
-
-```bash
-wget https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/main/docker/Dockerfile
-```
-
-Then build the container:
-
-The Dockerfile installs the CBIcall Python dependencies, including
-Snakemake, and a pinned Nextflow launcher. Bash workflows do not need either
-engine, but the image can run the packaged Snakemake and Nextflow WES/WGS
-workflows without extra engine installation.
-
-- **For Docker version 19.03 and above (supports buildx):**
-
-  ```bash
-  docker buildx build --no-cache -t cnag/cbicall:latest .
-  ```
-
-- **For Docker versions older than 19.03 (no buildx support):**
-
-  ```bash
-  docker build --no-cache -t cnag/cbicall:latest .
-  ```
-
 ## Running and Interacting with the Container
+
+For native CBIcall workflows:
 
 ```bash
 # Please update '/absolute/path/to/cbicall-data' with your actual local data path
-#docker run -tid --volume /absolute/path/to/cbicall-data:/cbicall-data -e USERNAME=root --name cbicall cnag/cbicall:latest
-
-# Real example
-#docker run -tid --volume /media/mrueda/4TBB/cbicall-data:/cbicall-data -e USERNAME=root --name cbicall cnag/cbicall:latest
+docker run -tid --volume /absolute/path/to/cbicall-data:/cbicall-data -e USERNAME=root --name cbicall cnag/cbicall:latest
 ```
+
+For nf-core-only validation, the CBIcall bundle mount is not required:
+
+```bash
+docker run -tid -e USERNAME=root --name cbicall cnag/cbicall:latest
+```
+
+The container/runtime setup must still support the nf-core profile you select.
 
 To connect to the container:
 
@@ -126,7 +154,8 @@ To connect to the container:
 docker exec -ti cbicall bash
 ```
 
-Inside the container, confirm that CBIcall sees the mounted resources:
+Inside the container, confirm that CBIcall sees the mounted resources when
+running native workflows:
 
 ```bash
 bin/cbicall validate-resources

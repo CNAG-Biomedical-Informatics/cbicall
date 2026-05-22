@@ -31,6 +31,11 @@ executes it.
 | Workflow backends | Bash, Snakemake, and Nextflow |
 | External workflows | Registered nf-core workflows launched through the Nextflow backend |
 
+The native CBIcall WES/WGS/mtDNA workflows use the CBIcall-provided resource
+bundle. Registered nf-core workflows can be validated and launched without that
+bundle; Nextflow/nf-core manages the external workflow's own test data,
+containers, and references.
+
 Use [Included Pipelines](pipelines/overview) for the shipped analyses and
 [Native Backends](backends/native) for the supported workflow backends.
 
@@ -40,14 +45,15 @@ Use [Included Pipelines](pipelines/overview) for the shipped analyses and
 | --- | --- |
 | Local workstation or server | [Docker](installation/docker) |
 | HPC cluster | [Apptainer / Singularity](installation/apptainer) |
-| Development or debugging | [From Source](installation/non-containerized) |
 | Cloud reproducibility check | [Google Cloud](installation/google-cloud-docker) |
+| Development or debugging | [From Source](installation/non-containerized) |
 
 ## Where to Go Next
 
 | Goal | Page |
 | --- | --- |
-| Run the shipped test data | [Quickstart](usage/quickstart) |
+| Try nf-core without the CBIcall bundle | [Quickstart](usage/quickstart) |
+| Run the native shipped test data | [Quickstart](usage/quickstart) |
 | Run WES/WGS data | [WES Example](usage/end-to-end-example-wes) |
 | Run mtDNA analysis | [mtDNA Example](usage/end-to-end-example-mit) |
 | See included pipelines | [Included Pipelines](pipelines/overview) |

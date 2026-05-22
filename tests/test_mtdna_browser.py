@@ -101,12 +101,40 @@ def test_mtb2html_executes_in_headless_chromium_when_available():
     assert "Showing 1-1 of 1 variants" in proc.stdout
 
 
-def test_mtb2json_converts_reference_mtdna_report_for_browser():
-    report = (
-        REPO_ROOT
-        / "examples/input/CNAG999_exome/CNAG99901P_ex"
-        / "ref_cbicall_bash_gatk-3.5_mit_single_rsrs_649547582283533"
-        / "01_mtoolbox/mit_prioritized_variants.txt"
+def test_mtb2json_converts_mtdna_report_for_browser(tmp_path):
+    report = tmp_path / "mit_prioritized_variants.txt"
+    report.write_text(
+        "\t".join(
+            [
+                "Variant Allele",
+                "Sample",
+                "Locus",
+                "Aa Change",
+                "REF",
+                "ALT",
+                "GT",
+                "DP",
+                "HF",
+                "AC/AN 1000 Genomes",
+            ]
+        )
+        + "\n"
+        + "\t".join(
+            [
+                "123A",
+                "sample-DNA_MIT",
+                "MT-ND1",
+                "p.Val1Ala",
+                "A",
+                "G",
+                "0/1",
+                "100",
+                "0.75",
+                "0.001",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
     )
 
     proc = subprocess.run(
