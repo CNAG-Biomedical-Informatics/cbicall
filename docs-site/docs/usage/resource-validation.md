@@ -74,7 +74,7 @@ Completed runs record resource provenance in `log.json` and `run-report.json`.
 Compare repeated runs with:
 
 ```bash
-bin/cbicall compare-runs run_a/ run_b/ --output compare-report.txt --html compare-report.html
+bin/cbicall compare-runs run_a/ run_b/ --output compare-report.txt
 ```
 
 For adding a new resource entry, see [Adding Resources](../technical-details/adding-resources).

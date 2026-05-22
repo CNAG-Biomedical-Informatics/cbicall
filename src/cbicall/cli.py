@@ -2685,14 +2685,26 @@ def _run_compare_runs_command(argv: List[str]) -> int:
     )
     parser.add_argument("runs", nargs="+", help="Run directories or run-report.json files. Provide two or more.")
     parser.add_argument("-o", "--output", help="Write the text comparison report to this file.")
-    parser.add_argument("--html", help="Write a static HTML rendering of the comparison report.")
+    parser.add_argument("--html", help="Write the HTML comparison report to this file. Defaults to <output>.html or compare-runs.html.")
+    parser.add_argument("--no-html", action="store_true", help="Do not write the default HTML comparison report.")
     parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
     args = parser.parse_args(argv)
 
     if len(args.runs) < 2:
         parser.error("compare-runs requires at least two run directories or run-report.json files")
+    if args.no_html and args.html:
+        parser.error("--html and --no-html cannot be used together")
 
-    if args.nocolor or args.output or args.html:
+    html_output = None
+    if not args.no_html:
+        if args.html:
+            html_output = Path(args.html)
+        elif args.output:
+            html_output = Path(args.output).with_suffix(".html")
+        else:
+            html_output = Path("compare-runs.html")
+
+    if args.nocolor or args.output or html_output:
         os.environ["ANSI_COLORS_DISABLED"] = "1"
     _refresh_colors()
 
@@ -2711,11 +2723,10 @@ def _run_compare_runs_command(argv: List[str]) -> int:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(report_text, encoding="utf-8")
         _row("Report", output)
-    if args.html:
-        output = Path(args.html)
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(_render_compare_html(report_text), encoding="utf-8")
-        _row("HTML", output)
+    if html_output:
+        html_output.parent.mkdir(parents=True, exist_ok=True)
+        html_output.write_text(_render_compare_html(report_text), encoding="utf-8")
+        _row("HTML", html_output)
     return 0
 
 

@@ -448,7 +448,7 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     report = tmp_path / "compare-report.txt"
     html_report = tmp_path / "compare-report.html"
     assert cli_mod._run_compare_runs_command(
-        [str(run_a), str(run_b), "--no-color", "--output", str(report), "--html", str(html_report)]
+        [str(run_a), str(run_b), "--no-color", "--output", str(report)]
     ) == 0
     out = capsys.readouterr().out
     assert "Run Comparison" in out
@@ -558,7 +558,7 @@ def test_compare_runs_refreshes_vcf_hashes_from_existing_run_dirs(tmp_path, caps
             encoding="utf-8",
         )
 
-    assert cli_mod._run_compare_runs_command([str(runs[0]), str(runs[1]), "--no-color"]) == 0
+    assert cli_mod._run_compare_runs_command([str(runs[0]), str(runs[1]), "--no-color", "--no-html"]) == 0
 
     out = capsys.readouterr().out
     assert "sample.vcf.gz" in out
@@ -615,7 +615,7 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     for run, report in zip(runs, [base, same, different]):
         (run / "run-report.json").write_text(json.dumps(report), encoding="utf-8")
 
-    assert cli_mod._run_compare_runs_command([str(run) for run in runs] + ["--no-color"]) == 0
+    assert cli_mod._run_compare_runs_command([str(run) for run in runs] + ["--no-color", "--no-html"]) == 0
     out = capsys.readouterr().out
     assert "Run Matrix" in out
     assert "Baseline" in out
