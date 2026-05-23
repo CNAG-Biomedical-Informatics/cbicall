@@ -9,11 +9,12 @@ Revision history for cbicall:
     - Add JSON Schema validation for the resource catalog.
     - Add runtime profiles for site-specific environment files, including CNAG HPC.
     - Add explicit registry versions and rename registry shared files from common to helpers.
-    - Add native Nextflow support for GATK 4.6 WES/WGS workflows.
+    - Add native Nextflow and Cromwell support for GATK 4.6 WES/WGS workflows.
     - Add registered nf-core workflow support through the Nextflow backend, including demo and Sarek examples.
     - Add validate-parameters, validate-registry, validate-resources, test, and compare-runs commands.
     - Add run-report.json audit summaries with CBIcall version, workflow file hashes, software-version evidence, resource provenance, output file inventory hashes, output sizes, execution trace summaries, and output fingerprints.
     - Add text and HTML run comparison reports for two or more runs.
+    - Add execution-contract audit files and generalize the workflow execution layer.
     - Rename workflow_engine/workflow_version YAML terminology to workflow_backend/workflow_provider.
     - Rename gatk_version YAML/report terminology to software_stack and place the software stack earlier in run directory and workflow log names.
 

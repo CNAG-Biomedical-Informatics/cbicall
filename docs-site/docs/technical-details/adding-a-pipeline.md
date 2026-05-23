@@ -56,7 +56,7 @@ The main implementation layers are:
 | --- | --- |
 | `src/cbicall/config.py` | Parameter defaults, semantic validation, runtime metadata. |
 | `src/cbicall/workflow_registry.py` | Registry loading, workflow resolution, referenced-file validation. |
-| `src/cbicall/dnaseq.py` | Backend-specific execution through `BashRunner`, `SnakemakeRunner`, `NextflowRunner`, and `CromwellRunner`. |
+| `src/cbicall/execution.py` | Backend-specific execution through `BashRunner`, `SnakemakeRunner`, `NextflowRunner`, and `CromwellRunner`. |
 | `workflows/registry/cbicall-workflow-registry.yaml` | Declares available native scripts and external workflow entries. |
 | `workflows/schema/cbicall-workflow-registry.schema.json` | Validates the registry structure. |
 
@@ -390,7 +390,7 @@ Check the pipeline at three levels.
 | Registry | The workflow appears under the correct backend/software-stack/pipeline/mode/registry-version path. |
 | Resource catalog | Compatible bundle entries point to real registry workflow keys. |
 | Files | Referenced scripts exist; Bash scripts are executable. |
-| Runtime | CBIcall creates a run directory, writes `log.json`, and produces expected outputs. |
+| Runtime | CBIcall creates a run directory, writes `log.json`, `cbicall-execution-contract.json`, `run-report.json`, and produces expected outputs. |
 
 Good first checks:
 
@@ -405,8 +405,20 @@ Then inspect:
 
 ```text
 <run-dir>/log.json
+<run-dir>/cbicall-execution-contract.json
 <run-dir>/logs/
 ```
+
+
+:::tip[Validate the workflow language too]
+`validate-registry` checks that CBIcall can resolve the entrypoint and compatible
+resources. It does not replace backend-native workflow checks. Use `bash -n` for
+Bash scripts, Snakemake lint or dry-run checks for Snakefiles, Nextflow's own
+validation/dry-run tools for Nextflow workflows, and `womtool validate` for WDL
+files. When `WOMTOOL_JAR` is set, CBIcall runs the WDL syntax check as part of
+`validate-registry`.
+:::
+
 
 ## When Python Changes Are Needed
 
@@ -417,8 +429,8 @@ Most workflow additions only need validation changes in `config.py` if the pipel
 | New YAML key or default | `src/cbicall/config.py` |
 | New value in the typed runtime model | `src/cbicall/models.py` |
 | New registry resolution behavior | `src/cbicall/workflow_registry.py` |
-| New execution backend | `src/cbicall/dnaseq.py` |
-| Different command-line launch behavior | `src/cbicall/dnaseq.py` |
+| New execution backend | `src/cbicall/execution.py` |
+| Different command-line launch behavior | `src/cbicall/execution.py` |
 
 :::warning[New backend]
 Adding a backend is different from adding a pipeline. Prefer adding a new runner class rather than expanding conditional logic inside an existing runner.
@@ -433,7 +445,7 @@ Adding a backend is different from adding a pipeline. Prefer adding a new runner
 - [ ] Register scripts in `workflows/registry/cbicall-workflow-registry.yaml`.
 - [ ] Update Python validation if the pipeline name or compatibility matrix changes.
 - [ ] Add a minimal YAML example.
-- [ ] Run CBIcall and inspect `log.json`, `logs/`, and expected outputs.
+- [ ] Run CBIcall and inspect `log.json`, `cbicall-execution-contract.json`, `run-report.json`, logs, and expected outputs.
 - [ ] Add or update tests when validation or execution behavior changes.
 
 ## Next Steps

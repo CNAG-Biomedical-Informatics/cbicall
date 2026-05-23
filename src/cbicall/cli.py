@@ -30,7 +30,7 @@ from .cli_output import (
     _row,
     _section,
 )
-from .dnaseq import DNAseq
+from .execution import WorkflowExecutor, EXECUTION_CONTRACT_FILE
 from .errors import ParameterValidationError
 from .helpmod import usage, parse_args as _parse_args, parse_run_args as _parse_run_args
 from .integration_tests import run_integration_tests, selected_tests_from_args
@@ -427,6 +427,34 @@ def _parse_key_value_file(path: Path) -> dict:
         key, value = line.split("=", 1)
         data[key.strip().lower()] = value.strip()
     return data
+
+
+def _collect_execution_contract(project_dir: Path) -> dict:
+    path = project_dir / EXECUTION_CONTRACT_FILE
+    if not path.is_file():
+        return {}
+    report = {
+        "path": str(path),
+        "status": "present",
+        "sha256": _sha256_file(path),
+    }
+    try:
+        contract = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        report["status"] = "parse_error"
+        report["error"] = str(exc)
+        return report
+
+    report["schema_version"] = contract.get("schema_version")
+    report["fingerprint"] = contract.get("fingerprint")
+    report["workflow_key"] = _nested(contract, "workflow", "key")
+    report["backend"] = _nested(contract, "workflow", "backend")
+    report["provider"] = _nested(contract, "workflow", "provider")
+    report["command_sha256"] = _nested(contract, "command", "sha256")
+    report["normalized_command_sha256"] = _nested(contract, "command", "normalized_sha256")
+    report["generated_files"] = contract.get("generated_files") or []
+    report["source"] = contract
+    return report
 
 
 def _collect_file_inventory(project_dir: Path) -> dict:
@@ -1091,6 +1119,39 @@ def _format_software_version_entry(value) -> str:
     return str(value)
 
 
+def _execution_contract_rows_html(payload: dict, base_dir: Path) -> str:
+    contract = payload.get("execution_contract") or {}
+    if not contract:
+        return ""
+
+    rows = []
+    if contract.get("path"):
+        rows.append(_html_row_raw("Contract", _file_link(contract["path"], base_dir)))
+    if contract.get("fingerprint"):
+        rows.append(_html_row("Fingerprint", contract.get("fingerprint")))
+    if contract.get("normalized_command_sha256"):
+        rows.append(_html_row("Command hash", contract.get("normalized_command_sha256")))
+    if contract.get("workflow_key"):
+        rows.append(_html_row("Workflow key", contract.get("workflow_key")))
+    if contract.get("backend"):
+        rows.append(_html_row("Backend", contract.get("backend")))
+    if contract.get("provider"):
+        rows.append(_html_row("Provider", contract.get("provider")))
+    for item in contract.get("generated_files") or []:
+        if not isinstance(item, dict):
+            continue
+        role = item.get("role") or "generated"
+        link = _file_link(item.get("path"), base_dir) if item.get("path") else "(undef)"
+        status = html.escape(str(item.get("status") or "unknown"))
+        digest = html.escape(str(item.get("normalized_sha256") or item.get("sha256") or "(undef)"))
+        rows.append(_html_row_raw(role, f'{link}<br><span class="muted">{status} | {digest}</span>'))
+    if contract.get("status") and contract.get("status") != "present":
+        rows.append(_html_row("Status", contract.get("status")))
+    if contract.get("error"):
+        rows.append(_html_row("Error", contract.get("error")))
+    return "".join(rows)
+
+
 def _execution_trace_rows_html(payload: dict, base_dir: Path) -> str:
     trace = payload.get("execution_trace") or {}
     if not trace:
@@ -1155,6 +1216,7 @@ def _run_report_html(payload: dict) -> str:
     external_report_rows = _external_report_rows_html(payload, base_dir)
     software_version_rows = _software_versions_rows_html(payload, base_dir)
     execution_trace_rows = _execution_trace_rows_html(payload, base_dir)
+    execution_contract_rows = _execution_contract_rows_html(payload, base_dir)
 
     output_dashboard = _output_dashboard_html(payload, base_dir)
     workflow_metadata = _nested(payload, "workflow", "metadata") or {}
@@ -1238,6 +1300,8 @@ def _run_report_html(payload: dict) -> str:
         sections.insert(-1, _html_section_raw("External Reports", external_report_rows))
     if software_version_rows:
         sections.insert(-1, _html_section_raw("Software Versions", software_version_rows))
+    if execution_contract_rows:
+        sections.insert(-1, _html_section_raw("Execution Contract", execution_contract_rows))
     if execution_trace_rows:
         sections.insert(-1, _html_section_raw("Execution Trace", execution_trace_rows))
     sections.insert(-1, output_dashboard)
@@ -1648,6 +1712,7 @@ def write_run_report(
     output_fingerprints.update(external_outputs)
     software_versions = _collect_software_versions(output_fingerprints, resolved_config.resources)
     execution_trace = _collect_execution_trace_summary(output_fingerprints)
+    execution_contract = _collect_execution_contract(project_dir)
     payload = {
         "status": "success",
         "elapsed_seconds": round(elapsed_seconds, 3),
@@ -1686,6 +1751,8 @@ def write_run_report(
         payload["software_versions"] = software_versions
     if execution_trace:
         payload["execution_trace"] = execution_trace
+    if execution_contract:
+        payload["execution_contract"] = execution_contract
     with report_path.open("w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, indent=2, sort_keys=True)
     return report_path
@@ -1939,6 +2006,11 @@ def _refresh_report_output_fields(report_path: Path, payload: dict) -> bool:
         outputs["vcf_hash_reports"] = fresh_vcfs
         changed = True
 
+    fresh_contract = _collect_execution_contract(project_dir)
+    if fresh_contract and payload.get("execution_contract") != fresh_contract:
+        payload["execution_contract"] = fresh_contract
+        changed = True
+
     return changed
 
 
@@ -1989,6 +2061,7 @@ def _print_single_run_report(
     vcf_reports = outputs.get("vcf_hash_reports") or []
     canonical_outputs = outputs.get("canonical_outputs") or []
     execution_trace = payload.get("execution_trace") or {}
+    execution_contract = payload.get("execution_contract") or {}
     software_versions = payload.get("software_versions") or {}
     run = payload.get("run") or {}
 
@@ -2013,6 +2086,13 @@ def _print_single_run_report(
         _row("External release", metadata.get("release"))
     _row("Fingerprint", workflow.get("fingerprint"))
     _row("Backend ver", backend.get("version"))
+
+    if execution_contract:
+        _section("Execution Contract", BLUE)
+        _row("Contract", _short_path(execution_contract.get("path")))
+        _row("Fingerprint", execution_contract.get("fingerprint"))
+        _row("Command hash", execution_contract.get("normalized_command_sha256"))
+        _row("Generated files", len(execution_contract.get("generated_files") or []))
 
     _section("Resources", CYAN)
     _row("Resource key", bundle.get("key"))
@@ -2173,6 +2253,33 @@ def _workflow_file_map(report: dict) -> dict:
         if isinstance(entry, dict) and entry.get("role"):
             mapped[str(entry["role"])] = entry
     return mapped
+
+
+def _execution_file_map(report: dict) -> dict:
+    files = _nested(report, "execution_contract", "generated_files") or []
+    mapped = {}
+    for entry in files:
+        if isinstance(entry, dict) and entry.get("role"):
+            mapped[str(entry["role"])] = entry
+    return mapped
+
+
+def _execution_file_value(role: str, report: dict):
+    entry = _execution_file_map(report).get(role)
+    if not entry:
+        return None
+    return entry.get("normalized_sha256") or entry.get("sha256")
+
+
+def _compare_execution_files(left: dict, right: dict) -> None:
+    left_files = _execution_file_map(left)
+    right_files = _execution_file_map(right)
+    roles = sorted(set(left_files) | set(right_files))
+    if not roles:
+        _row("Generated files", "not available")
+        return
+    for role in roles:
+        _compare_row(role, _execution_file_value(role, left), _execution_file_value(role, right))
 
 
 def _compare_workflow_files(left: dict, right: dict) -> None:
@@ -2379,6 +2486,16 @@ def _print_multi_run_comparison(reports: List[dict]) -> None:
     _multi_status("Workflow hash", baseline, reports, lambda report: _nested(report, "workflow", "fingerprint"))
 
     print()
+    _section("Execution Contract", BLUE)
+    _multi_status("Contract hash", baseline, reports, lambda report: _nested(report, "execution_contract", "fingerprint"))
+    _multi_status("Command hash", baseline, reports, lambda report: _nested(report, "execution_contract", "normalized_command_sha256"))
+    execution_roles = sorted({role for report in reports for role in _execution_file_map(report)})
+    if not execution_roles:
+        _row("Generated files", "not available")
+    for role in execution_roles:
+        _multi_status(role, baseline, reports, lambda report, item=role: _execution_file_value(item, report))
+
+    print()
     _section("Software", BLUE)
     _multi_status("Software versions", baseline, reports, lambda report: _nested(report, "software_versions", "sha256"))
 
@@ -2446,6 +2563,12 @@ def _print_run_comparison(left: dict, right: dict) -> None:
     _compare_row("External release", _nested(left, "workflow", "metadata", "release"), _nested(right, "workflow", "metadata", "release"))
     _compare_row("Entrypoint", _nested(left, "workflow", "entrypoint"), _nested(right, "workflow", "entrypoint"))
     _compare_row("Workflow hash", _nested(left, "workflow", "fingerprint"), _nested(right, "workflow", "fingerprint"))
+
+    print()
+    _section("Execution Contract", BLUE)
+    _compare_row("Contract hash", _nested(left, "execution_contract", "fingerprint"), _nested(right, "execution_contract", "fingerprint"))
+    _compare_row("Command hash", _nested(left, "execution_contract", "normalized_command_sha256"), _nested(right, "execution_contract", "normalized_command_sha256"))
+    _compare_execution_files(left, right)
 
     print()
     _section("Software", BLUE)
@@ -3134,11 +3257,11 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
     _row("Workflow", f"{workflow.backend} -> {workflow.pipeline} -> {workflow.mode}")
     print("  This workflow may take a while depending on input size and pipeline.")
 
-    wes = DNAseq(settings)
+    wes = WorkflowExecutor(settings)
 
     # Run with spinner
     run_with_spinner(
-        wes.variant_calling,
+        wes.run,
         no_spinner=no_spinner,
     )
 

@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import platform
@@ -13,6 +14,8 @@ import yaml
 from .errors import WorkflowExecutionError, WorkflowResolutionError
 from .models import RunSettings
 
+EXECUTION_CONTRACT_FILE = "cbicall-execution-contract.json"
+
 
 def _cmd_to_string(
     cmd: List[str],
@@ -27,6 +30,60 @@ def _cmd_to_string(
             parts.append(f"{k}={shlex.quote(str(v))}")
     parts.extend(shlex.quote(str(x)) for x in cmd)
     return " ".join(parts)
+
+
+def _canonical_json_sha256(value: Any) -> str:
+    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _sha256_file(path: Path) -> Optional[str]:
+    if not path.is_file():
+        return None
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while True:
+            chunk = handle.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _normalized_text_sha256(path: Path, replacements: Dict[str, str]) -> Optional[str]:
+    if not path.is_file():
+        return None
+    text = path.read_text(encoding="utf-8")
+    for old, new in replacements.items():
+        if old:
+            text = text.replace(old, new)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _normalize_contract_value(value: Any, replacements: Dict[str, str]) -> Any:
+    if isinstance(value, dict):
+        return {key: _normalize_contract_value(item, replacements) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_normalize_contract_value(item, replacements) for item in value]
+    if isinstance(value, str):
+        out = value
+        for old, new in replacements.items():
+            if old:
+                out = out.replace(old, new)
+        return out
+    return value
+
+
+def _workflow_key(workflow) -> str:
+    return "/".join(
+        [
+            str(workflow.backend),
+            str(workflow.pipeline),
+            str(workflow.mode),
+            str(workflow.software_stack),
+            str(workflow.registry_version),
+        ]
+    )
 
 
 def _groovy_single_quote(value: str) -> str:
@@ -215,6 +272,88 @@ class BaseRunner:
     def build_command(self) -> List[str]:
         raise NotImplementedError
 
+    def generated_execution_files(self) -> List[Dict[str, str]]:
+        return []
+
+    def _execution_contract_replacements(self) -> Dict[str, str]:
+        return {
+            str(self.workdir): "{PROJECT_DIR}",
+            str(self.workdir.resolve()): "{PROJECT_DIR}",
+            str(self.settings.run_id): "{RUN_ID}",
+        }
+
+    def _execution_file_report(self, role: str, path: Path) -> dict:
+        replacements = self._execution_contract_replacements()
+        return {
+            "role": role,
+            "path": str(path),
+            "status": "present" if path.is_file() else "missing",
+            "sha256": _sha256_file(path),
+            "normalized_sha256": _normalized_text_sha256(path, replacements),
+        }
+
+    def _write_execution_contract(self, cmd: List[str], env_updates: Optional[Dict[str, str]]) -> Path:
+        replacements = self._execution_contract_replacements()
+        command_payload = {
+            "argv": [str(item) for item in cmd],
+            "string": self.cmd_to_string(cmd, env_overrides=env_updates),
+        }
+        command_payload["sha256"] = _canonical_json_sha256(command_payload)
+        command_payload["normalized_sha256"] = _canonical_json_sha256(
+            _normalize_contract_value(command_payload, replacements)
+        )
+
+        payload = {
+            "schema_version": 1,
+            "kind": "cbicall_execution_contract",
+            "workflow": {
+                "backend": self.backend,
+                "provider": str(self.workflow.metadata.get("provider", "cbicall")),
+                "pipeline": self.pipeline,
+                "mode": self.mode,
+                "software_stack": self.software_stack,
+                "registry_version": self.workflow.registry_version,
+                "key": _workflow_key(self.workflow),
+                "entrypoint": self.workflow.entrypoint,
+                "config_file": self.workflow.config_file,
+                "helpers": dict(self.workflow.helpers),
+                "metadata": dict(self.workflow.metadata),
+            },
+            "run": {
+                "run_id": self.settings.run_id,
+                "project_dir": str(self.workdir),
+                "log_path": str(self.log_path),
+                "threads": int(self.settings.threads),
+                "profile": self.settings.profile,
+                "genome": self.settings.genome,
+                "cleanup_bam": bool(self.settings.cleanup_bam),
+                "run_mode": self.settings.run_mode,
+            },
+            "inputs": self.inputs.to_dict(),
+            "command": command_payload,
+            "environment_overrides": dict(env_updates or {}),
+            "backend_parameters": {
+                "snakemake_parameters": dict(self.settings.snakemake_parameters),
+                "nextflow_parameters": dict(self.settings.nextflow_parameters),
+                "cromwell_parameters": dict(self.settings.cromwell_parameters),
+                "nfcore_profile": self.settings.nfcore_profile,
+                "nfcore_parameters": dict(self.settings.nfcore_parameters),
+                "nfcore_singularity_cache_dir": self.settings.nfcore_singularity_cache_dir,
+            },
+            "generated_files": [
+                self._execution_file_report(item["role"], Path(item["path"]))
+                for item in self.generated_execution_files()
+            ],
+            "normalization": {
+                "project_dir": "{PROJECT_DIR}",
+                "run_id": "{RUN_ID}",
+            },
+        }
+        payload["fingerprint"] = _canonical_json_sha256(_normalize_contract_value(payload, replacements))
+        path = self.workdir / EXECUTION_CONTRACT_FILE
+        path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return path
+
     def execute(self, *, debug: bool = False) -> None:
         if not self.workdir.is_dir():
             raise WorkflowResolutionError(f"Project directory does not exist: {self.workdir}")
@@ -228,6 +367,8 @@ class BaseRunner:
         if debug:
             print(self.cmd_to_string(cmd, env_overrides=env_updates))
             print(f"Log file: {self.log_path}")
+
+        self._write_execution_contract(cmd, env_updates)
 
         self.run_cmd(
             cmd=cmd,
@@ -452,6 +593,14 @@ class NextflowRunner(BaseRunner):
         _append_nextflow_cli_parameters(cmd, self.settings.nextflow_parameters)
         return cmd
 
+    def generated_execution_files(self) -> List[Dict[str, str]]:
+        if self._is_nfcore_workflow():
+            return [
+                {"role": "nf-core:params", "path": str(self.workdir / "cbicall_external_nextflow.params.yaml")},
+                {"role": "nf-core:config", "path": str(self.workdir / "cbicall_external_nextflow.config")},
+            ]
+        return []
+
 
 class CromwellRunner(BaseRunner):
     @property
@@ -641,6 +790,15 @@ class CromwellRunner(BaseRunner):
             str(self.metadata_json),
         ]
 
+    def generated_execution_files(self) -> List[Dict[str, str]]:
+        files = [
+            {"role": "cromwell:inputs", "path": str(self.inputs_json)},
+            {"role": "cromwell:options", "path": str(self.options_json)},
+        ]
+        if self.fastq_pairs_tsv.is_file():
+            files.append({"role": "cromwell:fastq_pairs", "path": str(self.fastq_pairs_tsv)})
+        return files
+
     def execute(self, *, debug: bool = False) -> None:
         super().execute(debug=debug)
         self._promote_outputs()
@@ -673,7 +831,7 @@ class CromwellRunner(BaseRunner):
                     _copy_if_different(src, self.workdir / target_dir / src.name)
 
 
-class DNAseq:
+class WorkflowExecutor:
     """
     Backend-specific workflow runner facade.
     """
@@ -715,7 +873,7 @@ class DNAseq:
 
         raise WorkflowResolutionError(f"Invalid workflow_backend: {backend!r}")
 
-    def variant_calling(self) -> bool:
+    def run(self) -> bool:
         runner = self._make_runner()
         runner.execute(debug=bool(self.settings.debug))
         return True

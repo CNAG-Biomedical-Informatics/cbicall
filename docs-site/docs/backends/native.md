@@ -49,6 +49,15 @@ CBIcall can also launch registered external nf-core workflows through Nextflow.
 Those workflows are documented separately because they keep their native output
 layout and runtime assumptions. See [nf-core](nf-core).
 
+:::info[Backend-native validation]
+CBIcall validates the parameters YAML against the workflow registry and resource
+catalog, then writes a `cbicall-execution-contract.json` for the concrete command
+it launches. Syntax or semantic validation inside each workflow language remains
+backend-native: use `bash -n` for shell scripts, Snakemake lint/dry-run checks
+for Snakefiles, Nextflow's own validation for native Nextflow workflows, and
+`womtool validate` for WDL/Cromwell workflows.
+:::
+
 ## Backend Selection
 
 For CBIcall-native workflows, select the backend with `workflow_backend`:

@@ -6,7 +6,7 @@ repeated local runs, HPC runs, container runs, or cloud runs.
 
 The command **does not try to prove that two biological analyses are equivalent**.
 It gives an audit trail for the framework layer: which CBIcall version ran,
-which registered pipeline was resolved, which workflow files were executed,
+which registered pipeline was resolved, which backend-ready execution contract was launched, which workflow files were executed,
 which resource identity was selected, and whether normalized VCF output
 fingerprints and output file inventories match when available.
 
@@ -22,6 +22,7 @@ Keep these files from each completed run:
 | --- | --- |
 | `run-report.json` | Compact provenance report used by `compare-runs`. |
 | `log.json` | Full resolved configuration, runtime parameters, and resource details. |
+| `cbicall-execution-contract.json` | Concrete backend-ready command, generated launch files, and normalized execution fingerprint. |
 | Workflow log | Execution log for the selected Bash, Snakemake, Nextflow, or Cromwell backend. |
 | `03_stats/*.vcf.sha256.txt` | Normalized VCF fingerprint report when produced by the workflow. |
 
@@ -45,6 +46,7 @@ bin/cbicall compare-runs baseline_run/ repeat_1/ repeat_2/ repeat_3/ --output co
 | Framework | CBIcall version, Python version, Java version, configured native Java version, and workflow backend version recorded in `run-report.json`. |
 | Pipeline | Workflow key, registry version, entrypoint, and workflow fingerprint. |
 | Execution | Task count and peak RAM summaries when the backend provides an execution trace. |
+| Execution contract | Normalized execution-contract fingerprint, normalized command fingerprint, and generated backend launch-file hashes. |
 | Software | Software-version fingerprint when available. Native runs use declared tool versions from the resource catalog; nf-core runs use the workflow-reported software versions YAML. |
 | Workflow files | Entrypoint and helper/config file paths plus their SHA-256 values. |
 | Resources | Resource key and resource fingerprint from the selected resource catalog entry. |
@@ -63,6 +65,13 @@ change in the entrypoint, helpers, Snakefile, or config files changes this
 fingerprint, including comment-only edits. This is deliberate: it tells the
 auditor that the implementation used for the second run was not exactly the same
 implementation used for the first run.
+
+The execution-contract fingerprint is computed from the backend-ready execution
+plan after replacing the run directory and run ID with placeholders. This lets
+repeat runs compare as the same execution contract even though their output
+directories and run IDs differ. Generated backend files, such as nf-core params
+files or Cromwell inputs/options JSON files, are listed separately with their own
+normalized hashes.
 
 When execution-trace evidence is available, CBIcall records the task count and
 peak RSS/VMEM summary. This is currently derived from Nextflow/nf-core
@@ -110,14 +119,17 @@ Use this order when auditing two runs:
 2. Check **Execution** if a trace is available. Different task counts or peak
    RAM values usually indicate a backend/runtime difference or a changed workflow
    execution path.
-3. Check **Pipeline**, **Software**, and **Workflow files**. A different
+3. Check **Execution Contract**. A different contract or command hash means
+   CBIcall launched a different backend-ready plan, even if the same workflow
+   files were selected.
+4. Check **Pipeline**, **Software**, and **Workflow files**. A different
    workflow fingerprint means the resolved workflow implementation changed. A
    different software-version fingerprint means the declared or workflow-reported
    tool table changed. Inspect the listed file fingerprints to locate a changed
    workflow file.
-4. Check **Resources**. A different resource key or hash means the selected
+5. Check **Resources**. A different resource key or hash means the selected
    external dependency set was not the same.
-5. Check **Outputs**. A different file inventory means the run directories do
+6. Check **Outputs**. A different file inventory means the run directories do
    not contain the same relative file layout. Matching normalized VCF
    fingerprints indicate that the
    compared variant records match under CBIcall's deterministic VCF comparison

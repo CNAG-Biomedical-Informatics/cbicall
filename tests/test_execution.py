@@ -1,10 +1,12 @@
+import json
+
 import pytest
 
-from cbicall import dnaseq
+from cbicall import execution
 from cbicall.errors import WorkflowExecutionError, WorkflowResolutionError
 
 
-def test_dnaseq_builds_bash_command_with_flags(tmp_path, monkeypatch):
+def test_execution_builds_bash_command_with_flags(tmp_path, monkeypatch):
     recorded = {}
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
@@ -12,7 +14,7 @@ def test_dnaseq_builds_bash_command_with_flags(tmp_path, monkeypatch):
             {"cmd": cmd, "cwd": cwd, "log_path": log_path, "env": env, "backend": backend}
         )
 
-    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -40,8 +42,8 @@ def test_dnaseq_builds_bash_command_with_flags(tmp_path, monkeypatch):
         },
     }
 
-    obj = dnaseq.DNAseq(settings)
-    assert obj.variant_calling() is True
+    obj = execution.WorkflowExecutor(settings)
+    assert obj.run() is True
 
     assert recorded["cmd"][0] == script
     assert recorded["cmd"][1:3] == ["-t", "8"]
@@ -51,15 +53,22 @@ def test_dnaseq_builds_bash_command_with_flags(tmp_path, monkeypatch):
     assert recorded["env"]["GENOME"] == "b37"
     assert recorded["cwd"] == project_dir
     assert recorded["backend"] == "bash"
+    contract = json.loads((project_dir / "cbicall-execution-contract.json").read_text(encoding="utf-8"))
+    assert contract["kind"] == "cbicall_execution_contract"
+    assert contract["workflow"]["key"] == "bash/wes/single/gatk-4.6/legacy"
+    assert contract["environment_overrides"] == {"GENOME": "b37"}
+    assert contract["command"]["argv"] == recorded["cmd"]
+    assert "PATH" not in contract["environment_overrides"]
+    assert len(contract["fingerprint"]) == 64
 
 
-def test_dnaseq_passes_resolved_env_file_to_bash(tmp_path, monkeypatch):
+def test_execution_passes_resolved_env_file_to_bash(tmp_path, monkeypatch):
     recorded = {}
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"env": env})
 
-    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -86,15 +95,15 @@ def test_dnaseq_passes_resolved_env_file_to_bash(tmp_path, monkeypatch):
         },
     }
 
-    assert dnaseq.DNAseq(settings).variant_calling() is True
+    assert execution.WorkflowExecutor(settings).run() is True
     assert recorded["env"]["CBICALL_ENV_FILE"] == str(env_file)
 
 
-def test_dnaseq_debug_prints(monkeypatch, tmp_path, capsys):
+def test_execution_debug_prints(monkeypatch, tmp_path, capsys):
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         return None
 
-    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -120,19 +129,19 @@ def test_dnaseq_debug_prints(monkeypatch, tmp_path, capsys):
         },
     }
 
-    assert dnaseq.DNAseq(settings).variant_calling() is True
+    assert execution.WorkflowExecutor(settings).run() is True
     out = capsys.readouterr().out
     assert "Log file:" in out
     assert "GENOME=b37" in out
 
 
-def test_dnaseq_builds_bash_command_gatk35_has_no_extra_flags(tmp_path, monkeypatch):
+def test_execution_builds_bash_command_gatk35_has_no_extra_flags(tmp_path, monkeypatch):
     recorded = {}
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"cmd": cmd})
 
-    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -160,17 +169,17 @@ def test_dnaseq_builds_bash_command_gatk35_has_no_extra_flags(tmp_path, monkeypa
         },
     }
 
-    assert dnaseq.DNAseq(settings).variant_calling() is True
+    assert execution.WorkflowExecutor(settings).run() is True
     assert recorded["cmd"] == [script, "-t", "4"]
 
 
-def test_dnaseq_builds_snakemake_command_and_config(tmp_path, monkeypatch):
+def test_execution_builds_snakemake_command_and_config(tmp_path, monkeypatch):
     recorded = {}
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"cmd": cmd, "backend": backend})
 
-    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -197,7 +206,7 @@ def test_dnaseq_builds_snakemake_command_and_config(tmp_path, monkeypatch):
         },
     }
 
-    assert dnaseq.DNAseq(settings).variant_calling() is True
+    assert execution.WorkflowExecutor(settings).run() is True
     cmd = recorded["cmd"]
     assert cmd[:3] == ["snakemake", "--forceall", "all"]
     assert "--configfile" in cmd
@@ -207,13 +216,13 @@ def test_dnaseq_builds_snakemake_command_and_config(tmp_path, monkeypatch):
     assert recorded["backend"] == "snakemake"
 
 
-def test_dnaseq_builds_snakemake_partial_rule_command(tmp_path, monkeypatch):
+def test_execution_builds_snakemake_partial_rule_command(tmp_path, monkeypatch):
     recorded = {}
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"cmd": cmd, "backend": backend})
 
-    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -240,17 +249,17 @@ def test_dnaseq_builds_snakemake_partial_rule_command(tmp_path, monkeypatch):
         },
     }
 
-    assert dnaseq.DNAseq(settings).variant_calling() is True
+    assert execution.WorkflowExecutor(settings).run() is True
     assert recorded["cmd"][:3] == ["snakemake", "--forceall", "call_variants"]
 
 
-def test_dnaseq_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
+def test_execution_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
     recorded = {}
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"cmd": cmd, "backend": backend})
 
-    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -283,7 +292,7 @@ def test_dnaseq_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
         },
     }
 
-    assert dnaseq.DNAseq(settings).variant_calling() is True
+    assert execution.WorkflowExecutor(settings).run() is True
     cmd = recorded["cmd"]
     assert cmd[:3] == ["nextflow", "run", workflow]
     assert "-params-file" in cmd
@@ -295,15 +304,19 @@ def test_dnaseq_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
     assert "--emit_report" in cmd
     assert "--scatter_count" in cmd and "2" in cmd
     assert recorded["backend"] == "nextflow"
+    contract = json.loads((project_dir / "cbicall-execution-contract.json").read_text(encoding="utf-8"))
+    assert contract["workflow"]["backend"] == "nextflow"
+    assert contract["workflow"]["provider"] == "cbicall"
+    assert contract["command"]["normalized_sha256"]
 
 
-def test_dnaseq_builds_nextflow_cohort_command_with_sample_map(tmp_path, monkeypatch):
+def test_execution_builds_nextflow_cohort_command_with_sample_map(tmp_path, monkeypatch):
     recorded = {}
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"cmd": cmd, "backend": backend})
 
-    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -332,14 +345,14 @@ def test_dnaseq_builds_nextflow_cohort_command_with_sample_map(tmp_path, monkeyp
         },
     }
 
-    assert dnaseq.DNAseq(settings).variant_calling() is True
+    assert execution.WorkflowExecutor(settings).run() is True
     cmd = recorded["cmd"]
     assert "--sample_map" in cmd and str(sample_map) in cmd
     assert "--workspace" in cmd and "cohort.genomicsdb.RIDNFCOHORT" in cmd
     assert "--vcf2hash_script" in cmd
 
 
-def test_dnaseq_nextflow_cohort_requires_sample_map(tmp_path):
+def test_execution_nextflow_cohort_requires_sample_map(tmp_path):
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
 
@@ -365,17 +378,17 @@ def test_dnaseq_nextflow_cohort_requires_sample_map(tmp_path):
     }
 
     with pytest.raises(WorkflowResolutionError, match="sample_map is required"):
-        dnaseq.DNAseq(settings).variant_calling()
+        execution.WorkflowExecutor(settings).run()
 
 
-def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatch):
+def test_execution_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatch):
     recorded = {}
-    monkeypatch.setattr(dnaseq.platform, "machine", lambda: "x86_64")
+    monkeypatch.setattr(execution.platform, "machine", lambda: "x86_64")
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"cmd": cmd, "cwd": cwd, "log_path": log_path, "backend": backend, "env": env})
 
-    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -418,7 +431,7 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
         },
     }
 
-    assert dnaseq.DNAseq(settings).variant_calling() is True
+    assert execution.WorkflowExecutor(settings).run() is True
     cmd = recorded["cmd"]
     assert cmd[:5] == ["nextflow", "run", "nf-core/sarek", "-r", "3.8.1"]
     assert "-profile" in cmd and "docker" in cmd
@@ -448,16 +461,22 @@ def test_dnaseq_builds_nfcore_sarek_command_and_params_file(tmp_path, monkeypatc
     assert recorded["cwd"] == project_dir
     assert recorded["log_path"] == project_dir / "nf-core_sarek_cohort.log"
     assert recorded["backend"] == "nextflow"
+    contract = json.loads((project_dir / "cbicall-execution-contract.json").read_text(encoding="utf-8"))
+    generated = {item["role"]: item for item in contract["generated_files"]}
+    assert set(generated) == {"nf-core:params", "nf-core:config"}
+    assert generated["nf-core:params"]["status"] == "present"
+    assert generated["nf-core:config"]["normalized_sha256"]
+    assert contract["workflow"]["provider"] == "nf-core"
 
 
-def test_dnaseq_nfcore_sarek_pins_amd64_docker_platform_on_arm64(tmp_path, monkeypatch):
+def test_execution_nfcore_sarek_pins_amd64_docker_platform_on_arm64(tmp_path, monkeypatch):
     recorded = {}
-    monkeypatch.setattr(dnaseq.platform, "machine", lambda: "aarch64")
+    monkeypatch.setattr(execution.platform, "machine", lambda: "aarch64")
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"cmd": cmd, "cwd": cwd, "backend": backend})
 
-    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -498,7 +517,7 @@ def test_dnaseq_nfcore_sarek_pins_amd64_docker_platform_on_arm64(tmp_path, monke
         },
     }
 
-    assert dnaseq.DNAseq(settings).variant_calling() is True
+    assert execution.WorkflowExecutor(settings).run() is True
     config_text = (project_dir / "cbicall_external_nextflow.config").read_text(encoding="utf-8")
     assert "resourceLimits = [ cpus: 6 ]" in config_text
     assert "runOptions = '--platform linux/amd64'" in config_text
@@ -530,10 +549,10 @@ def test_snakemake_missing_snakefile_raises(tmp_path):
     }
 
     with pytest.raises(RuntimeError, match="Missing Snakefile"):
-        dnaseq.DNAseq(settings).variant_calling()
+        execution.WorkflowExecutor(settings).run()
 
 
-def test_dnaseq_raises_if_projectdir_missing(tmp_path):
+def test_execution_raises_if_projectdir_missing(tmp_path):
     settings = {
         "project_dir": str(tmp_path / "does_not_exist"),
         "threads": 2,
@@ -554,7 +573,7 @@ def test_dnaseq_raises_if_projectdir_missing(tmp_path):
         },
     }
     with pytest.raises(RuntimeError, match="Project directory does not exist"):
-        dnaseq.DNAseq(settings).variant_calling()
+        execution.WorkflowExecutor(settings).run()
 
 
 def _write_cromwell_config(tmp_path):
@@ -592,7 +611,7 @@ def _write_cromwell_config(tmp_path):
     return config
 
 
-def test_dnaseq_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch):
+def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch):
     recorded = {}
     project_dir = tmp_path / "CNAG99901P_ex" / "cbicall_cromwell_run"
     project_dir.mkdir(parents=True)
@@ -603,7 +622,7 @@ def test_dnaseq_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch):
     jar.write_text("jar\n", encoding="utf-8")
     monkeypatch.setenv("CROMWELL_JAR", str(jar))
     monkeypatch.setenv("JAVA_CMD", "/usr/bin/java")
-    monkeypatch.setattr(dnaseq.platform, "machine", lambda: "x86_64")
+    monkeypatch.setattr(execution.platform, "machine", lambda: "x86_64")
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"cmd": cmd, "cwd": cwd, "backend": backend})
@@ -634,7 +653,7 @@ def test_dnaseq_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch):
             encoding="utf-8",
         )
 
-    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
     wdl = tmp_path / "wes_single.wdl"
     wdl.write_text("version 1.0\n", encoding="utf-8")
     config = _write_cromwell_config(tmp_path)
@@ -667,7 +686,7 @@ def test_dnaseq_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch):
         },
     }
 
-    assert dnaseq.DNAseq(settings).variant_calling() is True
+    assert execution.WorkflowExecutor(settings).run() is True
     cmd = recorded["cmd"]
     assert cmd[:4] == ["/usr/bin/java", "-jar", str(jar), "run"]
     assert "--inputs" in cmd and str(project_dir / "cbicall_cromwell.inputs.json") in cmd
@@ -683,9 +702,15 @@ def test_dnaseq_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch):
     assert (project_dir / "02_varcall" / "CNAG99901P.hc.QC.vcf.gz").is_file()
     assert (project_dir / "03_stats" / "CNAG99901P.vcf.sha256.txt").is_file()
     assert (project_dir / "logs" / "CNAG99901P.log").is_file()
+    contract = json.loads((project_dir / "cbicall-execution-contract.json").read_text(encoding="utf-8"))
+    generated = {item["role"]: item for item in contract["generated_files"]}
+    assert set(generated) == {"cromwell:inputs", "cromwell:options", "cromwell:fastq_pairs"}
+    assert generated["cromwell:inputs"]["status"] == "present"
+    assert generated["cromwell:options"]["sha256"]
+    assert contract["backend_parameters"]["cromwell_parameters"] == {"extra_label": "audit"}
 
 
-def test_dnaseq_builds_and_promotes_cromwell_wgs_cohort(tmp_path, monkeypatch):
+def test_execution_builds_and_promotes_cromwell_wgs_cohort(tmp_path, monkeypatch):
     recorded = {}
     project_dir = tmp_path / "cohort" / "cbicall_cromwell_run"
     project_dir.mkdir(parents=True)
@@ -694,7 +719,7 @@ def test_dnaseq_builds_and_promotes_cromwell_wgs_cohort(tmp_path, monkeypatch):
     jar = tmp_path / "cromwell.jar"
     jar.write_text("jar\n", encoding="utf-8")
     monkeypatch.setenv("CROMWELL_JAR", str(jar))
-    monkeypatch.setattr(dnaseq.platform, "machine", lambda: "x86_64")
+    monkeypatch.setattr(execution.platform, "machine", lambda: "x86_64")
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"cmd": cmd, "cwd": cwd, "backend": backend})
@@ -722,7 +747,7 @@ def test_dnaseq_builds_and_promotes_cromwell_wgs_cohort(tmp_path, monkeypatch):
             encoding="utf-8",
         )
 
-    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
     wdl = tmp_path / "wgs_cohort.wdl"
     wdl.write_text("version 1.0\n", encoding="utf-8")
     config = _write_cromwell_config(tmp_path)
@@ -755,7 +780,7 @@ def test_dnaseq_builds_and_promotes_cromwell_wgs_cohort(tmp_path, monkeypatch):
         },
     }
 
-    assert dnaseq.DNAseq(settings).variant_calling() is True
+    assert execution.WorkflowExecutor(settings).run() is True
     inputs = __import__("json").loads((project_dir / "cbicall_cromwell.inputs.json").read_text(encoding="utf-8"))
     assert inputs["CBIcallCohort.pipeline"] == "wgs"
     assert inputs["CBIcallCohort.sample_map"] == str(sample_map.resolve())
@@ -768,10 +793,10 @@ def test_dnaseq_builds_and_promotes_cromwell_wgs_cohort(tmp_path, monkeypatch):
     assert (project_dir / "logs" / "cohort_joint_genotyping.log").is_file()
 
 
-def test_dnaseq_cromwell_requires_runtime(tmp_path, monkeypatch):
+def test_execution_cromwell_requires_runtime(tmp_path, monkeypatch):
     monkeypatch.delenv("CROMWELL_JAR", raising=False)
     monkeypatch.setenv("PATH", str(tmp_path / "empty-path"))
-    monkeypatch.setattr(dnaseq.shutil, "which", lambda name: None)
+    monkeypatch.setattr(execution.shutil, "which", lambda name: None)
     project_dir = tmp_path / "CNAG99901P_ex" / "run"
     project_dir.mkdir(parents=True)
     (project_dir.parent / "S_R1_001.fastq.gz").write_text("r1\n", encoding="utf-8")
@@ -802,9 +827,9 @@ def test_dnaseq_cromwell_requires_runtime(tmp_path, monkeypatch):
         },
     }
     with pytest.raises(WorkflowResolutionError, match="Cromwell is not available"):
-        dnaseq.DNAseq(settings).variant_calling()
+        execution.WorkflowExecutor(settings).run()
 
-def test_variant_calling_raises_on_invalid_backend(tmp_path):
+def test_run_raises_on_invalid_backend(tmp_path):
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
     settings = {
@@ -827,7 +852,7 @@ def test_variant_calling_raises_on_invalid_backend(tmp_path):
         },
     }
     with pytest.raises(WorkflowResolutionError, match="Invalid workflow_backend"):
-        dnaseq.DNAseq(settings).variant_calling()
+        execution.WorkflowExecutor(settings).run()
 
 
 def test_run_cmd_nonzero_return_raises(monkeypatch, tmp_path):
@@ -837,9 +862,9 @@ def test_run_cmd_nonzero_return_raises(monkeypatch, tmp_path):
     def fake_run(cmd, cwd, env, stdout, stderr, check):
         return P()
 
-    monkeypatch.setattr(dnaseq.subprocess, "run", fake_run)
+    monkeypatch.setattr(execution.subprocess, "run", fake_run)
     with pytest.raises(WorkflowExecutionError, match="returncode=1") as excinfo:
-        dnaseq.DNAseq._run_cmd(
+        execution.WorkflowExecutor._run_cmd(
             cmd=["false"],
             cwd=tmp_path,
             log_path=tmp_path / "log.txt",
@@ -856,9 +881,9 @@ def test_run_cmd_exception_raises(monkeypatch, tmp_path):
     def fake_run(cmd, cwd, env, stdout, stderr, check):
         raise OSError("boom")
 
-    monkeypatch.setattr(dnaseq.subprocess, "run", fake_run)
+    monkeypatch.setattr(execution.subprocess, "run", fake_run)
     with pytest.raises(WorkflowExecutionError, match="could not start command") as excinfo:
-        dnaseq.DNAseq._run_cmd(
+        execution.WorkflowExecutor._run_cmd(
             cmd=["echo", "ok"],
             cwd=tmp_path,
             log_path=tmp_path / "log.txt",

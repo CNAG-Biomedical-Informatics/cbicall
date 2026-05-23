@@ -56,6 +56,17 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     )
     (tmp_path / "workflow.log").write_text("workflow log\n", encoding="utf-8")
     (tmp_path / "log.json").write_text("{}\n", encoding="utf-8")
+    (tmp_path / "cbicall-execution-contract.json").write_text(
+        json.dumps({
+            "schema_version": 1,
+            "kind": "cbicall_execution_contract",
+            "fingerprint": "contract-normalized",
+            "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "backend": "bash", "provider": "cbicall"},
+            "command": {"sha256": "command-raw", "normalized_sha256": "command-normalized"},
+            "generated_files": [],
+        }),
+        encoding="utf-8",
+    )
     stats_dir = tmp_path / "03_stats"
     stats_dir.mkdir()
     (stats_dir / "sample.vcf.sha256.txt").write_text(
@@ -123,7 +134,7 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     inventory = data["outputs"]["file_inventory"]
     assert inventory["algorithm"] == "sha256"
     assert inventory["scope"] == "run directory relative file paths"
-    assert inventory["entries"] == 5
+    assert inventory["entries"] == 6
     assert inventory["total_bytes"] > 0
     assert inventory["largest_files"][0]["bytes"] >= inventory["largest_files"][-1]["bytes"]
     directory_map = {item["group"]: item for item in inventory["directories"]}
@@ -141,12 +152,14 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
         "work",
     ]
     assert "run-report.json" not in inventory["paths"]
-    assert inventory["paths"] == ["03_stats/sample.vcf.sha256.txt", "env.sh", "log.json", "wes_single.sh", "workflow.log"]
+    assert inventory["paths"] == ["03_stats/sample.vcf.sha256.txt", "cbicall-execution-contract.json", "env.sh", "log.json", "wes_single.sh", "workflow.log"]
     assert len(inventory["sha256"]) == 64
     assert data["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] == "normalized"
     assert data["software_versions"]["scope"] == "resource_declared"
     assert data["software_versions"]["entries"]["gatk4"]["version"] == "4.6.2.0"
     assert len(data["software_versions"]["sha256"]) == 64
+    assert data["execution_contract"]["fingerprint"] == "contract-normalized"
+    assert data["execution_contract"]["normalized_command_sha256"] == "command-normalized"
     html_report = cli_mod._write_run_report_html(report, data)
     assert html_report.is_file()
     html_text = html_report.read_text(encoding="utf-8")
@@ -167,6 +180,8 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     assert "bytes" in html_text
     assert "Largest file" in html_text
     assert "Software Versions" in html_text
+    assert "Execution Contract" in html_text
+    assert "contract-normalized" in html_text
     assert "resource_declared" in html_text
     assert "gatk4" in html_text
     assert "4.6.2.0" in html_text
@@ -274,7 +289,7 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
     multiqc_dir = tmp_path / "sarek" / "multiqc" / "multiqc_data"
     multiqc_dir.mkdir(parents=True)
     (tmp_path / "sarek" / "multiqc" / "multiqc_report.html").write_text("<html></html>\n", encoding="utf-8")
-    vcf_dir = tmp_path / "sarek" / "variant_calling" / "haplotypecaller" / "CNAG99901P_ex"
+    vcf_dir = tmp_path / "sarek" / "run" / "haplotypecaller" / "CNAG99901P_ex"
     vcf_dir.mkdir(parents=True)
     vcf_path = vcf_dir / "CNAG99901P_ex.haplotypecaller.vcf.gz"
     with gzip.open(vcf_path, "wt", encoding="utf-8") as handle:
@@ -309,7 +324,7 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
                         {
                             "name": "haplotypecaller_vcf",
                             "type": "vcf",
-                            "pattern": "variant_calling/haplotypecaller/*/*.haplotypecaller.vcf.gz",
+                            "pattern": "run/haplotypecaller/*/*.haplotypecaller.vcf.gz",
                         }
                     ],
                 },
@@ -389,7 +404,7 @@ def test_print_external_output_pointers(capsys, tmp_path):
                 "canonical_outputs": [
                     {
                         "matches": [
-                            str(tmp_path / "run" / "sarek" / "variant_calling" / "haplotypecaller" / "sample.vcf.gz")
+                            str(tmp_path / "run" / "sarek" / "run" / "haplotypecaller" / "sample.vcf.gz")
                         ]
                     }
                 ],
@@ -435,6 +450,11 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
         },
         "resources": {"bundle": {"key": "cbicall-germline-resources-v1", "version": "v1", "fingerprint": "res"}},
         "software_versions": {"sha256": "software-a", "scope": "resource_declared"},
+        "execution_contract": {
+            "fingerprint": "contract-a",
+            "normalized_command_sha256": "command-a",
+            "generated_files": [{"role": "nf-core:params", "normalized_sha256": "params-a"}],
+        },
         "execution_trace": {"tasks": 2, "max_peak_rss": {"bytes": 1000}, "max_peak_vmem": {"bytes": 2000}},
         "outputs": {
             "file_inventory": {"entries": 3, "total_bytes": 1536, "sha256": "manifest-a"},
@@ -448,6 +468,8 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     changed["workflow"]["fingerprint"] = "workflow-b"
     changed["workflow"]["files"][0]["sha256"] = "bbb"
     changed["software_versions"]["sha256"] = "software-b"
+    changed["execution_contract"]["normalized_command_sha256"] = "command-b"
+    changed["execution_contract"]["generated_files"][0]["normalized_sha256"] = "params-b"
     changed["execution_trace"]["max_peak_rss"]["bytes"] = 1500
     changed["outputs"]["file_inventory"]["total_bytes"] = 2048
     changed["outputs"]["file_inventory"]["sha256"] = "manifest-b"
@@ -472,6 +494,9 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     assert "Max peak RSS (trace)" in out
     assert "Workflow hash" in out
     assert "Software versions" in out
+    assert "Execution Contract" in out
+    assert "Command hash" in out
+    assert "nf-core:params" in out
     assert "Resource ver" in out
     assert "Inventory size" in out
     assert "1.50 KiB" in out
@@ -495,6 +520,8 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     assert "Run Comparison" in html_text
     assert "Workflow hash" in html_text
     assert "Software versions" in html_text
+    assert "Command hash" in html_text
+    assert "nf-core:params" in html_text
     assert "Status summary" in html_text
     assert "Overview" in html_text
     assert "Details" in html_text
@@ -603,6 +630,7 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
         },
         "resources": {"bundle": {"key": "cbicall-germline-resources-v1", "version": "v1", "fingerprint": "res"}},
         "software_versions": {"sha256": "software-a", "scope": "resource_declared"},
+        "execution_contract": {"fingerprint": "contract-a", "normalized_command_sha256": "command-a", "generated_files": []},
         "execution_trace": {"tasks": 2, "max_peak_rss": {"bytes": 1000}, "max_peak_vmem": {"bytes": 2000}},
         "outputs": {
             "file_inventory": {"entries": 3, "total_bytes": 1536, "sha256": "manifest-a"},
@@ -616,6 +644,7 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     different["runtime"]["backend"]["version"] = "5.2.22"
     different["workflow"]["fingerprint"] = "workflow-c"
     different["software_versions"]["sha256"] = "software-c"
+    different["execution_contract"]["fingerprint"] = "contract-c"
     different["execution_trace"]["tasks"] = 3
     different["execution_trace"]["max_peak_vmem"]["bytes"] = 2500
     different["outputs"]["file_inventory"]["entries"] = 4
@@ -632,6 +661,7 @@ def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys)
     assert "Baseline" in out
     assert "Workflow hash" in out
     assert "Software versions" in out
+    assert "Contract hash" in out
     assert "Python ver" in out
     assert "Java ver" in out
     assert "Configured Java" in out
@@ -660,6 +690,17 @@ def test_report_command_summarizes_run_without_writing_by_default(tmp_path, caps
         "FILE=02_varcall/sample.vcf.gz\n"
         "ALGORITHM=sha256\n"
         "NORMALIZED_SHA256=normalized-report\n",
+        encoding="utf-8",
+    )
+    (run_dir / "cbicall-execution-contract.json").write_text(
+        json.dumps({
+            "schema_version": 1,
+            "kind": "cbicall_execution_contract",
+            "fingerprint": "refreshed-contract",
+            "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "backend": "bash", "provider": "cbicall"},
+            "command": {"normalized_sha256": "refreshed-command"},
+            "generated_files": [],
+        }),
         encoding="utf-8",
     )
     payload = {
@@ -721,6 +762,17 @@ def test_report_command_refreshes_and_writes_html_when_requested(tmp_path, capsy
         "NORMALIZED_SHA256=normalized-report\n",
         encoding="utf-8",
     )
+    (run_dir / "cbicall-execution-contract.json").write_text(
+        json.dumps({
+            "schema_version": 1,
+            "kind": "cbicall_execution_contract",
+            "fingerprint": "refreshed-contract",
+            "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "backend": "bash", "provider": "cbicall"},
+            "command": {"normalized_sha256": "refreshed-command"},
+            "generated_files": [],
+        }),
+        encoding="utf-8",
+    )
     payload = {
         "status": "success",
         "elapsed_seconds": 65,
@@ -747,9 +799,11 @@ def test_report_command_refreshes_and_writes_html_when_requested(tmp_path, capsy
     assert "written" in out
     refreshed = json.loads(report_path.read_text(encoding="utf-8"))
     assert refreshed["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] == "normalized-report"
+    assert refreshed["execution_contract"]["fingerprint"] == "refreshed-contract"
     html_text = (run_dir / "run-report.html").read_text(encoding="utf-8")
     assert "CBIcall Run Report" in html_text
     assert "normalized-report" in html_text
+    assert "refreshed-contract" in html_text
 
 
 def test_report_command_can_print_json_without_html(tmp_path, capsys):
@@ -1131,14 +1185,14 @@ def test_main_happy_path(monkeypatch, tmp_path):
         lambda cfg, arg, param: logs.update({"cfg": cfg, "arg": arg, "param": param})
     )
 
-    class FakeDNAseq:
+    class FakeWorkflowExecutor:
         def __init__(self, settings):
             logs["settings"] = settings
 
-        def variant_calling(self):
+        def run(self):
             return True
 
-    monkeypatch.setattr(cli_mod, "DNAseq", FakeDNAseq)
+    monkeypatch.setattr(cli_mod, "WorkflowExecutor", FakeWorkflowExecutor)
 
     class FakeGoodBye:
         def say_goodbye(self):
@@ -1202,14 +1256,14 @@ def test_main_run_subcommand_happy_path(monkeypatch, tmp_path, capsys):
         lambda cfg, arg, param: logs.update({"cfg": cfg, "arg": arg, "param": param})
     )
 
-    class FakeDNAseq:
+    class FakeWorkflowExecutor:
         def __init__(self, settings):
             logs["settings"] = settings
 
-        def variant_calling(self):
+        def run(self):
             return True
 
-    monkeypatch.setattr(cli_mod, "DNAseq", FakeDNAseq)
+    monkeypatch.setattr(cli_mod, "WorkflowExecutor", FakeWorkflowExecutor)
 
     class FakeGoodBye:
         def say_goodbye(self):
@@ -1269,11 +1323,11 @@ def test_main_verbose_prints(monkeypatch, tmp_path, capsys):
         }
     )
 
-    class FakeDNAseq:
+    class FakeWorkflowExecutor:
         def __init__(self, settings): ...
-        def variant_calling(self): return True
+        def run(self): return True
 
-    monkeypatch.setattr(cli_mod, "DNAseq", FakeDNAseq)
+    monkeypatch.setattr(cli_mod, "WorkflowExecutor", FakeWorkflowExecutor)
 
     class FakeGoodBye:
         def say_goodbye(self): return "Bye"
@@ -1334,11 +1388,11 @@ def test_main_warns_when_genome_is_inferred(monkeypatch, tmp_path, capsys):
         },
     )
 
-    class FakeDNAseq:
+    class FakeWorkflowExecutor:
         def __init__(self, settings): ...
-        def variant_calling(self): return True
+        def run(self): return True
 
-    monkeypatch.setattr(cli_mod, "DNAseq", FakeDNAseq)
+    monkeypatch.setattr(cli_mod, "WorkflowExecutor", FakeWorkflowExecutor)
 
     class FakeGoodBye:
         def say_goodbye(self): return "Bye"
@@ -1402,14 +1456,14 @@ def test_main_partial_run_warning_and_metadata(monkeypatch, tmp_path, capsys):
 
     seen = {}
 
-    class FakeDNAseq:
+    class FakeWorkflowExecutor:
         def __init__(self, settings):
             seen["settings"] = settings
 
-        def variant_calling(self):
+        def run(self):
             return True
 
-    monkeypatch.setattr(cli_mod, "DNAseq", FakeDNAseq)
+    monkeypatch.setattr(cli_mod, "WorkflowExecutor", FakeWorkflowExecutor)
 
     class FakeGoodBye:
         def say_goodbye(self):
@@ -1540,14 +1594,14 @@ def test_main_no_color_disables_ansi_output(monkeypatch, tmp_path, capsys):
         },
     )
 
-    class FakeDNAseq:
+    class FakeWorkflowExecutor:
         def __init__(self, settings):
             self.settings = settings
 
-        def variant_calling(self):
+        def run(self):
             return True
 
-    monkeypatch.setattr(cli_mod, "DNAseq", FakeDNAseq)
+    monkeypatch.setattr(cli_mod, "WorkflowExecutor", FakeWorkflowExecutor)
 
     class FakeGoodBye:
         def say_goodbye(self):
@@ -1606,14 +1660,14 @@ def test_main_passes_wgs_cohort_workflow_keys(monkeypatch, tmp_path):
     seen = {}
     monkeypatch.setattr(cli_mod, "write_log", lambda cfg, arg, param: None)
 
-    class FakeDNAseq:
+    class FakeWorkflowExecutor:
         def __init__(self, settings):
             seen["settings"] = settings
 
-        def variant_calling(self):
+        def run(self):
             return True
 
-    monkeypatch.setattr(cli_mod, "DNAseq", FakeDNAseq)
+    monkeypatch.setattr(cli_mod, "WorkflowExecutor", FakeWorkflowExecutor)
 
     class FakeGoodBye:
         def say_goodbye(self):
@@ -1703,14 +1757,14 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
     seen = {}
     monkeypatch.setattr(cli_mod, "write_log", lambda cfg, arg, param: None)
 
-    class FakeDNAseq:
+    class FakeWorkflowExecutor:
         def __init__(self, settings):
             seen["settings"] = settings
 
-        def variant_calling(self):
+        def run(self):
             return True
 
-    monkeypatch.setattr(cli_mod, "DNAseq", FakeDNAseq)
+    monkeypatch.setattr(cli_mod, "WorkflowExecutor", FakeWorkflowExecutor)
 
     class FakeGoodBye:
         def say_goodbye(self):

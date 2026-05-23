@@ -1,8 +1,8 @@
 import pytest
-from cbicall import dnaseq
+from cbicall import execution
 
 
-def test_dnaseq_snakemake_with_sample_map_adds_workspace_and_sample_map(tmp_path, monkeypatch):
+def test_execution_snakemake_with_sample_map_adds_workspace_and_sample_map(tmp_path, monkeypatch):
     recorded = {}
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
@@ -11,7 +11,7 @@ def test_dnaseq_snakemake_with_sample_map_adds_workspace_and_sample_map(tmp_path
         recorded["log_path"] = log_path
         recorded["backend"] = backend
 
-    monkeypatch.setattr(dnaseq.DNAseq, "_run_cmd", staticmethod(fake_run_cmd))
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -34,8 +34,8 @@ def test_dnaseq_snakemake_with_sample_map_adds_workspace_and_sample_map(tmp_path
         },
     }
 
-    obj = dnaseq.DNAseq(settings)
-    assert obj.variant_calling() is True
+    obj = execution.WorkflowExecutor(settings)
+    assert obj.run() is True
 
     cmd = recorded["cmd"]
     # --config must include genome, pipeline, sample_map, workspace

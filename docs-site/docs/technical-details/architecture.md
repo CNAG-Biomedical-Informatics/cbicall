@@ -8,7 +8,7 @@ Its main responsibilities are:
 - Resolving the selected **workflow backend**, **software stack**, **pipeline**, **mode**, and **registry version**
 - Preparing a deterministic run directory
 - Dispatching the appropriate Bash, Snakemake, Nextflow, Cromwell, or nf-core workflow
-- Recording logs, workflow fingerprints, resource provenance, and compact run reports
+- Recording logs, execution contracts, workflow fingerprints, resource provenance, and compact run reports
 
 The actual bioinformatics work, such as alignment, variant calling, mtDNA
 analysis, and QC, is implemented in modular workflow files that can be extended
@@ -35,7 +35,7 @@ _CBIcall resolves a validated parameters YAML into one registered workflow imple
 | **CLI and validation layer** | Reads the parameters YAML, applies defaults, checks schema-level and compatibility rules, resolves runtime profiles, and starts the selected command. | `src/cbicall/cli.py`, `src/cbicall/config.py` |
 | **Workflow registry** | Developer-facing routing table that maps `workflow_backend`, `software_stack`, `pipeline`, `mode`, and `registry_version` to one implementation. Validate it with `bin/cbicall validate-registry` after editing. | `workflows/registry/cbicall-workflow-registry.yaml`, `src/cbicall/workflow_registry.py` |
 | **Resource catalog** | Declares external dependency sets, resource identifiers, compatible workflow keys, and checksum metadata for downloadable CBIcall bundles. | `resources/cbicall-resource-catalog.json`, `src/cbicall/resources.py` |
-| **Workflow runners** | Execute the resolved implementation. Bash runs local scripts directly; Snakemake, native Nextflow, and Cromwell run bundled workflow files; external nf-core entries are launched through Nextflow. | `src/cbicall/dnaseq.py` |
+| **Workflow runners** | Execute the resolved implementation. Bash runs local scripts directly; Snakemake, native Nextflow, and Cromwell run bundled workflow files; external nf-core entries are launched through Nextflow. | `src/cbicall/execution.py` |
 | **Workflow implementations** | Contain the analysis logic for native WES, WGS, and mtDNA pipelines, plus registered external nf-core workflows. | `workflows/bash/`, `workflows/snakemake/`, `workflows/nextflow/`, `workflows/cromwell/` |
 | **Run audit layer** | Writes `log.json`, `run-report.json`, workflow fingerprints, selected resource identity, output fingerprints, and comparison reports. | `src/cbicall/cli.py`, `bin/cbicall compare-runs` |
 | **Contract tests** | Run small examples and validate expected output contracts without keeping full `ref_*` run directories in the repository. | `src/cbicall/integration_tests.py`, `tests/fixtures/integration/` |
@@ -51,6 +51,7 @@ _CBIcall resolves a validated parameters YAML into one registered workflow imple
     03_stats/
     logs/
     log.json
+    cbicall-execution-contract.json
     run-report.json
 ```
 
@@ -63,6 +64,7 @@ External nf-core runs use a related layout:
     work/
     pipeline_info/
     log.json
+    cbicall-execution-contract.json
     run-report.json
 ```
 
@@ -162,12 +164,13 @@ environment file are recorded in `log.json` for real runs.
 
 ## Run outputs and audit files
 
-Every run records two complementary metadata files:
+Every run records three complementary metadata files:
 
 | File | Purpose |
 | --- | --- |
 | **`log.json`** | Detailed run log with resolved configuration, selected workflow, runtime profile, resource bundle identity, and command context. |
-| **`run-report.json`** | Compact audit report for comparing runs, including workflow fingerprints, selected versions, output inventory hashes, canonical output fingerprints, status, and elapsed time. |
+| **`cbicall-execution-contract.json`** | Backend-ready execution plan created after validation and registry/resource resolution, including the command, generated backend files, and controlled environment overrides. |
+| **`run-report.json`** | Compact audit report for comparing runs, including execution-contract, workflow, resource, software, output inventory, and canonical output fingerprints, status, and elapsed time. |
 
 Use `bin/cbicall compare-runs` to compare two `run-report.json` files and, by
 default, generate both terminal and HTML summaries.
@@ -181,9 +184,9 @@ default, generate both terminal and HTML summaries.
 | Pipeline | Mode | Genome | Software stack | Bash | Snakemake | Nextflow | Cromwell |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **WES** | `single` | `b37` | `gatk-3.5`, `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` | `gatk-4.6` | `gatk-4.6` |
-| **WES** | `cohort` | `b37` | `gatk-3.5`, `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
-| **WGS** | `single` | `b37`, `hg38` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
-| **WGS** | `cohort` | `b37`, `hg38` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
+| **WES** | `cohort` | `b37` | `gatk-3.5`, `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` | `gatk-4.6` | `gatk-4.6` |
+| **WGS** | `single` | `b37`, `hg38` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` |
+| **WGS** | `cohort` | `b37`, `hg38` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` |
 | **mtDNA** | `single` | `rsrs` | `gatk-3.5` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
 | **mtDNA** | `cohort` | `rsrs` | `gatk-3.5` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
 
@@ -213,7 +216,7 @@ third-party dependencies.
 
 ## Extensibility
 
-New native pipelines can be added without modifying the core execution contract:
+New native pipelines can usually be added without modifying the core execution layer:
 
 - Register the workflow under `workflows/registry/cbicall-workflow-registry.yaml`.
 - Place implementation files under the backend and software-stack directory.
