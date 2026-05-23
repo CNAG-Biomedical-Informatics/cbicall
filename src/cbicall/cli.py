@@ -33,7 +33,6 @@ from .cli_output import (
 from .dnaseq import DNAseq
 from .errors import ParameterValidationError
 from .helpmod import usage, parse_args as _parse_args, parse_run_args as _parse_run_args
-from .cromwell import find_cromwell_jar_on_path
 from .integration_tests import run_integration_tests, selected_tests_from_args
 from .models import ResolvedConfig, RunSettings
 from .resources import validate_resource_catalog
@@ -387,9 +386,6 @@ def _cromwell_runtime_report() -> dict:
     executable_report = _command_version("cromwell", ["--version"])
     if executable_report.get("status") == "ok":
         return executable_report
-    jar_path = find_cromwell_jar_on_path()
-    if jar_path:
-        return _cromwell_jar_report(jar_path, source="PATH")
     return executable_report
 
 def _runtime_report(backend: str, workflow=None) -> dict:
@@ -1797,6 +1793,47 @@ def _collect_external_sources(value) -> List[str]:
     return sorted(sources)
 
 
+def _collect_cromwell_wdls(registry: dict, project_root: Path) -> List[Path]:
+    workflows = registry.get("workflows") or {}
+    cromwell = workflows.get("cromwell") or {}
+    base_root = project_root / str(cromwell.get("base_dir", "workflows/cromwell"))
+    wdls = []
+    for stack_name, stack in (cromwell.get("software_stacks") or {}).items():
+        stack_dir = base_root / str(stack_name)
+        for pipeline in (stack.get("pipelines") or {}).values():
+            for mode in pipeline.values():
+                for implementation in (mode.get("registry_versions") or {}).values():
+                    script = implementation.get("script") if isinstance(implementation, dict) else implementation
+                    if script:
+                        wdls.append((stack_dir / str(script)).resolve())
+    return sorted(set(wdls))
+
+
+def _validate_cromwell_wdls_with_womtool(registry: dict, project_root: Path) -> dict:
+    wdls = _collect_cromwell_wdls(registry, project_root)
+    if not wdls:
+        return {"status": "not_applicable", "count": 0, "files": []}
+    womtool = os.environ.get("WOMTOOL_JAR")
+    if not womtool:
+        return {"status": "skipped", "reason": "WOMTOOL_JAR not set", "count": len(wdls), "files": [str(p) for p in wdls]}
+    womtool_path = Path(womtool)
+    if not womtool_path.is_file():
+        raise ParameterValidationError(f"WOMTOOL_JAR does not exist: {womtool}")
+    java_cmd = os.environ.get("JAVA_CMD", "java")
+    for wdl in wdls:
+        proc = subprocess.run(
+            [java_cmd, "-jar", str(womtool_path), "validate", str(wdl)],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        if proc.returncode != 0:
+            detail = (proc.stderr or proc.stdout or "womtool validation failed").strip()
+            raise ParameterValidationError(f"WDL validation failed for {wdl}: {detail}")
+    return {"status": "ok", "count": len(wdls), "files": [str(p) for p in wdls]}
+
+
 def _run_validate_registry_command(argv: List[str]) -> int:
     root = _project_root()
     default_registry = root / "workflows" / "registry" / "cbicall-workflow-registry.yaml"
@@ -1820,12 +1857,17 @@ def _run_validate_registry_command(argv: List[str]) -> int:
     registry = load_workflow_registry(registry_path, schema_path)
     backends = sorted((registry.get("workflows") or {}).keys())
     external_sources = _collect_external_sources(registry)
+    wdl_validation = _validate_cromwell_wdls_with_womtool(registry, root)
 
     _section("Registry OK", GREEN)
     _row("Registry", _short_path(registry_path))
     _row("Schema", _short_path(schema_path))
     _row("Backends", ", ".join(backends) if backends else "(none)")
     _row("External", ", ".join(external_sources) if external_sources else "(none)")
+    if wdl_validation["status"] == "ok":
+        _row("WDL syntax", f"ok ({wdl_validation['count']} files)")
+    elif wdl_validation["status"] == "skipped":
+        _row("WDL syntax", f"skipped ({wdl_validation['reason']})")
     return 0
 
 
@@ -2933,7 +2975,7 @@ def _run_test_command(argv: List[str]) -> int:
     parser.add_argument(
         "--wes-cromwell",
         action="store_true",
-        help="Run the Cromwell WES integration test. Requires CROMWELL_JAR, cromwell, or cromwell*.jar on PATH.",
+        help="Run the Cromwell WES integration test. Requires CROMWELL_JAR or cromwell on PATH.",
     )
     parser.add_argument("--mit-bash", action="store_true", help="Run the Bash mitochondrial integration test.")
     parser.add_argument(

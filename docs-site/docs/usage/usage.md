@@ -112,7 +112,7 @@ genome:          hg38
 ### WES Single-Sample With Cromwell
 
 The checked-in example is `examples/input/wes_cromwell.yaml`. Set
-`CROMWELL_JAR`, put `cromwell` on `PATH`, or put `cromwell*.jar` on `PATH` before running it.
+`CROMWELL_JAR` or put `cromwell` on `PATH` before running it.
 
 ```yaml
 mode:            single

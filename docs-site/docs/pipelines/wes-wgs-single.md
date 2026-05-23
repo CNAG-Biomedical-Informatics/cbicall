@@ -25,7 +25,7 @@ A user-focused guide to processing whole-exome (WES) and whole-genome (WGS) data
 
 **Source:** [View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/cromwell/gatk-4.6/wes_single.wdl)
 
-Current Cromwell support is WES single-sample only.
+The same WDL entrypoint is used for WES and WGS single-sample runs; WGS is registered through `wgs_single.wdl`, a symlink to this implementation.
 
 </TabItem>
 </Tabs>

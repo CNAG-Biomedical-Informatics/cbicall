@@ -175,7 +175,13 @@ Native Cromwell workflows live under the selected software stack:
 workflows/cromwell/gatk-4.6/
   config.yaml -> ../../snakemake/gatk-4.6/config.yaml
   wes_single.wdl
+  wgs_single.wdl -> wes_single.wdl
+  wes_cohort.wdl
+  wgs_cohort.wdl -> wes_cohort.wdl
 ```
+
+If `WOMTOOL_JAR` is set, `bin/cbicall validate-registry` validates registered
+Cromwell WDL syntax before any run is launched.
 
 CBIcall writes `cbicall_cromwell.inputs.json`,
 `cbicall_cromwell.options.json`, and `cbicall_cromwell.metadata.json` in the run

@@ -11,6 +11,11 @@ Analysis configuration is defined in YAML. Runtime controls such as thread count
 color output, validation commands, and the CBIcall native runtime profile are
 selected on the CLI.
 
+A **YAML contract** is the parameters YAML after CBIcall has validated and
+resolved it against the workflow registry and resource catalog. `run` and
+`validate-parameters` use the same validation and resolution path;
+`validate-parameters` stops before launching the workflow.
+
 :::tip[Minimal WES single-sample run]
 ```yaml
 mode:            single
@@ -51,8 +56,8 @@ workflow compatibility metadata.
 | `gatk-4.6` + `snakemake` + `wgs single/cohort` | Yes |
 | `gatk-4.6` + `nextflow` + `wes single/cohort` | Yes |
 | `gatk-4.6` + `nextflow` + `wgs single/cohort` | Yes |
-| `gatk-4.6` + `cromwell` + `wes single` | Yes |
-| `gatk-4.6` + `cromwell` + `wes cohort` or `wgs` | No |
+| `gatk-4.6` + `cromwell` + `wes single/cohort` | Yes |
+| `gatk-4.6` + `cromwell` + `wgs single/cohort` | Yes |
 | `nf-core` + `nextflow` + `demo single` | External nf-core smoke test |
 | `nf-core` + `nextflow` + `sarek cohort` | External nf-core/Sarek workflow |
 | `gatk-3.5` + `bash` + `wes single/cohort` | Legacy |

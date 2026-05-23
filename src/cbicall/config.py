@@ -159,8 +159,8 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
             raise ParameterValidationError("workflow_backend='cromwell' is currently supported only with workflow_provider='cbicall'.")
         if cfg.get("software_stack") != "gatk-4.6":
             raise ParameterValidationError("workflow_backend='cromwell' currently supports software_stack='gatk-4.6' only.")
-        if cfg.get("pipeline") != "wes" or cfg.get("mode") != "single":
-            raise ParameterValidationError("workflow_backend='cromwell' currently supports only pipeline='wes' with mode='single'.")
+        if cfg.get("pipeline") not in {"wes", "wgs"} or cfg.get("mode") not in {"single", "cohort"}:
+            raise ParameterValidationError("workflow_backend='cromwell' supports WES/WGS single and cohort modes only.")
 
     if cfg.get("workflow_provider") == "nf-core":
         if cfg.get("workflow_backend") != "nextflow":
@@ -271,6 +271,8 @@ def _validate_backend_parameter_settings(cfg: dict) -> None:
             "threads",
             "cleanup_bam",
             "fastq_pairs_tsv",
+            "sample_map",
+            "workspace",
             "datadir",
             "dbdir",
             "ngsutils",

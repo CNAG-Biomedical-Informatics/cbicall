@@ -13,8 +13,6 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 import yaml
 
-from .cromwell import find_cromwell_jar_on_path
-
 
 class IntegrationTestError(RuntimeError):
     """Raised when an integration contract fails."""
@@ -293,14 +291,12 @@ def _run_one(
     skip_missing_optional: bool,
     keep_external_work: bool,
 ) -> Tuple[str, str, str]:
-    if selection.key == "wes-cromwell" and not (
-        os.environ.get("CROMWELL_JAR") or shutil.which("cromwell") or find_cromwell_jar_on_path()
-    ):
-        detail = "CROMWELL_JAR, cromwell executable, or cromwell*.jar not found"
+    if selection.key == "wes-cromwell" and not (os.environ.get("CROMWELL_JAR") or shutil.which("cromwell")):
+        detail = "CROMWELL_JAR or cromwell executable not found"
         if skip_missing_optional and selection.optional_in_all:
-            print("SKIP: WES Cromwell requires CROMWELL_JAR, cromwell, or cromwell*.jar on PATH.")
+            print("SKIP: WES Cromwell requires CROMWELL_JAR or cromwell on PATH.")
             return selection.label, "skipped", detail
-        raise IntegrationTestError("WES Cromwell requires CROMWELL_JAR, cromwell, or cromwell*.jar on PATH.")
+        raise IntegrationTestError("WES Cromwell requires CROMWELL_JAR or cromwell on PATH.")
 
     if selection.backend_executable and shutil.which(selection.backend_executable) is None:
         detail = f"backend executable {selection.backend_executable} not found"

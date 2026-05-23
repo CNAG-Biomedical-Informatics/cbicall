@@ -69,6 +69,17 @@ For mtDNA, `GT` tells you **which allele** was detected, not **how much** of it 
 ## General
 
 <details>
+<summary>What is the difference between native and external workflows?</summary>
+
+**Native CBIcall workflows** are maintained in this repository and launched through a supported workflow backend: Bash, Snakemake, Nextflow, or Cromwell. They use the CBIcall project layout, provenance files, run reports, and usually the CBIcall resource bundle.
+
+**External workflows** are third-party workflows registered in CBIcall. Today this means selected nf-core workflows launched through Nextflow. CBIcall validates the YAML contract, pins the registered workflow, and writes provenance and run reports, while nf-core keeps its own output layout, profiles, containers, and reference-resource assumptions.
+
+See [Native Backends](../backends/native), [nf-core Provider](../backends/nf-core), and [Resource Validation](../usage/resource-validation).
+
+</details>
+
+<details>
 <summary>How do I set up <code>cbicall</code> on an HPC system?</summary>
 
 On most HPC systems, Docker is not available. CBIcall is designed to run with **Apptainer**, formerly Singularity, which is the recommended approach for HPC environments.

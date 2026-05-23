@@ -120,6 +120,34 @@ workflows:
                     - name: "wes_filtered_vcf"
                       type: "vcf"
                       pattern: "02_varcall/*.hc.QC.vcf.gz"
+            cohort:
+              default_registry_version: "v1"
+              registry_versions:
+                v1:
+                  script: "wes_cohort.wdl"
+                  canonical_outputs:
+                    - name: "wes_cohort_filtered_vcf"
+                      type: "vcf"
+                      pattern: "02_varcall/cohort.gv.QC.vcf.gz"
+          wgs:
+            single:
+              default_registry_version: "v1"
+              registry_versions:
+                v1:
+                  script: "wgs_single.wdl"
+                  canonical_outputs:
+                    - name: "wgs_filtered_vcf"
+                      type: "vcf"
+                      pattern: "02_varcall/*.hc.QC.vcf.gz"
+            cohort:
+              default_registry_version: "v1"
+              registry_versions:
+                v1:
+                  script: "wgs_cohort.wdl"
+                  canonical_outputs:
+                    - name: "wgs_cohort_filtered_vcf"
+                      type: "vcf"
+                      pattern: "02_varcall/cohort.gv.QC.vcf.gz"
 
   nextflow:
     base_dir: "workflows/nextflow"

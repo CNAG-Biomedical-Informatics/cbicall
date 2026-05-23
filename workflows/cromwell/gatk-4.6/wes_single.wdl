@@ -107,8 +107,13 @@ task RunWesSingle {
     LOG="$LOGDIR/~{id}.log"
     sample_name="~{id}"
 
-    INTERVAL_ARG="-L ~{interval_list}"
-    echo "WES mode: restricting to ~{interval_list}"
+    if [ "~{pipeline}" = "wes" ]; then
+      INTERVAL_ARG="-L ~{interval_list}"
+      echo "WES mode: restricting to ~{interval_list}"
+    else
+      INTERVAL_ARG=""
+      echo "WGS mode: processing whole genome"
+    fi
 
     echo "STEP 1: Align and add read groups"
     while IFS=$'\t' read -r base R1 R2; do

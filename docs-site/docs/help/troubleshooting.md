@@ -2,10 +2,15 @@
 
 Use the error text from the terminal or workflow log to find the matching section. Most failures fall into three groups: missing external data, GATK/Picard input problems, or mtDNA-specific MToolBox issues.
 
-:::tip[Where to look first]
-- Check the main run log in the run directory.
-- For Snakemake/GATK 4.6 runs, also check `logs/*.log`.
-- Check `log.json` to confirm the resolved `input_dir`, `sample_map`, `genome`, workflow, and run directory.
+:::tip[Identify the execution path]
+Before debugging, confirm whether the run is native CBIcall or external nf-core.
+
+| Run type | YAML signal | First place to look |
+| --- | --- | --- |
+| Native CBIcall | `workflow_provider: cbicall` or omitted | CBIcall run log, `log.json`, and backend logs such as `logs/*.log` |
+| External nf-core | `workflow_provider: nf-core` | Nextflow launcher log, nf-core output directory, `pipeline_info/`, and task work directories |
+
+For all runs, check `log.json` to confirm the resolved `input_dir`, `sample_map`, `genome`, workflow, resource, and run directory.
 :::
 
 ## Installation and External Data
@@ -30,9 +35,11 @@ Update the data directory in the workflow configuration:
 ```text
 workflows/bash/gatk-4.6/env.sh
 workflows/snakemake/gatk-4.6/config.yaml
+workflows/nextflow/gatk-4.6/config.yaml
+workflows/cromwell/gatk-4.6/config.yaml
 ```
 
-For containers, make sure the host data directory is bind-mounted at the same path used by the workflow configuration.
+For containers, make sure the host data directory is bind-mounted at the same path used by the workflow configuration. For external nf-core workflows, missing tools or references are usually controlled by the selected nf-core profile, container/cache setup, or nf-core parameters rather than the CBIcall resource bundle.
 
 </details>
 

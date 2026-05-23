@@ -10,6 +10,7 @@
 CBIcall validates a parameters YAML file, resolves an approved workflow backend, creates a deterministic run directory, and records structured provenance for audit and run comparison.
 :::
 
+
 ## What CBIcall Does
 
 CBIcall does not re-implement alignment or variant-calling algorithms; those

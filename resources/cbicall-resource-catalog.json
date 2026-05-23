@@ -22,7 +22,10 @@
         "nextflow/wes/cohort/gatk-4.6/v1",
         "nextflow/wgs/single/gatk-4.6/v1",
         "nextflow/wgs/cohort/gatk-4.6/v1",
-        "cromwell/wes/single/gatk-4.6/v1"
+        "cromwell/wes/single/gatk-4.6/v1",
+        "cromwell/wes/cohort/gatk-4.6/v1",
+        "cromwell/wgs/single/gatk-4.6/v1",
+        "cromwell/wgs/cohort/gatk-4.6/v1"
       ],
       "remote_identifier": {
         "filename": "cbicall-resource-id.json",

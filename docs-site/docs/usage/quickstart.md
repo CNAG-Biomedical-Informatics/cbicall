@@ -6,6 +6,13 @@ want to exercise first.
 If you still need to choose an installation method or workflow, start with the
 [Overview](../overview).
 
+:::info[YAML contract]
+In CBIcall, the parameters YAML becomes a **YAML contract** after CBIcall has
+validated it and resolved it against the workflow registry and resource catalog.
+Both `validate-parameters` and `run` perform this validation; `validate-parameters`
+stops before launching the workflow.
+:::
+
 ## 1. Confirm the CLI
 
 ```bash

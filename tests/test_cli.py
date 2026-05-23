@@ -4,6 +4,7 @@ import json
 import sys
 import time
 from types import SimpleNamespace
+from pathlib import Path
 
 import pytest
 
@@ -1008,7 +1009,8 @@ def test_validate_parameters_command_fails_unverified_bundle(monkeypatch, tmp_pa
         cli_mod._run_validate_parameters_command(["-p", str(param_file), "--no-color"])
 
 
-def test_validate_registry_command_uses_default_registry(capsys):
+def test_validate_registry_command_uses_default_registry(capsys, monkeypatch):
+    monkeypatch.delenv("WOMTOOL_JAR", raising=False)
     rc = cli_mod._run_validate_registry_command(["--no-color"])
 
     assert rc == 0
@@ -1021,6 +1023,29 @@ def test_validate_registry_command_uses_default_registry(capsys):
     assert "External" in out
     assert "nf-core" in out
     assert "Engines" not in out
+
+
+def test_validate_registry_command_uses_womtool_when_configured(monkeypatch, tmp_path, capsys):
+    womtool = tmp_path / "womtool.jar"
+    womtool.write_text("jar\n", encoding="utf-8")
+    calls = []
+
+    def fake_run(cmd, text, stdout, stderr, check):
+        calls.append(cmd)
+        return SimpleNamespace(returncode=0, stdout="Success!\n", stderr="")
+
+    monkeypatch.setenv("WOMTOOL_JAR", str(womtool))
+    monkeypatch.setattr(cli_mod.subprocess, "run", fake_run)
+
+    rc = cli_mod._run_validate_registry_command(["--no-color"])
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "WDL syntax" in out
+    assert "ok (2 files)" in out
+    assert calls
+    assert all(cmd[:4] == ["java", "-jar", str(womtool), "validate"] for cmd in calls)
+    assert sorted(Path(cmd[-1]).name for cmd in calls) == ["wes_cohort.wdl", "wes_single.wdl"]
 
 
 def test_validate_resources_command_uses_default_catalog(capsys):

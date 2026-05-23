@@ -10,7 +10,6 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import yaml
 
-from .cromwell import find_cromwell_jar_on_path
 from .errors import WorkflowExecutionError, WorkflowResolutionError
 from .models import RunSettings
 
@@ -455,7 +454,9 @@ class NextflowRunner(BaseRunner):
 
 
 class CromwellRunner(BaseRunner):
-    workflow_name = "CBIcallWesSingle"
+    @property
+    def workflow_name(self) -> str:
+        return "CBIcallCohort" if self.mode == "cohort" else "CBIcallWesSingle"
 
     @property
     def inputs_json(self) -> Path:
@@ -482,6 +483,16 @@ class CromwellRunner(BaseRunner):
             return Path(self.inputs.input_dir)
         return self.workdir.parent
 
+    def _sample_map(self) -> Path:
+        if not self.inputs.sample_map:
+            raise WorkflowResolutionError(
+                "sample_map is required for workflow_backend='cromwell' with mode='cohort'."
+            )
+        sample_map = Path(self.inputs.sample_map)
+        if not sample_map.is_file():
+            raise WorkflowResolutionError(f"sample_map does not exist for Cromwell cohort input: {sample_map}")
+        return sample_map.resolve()
+
     def _write_fastq_pairs(self) -> None:
         input_dir = self._input_dir()
         pairs = []
@@ -498,12 +509,7 @@ class CromwellRunner(BaseRunner):
             encoding="utf-8",
         )
 
-    def _write_cromwell_json(self) -> None:
-        if self.pipeline != "wes" or self.mode != "single":
-            raise WorkflowResolutionError("Cromwell backend currently supports only WES single-sample runs.")
-        if not self.workflow.config_file:
-            raise WorkflowResolutionError(f"Missing Cromwell config file for pipeline/mode '{self.suffix}'")
-
+    def _prepare_run_directory(self) -> None:
         self.workdir.mkdir(parents=True, exist_ok=True)
         output_dirs = (
             "01_bam",
@@ -516,38 +522,85 @@ class CromwellRunner(BaseRunner):
         )
         for rel in output_dirs:
             (self.workdir / rel).mkdir(parents=True, exist_ok=True)
-        self._write_fastq_pairs()
 
+    def _expanded_native_config(self) -> tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+        if not self.workflow.config_file:
+            raise WorkflowResolutionError(f"Missing Cromwell config file for pipeline/mode '{self.suffix}'")
         config = yaml.safe_load(Path(self.workflow.config_file).read_text(encoding="utf-8")) or {}
         expanded = _expand_native_config(config, genome=self.genome)
         resources = expanded["resources"][self.genome]
         tools = expanded["selected_tools"]
-        prefix = self.workflow_name + "."
-        payload = {
-            prefix + "id": self._sample_id(),
+        return expanded, resources, tools
+
+    def _gatk4_cmd_for_mode(self, config: Dict[str, Any]) -> str:
+        if self.mode != "cohort" or not self.workflow.config_file:
+            return str(config["gatk4_cmd"])
+        raw_config = yaml.safe_load(Path(self.workflow.config_file).read_text(encoding="utf-8")) or {}
+        if "mem_genotype" not in raw_config:
+            return str(config["gatk4_cmd"])
+        genotype_config = dict(raw_config)
+        genotype_config["mem"] = raw_config["mem_genotype"]
+        return str(_expand_native_config(genotype_config, genome=self.genome)["gatk4_cmd"])
+
+    def _base_payload(self, prefix: str) -> dict:
+        expanded, resources, tools = self._expanded_native_config()
+        return {
             prefix + "pipeline": self.pipeline,
             prefix + "genome": self.genome,
             prefix + "threads": int(self.settings.threads),
-            prefix + "cleanup_bam": bool(self.settings.cleanup_bam),
-            prefix + "fastq_pairs_tsv": str(self.fastq_pairs_tsv.resolve()),
             prefix + "tmpdir": str(expanded["tmpdir"]),
-            prefix + "bwa": str(tools["bwa"]),
-            prefix + "samtools": str(tools["samtools"]),
-            prefix + "gatk4_cmd": str(expanded["gatk4_cmd"]),
+            prefix + "gatk4_cmd": self._gatk4_cmd_for_mode(expanded),
             prefix + "ref": str(resources["ref"]),
-            prefix + "refgz": str(resources["refgz"]),
             prefix + "dbsnp": str(resources["dbsnp"]),
             prefix + "mills_indels": str(resources["mills_indels"]),
-            prefix + "kg_indels": str(resources["kg_indels"]),
             prefix + "hapmap": str(resources["hapmap"]),
             prefix + "omni": str(resources["omni"]),
             prefix + "interval_list": str(resources["interval_list"]),
             prefix + "snp_res": str(resources["snp_res"]),
             prefix + "indel_res": str(resources["indel_res"]),
-            prefix + "coverage_script": str(self.workflow.helpers["coverage"]),
-            prefix + "vcf2sex_script": str(self.workflow.helpers["vcf2sex"]),
-            prefix + "vcf2hash_script": str(self.workflow.helpers["vcf2hash"]),
+            "_cbicall_expanded_config": expanded,
+            "_cbicall_resources": resources,
+            "_cbicall_tools": tools,
         }
+
+    def _write_cromwell_json(self) -> None:
+        if self.pipeline not in {"wes", "wgs"} or self.mode not in {"single", "cohort"}:
+            raise WorkflowResolutionError("Cromwell backend supports WES/WGS single and cohort modes only.")
+
+        self._prepare_run_directory()
+        prefix = self.workflow_name + "."
+        payload = self._base_payload(prefix)
+        expanded = payload.pop("_cbicall_expanded_config")
+        resources = payload.pop("_cbicall_resources")
+        tools = payload.pop("_cbicall_tools")
+
+        if self.mode == "single":
+            self._write_fastq_pairs()
+            payload.update(
+                {
+                    prefix + "id": self._sample_id(),
+                    prefix + "cleanup_bam": bool(self.settings.cleanup_bam),
+                    prefix + "fastq_pairs_tsv": str(self.fastq_pairs_tsv.resolve()),
+                    prefix + "bwa": str(tools["bwa"]),
+                    prefix + "samtools": str(tools["samtools"]),
+                    prefix + "refgz": str(resources["refgz"]),
+                    prefix + "kg_indels": str(resources["kg_indels"]),
+                    prefix + "coverage_script": str(self.workflow.helpers["coverage"]),
+                    prefix + "vcf2sex_script": str(self.workflow.helpers["vcf2sex"]),
+                    prefix + "vcf2hash_script": str(self.workflow.helpers["vcf2hash"]),
+                }
+            )
+        else:
+            payload.update(
+                {
+                    prefix + "sample_map": str(self._sample_map()),
+                    prefix + "workspace": f"cohort.genomicsdb.{self.settings.run_id}",
+                    prefix + "vcf2hash_script": str(self.workflow.helpers["vcf2hash"]),
+                    prefix + "min_snp_for_vqsr": int(expanded.get("min_snp_for_vqsr", 1000)),
+                    prefix + "min_indel_for_vqsr": int(expanded.get("min_indel_for_vqsr", 8000)),
+                }
+            )
+
         for key, value in sorted(self.settings.cromwell_parameters.items()):
             payload[key if "." in key else prefix + key] = value
         self.inputs_json.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -569,10 +622,7 @@ class CromwellRunner(BaseRunner):
         executable = shutil.which("cromwell")
         if executable:
             return [executable]
-        jar_path = find_cromwell_jar_on_path()
-        if jar_path:
-            return [os.environ.get("JAVA_CMD", "java"), "-jar", str(jar_path)]
-        raise WorkflowResolutionError("Cromwell is not available. Set CROMWELL_JAR, put cromwell on PATH, or put cromwell*.jar on PATH.")
+        raise WorkflowResolutionError("Cromwell is not available. Set CROMWELL_JAR or put cromwell on PATH.")
 
     def build_command(self) -> List[str]:
         script = self.workflow.entrypoint
