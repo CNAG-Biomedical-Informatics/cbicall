@@ -199,6 +199,96 @@ def _check_hashes(run_dir: Path, hashes: List[dict]) -> None:
             )
 
 
+def _load_report(run_dir: Path) -> dict:
+    report_path = run_dir / "run-report.json"
+    if not report_path.is_file():
+        raise IntegrationTestError(f"Missing run report: {report_path}")
+    return json.loads(report_path.read_text(encoding="utf-8"))
+
+
+def _report_value(report: dict, path: str):
+    current = report
+    for part in path.split("."):
+        if isinstance(current, dict):
+            current = current.get(part)
+        else:
+            return None
+    return current
+
+
+def _vcf_hash_from_report(report: dict) -> Optional[dict]:
+    reports = _report_value(report, "outputs.vcf_hash_reports") or []
+    if not isinstance(reports, list):
+        return None
+    usable = [item for item in reports if isinstance(item, dict) and item.get("normalized_sha256")]
+    if not usable:
+        return None
+    return sorted(usable, key=lambda item: str(item.get("file") or item.get("path") or ""))[0]
+
+
+def _vcf_hash_from_contract(run_dir: Path, contract: dict) -> Optional[dict]:
+    for item in contract.get("hashes", []):
+        if item.get("type") != "normalized_vcf":
+            continue
+        path = _work_path(run_dir, item["path"])
+        if not path.is_file():
+            continue
+        observed, records = _normalized_text_hash(path, item.get("pattern", "^#"))
+        return {
+            "file": path.name,
+            "path": str(path),
+            "normalized_sha256": observed,
+            "normalized_records": str(records),
+            "source": "integration_contract",
+        }
+    return None
+
+
+def _release_vcf_hash(run_dir: Path, contract: dict) -> dict:
+    report = _load_report(run_dir)
+    vcf_hash = _vcf_hash_from_report(report) or _vcf_hash_from_contract(run_dir, contract)
+    if not vcf_hash:
+        raise IntegrationTestError(f"No normalized VCF hash found for release comparison: {run_dir}")
+    return vcf_hash
+
+
+def _release_metadata(report: dict) -> dict:
+    return {
+        "pipeline": _report_value(report, "workflow.pipeline"),
+        "mode": _report_value(report, "workflow.mode"),
+        "genome": _report_value(report, "run.display_genome"),
+        "software_stack": _report_value(report, "workflow.software_stack"),
+        "resource": _report_value(report, "resources.bundle.key"),
+    }
+
+
+def _check_release_metadata(baseline_run: Path, candidate_run: Path) -> None:
+    baseline = _release_metadata(_load_report(baseline_run))
+    candidate = _release_metadata(_load_report(candidate_run))
+    mismatches = [key for key, value in baseline.items() if candidate.get(key) != value]
+    if mismatches:
+        details = ", ".join(
+            f"{key}: {baseline.get(key)!r} != {candidate.get(key)!r}" for key in mismatches
+        )
+        raise IntegrationTestError(f"Release metadata mismatch: {details}")
+
+
+def _backend_is_available(selection: TestSelection) -> Tuple[bool, str]:
+    if selection.key == "wes-cromwell":
+        if os.environ.get("CROMWELL_JAR") or shutil.which("cromwell"):
+            return True, ""
+        return False, "CROMWELL_JAR or cromwell executable not found"
+    if selection.backend_executable and shutil.which(selection.backend_executable) is None:
+        return False, f"backend executable {selection.backend_executable} not found"
+    return True, ""
+
+
+def _short_hash(value: Optional[str]) -> str:
+    if not value:
+        return "(undef)"
+    return value if len(value) <= 16 else f"{value[:12]}...{value[-8:]}"
+
+
 def validate_contract(run_dir: Path, contract: dict) -> None:
     errors: List[str] = []
     for rel_path in contract.get("required_files", []):
@@ -419,6 +509,106 @@ def run_integration_tests(
         print(f"{label}: {status}{suffix}")
     print("========================================")
     print("All requested tests finished.")
+    print(f"Exit code: {overall_status}")
+    print("========================================")
+    return overall_status
+
+
+def run_release_equivalence_test(
+    *,
+    project_root: Path,
+    threads: int,
+    runtime_profile: str,
+) -> int:
+    baseline_selection = TESTS["wes-bash"]
+    comparator_selections = [TESTS["wes-snakemake"], TESTS["wes-nextflow"], TESTS["wes-cromwell"]]
+    results: List[Tuple[str, str, str]] = []
+    comparison_hashes: Dict[str, dict] = {}
+    overall_status = 0
+    passed_comparisons = 0
+
+    print("========================================")
+    print("Release backend equivalence")
+    print("========================================")
+    print("Running native WES backends and comparing normalized final VCF content.")
+
+    try:
+        baseline_label, baseline_status, baseline_detail = _run_one(
+            project_root=project_root,
+            selection=baseline_selection,
+            threads=threads,
+            runtime_profile=runtime_profile,
+            skip_missing_optional=False,
+            keep_external_work=False,
+        )
+        results.append((baseline_label, baseline_status, baseline_detail))
+        baseline_run = Path(baseline_detail)
+        baseline_contract = load_contract(project_root, baseline_selection)
+        baseline_hash = _release_vcf_hash(baseline_run, baseline_contract)
+        comparison_hashes[baseline_label] = baseline_hash
+    except IntegrationTestError as exc:
+        overall_status = 1
+        results.append((baseline_selection.label, "failed", str(exc).splitlines()[0]))
+        baseline_run = None
+        baseline_hash = None
+
+    if baseline_run is not None and baseline_hash is not None:
+        for selection in comparator_selections:
+            available, detail = _backend_is_available(selection)
+            if not available:
+                results.append((selection.label, "skipped", detail))
+                continue
+
+            try:
+                label, status, run_detail = _run_one(
+                    project_root=project_root,
+                    selection=selection,
+                    threads=threads,
+                    runtime_profile=runtime_profile,
+                    skip_missing_optional=False,
+                    keep_external_work=False,
+                )
+                candidate_run = Path(run_detail)
+                candidate_contract = load_contract(project_root, selection)
+                _check_release_metadata(baseline_run, candidate_run)
+                candidate_hash = _release_vcf_hash(candidate_run, candidate_contract)
+                if candidate_hash.get("normalized_sha256") != baseline_hash.get("normalized_sha256"):
+                    raise IntegrationTestError(
+                        "normalized VCF hash differs from Bash baseline: "
+                        f"{candidate_hash.get('normalized_sha256')} != {baseline_hash.get('normalized_sha256')}"
+                    )
+                baseline_records = baseline_hash.get("normalized_records")
+                candidate_records = candidate_hash.get("normalized_records")
+                if baseline_records is not None and candidate_records is not None and str(candidate_records) != str(baseline_records):
+                    raise IntegrationTestError(
+                        f"normalized VCF record count differs from Bash baseline: {candidate_records} != {baseline_records}"
+                    )
+                passed_comparisons += 1
+                comparison_hashes[label] = candidate_hash
+                results.append((label, "same final VCF", str(candidate_run)))
+            except IntegrationTestError as exc:
+                overall_status = 1
+                results.append((selection.label, "failed", str(exc).splitlines()[0]))
+
+    if baseline_run is not None and passed_comparisons == 0:
+        overall_status = 1
+        results.append(("Backend equivalence", "failed", "no non-Bash backend was available for comparison"))
+
+    print("========================================")
+    print("Release equivalence summary")
+    print("========================================")
+    if baseline_hash:
+        print(f"Baseline VCF hash: {_short_hash(baseline_hash.get('normalized_sha256'))}")
+    for label, status, detail in results:
+        suffix = f" ({detail})" if detail else ""
+        hash_info = comparison_hashes.get(label)
+        if hash_info:
+            records = hash_info.get("normalized_records")
+            record_text = f" | {records} records" if records is not None else ""
+            print(f"{label}: {status} | {_short_hash(hash_info.get('normalized_sha256'))}{record_text}{suffix}")
+        else:
+            print(f"{label}: {status}{suffix}")
+    print(f"Compared backends: {passed_comparisons}")
     print(f"Exit code: {overall_status}")
     print("========================================")
     return overall_status

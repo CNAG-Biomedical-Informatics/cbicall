@@ -210,7 +210,7 @@ third-party dependencies.
 | --- | --- |
 | **`bin/cbicall validate-registry`** | Workflow registry structure, schema, referenced files, and compatible resource keys. |
 | **`bin/cbicall validate-parameters -p parameters.yaml`** | One concrete run setup, including parameter compatibility, selected workflow, runtime profile, and installed resource identity when applicable. |
-| **`bin/cbicall test --wes-bash`** and related flags | Contract integration examples that run selected workflows and check expected output fingerprints. |
+| **`bin/cbicall test --wes-bash`**, `--release`, and related flags | Contract integration examples that run selected workflows; release mode compares normalized WES VCF output across native backends. |
 
 ---
 

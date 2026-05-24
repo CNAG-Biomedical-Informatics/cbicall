@@ -243,3 +243,123 @@ def test_run_integration_tests_fails_missing_explicit_backend(tmp_path, monkeypa
 
     assert rc == 1
     assert "requires backend executable snakemake" in capsys.readouterr().out
+
+
+def _write_release_report(run_dir: Path, *, backend="bash", vcf_hash="same-hash", records="6") -> None:
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "run-report.json").write_text(
+        json.dumps(
+            {
+                "status": "success",
+                "workflow": {
+                    "backend": backend,
+                    "pipeline": "wes",
+                    "mode": "single",
+                    "software_stack": "gatk-4.6",
+                },
+                "run": {"display_genome": "b37"},
+                "resources": {"bundle": {"key": "cbicall-germline-resources-v1"}},
+                "outputs": {
+                    "vcf_hash_reports": [
+                        {
+                            "file": "CNAG99901P.hc.QC.vcf.gz",
+                            "normalized_sha256": vcf_hash,
+                            "normalized_records": records,
+                        }
+                    ]
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_run_release_equivalence_compares_available_native_backend(tmp_path, monkeypatch, capsys):
+    bash_run = tmp_path / "bash_run"
+    snakemake_run = tmp_path / "snakemake_run"
+    _write_release_report(bash_run, backend="bash")
+    _write_release_report(snakemake_run, backend="snakemake")
+
+    def fake_run_one(**kwargs):
+        selection = kwargs["selection"]
+        if selection.key == "wes-bash":
+            return selection.label, "passed", str(bash_run)
+        if selection.key == "wes-snakemake":
+            return selection.label, "passed", str(snakemake_run)
+        raise AssertionError(f"unexpected run: {selection.key}")
+
+    monkeypatch.setattr(integration_mod, "_run_one", fake_run_one)
+    monkeypatch.setattr(integration_mod, "load_contract", lambda project_root, selection: {})
+    monkeypatch.setattr(
+        integration_mod,
+        "_backend_is_available",
+        lambda selection: (selection.key == "wes-snakemake", "missing test backend"),
+    )
+
+    rc = integration_mod.run_release_equivalence_test(
+        project_root=tmp_path,
+        threads=2,
+        runtime_profile="cnag-hpc",
+    )
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "WES Snakemake: same final VCF | same-hash | 6 records" in out
+    assert "WES Bash: passed | same-hash | 6 records" in out
+    assert "Compared backends: 1" in out
+
+
+def test_run_release_equivalence_fails_without_non_bash_comparator(tmp_path, monkeypatch, capsys):
+    bash_run = tmp_path / "bash_run"
+    _write_release_report(bash_run, backend="bash")
+
+    def fake_run_one(**kwargs):
+        selection = kwargs["selection"]
+        assert selection.key == "wes-bash"
+        return selection.label, "passed", str(bash_run)
+
+    monkeypatch.setattr(integration_mod, "_run_one", fake_run_one)
+    monkeypatch.setattr(integration_mod, "load_contract", lambda project_root, selection: {})
+    monkeypatch.setattr(integration_mod, "_backend_is_available", lambda selection: (False, "missing test backend"))
+
+    rc = integration_mod.run_release_equivalence_test(
+        project_root=tmp_path,
+        threads=1,
+        runtime_profile="local",
+    )
+
+    assert rc == 1
+    assert "no non-Bash backend was available" in capsys.readouterr().out
+
+
+def test_run_release_equivalence_fails_on_vcf_hash_mismatch(tmp_path, monkeypatch, capsys):
+    bash_run = tmp_path / "bash_run"
+    nextflow_run = tmp_path / "nextflow_run"
+    _write_release_report(bash_run, backend="bash", vcf_hash="baseline")
+    _write_release_report(nextflow_run, backend="nextflow", vcf_hash="different")
+
+    def fake_run_one(**kwargs):
+        selection = kwargs["selection"]
+        if selection.key == "wes-bash":
+            return selection.label, "passed", str(bash_run)
+        if selection.key == "wes-nextflow":
+            return selection.label, "passed", str(nextflow_run)
+        raise AssertionError(f"unexpected run: {selection.key}")
+
+    monkeypatch.setattr(integration_mod, "_run_one", fake_run_one)
+    monkeypatch.setattr(integration_mod, "load_contract", lambda project_root, selection: {})
+    monkeypatch.setattr(
+        integration_mod,
+        "_backend_is_available",
+        lambda selection: (selection.key == "wes-nextflow", "missing test backend"),
+    )
+
+    rc = integration_mod.run_release_equivalence_test(
+        project_root=tmp_path,
+        threads=1,
+        runtime_profile="local",
+    )
+
+    assert rc == 1
+    out = capsys.readouterr().out
+    assert "normalized VCF hash differs from Bash baseline" in out

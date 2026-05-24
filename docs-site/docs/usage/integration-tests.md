@@ -32,6 +32,27 @@ bin/cbicall test --wes-bash -t 1 --runtime-profile cnag-hpc
 | Check | What it confirms |
 | --- | --- |
 | `test --wes-bash` | The required bundled Bash WES workflow runs and reproduces the expected normalized VCF hash declared by the contract fixture. |
+| `test --release` | Runs Bash plus available native WES backends and checks that their normalized final VCF content matches Bash. |
+
+## Release Check
+
+Use release mode before tagging or publishing an image:
+
+```bash
+bin/cbicall test --release -t 1 --runtime-profile local
+```
+
+On HPC, use the same runtime profile as normal runs:
+
+```bash
+bin/cbicall test --release -t 1 --runtime-profile cnag-hpc
+```
+
+`--release` uses Bash as the required native baseline and compares available
+Snakemake, Nextflow, and Cromwell WES runs against it. It compares the
+**normalized final VCF hash**, not logs, workflow files, execution contracts, or
+full output inventories. Missing optional backends are skipped, but at least one
+non-Bash backend must be available for the release check to pass.
 
 :::tip[Where to go next]
 Use this page to run the shipped examples. For parameter-file checks, see
@@ -50,11 +71,13 @@ repeated runs, see [Run Comparison](run-comparison).
 | `bin/cbicall test --mit-bash -t 1` | **Native mtDNA**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | x86_64 host | Run report fields, expected files, **prioritized variants hash**, **raw JSON hash** |
 | `bin/cbicall test --nf-core-demo -t 4` | **nf-core/demo** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile | Generated params/config, run reports, **pipeline info**, **MultiQC anchors** |
 | `bin/cbicall test --nf-core-sarek -t 4` | **nf-core/Sarek** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile and Sarek inputs/resources | Generated params/config, run reports, **pipeline info**, **MultiQC anchors**, declared canonical outputs when produced |
+| `bin/cbicall test --release -t 1` | **Native WES backend equivalence** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | At least one non-Bash native backend available | Bash baseline plus available native WES backends; **same normalized final VCF** required |
 | `bin/cbicall test --all -t 1` | **Native tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Optional backends skipped if missing | Runs WES Bash, WES Snakemake, WES Nextflow, WES Cromwell, and mtDNA contracts |
 
 Useful variants:
 
 ```bash
+bin/cbicall test --release -t 1 --runtime-profile cnag-hpc
 bin/cbicall test --wes-bash -t 1 --runtime-profile cnag-hpc
 bin/cbicall test --nf-core-demo -t 4 --keep-external-work
 ```

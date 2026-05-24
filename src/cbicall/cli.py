@@ -33,7 +33,7 @@ from .cli_output import (
 from .execution import WorkflowExecutor, EXECUTION_CONTRACT_FILE
 from .errors import ParameterValidationError
 from .helpmod import usage, parse_args as _parse_args, parse_run_args as _parse_run_args
-from .integration_tests import run_integration_tests, selected_tests_from_args
+from .integration_tests import run_integration_tests, run_release_equivalence_test, selected_tests_from_args
 from .models import ResolvedConfig, RunSettings
 from .resources import validate_resource_catalog
 from .workflow_registry import load_workflow_registry
@@ -3116,6 +3116,11 @@ def _run_test_command(argv: List[str]) -> int:
         action="store_true",
         help="Run all native bundled integration tests. Optional backend tests are skipped if their backend executable is not installed.",
     )
+    parser.add_argument(
+        "--release",
+        action="store_true",
+        help="Run native backend-equivalence release checks and compare normalized WES VCF output against Bash.",
+    )
     parser.add_argument("-t", "--threads", type=int, default=1, help="Number of threads to use.")
     parser.add_argument("--runtime-profile", dest="profile", default="local", help="CBIcall runtime profile for native workflow tests.")
     parser.add_argument(
@@ -3128,14 +3133,34 @@ def _run_test_command(argv: List[str]) -> int:
     if args.threads <= 0:
         parser.error("--threads requires a positive integer")
 
+    selectors = [
+        args.wes_bash,
+        args.wes_snakemake,
+        args.wes_nextflow,
+        args.wes_cromwell,
+        args.mit_bash,
+        args.nf_core_demo,
+        args.nf_core_sarek,
+        args.all,
+    ]
+    if args.release and any(selectors):
+        parser.error("--release cannot be combined with individual test selectors or --all")
+
+    root = _project_root()
+    if args.release:
+        return run_release_equivalence_test(
+            project_root=root,
+            threads=args.threads,
+            runtime_profile=args.profile,
+        )
+
     selected = selected_tests_from_args(args)
     if not selected:
         parser.error(
             "select at least one test with --wes-bash, --wes-snakemake, "
-            "--wes-nextflow, --mit-bash, --nf-core-demo, --nf-core-sarek, or --all"
+            "--wes-nextflow, --wes-cromwell, --mit-bash, --nf-core-demo, --nf-core-sarek, --release, or --all"
         )
 
-    root = _project_root()
     return run_integration_tests(
         project_root=root,
         selected=selected,

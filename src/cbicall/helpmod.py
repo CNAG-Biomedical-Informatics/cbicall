@@ -21,7 +21,7 @@ def _build_parser(version: str, *, prog: str = "cbicall") -> argparse.ArgumentPa
               cbicall validate-resources
               cbicall compare-runs RUN_A RUN_B [RUN_C ...]
               cbicall report RUN_DIR_OR_RUN_REPORT_JSON
-              cbicall test --wes-bash|--wes-snakemake|--wes-nextflow|--mit-bash|--nf-core-demo|--nf-core-sarek|--all [-t THREADS]
+              cbicall test --wes-bash|--wes-snakemake|--wes-nextflow|--wes-cromwell|--mit-bash|--nf-core-demo|--nf-core-sarek|--release|--all [-t THREADS]
             """
         ),
     )
