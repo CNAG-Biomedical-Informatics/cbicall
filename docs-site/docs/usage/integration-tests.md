@@ -54,6 +54,25 @@ Snakemake, Nextflow, and Cromwell WES runs against it. It compares the
 full output inventories. Missing optional backends are skipped, but at least one
 non-Bash backend must be available for the release check to pass.
 
+The final summary is the key audit line:
+
+```text
+Release equivalence summary
+========================================
+Baseline
+  WES Bash      => passed | 621373dda8e7...72559baf | 6 records (...)
+
+Backend equivalence
+  WES Snakemake => same final VCF | 621373dda8e7...72559baf | 6 records (...)
+  WES Nextflow  => same final VCF | 621373dda8e7...72559baf | 6 records (...)
+  WES Cromwell  => same final VCF | 621373dda8e7...72559baf | 6 records (...)
+
+Compared non-Bash backends: 3
+Status: PASSED
+Exit code: 0
+========================================
+```
+
 :::tip[Where to go next]
 Use this page to run the shipped examples. For parameter-file checks, see
 [Configuration Reference](../help/configuration-reference). For comparing

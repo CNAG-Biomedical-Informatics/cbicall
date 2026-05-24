@@ -289,6 +289,14 @@ def _short_hash(value: Optional[str]) -> str:
     return value if len(value) <= 16 else f"{value[:12]}...{value[-8:]}"
 
 
+def _release_hash_detail(hash_info: Optional[dict]) -> str:
+    if not hash_info:
+        return "(hash not available)"
+    records = hash_info.get("normalized_records")
+    record_text = f" | {records} records" if records is not None else ""
+    return f"{_short_hash(hash_info.get('normalized_sha256'))}{record_text}"
+
+
 def validate_contract(run_dir: Path, contract: dict) -> None:
     errors: List[str] = []
     for rel_path in contract.get("required_files", []):
@@ -597,18 +605,30 @@ def run_release_equivalence_test(
     print("========================================")
     print("Release equivalence summary")
     print("========================================")
-    if baseline_hash:
-        print(f"Baseline VCF hash: {_short_hash(baseline_hash.get('normalized_sha256'))}")
+    print("Baseline")
     for label, status, detail in results:
-        suffix = f" ({detail})" if detail else ""
+        if label != baseline_selection.label:
+            continue
         hash_info = comparison_hashes.get(label)
+        suffix = f" ({detail})" if detail else ""
         if hash_info:
-            records = hash_info.get("normalized_records")
-            record_text = f" | {records} records" if records is not None else ""
-            print(f"{label}: {status} | {_short_hash(hash_info.get('normalized_sha256'))}{record_text}{suffix}")
+            print(f"  {label:<13} => {status} | {_release_hash_detail(hash_info)}{suffix}")
         else:
-            print(f"{label}: {status}{suffix}")
-    print(f"Compared backends: {passed_comparisons}")
+            print(f"  {label:<13} => {status}{suffix}")
+    print()
+    print("Backend equivalence")
+    for label, status, detail in results:
+        if label == baseline_selection.label:
+            continue
+        hash_info = comparison_hashes.get(label)
+        suffix = f" ({detail})" if detail else ""
+        if hash_info:
+            print(f"  {label:<13} => {status} | {_release_hash_detail(hash_info)}{suffix}")
+        else:
+            print(f"  {label:<13} => {status}{suffix}")
+    print()
+    print(f"Compared non-Bash backends: {passed_comparisons}")
+    print(f"Status: {'PASSED' if overall_status == 0 else 'FAILED'}")
     print(f"Exit code: {overall_status}")
     print("========================================")
     return overall_status

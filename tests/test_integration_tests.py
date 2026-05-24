@@ -304,9 +304,12 @@ def test_run_release_equivalence_compares_available_native_backend(tmp_path, mon
 
     assert rc == 0
     out = capsys.readouterr().out
-    assert "WES Snakemake: same final VCF | same-hash | 6 records" in out
-    assert "WES Bash: passed | same-hash | 6 records" in out
-    assert "Compared backends: 1" in out
+    assert "Baseline" in out
+    assert "Backend equivalence" in out
+    assert "WES Snakemake => same final VCF | same-hash | 6 records" in out
+    assert "WES Bash      => passed | same-hash | 6 records" in out
+    assert "Compared non-Bash backends: 1" in out
+    assert "Status: PASSED" in out
 
 
 def test_run_release_equivalence_fails_without_non_bash_comparator(tmp_path, monkeypatch, capsys):
