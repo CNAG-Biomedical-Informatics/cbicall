@@ -7,7 +7,7 @@ import shutil
 import shlex
 import subprocess
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import yaml
 
@@ -672,7 +672,7 @@ class CromwellRunner(BaseRunner):
         for rel in output_dirs:
             (self.workdir / rel).mkdir(parents=True, exist_ok=True)
 
-    def _expanded_native_config(self) -> tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    def _expanded_native_config(self) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
         if not self.workflow.config_file:
             raise WorkflowResolutionError(f"Missing Cromwell config file for pipeline/mode '{self.suffix}'")
         config = yaml.safe_load(Path(self.workflow.config_file).read_text(encoding="utf-8")) or {}
