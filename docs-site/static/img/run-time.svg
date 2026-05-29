@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
-  <title id="title">Run Time vs Number of Threads</title>
-  <desc id="desc">Line chart showing WES single-mode runtime decreasing from about 28.5 minutes at 2 threads to about 21.4 minutes at 12 threads.</desc>
+  <title id="title">WES Run Time vs Number of Threads</title>
+  <desc id="desc">Line chart showing WES single-mode runtime for 1000 Genomes sample SRR1596639 decreasing from about 130.9 minutes at 2 threads to about 90.9 minutes at 12 threads.</desc>
   <rect width="960" height="540" fill="#fff"/>
 
   <style>
@@ -14,27 +14,25 @@
     .value { font: 14px Arial, Helvetica, sans-serif; fill: #555; }
   </style>
 
-  <text x="480" y="42" text-anchor="middle" class="title">Run Time vs Number of Threads</text>
+  <text x="480" y="42" text-anchor="middle" class="title">WES Run Time vs Number of Threads</text>
 
-  <!-- Plot area: x 90..900, y 64..424. X range 2..12, Y range 21..29. -->
+  <!-- Plot area: x 90..900, y 76..424. X range 2..12, Y range 90..132 minutes. -->
   <g aria-hidden="true">
-    <line x1="90" y1="379" x2="920" y2="379" class="grid"/>
-    <line x1="90" y1="334" x2="920" y2="334" class="grid"/>
-    <line x1="90" y1="289" x2="920" y2="289" class="grid"/>
-    <line x1="90" y1="244" x2="920" y2="244" class="grid"/>
-    <line x1="90" y1="199" x2="920" y2="199" class="grid"/>
-    <line x1="90" y1="154" x2="920" y2="154" class="grid"/>
-    <line x1="90" y1="109" x2="920" y2="109" class="grid"/>
+    <line x1="90" y1="424" x2="920" y2="424" class="grid"/>
+    <line x1="90" y1="341" x2="920" y2="341" class="grid"/>
+    <line x1="90" y1="258" x2="920" y2="258" class="grid"/>
+    <line x1="90" y1="175" x2="920" y2="175" class="grid"/>
+    <line x1="90" y1="93" x2="920" y2="93" class="grid"/>
 
-    <line x1="90" y1="64" x2="90" y2="424" class="grid"/>
-    <line x1="252" y1="64" x2="252" y2="424" class="grid"/>
-    <line x1="414" y1="64" x2="414" y2="424" class="grid"/>
-    <line x1="576" y1="64" x2="576" y2="424" class="grid"/>
-    <line x1="738" y1="64" x2="738" y2="424" class="grid"/>
-    <line x1="900" y1="64" x2="900" y2="424" class="grid"/>
+    <line x1="90" y1="76" x2="90" y2="424" class="grid"/>
+    <line x1="252" y1="76" x2="252" y2="424" class="grid"/>
+    <line x1="414" y1="76" x2="414" y2="424" class="grid"/>
+    <line x1="576" y1="76" x2="576" y2="424" class="grid"/>
+    <line x1="738" y1="76" x2="738" y2="424" class="grid"/>
+    <line x1="900" y1="76" x2="900" y2="424" class="grid"/>
   </g>
 
-  <line x1="90" y1="64" x2="90" y2="424" class="axis"/>
+  <line x1="90" y1="76" x2="90" y2="424" class="axis"/>
   <line x1="90" y1="424" x2="920" y2="424" class="axis"/>
 
   <g class="tick" text-anchor="middle">
@@ -47,26 +45,24 @@
   </g>
 
   <g class="tick" text-anchor="end">
-    <text x="76" y="385">22</text>
-    <text x="76" y="340">23</text>
-    <text x="76" y="295">24</text>
-    <text x="76" y="250">25</text>
-    <text x="76" y="205">26</text>
-    <text x="76" y="160">27</text>
-    <text x="76" y="115">28</text>
+    <text x="76" y="430">90</text>
+    <text x="76" y="347">100</text>
+    <text x="76" y="264">110</text>
+    <text x="76" y="181">120</text>
+    <text x="76" y="99">130</text>
   </g>
 
   <text x="505" y="500" text-anchor="middle" class="axis-title">Number of Threads</text>
   <text x="34" y="244" text-anchor="middle" transform="rotate(-90 34 244)" class="axis-title">Run Time (minutes)</text>
 
-  <polyline class="line" points="90,85 252,318 414,377 576,377 738,381 900,408"/>
+  <polyline class="line" points="90,85 252,294 414,367 576,383 738,407 900,417"/>
 
   <g>
     <circle cx="90" cy="85" r="6" class="point"/>
-    <circle cx="252" cy="318" r="6" class="point"/>
-    <circle cx="414" cy="377" r="6" class="point"/>
-    <circle cx="576" cy="377" r="6" class="point"/>
-    <circle cx="738" cy="381" r="6" class="point"/>
-    <circle cx="900" cy="408" r="6" class="point"/>
+    <circle cx="252" cy="294" r="6" class="point"/>
+    <circle cx="414" cy="367" r="6" class="point"/>
+    <circle cx="576" cy="383" r="6" class="point"/>
+    <circle cx="738" cy="407" r="6" class="point"/>
+    <circle cx="900" cy="417" r="6" class="point"/>
   </g>
 </svg>
