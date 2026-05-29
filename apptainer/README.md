@@ -224,10 +224,11 @@ apptainer shell \
 
 ### Point Native Workflows to `/cbicall-data`
 
-Native CBIcall workflows read resource paths from Bash `env.sh` files and from
-Snakemake/Nextflow `config.yaml` files. In Apptainer, bind your external
-resource directory as
-`/cbicall-data` and point CBIcall to that container path:
+Run these commands **inside the container** after `apptainer shell`. Native
+CBIcall workflows read resource paths from Bash `env.sh` files and from
+Snakemake/Nextflow/Cromwell `config.yaml` files stored in the writable CBIcall
+checkout. Because the host resource directory was mounted as `/cbicall-data`,
+point the workflow configuration files to that container path:
 
 ```bash
 sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-4.6/env.sh
@@ -235,7 +236,9 @@ sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-3.5/env.sh
 sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/config.yaml
 ```
 
-The native Nextflow config is a symlink to this shared GATK 4.6 backend config, so one edit updates both Snakemake and Nextflow native workflows.
+The native Nextflow and Cromwell configs are symlinks to this shared GATK 4.6
+backend config, so one edit updates Snakemake, native Nextflow, and Cromwell
+native workflows.
 
 Confirm that CBIcall sees the mounted resources:
 

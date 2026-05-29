@@ -25,10 +25,10 @@ wget https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/main/
 
 Then build the container:
 
-The Dockerfile installs the CBIcall Python dependencies, including
-Snakemake, and a pinned Nextflow launcher. Bash workflows do not need either
-engine, but the image can run the packaged Snakemake and Nextflow WES/WGS
-workflows without extra engine installation.
+The Dockerfile installs the CBIcall Python dependencies, including Snakemake,
+plus pinned Nextflow, Cromwell, and WOMtool launchers. Bash workflows do not
+need those engines, but the image can run the packaged Snakemake, Nextflow, and
+Cromwell WES/WGS workflows without extra engine installation.
 
 - **For Docker version 19.03 and above (supports buildx):**
 
@@ -47,7 +47,7 @@ workflows without extra engine installation.
 | Workflow path | Needs `/cbicall-data`? | Notes |
 | --- | --- | --- |
 | `workflow_provider: nf-core` | No CBIcall bundle required | Nextflow/nf-core manage their own test data, references, and containers. The selected runtime profile must still work in your environment. |
-| Native CBIcall Bash/Snakemake/Nextflow WES/WGS/mtDNA | Yes | Mount the CBIcall resource bundle as `/cbicall-data` and configure `DATADIR`. |
+| Native CBIcall Bash/Snakemake/Nextflow/Cromwell WES/WGS/mtDNA | Yes | Mount the CBIcall resource bundle as `/cbicall-data` and configure `DATADIR`. |
 
 For Docker-based nf-core tests, make sure the selected nf-core profile can run
 from your container setup. Many users run nf-core directly on the host with
@@ -116,21 +116,6 @@ If disk space is tight and the checksum has passed, add `--remove-parts` to remo
 
 CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.json`. The GDrive bundle only needs a small identifier file, for example `cbicall-resource-id.json` containing `{"resource_key": "cbicall-germline-resources-v1"}`. When that identifier file is available, the registry can store its Google Drive file ID and SHA-256 so the downloader can verify that the remote bundle matches the local CBIcall catalog entry.
 
-### Point Native Workflows to your resource directory
-
-Native CBIcall workflows read resource paths from Bash `env.sh` files and from
-Snakemake/Nextflow `config.yaml` files. In Docker, mount your host resource
-directory as
-`/cbicall-data` and point CBIcall to that container path:
-
-```bash
-sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-4.6/env.sh
-sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-3.5/env.sh
-sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/config.yaml
-```
-
-The native Nextflow config is a symlink to this shared GATK 4.6 backend config, so one edit updates both Snakemake and Nextflow native workflows.
-
 ## Running and Interacting with the Container
 
 For native CBIcall workflows:
@@ -154,8 +139,25 @@ To connect to the container:
 docker exec -ti cbicall bash
 ```
 
-Inside the container, confirm that CBIcall sees the mounted resources when
-running native workflows:
+### Point Native Workflows to `/cbicall-data`
+
+Run these commands **inside the container** after `docker exec`. Native CBIcall
+workflows read resource paths from Bash `env.sh` files and from
+Snakemake/Nextflow/Cromwell `config.yaml` files stored in the container's
+CBIcall checkout. Because the host resource directory was mounted as
+`/cbicall-data`, point the workflow configuration files to that container path:
+
+```bash
+sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-4.6/env.sh
+sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-3.5/env.sh
+sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/config.yaml
+```
+
+The native Nextflow and Cromwell configs are symlinks to this shared GATK 4.6
+backend config, so one edit updates Snakemake, native Nextflow, and Cromwell
+native workflows.
+
+Then confirm that CBIcall sees the mounted resources:
 
 ```bash
 bin/cbicall validate-resources

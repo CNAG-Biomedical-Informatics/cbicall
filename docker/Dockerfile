@@ -8,6 +8,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Ensure that system sbin directories are in PATH
 ENV PATH="/usr/local/sbin:/usr/sbin:/sbin:${PATH}"
 ARG NEXTFLOW_VERSION=25.10.4
+ARG CROMWELL_VERSION=92
+ENV CROMWELL_DIR=/opt/cromwell
+ENV CROMWELL_JAR=/opt/cromwell/cromwell-${CROMWELL_VERSION}.jar
+ENV WOMTOOL_JAR=/opt/cromwell/womtool-${CROMWELL_VERSION}.jar
 
 # Install Linux tools (use --no-install-recommends and headless JRE)
 RUN apt-get update && \
@@ -23,6 +27,22 @@ RUN curl -fsSL https://get.nextflow.io | NXF_VER="${NEXTFLOW_VERSION}" bash && \
     mv nextflow /usr/local/bin/nextflow && \
     chmod 0755 /usr/local/bin/nextflow && \
     nextflow -version
+
+# Install Cromwell and WOMtool from the official Broad Institute release
+# assets. CBIcall uses CROMWELL_JAR for execution and WOMTOOL_JAR for optional
+# WDL validation in `validate-registry`.
+RUN mkdir -p "${CROMWELL_DIR}" && \
+    curl -fsSL \
+      "https://github.com/broadinstitute/cromwell/releases/download/${CROMWELL_VERSION}/cromwell-${CROMWELL_VERSION}.jar" \
+      -o "${CROMWELL_JAR}" && \
+    curl -fsSL \
+      "https://github.com/broadinstitute/cromwell/releases/download/${CROMWELL_VERSION}/womtool-${CROMWELL_VERSION}.jar" \
+      -o "${WOMTOOL_JAR}" && \
+    printf '%s\n' '#!/usr/bin/env bash' 'exec java -jar "$CROMWELL_JAR" "$@"' > /usr/local/bin/cromwell && \
+    printf '%s\n' '#!/usr/bin/env bash' 'exec java -jar "$WOMTOOL_JAR" "$@"' > /usr/local/bin/womtool && \
+    chmod 0755 /usr/local/bin/cromwell /usr/local/bin/womtool && \
+    cromwell --version && \
+    test -s "${WOMTOOL_JAR}"
 
 # Download CBICall
 WORKDIR /usr/share/
