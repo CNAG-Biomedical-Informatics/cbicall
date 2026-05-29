@@ -536,7 +536,7 @@ def run_release_equivalence_test(
     passed_comparisons = 0
 
     print("========================================")
-    print("Release backend equivalence")
+    print("Backend equivalence")
     print("========================================")
     print("Running native WES backends and comparing normalized final VCF content.")
 
@@ -603,7 +603,7 @@ def run_release_equivalence_test(
         results.append(("Backend equivalence", "failed", "no non-Bash backend was available for comparison"))
 
     print("========================================")
-    print("Release equivalence summary")
+    print("Backend equivalence summary")
     print("========================================")
     print("Baseline")
     for label, status, detail in results:

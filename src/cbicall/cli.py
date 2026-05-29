@@ -3117,9 +3117,10 @@ def _run_test_command(argv: List[str]) -> int:
         help="Run all native bundled integration tests. Optional backend tests are skipped if their backend executable is not installed.",
     )
     parser.add_argument(
-        "--release",
+        "--backend-equivalence",
+        dest="backend_equivalence",
         action="store_true",
-        help="Run native backend-equivalence release checks and compare normalized WES VCF output against Bash.",
+        help="Run native WES backend-equivalence checks and compare normalized VCF output against Bash.",
     )
     parser.add_argument("-t", "--threads", type=int, default=1, help="Number of threads to use.")
     parser.add_argument("--runtime-profile", dest="profile", default="local", help="CBIcall runtime profile for native workflow tests.")
@@ -3143,11 +3144,11 @@ def _run_test_command(argv: List[str]) -> int:
         args.nf_core_sarek,
         args.all,
     ]
-    if args.release and any(selectors):
-        parser.error("--release cannot be combined with individual test selectors or --all")
+    if args.backend_equivalence and any(selectors):
+        parser.error("--backend-equivalence cannot be combined with individual test selectors or --all")
 
     root = _project_root()
-    if args.release:
+    if args.backend_equivalence:
         return run_release_equivalence_test(
             project_root=root,
             threads=args.threads,
@@ -3158,7 +3159,8 @@ def _run_test_command(argv: List[str]) -> int:
     if not selected:
         parser.error(
             "select at least one test with --wes-bash, --wes-snakemake, "
-            "--wes-nextflow, --wes-cromwell, --mit-bash, --nf-core-demo, --nf-core-sarek, --release, or --all"
+            "--wes-nextflow, --wes-cromwell, --mit-bash, --nf-core-demo, "
+            "--nf-core-sarek, --backend-equivalence, or --all"
         )
 
     return run_integration_tests(

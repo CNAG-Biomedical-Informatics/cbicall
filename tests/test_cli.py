@@ -1560,13 +1560,13 @@ def test_run_test_command_release_uses_release_equivalence_runner(monkeypatch, t
     monkeypatch.setattr(cli_mod, "_project_root", lambda: tmp_path)
     monkeypatch.setattr(cli_mod, "run_release_equivalence_test", fake_run_release_equivalence_test)
 
-    assert cli_mod._run_test_command(["--release", "-t", "3", "--runtime-profile", "cnag-hpc"]) == 11
+    assert cli_mod._run_test_command(["--backend-equivalence", "-t", "3", "--runtime-profile", "cnag-hpc"]) == 11
     assert seen == {"project_root": tmp_path, "threads": 3, "runtime_profile": "cnag-hpc"}
 
 
 def test_run_test_command_release_rejects_other_selectors():
     with pytest.raises(SystemExit):
-        cli_mod._run_test_command(["--release", "--wes-bash"])
+        cli_mod._run_test_command(["--backend-equivalence", "--wes-bash"])
 
 
 def test_main_no_color_disables_ansi_output(monkeypatch, tmp_path, capsys):
