@@ -92,6 +92,19 @@ MEAN_DEPTH_AUTOSOMES=$(mean_depth_for_scope autosomes)
 MEAN_DEPTH_X=$(mean_depth_for_scope X)
 MEAN_DEPTH_Y=$(mean_depth_for_scope Y)
 
+if [ "$MEAN_DEPTH_AUTOSOMES" != "NA" ] && [ "$MEAN_DEPTH_X" != "NA" ] && [ "$MEAN_DEPTH_Y" = "NA" ]; then
+  X_AUTOSOME_RATIO=$( echo "$MEAN_DEPTH_X" "$MEAN_DEPTH_AUTOSOMES" | awk '{printf "%.2f", $1/$2}' )
+  if awk -v ratio="$X_AUTOSOME_RATIO" 'BEGIN { exit !(ratio >= 0.55) }'; then
+    echo "MEAN DEPTH FOR AUTOSOMES=$MEAN_DEPTH_AUTOSOMES"
+    echo "MEAN DEPTH FOR X=$MEAN_DEPTH_X"
+    echo "MEAN DEPTH FOR Y=$MEAN_DEPTH_Y"
+    echo "THRESHOLD=NA"
+    echo "SEX=FEMALE_LIKELY"
+    echo "REASON=No usable Y records; X/autosome ratio compatible with female"
+    exit 0
+  fi
+fi
+
 if [ "$MEAN_DEPTH_AUTOSOMES" = "NA" ] || [ "$MEAN_DEPTH_X" = "NA" ] || [ "$MEAN_DEPTH_Y" = "NA" ]; then
   echo "MEAN DEPTH FOR AUTOSOMES=$MEAN_DEPTH_AUTOSOMES"
   echo "MEAN DEPTH FOR X=$MEAN_DEPTH_X"

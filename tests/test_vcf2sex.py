@@ -68,6 +68,51 @@ def test_vcf2sex_reports_unknown_when_x_y_depths_are_absent(script, tmp_path):
 
 
 @pytest.mark.parametrize("script", VCF2SEX_SCRIPTS)
+def test_vcf2sex_reports_likely_female_when_y_depth_is_absent(script, tmp_path):
+    result = _run_vcf2sex(
+        script,
+        tmp_path,
+        [
+            "1\t100\t.\tA\tG\t50\tPASS\t.\tGT:DP\t0/1:100",
+            "2\t100\t.\tA\tG\t50\tPASS\t.\tGT:DP\t0/1:102",
+            "X\t100\t.\tA\tG\t50\tPASS\t.\tGT:DP\t0/1:63",
+        ],
+    )
+
+    assert result.returncode == 0
+    assert result.stdout.splitlines() == [
+        "MEAN DEPTH FOR AUTOSOMES=101.00",
+        "MEAN DEPTH FOR X=63.00",
+        "MEAN DEPTH FOR Y=NA",
+        "THRESHOLD=NA",
+        "SEX=FEMALE_LIKELY",
+        "REASON=No usable Y records; X/autosome ratio compatible with female",
+    ]
+
+
+@pytest.mark.parametrize("script", VCF2SEX_SCRIPTS)
+def test_vcf2sex_keeps_unknown_when_y_depth_is_absent_and_x_ratio_is_low(script, tmp_path):
+    result = _run_vcf2sex(
+        script,
+        tmp_path,
+        [
+            "1\t100\t.\tA\tG\t50\tPASS\t.\tGT:DP\t0/1:100",
+            "2\t100\t.\tA\tG\t50\tPASS\t.\tGT:DP\t0/1:102",
+            "X\t100\t.\tA\tG\t50\tPASS\t.\tGT:DP\t0/1:50",
+        ],
+    )
+
+    assert result.returncode == 0
+    assert result.stdout.splitlines() == [
+        "MEAN DEPTH FOR AUTOSOMES=101.00",
+        "MEAN DEPTH FOR X=50.00",
+        "MEAN DEPTH FOR Y=NA",
+        "THRESHOLD=NA",
+        "SEX=UNKNOWN",
+    ]
+
+
+@pytest.mark.parametrize("script", VCF2SEX_SCRIPTS)
 def test_vcf2sex_uses_dp_format_position(script, tmp_path):
     result = _run_vcf2sex(
         script,
