@@ -28,6 +28,10 @@ The Python driver is expected to require one CPU core only during short setup ph
 
 ### Parallelization
 
+:::note[Total CPU time]
+Some workflow steps can be split further, for example across FASTQ chunks or genomic intervals. This may shorten one job, but it does not necessarily reduce total CPU time. On a Slurm cluster with a fixed CPU allocation, **1 job with 24 threads** and **6 jobs with 4 threads each** use the same simultaneous CPU budget. CBIcall deliberately favors moderate per-job thread counts because the intended production use case is running thousands of jobs on Slurm. This matters most for WGS, where one job can run for days.
+:::
+
 <Tabs groupId="performance-benchmark">
 <TabItem value="wes" label="WES" default>
 
@@ -38,7 +42,7 @@ For example, on a 12-core workstation:
 - Running **3 tasks with 4 threads each** is typically preferable to
 - Running **1 task with all 12 threads**
 
-The benchmark below shows the shape of this scaling for **WES single-sample calling** on the 1000 Genomes WES sample **SRR1596639**. The paired FASTQ inputs were **1.9 GB** (`R1`) and **2.0 GB** (`R2`). Runs used an **HP Z2 G8 Tower Workstation** (`x86_64`) with an **Intel Xeon W-1350P @ 4.00 GHz**, **6 physical cores / 12 hardware threads**, and **31 GiB RAM**. The GATK/Picard memory setting was fixed at `MEM=8G` in `env.sh` for all thread counts.
+The benchmark below shows the shape of this scaling for **WES single-sample calling** on the 1000 Genomes sample **HG00103** using run accession **SRR1596639**. The paired FASTQ inputs were **1.9 GB** (`R1`) and **2.0 GB** (`R2`). Runs used an **HP Z2 G8 Tower Workstation** (`x86_64`) with an **Intel Xeon W-1350P @ 4.00 GHz**, **6 physical cores / 12 hardware threads**, and **31 GiB RAM**. The GATK/Picard memory setting was fixed at `MEM=8G` in `env.sh` for all thread counts.
 
 The biggest gain comes from moving from 2 to 4 threads; after 6 threads, the improvement is small.
 
