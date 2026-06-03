@@ -93,7 +93,7 @@ python3 ./download_cbicall_bundle.py \
   --print-manual-download
 ```
 
-Download every listed file into `/absolute/path/to/cbicall-data`, then let the script continue from those files:
+Download every listed file into `/absolute/path/to/cbicall-data`, then let the script continue from those files. **This step can take time because it assembles, verifies, and extracts the full resource bundle.** On a typical VM or workstation disk, expect roughly 20-50 minutes after all parts are present; faster disks may be shorter.
 
 ```bash
 python3 ./download_cbicall_bundle.py \
@@ -148,14 +148,14 @@ CBIcall checkout. Because the host resource directory was mounted as
 `/cbicall-data`, point the workflow configuration files to that container path:
 
 ```bash
-sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-4.6/env.sh
 sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-3.5/env.sh
 sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/config.yaml
 ```
 
-The native Nextflow and Cromwell configs are symlinks to this shared GATK 4.6
-backend config, so one edit updates Snakemake, native Nextflow, and Cromwell
-native workflows.
+The GATK 4.6 Bash `env.sh` is a symlink to the GATK 3.5 Bash `env.sh`,
+so one Bash edit is enough. The native Nextflow and Cromwell configs are
+symlinks to this shared GATK 4.6 backend config, so one config edit updates
+Snakemake, native Nextflow, and Cromwell workflows.
 
 Then confirm that CBIcall sees the mounted resources:
 

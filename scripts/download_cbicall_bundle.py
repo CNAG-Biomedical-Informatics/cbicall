@@ -334,6 +334,7 @@ def assemble_archive(outdir: Path, metadata: dict, force: bool = False) -> Path:
     tmp_archive = outdir / f"{source_name}.tmp"
 
     print(f"Assembling {source_name} from split parts...")
+    print("This can take several minutes for the full CBIcall resource bundle.")
     with tmp_archive.open("wb") as output:
         for part_name in archive_part_names(metadata):
             part = outdir / part_name
@@ -517,6 +518,7 @@ def extract_archive(outdir: Path, archive: Path, metadata: dict, force: bool = F
         return False
 
     print(f"Extracting {archive.name} into {outdir.resolve()}...")
+    print("This can take several minutes because the resource bundle is large.")
     with tarfile.open(archive, "r:gz") as tar:
         tar.extractall(outdir, members=_safe_members(tar, outdir))
     return True

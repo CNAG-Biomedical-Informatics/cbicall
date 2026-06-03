@@ -173,7 +173,7 @@ python3 ./download_cbicall_bundle.py \
   --print-manual-download
 ```
 
-Download every listed file into `$CBICALL_DATA`, then let the script continue from those files:
+Download every listed file into `$CBICALL_DATA`, then let the script continue from those files. **This step can take time because it assembles, verifies, and extracts the full resource bundle.** On a typical VM or workstation disk, expect roughly 20-50 minutes after all parts are present; faster disks may be shorter.
 
 ```bash
 python3 ./download_cbicall_bundle.py \

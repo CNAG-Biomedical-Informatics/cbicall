@@ -1,20 +1,16 @@
 ---
-title: Google Cloud with Docker
+title: Google Cloud
 ---
 
 This page is a practical recipe for running the CBIcall one-sample WES
-reproducibility check on a Google Cloud Compute Engine VM with Docker.
-
-Use this when you want evidence that the same CBIcall checkout, Docker image,
-parameters YAML, and selected resource resolve and run outside your local or
-institutional environment.
+reproducibility check on a Google Cloud Compute Engine VM from a fresh source
+checkout from GitHub.
 
 :::info[Scope]
 This is not a cloud-scale production benchmark. It runs the native bundled
-one-sample WES integration test and checks framework portability. Because that
-test uses a native CBIcall workflow, it requires the CBIcall resource bundle.
-For an nf-core provider first run, use the Docker installation guide or the
-Quickstart; the CBIcall bundle is not required for that path.
+one-sample WES integration test and checks framework portability outside the
+local or institutional environment. Because that test uses a native CBIcall
+workflow, it requires the CBIcall resource bundle.
 :::
 
 ## What This Checks
@@ -22,6 +18,7 @@ Quickstart; the CBIcall bundle is not required for that path.
 The recipe runs:
 
 ```bash
+# vm$
 bin/cbicall validate-resources
 bin/cbicall validate-parameters -p examples/input/param.yaml
 bin/cbicall test --wes-bash -t 1
@@ -56,16 +53,18 @@ References:
 
 - [Install the Google Cloud CLI](https://cloud.google.com/sdk/docs/install)
 - [Create and start a Compute Engine instance](https://cloud.google.com/compute/docs/instances/create-start-instance)
-- [Install Docker Engine on Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
 
 ## 1. Create a VM
+
+Commands marked `local$` run on your workstation, for example `mrueda@mrueda-ws1`. Commands marked `vm$` run after connecting to the Google Cloud VM, for example `mrueda@cbicall-cloud-test`. The prompt comments are only labels; the commands remain pasteable.
 
 Set your project, zone, and VM name:
 
 ```bash
+# local$
 export PROJECT_ID="your-google-cloud-project"
 export ZONE="europe-west1-b"
-export VM_NAME="cbicall-docker-test"
+export VM_NAME="cbicall-cloud-test"
 
 gcloud config set project "$PROJECT_ID"
 gcloud services enable compute.googleapis.com
@@ -75,6 +74,7 @@ Create an Ubuntu VM. The disk is intentionally larger than the example data
 because the CBIcall-provided bundle is the large part of the test.
 
 ```bash
+# local$
 gcloud compute instances create "$VM_NAME" \
   --zone "$ZONE" \
   --machine-type "e2-standard-4" \
@@ -87,6 +87,7 @@ gcloud compute instances create "$VM_NAME" \
 Connect to the VM:
 
 ```bash
+# local$
 gcloud compute ssh "$VM_NAME" --zone "$ZONE"
 ```
 
@@ -95,107 +96,317 @@ The VM and disk can generate charges while they exist. Delete the VM at the end
 of the recipe if you only need a reproducibility check.
 :::
 
-## 2. Install Docker on the VM
+## 2. Install and Run CBIcall from GitHub
 
-For a short-lived reproducibility VM, the Ubuntu package is sufficient:
+Install the system packages needed by the native Bash WES test. GATK 4.6 requires Java 17, and the bundled legacy `samtools-0.1.19` needs the ncurses compatibility libraries:
 
 ```bash
+# vm$
 sudo apt-get update
-sudo apt-get install -y docker.io git python3
-sudo systemctl enable --now docker
-sudo docker run --rm hello-world
+sudo apt-get install -y git python3 python3-pip openjdk-17-jdk libncurses5 libtinfo5
 ```
 
-For long-lived systems, use the current Docker Engine instructions linked above.
-
-## 3. Clone CBIcall and Pull the Image
+Clone CBIcall and record the checkout:
 
 ```bash
+# vm$
 git clone https://github.com/CNAG-Biomedical-Informatics/cbicall.git
 cd cbicall
-
-export CBICALL_IMAGE="manuelrueda/cbicall:latest"
-sudo docker pull "$CBICALL_IMAGE"
-```
-
-Record the checkout and image identity:
-
-```bash
 git rev-parse HEAD
-sudo docker image inspect "$CBICALL_IMAGE" --format '{{index .RepoDigests 0}}'
 ```
 
-Keep those two values with the run artifacts.
-
-## 4. Prepare the Native Resource Directory
-
-Create a host directory that will be mounted as `/cbicall-data` inside Docker:
+Install the Python dependencies for the source checkout. The `--upgrade` flag is important on Ubuntu images because the system `jsonschema` package can be too old for CBIcall resource-catalog validation:
 
 ```bash
+# vm$
+python3 -m pip install --user --upgrade -r requirements.txt
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Prepare the native resource directory:
+
+```bash
+# vm$
 export CBICALL_DATA="$HOME/cbicall-data"
 mkdir -p "$CBICALL_DATA"
 ```
 
-Define a small helper so every CBIcall command uses the same image, checkout,
-and resource directory:
+Download, assemble, verify, and extract the CBIcall-provided resource bundle:
 
 ```bash
-cbicall_docker() {
-  sudo docker run --rm \
-    --user "$(id -u):$(id -g)" \
-    -v "$PWD":/usr/share/cbicall \
-    -v "$CBICALL_DATA":/cbicall-data \
-    -w /usr/share/cbicall \
-    "$CBICALL_IMAGE" "$@"
-}
-```
-
-Download, assemble, verify, and extract the CBIcall-provided bundle:
-
-```bash
-cbicall_docker python3 scripts/download_cbicall_bundle.py \
-  --outdir /cbicall-data \
+# vm$
+python3 scripts/download_cbicall_bundle.py \
+  --outdir "$CBICALL_DATA" \
   --catalog resources/cbicall-resource-catalog.json
 ```
 
 If Google Drive throttles or stalls, print the manual download URLs:
 
 ```bash
-cbicall_docker python3 scripts/download_cbicall_bundle.py \
-  --outdir /cbicall-data \
+# vm$
+python3 scripts/download_cbicall_bundle.py \
+  --outdir "$CBICALL_DATA" \
   --catalog resources/cbicall-resource-catalog.json \
   --print-manual-download
 ```
 
-After copying the listed files into `$CBICALL_DATA`, finish setup with:
+After copying the listed files into `$CBICALL_DATA`, finish setup with the command below. **This step can take time because it assembles, verifies, and extracts the full resource bundle.** On an `e2-standard-4` VM with a balanced persistent disk, expect roughly 20-50 minutes after all parts are present; faster disks may be shorter.
 
 ```bash
-cbicall_docker python3 scripts/download_cbicall_bundle.py \
-  --outdir /cbicall-data \
+# vm$
+python3 scripts/download_cbicall_bundle.py \
+  --outdir "$CBICALL_DATA" \
   --catalog resources/cbicall-resource-catalog.json \
   --skip-download
 ```
 
-## 5. Point Native Workflows to `/cbicall-data`
+Expected output includes the long assembly and extraction steps:
 
-The Docker container sees the mounted resource directory as `/cbicall-data`.
-Update the local checkout before launching CBIcall:
+```text
+Resource key: cbicall-germline-resources-v1
+Assembling data.tar.gz from split parts...
+  adding data.tar.gz.part-00
+  adding data.tar.gz.part-01
+  adding data.tar.gz.part-02
+  adding data.tar.gz.part-03
+  adding data.tar.gz.part-04
+  adding data.tar.gz.part-05
+Verifying split archive parts with data.tar.gz.md5...
+Checksum OK.
+Renamed archive to cbicall-germline-resources-v1.tar.gz.
+Extracting cbicall-germline-resources-v1.tar.gz into /home/mrueda/cbicall-data...
+Wrote installation manifest: /home/mrueda/cbicall-data/cbicall-resource-installation.json
 
-```bash
-sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-4.6/env.sh
-sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-3.5/env.sh
-sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/config.yaml
+Resource setup complete.
+Set DATADIR to: /home/mrueda/cbicall-data
 ```
 
-The native Nextflow and Cromwell configs are symlinks to this shared GATK 4.6 backend config, so one edit updates Snakemake, native Nextflow, and Cromwell native workflows.
-
-## 6. Run the Reproducibility Check
+Point native workflows to the VM resource path:
 
 ```bash
-cbicall_docker bin/cbicall validate-resources
-cbicall_docker bin/cbicall validate-parameters -p examples/input/param.yaml
-cbicall_docker bin/cbicall test --wes-bash -t 1
+# vm$
+sed -i "s|^DATADIR=.*|DATADIR=${CBICALL_DATA}|" workflows/bash/gatk-3.5/env.sh
+sed -i "s|^datadir:.*|datadir: \"${CBICALL_DATA}\"|" workflows/snakemake/gatk-4.6/config.yaml
+```
+
+The GATK 4.6 Bash `env.sh` is a symlink to the GATK 3.5 Bash `env.sh`,
+so one Bash edit is enough. The native Nextflow and Cromwell configs are
+symlinks to this shared GATK 4.6 backend config, so one config edit updates
+Snakemake, native Nextflow, and Cromwell workflows.
+
+Run the checks and keep STDOUT as evidence:
+
+```bash
+# vm$
+mkdir -p cloud-evidence
+
+{
+  date -u
+  git rev-parse HEAD
+  bin/cbicall validate-resources
+  bin/cbicall validate-parameters -p examples/input/param.yaml
+  bin/cbicall test --wes-bash -t 1
+} 2>&1 | tee cloud-evidence/cbicall-google-cloud-wes-stdout.txt
 ```
 
 The final command should print the run directory, workflow log,
-`run-report.json`, launcher log, and the output VCF used for comparison.
+`run-report.json`, `run-report.html`, launcher log, and the output VCF hash used
+for comparison. The `tee` command keeps the same output in
+`cloud-evidence/cbicall-google-cloud-wes-stdout.txt`.
+
+
+## 3. Optional: Run One Public WES Sample
+
+The bundled integration test is the reproducibility check because it has a small
+known output contract. For reviewer evidence, it can be useful to also run one
+real public exome sample, for example a 1000 Genomes WES sample. CBIcall does
+not ship those FASTQs; download a public sample yourself from the data provider,
+or copy FASTQs that you already have on your workstation.
+
+:::note[Input naming]
+For native single-sample WES, put paired FASTQs in one sample directory. FASTQ
+names must contain matching `_R1_` and `_R2_` tokens, for example
+`SRR1596639_ex_S14_L001_R1_001.fastq.gz` and
+`SRR1596639_ex_S14_L001_R2_001.fastq.gz`. CBIcall writes the run directory under
+that sample directory.
+:::
+
+Create a sample directory on the VM:
+
+```bash
+# vm$
+cd ~/cbicall
+mkdir -p examples/input/1000g/HG00103/SRR1596639
+```
+
+If the FASTQs are already on your workstation, copy them to the VM. This
+example uses the 1000 Genomes sample `HG00103` run `SRR1596639` from a local
+checkout-adjacent directory:
+
+```bash
+# local$
+gcloud compute scp \
+  ../1000g/HG00103/SRR1596639/SRR1596639_ex_S14_L001_R1_001.fastq.gz \
+  ../1000g/HG00103/SRR1596639/SRR1596639_ex_S14_L001_R2_001.fastq.gz \
+  "${VM_NAME}:~/cbicall/examples/input/1000g/HG00103/SRR1596639/" \
+  --zone "$ZONE"
+```
+
+If your browser saved the FASTQs under `~/Downloads`, use those local paths
+instead. The important point is that the two files land in the same sample
+directory on the VM, preserving the `1000g/HG00103/SRR1596639` hierarchy.
+
+Alternatively, download the public FASTQs directly on the VM into the same
+directory using the URLs provided by the data source.
+
+Create a parameters YAML for the real-data run:
+
+```bash
+# vm$
+cat > cloud-wes-real.yaml <<YAML
+mode: single
+pipeline: wes
+workflow_backend: bash
+software_stack: gatk-4.6
+genome: b37
+resource: cbicall-germline-resources-v1
+input_dir: ${HOME}/cbicall/examples/input/1000g/HG00103/SRR1596639
+YAML
+```
+
+Validate the YAML contract first:
+
+```bash
+# vm$
+bin/cbicall validate-parameters -p cloud-wes-real.yaml
+```
+
+Run the real-data WES job in the background so it keeps running if the SSH
+connection drops. STDOUT and STDERR are written to the evidence file:
+
+```bash
+# vm$
+cd ~/cbicall
+mkdir -p cloud-evidence
+
+nohup bash -lc '
+date -u
+git rev-parse HEAD
+bin/cbicall validate-parameters -p cloud-wes-real.yaml
+bin/cbicall -p cloud-wes-real.yaml -t 4
+' > cloud-evidence/cbicall-google-cloud-public-wes-stdout.txt 2>&1 &
+```
+
+Follow the run without attaching the job to the terminal:
+
+```bash
+# vm$
+tail -f cloud-evidence/cbicall-google-cloud-public-wes-stdout.txt
+```
+
+Check whether CBIcall is still running:
+
+```bash
+# vm$
+ps -ef | grep '[c]bicall'
+```
+
+This real-data run is not compared against the bundled integration-test fixture.
+It should be reported as execution evidence: CBIcall validated the YAML contract,
+resolved the workflow and resource bundle, completed the WES pipeline, and wrote
+`run-report.json`, `run-report.html`, logs, and VCF fingerprints for later audit
+or `compare-runs` checks.
+
+### Google Drive Quota Recovery
+
+If automatic download stops with a Google Drive message such as `Too many users
+have viewed or downloaded this file recently`, keep the files that already
+downloaded and fetch only the missing shard manually. The downloader skips
+existing non-empty files.
+
+Print the manual URLs on the VM:
+
+```bash
+# vm$
+python3 scripts/download_cbicall_bundle.py \
+  --outdir "$CBICALL_DATA" \
+  --catalog resources/cbicall-resource-catalog.json \
+  --print-manual-download
+```
+
+Download the missing file or files from a browser on your workstation. They
+will usually land in `~/Downloads`. Then copy only the missing parts to the VM
+resource directory. For example, if `data.tar.gz.part-04` and
+`data.tar.gz.part-05` were throttled:
+
+```bash
+# local$
+gcloud compute scp \
+  ~/Downloads/data.tar.gz.part-04 \
+  ~/Downloads/data.tar.gz.part-05 \
+  "${VM_NAME}:~/cbicall-data/" \
+  --zone "$ZONE"
+```
+
+If only one part is missing, keep only that file in the `gcloud compute scp`
+command.
+
+Resume assembly and validation on the VM without using Google Drive again. **This step can take time because it assembles, verifies, and extracts the full resource bundle.** On an `e2-standard-4` VM with a balanced persistent disk, expect roughly 20-50 minutes after all parts are present; faster disks may be shorter.
+
+```bash
+# vm$
+python3 scripts/download_cbicall_bundle.py \
+  --outdir "$CBICALL_DATA" \
+  --catalog resources/cbicall-resource-catalog.json \
+  --skip-download
+```
+
+## 4. Keep the Evidence
+
+If you did not already use the captured check block above, capture STDOUT while
+running the checks. This keeps the exact command output, including the normalized
+VCF hash and the paths to the generated run artifacts:
+
+```bash
+# vm$
+mkdir -p cloud-evidence
+
+{
+  date -u
+  git rev-parse HEAD
+  bin/cbicall validate-resources
+  bin/cbicall validate-parameters -p examples/input/param.yaml
+  bin/cbicall test --wes-bash -t 1
+} 2>&1 | tee cloud-evidence/cbicall-google-cloud-wes-stdout.txt
+```
+
+The `test --wes-bash` output prints the run directory, workflow log,
+`run-report.json`, `run-report.html`, launcher log, and contract fixture. Copy
+the printed run directory into the evidence folder and archive it with STDOUT:
+
+```bash
+# vm$
+export RUN_DIR="/path/printed/by/test --wes-bash"
+cp -a "$RUN_DIR" cloud-evidence/
+tar -czf cbicall-google-cloud-wes-evidence.tar.gz cloud-evidence
+```
+
+
+Copy the evidence archive back to your local machine from a local terminal:
+
+```bash
+# local$
+gcloud compute scp \
+  "${VM_NAME}:~/cbicall/cbicall-google-cloud-wes-evidence.tar.gz" \
+  . \
+  --zone "$ZONE"
+```
+
+## 5. Clean Up
+
+From your local machine:
+
+```bash
+# local$
+gcloud compute instances delete "$VM_NAME" --zone "$ZONE"
+```

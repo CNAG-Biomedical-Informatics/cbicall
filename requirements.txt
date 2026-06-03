@@ -4,4 +4,4 @@ pulp==2.6.0
 snakemake
 pytest
 pytest-cov
-jsonschema
+jsonschema>=4.18

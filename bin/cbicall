@@ -11,6 +11,21 @@
 import os
 import sys
 
+
+def _line_buffer_standard_streams():
+    """Keep redirected CBIcall status logs readable during long runs."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(line_buffering=True, write_through=True)
+        except TypeError:
+            reconfigure(line_buffering=True)
+
+
+_line_buffer_standard_streams()
+
 # Resolve the real path of this script (follows symlinks)
 BIN_PATH = os.path.realpath(__file__)
 BIN_DIR = os.path.dirname(BIN_PATH)

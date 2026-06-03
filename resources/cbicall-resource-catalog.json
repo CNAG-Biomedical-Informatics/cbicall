@@ -30,7 +30,7 @@
       "remote_identifier": {
         "filename": "cbicall-resource-id.json",
         "google_drive_file_id": "1Yi-LXJ2bFrpogY-Nc5Ie5iv6NrvMjeho",
-        "sha256": "113cc0d1ac3098139a22faddfa871cc1f045a79fa1a2ded4f7cae1990c69fca0",
+        "sha256": "2ca48965a3b82a411f730769ddf020b671f08cf2b0c14ce58ec1e1d7ffce377e",
         "expected": {
           "resource_key": "cbicall-germline-resources-v1"
         }

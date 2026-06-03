@@ -228,7 +228,7 @@ CBIcall is designed for multi-core Linux desktop, workstation, server, and HPC e
 | CPU | At least 4 cores |
 | RAM | At least 8 GB for single-sample runs; more for cohort joint genotyping |
 | Disk | At least 250 GB, depending on input size and whether BAM cleanup is enabled |
-| Source installation | Python 3.8+, Java 8, plus Snakemake, Nextflow, or Cromwell when using those workflow backends |
+| Source installation | Python 3.8+, Java 17 for current GATK 4.6 workflows, ncurses compatibility libraries for bundled legacy tools, plus Snakemake, Nextflow, or Cromwell when using those workflow backends |
 
 ## Next Steps
 

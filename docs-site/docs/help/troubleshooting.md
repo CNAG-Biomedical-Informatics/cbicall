@@ -44,6 +44,69 @@ For containers, make sure the host data directory is bind-mounted at the same pa
 </details>
 
 <details>
+<summary>GATK 4.6 fails with class file version 61.0</summary>
+
+**Symptom**
+
+```text
+java.lang.UnsupportedClassVersionError: org/broadinstitute/hellbender/Main has been compiled by a more recent version of the Java Runtime (class file version 61.0), this version of the Java Runtime only recognizes class file versions up to 52.0
+```
+
+**Likely cause**
+
+The run is using Java 8. GATK 4.6 requires Java 17.
+
+**Fix**
+
+Install Java 17 and make sure it is the `java` found on `PATH`:
+
+```bash
+sudo apt-get install -y openjdk-17-jdk
+java -version
+which java
+```
+
+If Java 8 remains the default on Ubuntu, select Java 17:
+
+```bash
+sudo update-alternatives --config java
+java -version
+```
+
+</details>
+
+<details>
+<summary>samtools cannot load libncurses.so.5</summary>
+
+**Symptom**
+
+```text
+samtools: error while loading shared libraries: libncurses.so.5: cannot open shared object file: No such file or directory
+```
+
+**Likely cause**
+
+The bundled legacy `samtools-0.1.19` binary links against the older ncurses 5 shared library, which is not installed by default on fresh Ubuntu images.
+
+**Fix**
+
+Install the compatibility libraries:
+
+```bash
+sudo apt-get install -y libncurses5 libtinfo5
+```
+
+If the packages are not found, enable the Ubuntu `universe` repository and retry:
+
+```bash
+sudo add-apt-repository universe
+sudo apt-get update
+sudo apt-get install -y libncurses5 libtinfo5
+```
+
+</details>
+
+<details>
 <summary>Relative input paths resolve somewhere unexpected</summary>
 
 **Symptom**

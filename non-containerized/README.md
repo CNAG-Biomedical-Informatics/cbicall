@@ -20,7 +20,7 @@ git pull
 Install dependencies for Python 3:
 
 ```
-pip3 install -r requirements.txt
+python3 -m pip install --upgrade -r requirements.txt
 ```
 
 > **Note:** If you are installing `cbicall` in an HPC environment for shared use, we recommend installing the required Python 3 modules in a central location. This allows users to simply do:
@@ -92,7 +92,7 @@ python3 $path_to_cbicall/scripts/download_cbicall_bundle.py \
   --print-manual-download
 ```
 
-Download every listed file into `/absolute/path/to/cbicall-data`, then let the script continue from those files:
+Download every listed file into `/absolute/path/to/cbicall-data`, then let the script continue from those files. **This step can take time because it assembles, verifies, and extracts the full resource bundle.** On a typical VM or workstation disk, expect roughly 20-50 minutes after all parts are present; faster disks may be shorter.
 
 ```bash
 python3 $path_to_cbicall/scripts/download_cbicall_bundle.py \
@@ -118,19 +118,18 @@ CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.
 ### Point Native Workflows to your resource directory
 
 Native CBIcall workflows read resource paths from Bash `env.sh` files and from
-Snakemake/Nextflow `config.yaml` files. In a non-containerized installation,
+Snakemake/Nextflow/Cromwell `config.yaml` files. In a non-containerized installation,
 point those files
 to the host directory where you installed the CBIcall-provided resource bundle:
 
 ```bash
 export CBICALL_DATA="/absolute/path/to/cbicall-data"
 
-sed -i "s|^DATADIR=.*|DATADIR=${CBICALL_DATA}|" workflows/bash/gatk-4.6/env.sh
 sed -i "s|^DATADIR=.*|DATADIR=${CBICALL_DATA}|" workflows/bash/gatk-3.5/env.sh
 sed -i "s|^datadir:.*|datadir: \"${CBICALL_DATA}\"|" workflows/snakemake/gatk-4.6/config.yaml
 ```
 
-The native Nextflow config is a symlink to this shared GATK 4.6 backend config, so one edit updates both Snakemake and Nextflow native workflows.
+The GATK 4.6 Bash `env.sh` is a symlink to the GATK 3.5 Bash `env.sh`, so one Bash edit is enough. The native Nextflow and Cromwell configs are symlinks to this shared GATK 4.6 backend config, so one config edit updates Snakemake, native Nextflow, and Cromwell workflows.
 
 Confirm that CBIcall sees the configured resources:
 
@@ -139,11 +138,13 @@ bin/cbicall validate-resources
 bin/cbicall validate-parameters -p examples/input/param.yaml
 ```
 
-Ok, finally we are going to install `Java 8` in case you don't have it already:
+Install Java 17 and the compatibility libraries required by the bundled native tools:
 
+```bash
+sudo apt install openjdk-17-jdk libncurses5 libtinfo5
 ```
-sudo apt install openjdk-8-jdk # In some systems you might need Java 17 -> openjdk-17-jre
-```
+
+GATK 4.6 requires Java 17. The bundled legacy `samtools-0.1.19` links against `libncurses.so.5`.
 
 ## Performing integration tests
 
@@ -166,7 +167,7 @@ bin/cbicall test --mit-bash -t 1
 - OS/ARCH supported: **linux/amd64** and **linux/arm64**.
 - Ideally a Debian-based distribution (Ubuntu or Mint), but any other (e.g., CentOS, OpenSUSE) should do as well (untested).
 - Python >= 3.8
-- Java 8
+- Java 17 for current GATK 4.6 workflows
 - 16GB of RAM
 - \>= 1 core (ideally i7 or Xeon).
 - At least 100GB HDD.
