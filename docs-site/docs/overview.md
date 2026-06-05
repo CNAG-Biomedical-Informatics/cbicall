@@ -7,9 +7,23 @@
 **CBIcall** (**C**NAG **B**iomedical **I**nformatics framework for variant **call**ing) is a configuration-driven framework for reproducible variant calling in large sequencing cohorts.
 
 :::tip[In one sentence]
-CBIcall validates a parameters YAML file, resolves an approved workflow backend, creates a deterministic run directory, and records structured provenance for audit and run comparison.
+CBIcall validates a parameters YAML file against approved workflow and resource contracts, creates a deterministic run directory, and records structured reports for audit and run comparison.
 :::
 
+
+## Execution Contract
+
+CBIcall separates routine user input from framework-managed implementation and
+resource definitions.
+
+| Contract layer | Purpose |
+| --- | --- |
+| Parameters YAML | User analysis intent: inputs, pipeline, mode, genome, backend, and runtime options. |
+| Workflow registry | Approved workflow implementations and backend-specific entrypoints. |
+| Resource catalog | External references, tool/resource bundles, compatibility rules, and resource identity. |
+
+This separation is the basis for validation, provenance capture, and repeatable
+run comparison across computing environments.
 
 ## What CBIcall Does
 
@@ -19,7 +33,8 @@ GATK, MToolBox, Snakemake, Nextflow, Cromwell, and selected nf-core pipelines.
 
 - validates the **parameters YAML** and compatibility contract before launch
 - resolves **Bash**, **Snakemake**, **Nextflow**, or **Cromwell** workflow backends
-- records **logs, provenance, run reports, output fingerprints, and run comparisons** when available
+- checks the selected workflow against the **resource catalog** when resources are required
+- records **logs, run reports, workflow fingerprints, resource identity, output inventories, normalized VCF hashes, and run comparisons** when available
 
 ## Pipelines and Backends
 
@@ -44,9 +59,9 @@ Use [Included Pipelines](pipelines/overview) for the shipped analyses and
 
 | Use case | Method |
 | --- | --- |
-| Local workstation or server | [Docker](installation/docker) |
-| HPC cluster | [Apptainer / Singularity](installation/apptainer) |
-| Cloud reproducibility check | [Google Cloud](installation/google-cloud-docker) |
+| Local workstation or server | [Docker](installation/docker) or [From Source](installation/non-containerized) |
+| HPC cluster | [Apptainer / Singularity](installation/apptainer) or site modules |
+| Cloud reproducibility check | [Google Cloud source install](installation/google-cloud-docker) |
 | Development or debugging | [From Source](installation/non-containerized) |
 
 ## Where to Go Next

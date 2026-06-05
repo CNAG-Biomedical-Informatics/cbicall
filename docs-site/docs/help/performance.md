@@ -5,9 +5,7 @@ import TabItem from '@theme/TabItem';
 
 ## Runtime Behavior
 
-CBIcall adds negligible orchestration overhead. The Python wrapper typically remains below **2% of a 16 GB system**, does not process reads or variants, and does not create Python worker threads. The `-t/--threads` value is passed to the selected workflow backend.
-
-Most memory and CPU usage comes from external tools:
+The `-t/--threads` value is passed to the selected workflow backend. Most memory and CPU usage comes from external tools:
 
 - **BWA-MEM**
   Memory usage increases with thread count and reference size.
@@ -23,7 +21,7 @@ The value is controlled by `MEM_GENOTYPE` in the GATK 4.6 [environment file](htt
 :::
 
 :::note[Python driver overhead]
-The Python driver is expected to require one CPU core only during short setup phases. For long-running variant-calling jobs, scheduler CPU and memory requests should be sized for the selected external tools and the requested workflow threads, not for the CBIcall Python process itself.
+CBIcall adds negligible orchestration overhead. The Python wrapper typically remains below **2% of a 16 GB system**, does not process reads or variants, and does not create Python worker threads. It is expected to require one CPU core only during short setup phases. For long-running variant-calling jobs, scheduler CPU and memory requests should be sized for the selected external tools and workflow threads, not for the CBIcall Python process itself.
 :::
 
 ### Parallelization

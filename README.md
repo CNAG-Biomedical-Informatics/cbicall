@@ -20,8 +20,8 @@
 
 **CBIcall** (**C**NAG **B**iomedical **I**nformatics framework for variant **call**ing) is a
 **configuration-driven framework** for reproducible variant calling in large sequencing cohorts.
-It validates analysis intent, resolves approved workflow backends, and records **structured
-provenance** for auditable production runs.
+It validates analysis intent, resolves approved workflow backends and resource definitions,
+and records **structured run reports** for auditable production runs and run-to-run comparison.
 
 **📘 Documentation:** <a href="https://cnag-biomedical-informatics.github.io/cbicall" target="_blank">https://cnag-biomedical-informatics.github.io/cbicall</a>
 
@@ -43,10 +43,18 @@ provenance** for auditable production runs.
 
 CBIcall orchestrates germline variant calling workflows for Illumina sequencing data.
 It does **not** implement variant calling algorithms itself. Instead, it validates
-parameters, resolves workflows from a versioned registry, launches native CBIcall
-workflows through **Bash, Snakemake, Nextflow, or Cromwell** backends, and captures logs,
-run reports, output fingerprints, and structured metadata for traceability. Selected
-external nf-core workflows can also run through the same validation and provenance layer.
+parameters, resolves workflows from a versioned registry, checks resource compatibility,
+launches native CBIcall workflows through **Bash, Snakemake, Nextflow, or Cromwell**
+backends, and captures audit artifacts for traceability. Selected external nf-core
+workflows can also run through the same validation and provenance layer.
+
+CBIcall uses a three-part execution contract:
+
+| Contract layer | Purpose |
+| --- | --- |
+| Parameters YAML | User analysis intent: inputs, pipeline, mode, genome, backend, and runtime options. |
+| Workflow registry | Approved workflow implementations and backend-specific entrypoints. |
+| Resource catalog | External references, tool/resource bundles, compatibility rules, and resource identity. |
 
 Key points:
 
@@ -54,7 +62,8 @@ Key points:
 - Native CBIcall workflow support through Bash, Snakemake, Nextflow, and Cromwell backends
 - Support for WES, WGS, and mtDNA analysis modes
 - Registry-backed support for selected external nf-core/Nextflow workflows
-- Structured run logging and traceable runtime metadata
+- Structured audit artifacts: `log.json`, `run-report.json`, optional `run-report.html`, workflow fingerprints, resource identity, output inventories, and normalized VCF hashes
+- Programmatic run comparison with `cbicall compare-runs`
 - Optional partial workflow starts for supported backends
 
 Workflow sources:
@@ -74,10 +83,11 @@ Runnable examples and sample inputs are available under `examples/`.
 
 The full technical reference lives in the documentation site and repository docs:
 
-- General usage and parameter reference: [docs/usage/usage.md](docs/usage/usage.md)
-- Quick start: [docs/usage/quickstart.md](docs/usage/quickstart.md)
-- End-to-end examples: [docs/usage/end-to-end-example-wes.md](docs/usage/end-to-end-example-wes.md), [docs/usage/end-to-end-example-mit.md](docs/usage/end-to-end-example-mit.md)
-- Technical details: [docs/technical-details/architecture.md](docs/technical-details/architecture.md)
+- General usage and parameter reference: [docs-site/docs/usage/usage.md](docs-site/docs/usage/usage.md)
+- Quick start: [docs-site/docs/usage/quickstart.md](docs-site/docs/usage/quickstart.md)
+- End-to-end examples: [WES/WGS](docs-site/docs/usage/end-to-end-example-wes.md), [mtDNA](docs-site/docs/usage/end-to-end-example-mit.md)
+- Run comparison and audit reports: [docs-site/docs/usage/run-comparison.md](docs-site/docs/usage/run-comparison.md)
+- Technical details: [docs-site/docs/technical-details/architecture.md](docs-site/docs/technical-details/architecture.md)
 
 # Citation
 

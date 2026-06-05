@@ -6,12 +6,19 @@ This page is a practical recipe for running the CBIcall one-sample WES
 reproducibility check on a Google Cloud Compute Engine VM from a fresh source
 checkout from GitHub.
 
-:::info[Scope]
-This is not a cloud-scale production benchmark. It runs the native bundled
-one-sample WES integration test and checks framework portability outside the
-local or institutional environment. Because that test uses a native CBIcall
-workflow, it requires the CBIcall resource bundle.
+:::tip[Outcome]
+Use this recipe to create a small, auditable cloud run from a fresh VM and a
+fresh GitHub checkout. It installs the CBIcall resource bundle, runs the bundled
+WES integration test, optionally runs one public 1000 Genomes WES sample, and
+archives STDOUT, run reports, fingerprints, and run directories as evidence.
 :::
+
+## Flow
+
+```text
+Create VM -> install CBIcall -> install cbicall-data -> validate -> run WES test
+          -> optionally run one public 1000G WES sample -> archive evidence -> delete VM
+```
 
 ## What This Checks
 
@@ -181,6 +188,76 @@ Resource setup complete.
 Set DATADIR to: /home/mrueda/cbicall-data
 ```
 
+### Google Drive Quota Recovery
+
+If automatic download stops with a Google Drive message such as `Too many users
+have viewed or downloaded this file recently`, keep the files that already
+downloaded and fetch only the missing shard manually. The downloader skips
+existing non-empty files.
+
+Print the manual URLs on the VM:
+
+```bash
+# vm$
+python3 scripts/download_cbicall_bundle.py \
+  --outdir "$CBICALL_DATA" \
+  --catalog resources/cbicall-resource-catalog.json \
+  --print-manual-download
+```
+
+Download the missing file or files from a browser on your workstation. They
+will usually land in `~/Downloads`. Then copy only the missing parts to the VM
+resource directory. For example, if `data.tar.gz.part-04` and
+`data.tar.gz.part-05` were throttled:
+
+```bash
+# local$
+gcloud compute scp \
+  ~/Downloads/data.tar.gz.part-04 \
+  ~/Downloads/data.tar.gz.part-05 \
+  "${VM_NAME}:~/cbicall-data/" \
+  --zone "$ZONE"
+```
+
+If only one part is missing, keep only that file in the `gcloud compute scp`
+command.
+
+Resume assembly and validation on the VM without using Google Drive again. **This step can take time because it assembles, verifies, and extracts the full resource bundle.** On an `e2-standard-4` VM with a balanced persistent disk, expect roughly 20-50 minutes after all parts are present; faster disks may be shorter.
+
+```bash
+# vm$
+python3 scripts/download_cbicall_bundle.py \
+  --outdir "$CBICALL_DATA" \
+  --catalog resources/cbicall-resource-catalog.json \
+  --skip-download
+```
+
+### Optional: Free Disk Space After Resource Setup
+
+After checksum verification and extraction have completed, the extracted
+`Databases/` and `NGSutils/` directories are the files CBIcall needs at runtime.
+If disk space is tight on the VM, you can remove the downloaded split parts and
+the assembled compressed archive:
+
+```bash
+# vm$
+du -sh "$CBICALL_DATA"/data.tar.gz.part-* \
+  "$CBICALL_DATA"/cbicall-germline-resources-v1.tar.gz \
+  "$CBICALL_DATA"/Databases \
+  "$CBICALL_DATA"/NGSutils
+
+rm -f "$CBICALL_DATA"/data.tar.gz.part-* \
+  "$CBICALL_DATA"/data.tar.gz \
+  "$CBICALL_DATA"/cbicall-germline-resources-v1.tar.gz
+```
+
+Keep `Databases/`, `NGSutils/`, `cbicall-resource-id.json`,
+`cbicall-resource-installation.json`, and `data.tar.gz.md5`.
+
+For future runs, the downloader can remove split parts automatically after
+checksum verification with `--remove-parts`, but it intentionally keeps the
+assembled archive unless you delete it yourself.
+
 Point native workflows to the VM resource path:
 
 ```bash
@@ -270,9 +347,13 @@ workflow_backend: bash
 software_stack: gatk-4.6
 genome: b37
 resource: cbicall-germline-resources-v1
+cleanup_bam: true
 input_dir: ${HOME}/cbicall/examples/input/1000g/HG00103/SRR1596639
 YAML
 ```
+
+`cleanup_bam: true` deletes intermediate BAM/BAI files after a successful
+single-sample WES run, which helps avoid filling the VM disk.
 
 Validate the YAML contract first:
 
@@ -317,49 +398,6 @@ resolved the workflow and resource bundle, completed the WES pipeline, and wrote
 `run-report.json`, `run-report.html`, logs, and VCF fingerprints for later audit
 or `compare-runs` checks.
 
-### Google Drive Quota Recovery
-
-If automatic download stops with a Google Drive message such as `Too many users
-have viewed or downloaded this file recently`, keep the files that already
-downloaded and fetch only the missing shard manually. The downloader skips
-existing non-empty files.
-
-Print the manual URLs on the VM:
-
-```bash
-# vm$
-python3 scripts/download_cbicall_bundle.py \
-  --outdir "$CBICALL_DATA" \
-  --catalog resources/cbicall-resource-catalog.json \
-  --print-manual-download
-```
-
-Download the missing file or files from a browser on your workstation. They
-will usually land in `~/Downloads`. Then copy only the missing parts to the VM
-resource directory. For example, if `data.tar.gz.part-04` and
-`data.tar.gz.part-05` were throttled:
-
-```bash
-# local$
-gcloud compute scp \
-  ~/Downloads/data.tar.gz.part-04 \
-  ~/Downloads/data.tar.gz.part-05 \
-  "${VM_NAME}:~/cbicall-data/" \
-  --zone "$ZONE"
-```
-
-If only one part is missing, keep only that file in the `gcloud compute scp`
-command.
-
-Resume assembly and validation on the VM without using Google Drive again. **This step can take time because it assembles, verifies, and extracts the full resource bundle.** On an `e2-standard-4` VM with a balanced persistent disk, expect roughly 20-50 minutes after all parts are present; faster disks may be shorter.
-
-```bash
-# vm$
-python3 scripts/download_cbicall_bundle.py \
-  --outdir "$CBICALL_DATA" \
-  --catalog resources/cbicall-resource-catalog.json \
-  --skip-download
-```
 
 ## 4. Keep the Evidence
 
@@ -381,15 +419,24 @@ mkdir -p cloud-evidence
 ```
 
 The `test --wes-bash` output prints the run directory, workflow log,
-`run-report.json`, `run-report.html`, launcher log, and contract fixture. Copy
-the printed run directory into the evidence folder and archive it with STDOUT:
+`run-report.json`, `run-report.html`, launcher log, and contract fixture. Archive
+STDOUT plus the CBIcall run directories created under `examples/input`:
 
 ```bash
 # vm$
-export RUN_DIR="/path/printed/by/test --wes-bash"
-cp -a "$RUN_DIR" cloud-evidence/
-tar -czf cbicall-google-cloud-wes-evidence.tar.gz cloud-evidence
+{
+  printf '%s\n' cloud-evidence examples/input/param.yaml
+  test -f cloud-wes-real.yaml && printf '%s\n' cloud-wes-real.yaml
+  find examples/input -type d -name 'cbicall_*' -prune -print
+} | sort -u > cloud-evidence/cbicall-evidence-files.txt
+
+tar -czf cbicall-google-cloud-wes-evidence.tar.gz \
+  --files-from cloud-evidence/cbicall-evidence-files.txt
 ```
+
+The `find` command captures run directories such as
+`examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_*` and, if you ran the
+public WES sample, `examples/input/1000g/HG00103/SRR1596639/cbicall_*`.
 
 
 Copy the evidence archive back to your local machine from a local terminal:
@@ -403,6 +450,11 @@ gcloud compute scp \
 ```
 
 ## 5. Clean Up
+
+Deleting the VM removes the instance and its boot disk contents, including the
+CBIcall checkout, downloaded resources, FASTQs, run directories, and evidence
+files. Copy any evidence archive you want to keep back to your local machine
+before running this command.
 
 From your local machine:
 
