@@ -75,10 +75,19 @@ Typical native usage:
 - Summary statistics and QC metrics are collected under `03_stats/`.
 - Log files for workflow steps are stored under `logs/`.
 
-For nf-core workflows, native nf-core outputs remain under the pipeline output
-directory, while CBIcall adds the same audit files at the run-directory root.
+For external nf-core workflows, upstream nf-core outputs remain under the pipeline
+output directory, while CBIcall adds audit files at the run-directory root.
 
 ---
+
+## Native and external workflows
+
+CBIcall uses **native** to describe the output contract, not the workflow
+language. A workflow is CBIcall-native when it writes the expected CBIcall run
+layout inside the generated `cbicall_*` directory. A workflow is external when
+CBIcall launches and audits it but the workflow keeps its upstream output
+layout. External workflows can still participate in run comparison when the
+workflow registry declares canonical final outputs.
 
 ## Resolution model
 
@@ -137,8 +146,9 @@ The workflow backend is selected in the YAML:
 - `workflow_backend: cromwell`
 
 ::::tip[Backend choice]
-Bash workflows are direct and transparent. Snakemake, native Nextflow, and
-Cromwell workflows provide backend-managed orchestration for bundled CBIcall workflows.
+Bash workflows are direct and transparent. Snakemake, Nextflow, and Cromwell
+can provide backend-managed orchestration for CBIcall-native workflows when
+those workflows produce the CBIcall output contract.
 External nf-core workflows are also launched through the Nextflow backend, but
 their test data, containers, and references are managed by nf-core/Nextflow
 rather than by the CBIcall resource bundle.

@@ -2,8 +2,9 @@
 
 CBIcall separates **what analysis is run** from **how it is executed**.
 [Included Pipelines](../pipelines/overview) describes the shipped WES, WGS, and
-mtDNA analyses. This page describes the native execution backends maintained in
-the CBIcall repository.
+mtDNA analyses. This page describes backends used by CBIcall-native workflows.
+A workflow is native when it produces the CBIcall output contract, regardless of
+whether it is written in Bash, Snakemake, Nextflow, or WDL/Cromwell.
 
 The workflow backend controls how the selected pipeline is launched.
 
@@ -46,8 +47,8 @@ Use `CROMWELL_JAR=/path/to/cromwell.jar` or put a `cromwell` launcher on
 syntax checks.
 
 CBIcall can also launch registered external nf-core workflows through Nextflow.
-Those workflows are documented separately because they keep their native output
-layout and runtime assumptions. See [nf-core](nf-core).
+Those workflows are documented separately because they keep their upstream
+output layout and runtime assumptions. See [nf-core](nf-core).
 
 :::info[Backend-native validation]
 CBIcall validates the parameters YAML against the workflow registry and resource

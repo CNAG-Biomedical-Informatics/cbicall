@@ -3,13 +3,13 @@
 CBIcall can launch registered [nf-core](https://nf-co.re/) pipelines through
 [Nextflow](https://www.nextflow.io/docs/latest/). CBIcall validates the YAML,
 pins the registered nf-core release, writes the Nextflow params/config files,
-and records the run metadata. The nf-core pipeline keeps its own native output
+and records the run metadata. The nf-core pipeline keeps its own upstream output
 layout and runtime behavior.
 
 In CBIcall terms, nf-core is a **workflow provider** and Nextflow is the
 **workflow backend**. Registered nf-core entries are launched through the
 Nextflow backend, but they are not one of the shipped CBIcall WES/WGS/mtDNA
-native CBIcall implementations. Use this page when testing registered nf-core
+CBIcall-native implementations. Use this page when testing registered nf-core
 examples on a workstation or on a cluster.
 
 :::note[Run directory location]

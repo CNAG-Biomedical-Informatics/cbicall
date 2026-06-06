@@ -1,89 +1,112 @@
 # Adding a Pipeline
 
-CBIcall is built so most new native workflows can be added with two things:
+Start by deciding whether the workflow will be **CBIcall-native** or
+**external**. This is the most important design choice.
 
-1. Workflow script(s)
-2. A workflow registry entry in `workflows/registry/cbicall-workflow-registry.yaml`, the file
-   that maps YAML workflow choices to concrete implementations
-
-:::tip[Start with the registry]
-If the change adds a new implementation for an existing native pipeline/mode,
-start with workflow scripts and the registry. New native pipeline names still
-need a small validation update in `src/cbicall/config.py`.
-:::
-
-## What You Are Adding
-
-Before editing files, define the shape of the workflow.
-
-| Decision | Options | Why it matters |
+| Integration level | Meaning | What CBIcall can audit |
 | --- | --- | --- |
-| Backend | `bash`, `snakemake`, `nextflow`, `cromwell` | Determines where the entrypoint lives and how CBIcall launches it. |
-| Software stack | `gatk-3.5`, `gatk-4.6`, `nf-core` | Determines the workflow subdirectory, required helper files, or external workflow source. |
-| Pipeline name | e.g. `mypipe` | Becomes the value users set as `pipeline: mypipe`. |
-| Mode | `single`, `cohort`, or both | Determines which entrypoint filenames are needed. |
-| Inputs | `input_dir`, `sample_map`, or both | Determines how users configure the run. |
+| **CBIcall-native** | The workflow writes the expected CBIcall run layout inside the generated `cbicall_*` directory. | Full run report, output inventory, CBIcall logs, final-output fingerprints, and `compare-runs`. |
+| **External** | CBIcall launches and audits the workflow, but the workflow keeps its upstream output layout. | Launch contract, parameters, resources, backend logs, output inventory, and declared `canonical_outputs` when configured. |
 
-For example, a Bash single-sample pipeline named `mypipe` for GATK 4.6 would use:
+In short: **native means CBIcall output contract**, not workflow language. A
+Snakemake, Nextflow, or Cromwell workflow can be native if it writes or promotes
+outputs into the CBIcall layout. An nf-core workflow is external because it keeps
+the nf-core output layout. nf-core is the first external provider supported by
+CBIcall, but the same registry model can be used for other workflow providers
+that expose a stable source, version, launch command, and final-output patterns.
 
-```text
-workflows/bash/gatk-4.6/mypipe_single.sh
-```
+## Recommended Path
 
-and users would select it with:
+For a new CBIcall-native workflow, usually do this:
+
+1. Add the workflow entrypoint under `workflows/<backend>/<software_stack>/`.
+2. Make the workflow write the CBIcall output layout: `01_bam/`, `02_varcall/`,
+   `03_stats/`, `logs/`, and any expected final files.
+3. Register it in `workflows/registry/cbicall-workflow-registry.yaml`.
+4. Add or update resource-catalog compatibility if it needs a resource bundle.
+5. Run `bin/cbicall validate-registry` and a small test run.
+
+For an external workflow, usually do this:
+
+1. Register the upstream workflow source and pinned release.
+2. Decide which runtime parameters CBIcall should pass through.
+3. Add `canonical_outputs` for final deliverables that should be fingerprinted.
+4. Add a lightweight resource entry if the upstream workflow manages references
+   and containers itself.
+5. Run a smoke test and inspect `run-report.json`.
+
+## What You Need To Define
+
+| Decision | Examples | Why it matters |
+| --- | --- | --- |
+| Integration level | native, external | Determines whether the workflow must follow the CBIcall output contract. |
+| Backend | `bash`, `snakemake`, `nextflow`, `cromwell` | Determines how CBIcall launches the workflow. |
+| Provider | `cbicall`, `nf-core` | Identifies whether the workflow is maintained by CBIcall or an external ecosystem. |
+| Software stack | `gatk-3.5`, `gatk-4.6`, `nf-core` | Selects implementation files or an external workflow source. |
+| Pipeline and mode | `wes`/`single`, `wgs`/`cohort` | Defines the user-facing YAML values and registry path. |
+| Inputs | `input_dir`, `sample_map`, backend parameters | Defines how users provide samples and workflow-specific options. |
+
+Example native YAML:
 
 ```yaml
-pipeline: mypipe
 mode: single
+pipeline: wes
+workflow_provider: cbicall
 workflow_backend: bash
 software_stack: gatk-4.6
+genome: b37
+input_dir: SAMPLE01
+```
+
+Example external nf-core YAML:
+
+```yaml
+mode: cohort
+pipeline: sarek
+workflow_provider: nf-core
+workflow_backend: nextflow
+resource: nf-core-sarek-managed-resources-v1
+nfcore_profile: singularity
+nfcore_parameters:
+  input: sarek_samplesheet.csv
+  genome: GATK.GRCh38
+  tools: haplotypecaller
 ```
 
 ## How Execution Works
 
-At runtime, CBIcall:
+At runtime, CBIcall reads the parameters YAML, validates compatibility rules,
+resolves the workflow registry entry, creates a run directory, launches the
+selected backend from that directory, and writes `log.json`,
+`cbicall-execution-contract.json`, and `run-report.json`.
 
-1. Reads the YAML parameters file
-2. Validates values and compatibility rules
-3. Loads the workflow registry
-4. Resolves the requested registry version and implementation
-5. Creates a run directory
-6. Launches the workflow from inside that run directory
-
-The main implementation layers are:
+The main implementation files are:
 
 | File | Responsibility |
 | --- | --- |
-| `src/cbicall/config.py` | Parameter defaults, semantic validation, runtime metadata. |
-| `src/cbicall/workflow_registry.py` | Registry loading, workflow resolution, referenced-file validation. |
-| `src/cbicall/execution.py` | Backend-specific execution through `BashRunner`, `SnakemakeRunner`, `NextflowRunner`, and `CromwellRunner`. |
-| `workflows/registry/cbicall-workflow-registry.yaml` | Declares available native scripts and external workflow entries. |
-| `workflows/schema/cbicall-workflow-registry.schema.json` | Validates the registry structure. |
+| `src/cbicall/config.py` | Parameter defaults and semantic validation. |
+| `src/cbicall/workflow_registry.py` | Registry loading and workflow resolution. |
+| `src/cbicall/execution.py` | Backend-specific launch logic. |
+| `workflows/registry/cbicall-workflow-registry.yaml` | Developer-facing workflow map. |
+| `workflows/schema/cbicall-workflow-registry.schema.json` | Registry schema. |
+| `resources/cbicall-resource-catalog.json` | Resource-bundle compatibility and identity. |
 
-:::tip[What is the registry?]
-The workflow registry is CBIcall's developer-facing workflow map:
-`workflows/registry/cbicall-workflow-registry.yaml`. It tells CBIcall which
-Bash, Snakemake, native Nextflow file, or external nf-core entry to launch when
-a parameters YAML selects values such as `workflow_backend`,
-`workflow_provider`, `software_stack`, `pipeline`, `mode`, and `registry_version`.
-
-Normal users do not edit this file. Pipeline maintainers edit it when adding or
-changing workflow implementations. After editing it, run:
+After editing the registry, run:
 
 ```bash
 bin/cbicall validate-registry
 ```
 
-This checks that the workflow registry is structurally valid against
-`workflows/schema/cbicall-workflow-registry.schema.json`; it does not run a workflow.
-:::
-
 ## 1. Add the Workflow Entrypoint
 
-Native Bash and Snakemake workflow filenames should follow:
+For CBIcall-native workflows, entrypoint filenames should make the pipeline and
+mode obvious. Use the backend extension that matches the workflow language:
 
 ```text
-{pipeline}_{mode}.{sh|smk}
+{pipeline}_{mode}.sh   # Bash
+{pipeline}_{mode}.smk  # Snakemake
+{pipeline}_{mode}.nf   # Nextflow
+{pipeline}_{mode}.wdl  # Cromwell/WDL
 ```
 
 ### Bash Layout
@@ -164,8 +187,9 @@ workflows/nextflow/gatk-4.6/
 
 CBIcall launches the resolved `.nf` file with CBIcall-managed parameters,
 including genome, threads, sample map or input directory, helper scripts, and
-workspace paths. Native Nextflow registry entries also require the helper paths
-used by post-processing and run comparison.
+workspace paths. To be CBIcall-native, the workflow must write or promote final
+outputs into the standard CBIcall run layout. Native Nextflow registry entries
+also require the helper paths used by post-processing and run comparison.
 
 ### Native Cromwell Layout
 
@@ -190,12 +214,18 @@ helper scripts. Final outputs are promoted back into the standard CBIcall
 `01_bam/`, `02_varcall/`, `03_stats/`, and `logs/` layout so run reports and
 `compare-runs` work like the other native backends.
 
-### External Nextflow Layout
+### External Workflow Integration
 
-External Nextflow workflows can be registered without copying their source into
-the repository. For nf-core entries, `software_stack` is `nf-core`, the
-registry entry stores the external `source` and `release`, and CBIcall runs
-`nextflow run <source> -r <release>`.
+External workflows can be registered when CBIcall should validate, launch, log,
+and report them without adapting their internal output layout to the CBIcall
+folder contract. The currently bundled external provider examples are nf-core
+workflows launched through the Nextflow backend. The concept is not limited to
+nf-core; another provider can be added when CBIcall can declare how to launch it
+and which outputs should be audited.
+
+For nf-core entries, `workflow_provider` is `nf-core`, `software_stack` is
+`nf-core`, the registry entry stores the external `source` and `release`, and
+CBIcall runs `nextflow run <source> -r <release>`.
 
 The current lightweight smoke-test example is nf-core/demo:
 
@@ -232,12 +262,11 @@ workflows:
 
 CBIcall validates the selected YAML, pins the registered release, writes a
 params file in the run directory, and runs `nextflow run <source> -r <release>`. The
-workflow keeps its native output layout; CBIcall does not force it into
+workflow keeps its upstream output layout; CBIcall does not force it into
 `01_*`, `02_*`, or `03_*` directories.
 
 Use `canonical_outputs` for external workflows that produce final deliverables
-in backend-native directories. CBIcall resolves these patterns under the native
-output directory, records matches in `run-report.json`, and computes normalized
+in upstream workflow directories. CBIcall resolves these patterns under the declared output directory, records matches in `run-report.json`, and computes normalized
 VCF hashes for `compare-runs`.
 
 When adding another nf-core workflow, add a registry entry with `provider`,
