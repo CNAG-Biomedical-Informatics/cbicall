@@ -8,16 +8,18 @@ from urllib.parse import quote
 
 from .cli_output import _format_duration, _short_path
 from .report_utils import (
+    _aggregate_status,
+    _comparison_sections_with_overall,
+    _comparison_specs,
     _comparison_value,
     _execution_file_map,
     _execution_file_value,
     _format_bytes,
     _format_optional_bytes,
-    _inventory_manifest_hash,
-    _inventory_total_bytes,
-    _multi_vcf_hash_value,
-    _multi_workflow_file_value,
+    _inventory_size_status,
     _nested,
+    _row_pair_status,
+    _status_for_values,
     _vcf_hash_map,
     _workflow_file_map,
 )
@@ -902,107 +904,21 @@ def _html_status_parts(value: str) -> tuple:
 
 
 def _compare_status_for_values(baseline, value) -> tuple:
-    if baseline is None and value is None:
-        return "unavailable", "not available", ""
-    if baseline is None or value is None:
-        return "missing", "missing", f"{_comparison_value(value)}"
-    if value == baseline:
-        return "same", "same", f"{_comparison_value(value)}"
-    return "different", "different", f"{_comparison_value(value)}"
+    status_class, status_label, detail = _status_for_values(baseline, value)
+    if status_class in {"missing", "different"} and " != " in detail:
+        detail = detail.split(" != ", 1)[1]
+    return status_class, status_label, detail
 
 
 def _compare_inventory_size_cell(baseline: dict, report: dict) -> tuple:
-    baseline_size = _inventory_total_bytes(baseline)
-    size = _inventory_total_bytes(report)
-    if baseline_size is None and size is None:
-        return "unavailable", "not available", ""
-    if baseline_size is None or size is None:
-        return "missing", "missing", _comparison_value(_format_optional_bytes(size))
-    if baseline_size == size:
-        return "same", "same", _comparison_value(_format_optional_bytes(size))
-    baseline_manifest = _inventory_manifest_hash(baseline)
-    if baseline_manifest and baseline_manifest == _inventory_manifest_hash(report):
-        return "note", "note", f"{_comparison_value(_format_optional_bytes(size))}; file list unchanged"
-    return "different", "different", _comparison_value(_format_optional_bytes(size))
+    status_class, status_label, detail = _inventory_size_status(baseline, report)
+    if status_class in {"missing", "different", "note"} and " != " in detail:
+        detail = detail.split(" != ", 1)[1]
+    return status_class, status_label, detail
 
 
 def _compare_matrix_specs(reports: List[dict]) -> List[dict]:
-    execution_roles = sorted({role for report in reports for role in _execution_file_map(report)})
-    workflow_roles = sorted({role for report in reports for role in _workflow_file_map(report)})
-    vcf_keys = sorted({key for report in reports for key in _vcf_hash_map(report)})
-
-    specs = [
-        {
-            "section": "Framework",
-            "rows": [
-                ("CBIcall ver", lambda report: _nested(report, "framework", "version")),
-                ("Python ver", lambda report: _nested(report, "runtime", "python", "version")),
-                ("Java ver", lambda report: _nested(report, "runtime", "java", "version")),
-                ("Configured Java", lambda report: _nested(report, "runtime", "configured_java", "version")),
-                ("Backend ver", lambda report: _nested(report, "runtime", "backend", "version")),
-            ],
-        },
-        {
-            "section": "Execution",
-            "rows": [
-                ("Task count (trace)", lambda report: _nested(report, "execution_trace", "tasks")),
-                ("Max peak RSS (trace)", lambda report: _nested(report, "execution_trace", "max_peak_rss", "bytes")),
-                ("Max peak VMEM (trace)", lambda report: _nested(report, "execution_trace", "max_peak_vmem", "bytes")),
-            ],
-        },
-        {
-            "section": "Pipeline",
-            "rows": [
-                ("Workflow key", lambda report: _nested(report, "workflow", "key")),
-                ("Registry ver", lambda report: _nested(report, "workflow", "registry_version")),
-                ("External workflow", lambda report: _nested(report, "workflow", "metadata", "source")),
-                ("External release", lambda report: _nested(report, "workflow", "metadata", "release")),
-                ("Entrypoint", lambda report: _nested(report, "workflow", "entrypoint")),
-                ("Workflow hash", lambda report: _nested(report, "workflow", "fingerprint")),
-            ],
-        },
-        {
-            "section": "Execution Contract",
-            "rows": [
-                ("Contract hash", lambda report: _nested(report, "execution_contract", "fingerprint")),
-                ("Command hash", lambda report: _nested(report, "execution_contract", "normalized_command_sha256")),
-                *[(role, lambda report, item=role: _execution_file_value(item, report)) for role in execution_roles],
-            ],
-        },
-        {
-            "section": "Software",
-            "rows": [
-                ("Software versions", lambda report: _nested(report, "software_versions", "sha256")),
-            ],
-        },
-        {
-            "section": "Workflow Files",
-            "rows": ([(role, lambda report, item=role: _multi_workflow_file_value(item, report)) for role in workflow_roles] or [("Files", lambda report: None)]),
-        },
-        {
-            "section": "Resources",
-            "rows": [
-                ("Resource key", lambda report: _nested(report, "resources", "bundle", "key")),
-                ("Resource ver", lambda report: _nested(report, "resources", "bundle", "version")),
-                ("Resource hash", lambda report: _nested(report, "resources", "bundle", "fingerprint")),
-            ],
-        },
-        {
-            "section": "Outputs",
-            "rows": [
-                ("File count", lambda report: _nested(report, "outputs", "file_inventory", "entries")),
-                ("Inventory size", lambda report: _inventory_total_bytes(report)),
-                ("File inventory", lambda report: _nested(report, "outputs", "file_inventory", "sha256")),
-                *[(_short_path(key), lambda report, item=key: _multi_vcf_hash_value(item, report)) for key in vcf_keys],
-            ] if vcf_keys else [
-                ("File count", lambda report: _nested(report, "outputs", "file_inventory", "entries")),
-                ("Inventory size", lambda report: _inventory_total_bytes(report)),
-                ("File inventory", lambda report: _nested(report, "outputs", "file_inventory", "sha256")),
-                ("VCF hashes", lambda report: None),
-            ],
-        },
-    ]
-    return specs
+    return _comparison_specs(reports)
 
 
 def _matrix_run_label(report: dict) -> str:
@@ -1052,15 +968,24 @@ def _matrix_group_summary_html(counts: dict) -> str:
     return '<span class="matrix-group-counts">' + "".join(parts) + '</span>'
 
 
-def _matrix_legend_html() -> str:
-    items = [
-        ("baseline", "base", "baseline value"),
-        ("same", "same", "matches baseline"),
-        ("different", "diff", "differs from baseline"),
-        ("missing", "miss", "missing in at least one run"),
-        ("note", "note", "audit note"),
-        ("unavailable", "n/a", "not recorded"),
-    ]
+def _matrix_legend_html(context: str = "baseline") -> str:
+    if context == "all-to-all":
+        items = [
+            ("same", "same", "matches paired run"),
+            ("different", "diff", "differs from paired run"),
+            ("missing", "miss", "missing in one paired run"),
+            ("note", "note", "audit note"),
+            ("unavailable", "n/a", "not recorded"),
+        ]
+    else:
+        items = [
+            ("baseline", "base", "baseline value"),
+            ("same", "same", "matches baseline"),
+            ("different", "diff", "differs from baseline"),
+            ("missing", "miss", "missing in at least one run"),
+            ("note", "note", "audit note"),
+            ("unavailable", "n/a", "not recorded"),
+        ]
     return "<div class=\"matrix-legend\">" + "".join(
         f"<span><i class=\"matrix-swatch {klass}\"></i><b>{html.escape(label)}</b>{html.escape(desc)}</span>"
         for klass, label, desc in items
@@ -1088,10 +1013,12 @@ def _compare_matrix_html(reports: Optional[List[dict]]) -> str:
         section = spec["section"]
         section_rows = []
         section_counts = {"same": 0, "different": 0, "missing": 0, "note": 0, "unavailable": 0}
-        for label, value_fn in spec["rows"]:
+        for row in spec["rows"]:
+            label = row["label"]
+            value_fn = row["value"]
             baseline_value = value_fn(baseline)
             baseline_detail = _comparison_value(
-                _format_optional_bytes(baseline_value) if label == "Inventory size" else baseline_value
+                _format_optional_bytes(baseline_value) if row.get("kind") == "inventory_size" else baseline_value
             )
             baseline_label = _matrix_display_value(baseline_detail, _matrix_cell_label("baseline"))
             cells = [
@@ -1102,10 +1029,9 @@ def _compare_matrix_html(reports: Optional[List[dict]]) -> str:
                 "</td>",
             ]
             for report in reports[1:]:
-                if label == "Inventory size":
-                    status_class, status_label, detail = _compare_inventory_size_cell(baseline, report)
-                else:
-                    status_class, status_label, detail = _compare_status_for_values(baseline_value, value_fn(report))
+                status_class, status_label, detail = _row_pair_status(row, baseline, report)
+                if status_class in {"missing", "different", "note"} and " != " in detail:
+                    detail = detail.split(" != ", 1)[1]
                 section_counts[status_class] = section_counts.get(status_class, 0) + 1
                 title = detail or status_label
                 cells.append(
@@ -1132,7 +1058,71 @@ def _compare_matrix_html(reports: Optional[List[dict]]) -> str:
         "</section>"
     )
 
-def render_compare_html(report_text: str, reports: Optional[List[dict]] = None) -> str:
+
+def _pairwise_section_status(section: dict, left: dict, right: dict) -> tuple:
+    statuses = []
+    counts = {"same": 0, "different": 0, "missing": 0, "note": 0, "unavailable": 0}
+    details = []
+    for row in section["rows"]:
+        status_class, status_label, detail = _row_pair_status(row, left, right)
+        statuses.append(status_class)
+        counts[status_class] = counts.get(status_class, 0) + 1
+        if status_class in {"different", "missing", "note"}:
+            details.append(f"{row['label']}: {status_label}" + (f" ({detail})" if detail else ""))
+    status = _aggregate_status(statuses)
+    summary = ", ".join(f"{count} {key}" for key, count in counts.items() if count)
+    if details:
+        summary += " | " + "; ".join(details[:4])
+        if len(details) > 4:
+            summary += f"; +{len(details) - 4} more"
+    return status, counts, summary or status
+
+
+def _all_to_all_matrix_html(reports: Optional[List[dict]], comparison_view: str = "baseline") -> str:
+    if not reports or len(reports) < 2 or comparison_view not in {"all-to-all", "both"}:
+        return ""
+
+    labels = [_matrix_run_label(report) for report in reports]
+    section_cards = []
+    for section in _comparison_sections_with_overall(reports):
+        headers = "".join(f"<th>{html.escape(label)}</th>" for label in labels)
+        rows = []
+        section_counts = {"same": 0, "different": 0, "missing": 0, "note": 0, "unavailable": 0}
+        for left_index, left_report in enumerate(reports):
+            cells = [f"<th>{html.escape(labels[left_index])}</th>"]
+            for right_index, right_report in enumerate(reports):
+                if left_index == right_index:
+                    cells.append('<td class="nxn-cell self"><span>self</span></td>')
+                    continue
+                status_class, counts, detail = _pairwise_section_status(section, left_report, right_report)
+                section_counts[status_class] = section_counts.get(status_class, 0) + 1
+                cells.append(
+                    f'<td class="nxn-cell {status_class}" '
+                    f'title="{html.escape(labels[left_index])} vs {html.escape(labels[right_index])}: {html.escape(detail)}">'
+                    f'<span>{html.escape(_matrix_cell_label(status_class))}</span>'
+                    '</td>'
+                )
+            rows.append("<tr>" + "".join(cells) + "</tr>")
+        section_cards.append(
+            '<section class="nxn-card">'
+            f'<h3>{html.escape(section["section"])}{_matrix_group_summary_html(section_counts)}</h3>'
+            '<div class="matrix-wrap"><table class="nxn-table">'
+            '<thead><tr><th>Run</th>' + headers + '</tr></thead>'
+            '<tbody>' + "".join(rows) + '</tbody>'
+            '</table></div>'
+            '</section>'
+        )
+
+    return (
+        '<section class="nxn-section">'
+        '<h2>All-to-All Reproducibility Matrix</h2>'
+        '<p class="section-note">Each cell compares one run against another for the selected audit layer. Use this view to detect reproducibility clusters rather than only differences from the first run.</p>'
+        + _matrix_legend_html("all-to-all") +
+        '<div class="nxn-grid">' + "".join(section_cards) + '</div>'
+        '</section>'
+    )
+
+def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, comparison_view: str = "baseline") -> str:
     sections = []
     current = None
     for line in report_text.splitlines():
@@ -1145,10 +1135,16 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None) 
         current = {"title": line.strip(), "rows": []}
         sections.append(current)
 
+    detail_sections = sections
+    if comparison_view == "both":
+        all_to_all_index = next((idx for idx, section in enumerate(sections) if section["title"].lower() == "all-to-all matrix"), None)
+        if all_to_all_index is not None:
+            detail_sections = sections[:all_to_all_index]
+
     status_counts = {"same": 0, "different": 0, "missing": 0, "note": 0, "unavailable": 0}
     section_html = []
     highlight_html = []
-    for section in sections:
+    for section in detail_sections:
         rows = []
         for label, value in section["rows"]:
             status_class, status_label, detail = _html_status_parts(value)
@@ -1184,7 +1180,7 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None) 
                 f"<td>{value_html}</td>"
                 "</tr>"
             )
-        if section["title"].lower() == "legend":
+        if section["title"].lower() in {"legend", "run matrix", "all-to-all matrix"}:
             continue
         table = "<table>" + "".join(rows) + "</table>" if rows else ""
         section_html.append(
@@ -1216,8 +1212,15 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None) 
         else "<p class=\"empty-note\">No differences, missing values, or notes were detected. The full comparison is available in Details.</p>"
     )
     details = "\n          ".join(section_html)
-    matrix_html = _compare_matrix_html(reports)
+    matrix_html = _compare_matrix_html(reports) if comparison_view in {"baseline", "both"} else ""
+    all_to_all_html = _all_to_all_matrix_html(reports, comparison_view)
     raw_report = html.escape(report_text)
+    matrix_tab_input = '<input type="radio" name="compare-tabs" id="tab-matrix">' if matrix_html else ""
+    matrix_tab_label = '<label for="tab-matrix">Baseline Matrix</label>' if matrix_html else ""
+    matrix_tab_panel = '<div class="tab-panel matrix-panel">' + matrix_html + '</div>' if matrix_html else ""
+    all_to_all_tab_input = '<input type="radio" name="compare-tabs" id="tab-alltoall">' if all_to_all_html else ""
+    all_to_all_tab_label = '<label for="tab-alltoall">All-to-All</label>' if all_to_all_html else ""
+    all_to_all_tab_panel = '<div class="tab-panel alltoall-panel">' + all_to_all_html + '</div>' if all_to_all_html else ""
 
     return """<!doctype html>
 <html lang="en">
@@ -1352,6 +1355,7 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None) 
     }
     #tab-overview:checked ~ .tab-labels label[for="tab-overview"],
     #tab-matrix:checked ~ .tab-labels label[for="tab-matrix"],
+    #tab-alltoall:checked ~ .tab-labels label[for="tab-alltoall"],
     #tab-details:checked ~ .tab-labels label[for="tab-details"],
     #tab-raw:checked ~ .tab-labels label[for="tab-raw"] {
       background: var(--accent);
@@ -1363,6 +1367,7 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None) 
     }
     #tab-overview:checked ~ .tab-panels .overview-panel,
     #tab-matrix:checked ~ .tab-panels .matrix-panel,
+    #tab-alltoall:checked ~ .tab-panels .alltoall-panel,
     #tab-details:checked ~ .tab-panels .details-panel,
     #tab-raw:checked ~ .tab-panels .raw-panel {
       display: block;
@@ -1384,6 +1389,29 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None) 
     .change-item.different { border-left-color: var(--diff-text); }
     .change-item.missing { border-left-color: var(--missing-text); }
     .change-item.note { border-left-color: var(--note-text); }
+    .details-panel section {
+      border-left: 4px solid #94a3b8;
+      box-shadow: none;
+      background: #ffffff;
+    }
+    .details-panel h2 {
+      background: #f8fafc;
+      color: #334155;
+    }
+    .details-panel table {
+      font-size: 13px;
+    }
+    .details-panel th {
+      color: #475569;
+      width: 210px;
+    }
+    .details-panel td {
+      background: #ffffff;
+    }
+    .details-panel .pill {
+      min-width: 68px;
+      opacity: 0.88;
+    }
     .change-head {
       display: flex;
       align-items: center;
@@ -1633,6 +1661,113 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None) 
       background: #eef1f5;
       color: #475569;
     }
+    .nxn-section > .section-note {
+      padding-bottom: 0;
+    }
+    .nxn-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      padding: 0 0 14px;
+    }
+    .nxn-card {
+      margin: 0 16px;
+      border-color: #d7e4fb;
+      background: linear-gradient(180deg, #ffffff, #fbfdff);
+      box-shadow: 0 12px 28px rgba(16, 24, 40, 0.05);
+    }
+    .nxn-card h3 {
+      margin: 0;
+      padding: 10px 12px;
+      border-bottom: 1px solid #d7e4fb;
+      background: linear-gradient(90deg, #eef4ff, #f8fbff);
+      color: #1e3a8a;
+      font-size: 13px;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .nxn-card .matrix-group-counts {
+      float: right;
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .nxn-card .matrix-group-counts span {
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid #d7e4fb;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .nxn-table {
+      min-width: 520px;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .nxn-table th,
+    .nxn-table td {
+      width: 110px;
+      padding: 8px 9px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      text-align: center;
+      white-space: nowrap;
+    }
+    .nxn-table th:first-child {
+      width: 130px;
+      text-align: left;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: #fbfdff;
+      box-shadow: 7px 0 14px rgba(16, 24, 40, 0.04);
+    }
+    .nxn-table thead th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      text-transform: uppercase;
+    }
+    .nxn-cell {
+      font-size: 11px;
+      font-weight: 780;
+      box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.76);
+    }
+    .nxn-cell span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      min-width: 54px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.62);
+      padding: 3px 7px;
+    }
+    .nxn-cell span::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.85;
+    }
+    .nxn-cell.self { background: #f8fafc; color: #64748b; }
+    .nxn-cell.same { background: #e4f6ec; color: #166534; }
+    .nxn-cell.different { background: #ffe2a8; color: #92400e; }
+    .nxn-cell.missing { background: #ffd9d9; color: #991b1b; }
+    .nxn-cell.note { background: #e0ecff; color: #1d4ed8; }
+    .nxn-cell.unavailable { background: #eef1f5; color: #475569; }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -1738,13 +1873,15 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None) 
     </div>
     <div class="tabs">
       <input checked type="radio" name="compare-tabs" id="tab-overview">
-      <input type="radio" name="compare-tabs" id="tab-matrix">
+      """ + matrix_tab_input + """
+      """ + all_to_all_tab_input + """
       <input type="radio" name="compare-tabs" id="tab-details">
       <input type="radio" name="compare-tabs" id="tab-raw">
       <div class="tab-labels" aria-label="Report views">
         <label for="tab-overview">Overview</label>
-        <label for="tab-matrix">Matrix</label>
-        <label for="tab-details">Details</label>
+        """ + matrix_tab_label + """
+        """ + all_to_all_tab_label + """
+        <label for="tab-details">Evidence</label>
         <label for="tab-raw">Raw Text</label>
       </div>
       <div class="tab-panels">
@@ -1757,9 +1894,8 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None) 
             </div>
           </section>
         </div>
-        <div class="tab-panel matrix-panel">
-          """ + matrix_html + """
-        </div>
+        """ + matrix_tab_panel + """
+        """ + all_to_all_tab_panel + """
         <div class="tab-panel details-panel">
           """ + details + """
         </div>

@@ -5,3 +5,4 @@ snakemake
 pytest
 pytest-cov
 jsonschema>=4.18
+multiqc

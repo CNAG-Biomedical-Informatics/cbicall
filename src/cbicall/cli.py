@@ -37,7 +37,10 @@ from .resources import validate_resource_catalog
 from .workflow_registry import load_workflow_registry
 from .goodbye import GoodBye
 from .html_reports import render_compare_html, write_run_report_html
+from .multiqc import write_compare_multiqc_report, write_multiqc_report
 from .report_utils import (
+    _aggregate_status,
+    _comparison_sections_with_overall,
     _comparison_value,
     _execution_file_map,
     _execution_file_value,
@@ -48,6 +51,7 @@ from .report_utils import (
     _multi_vcf_hash_value,
     _multi_workflow_file_value,
     _nested,
+    _row_pair_status,
     _run_label,
     _same_text,
     _vcf_hash_map,
@@ -473,7 +477,7 @@ def _collect_execution_contract(project_dir: Path) -> dict:
 
 
 def _collect_file_inventory(project_dir: Path) -> dict:
-    excluded = {"run-report.json", "run-report.html"}
+    excluded = {"run-report.json", "run-report.html", "cbicall_mqc.yaml"}
     excluded_roots = {
         "work",
         ".nextflow",
@@ -1209,6 +1213,7 @@ def _print_single_run_report(
     payload: dict,
     report_path: Path,
     html_path: Optional[Path],
+    multiqc_path: Optional[Path],
     refresh_requested: bool,
     refreshed: bool,
     wrote_json: bool = False,
@@ -1234,6 +1239,8 @@ def _print_single_run_report(
     _row("Elapsed", _format_duration(float(payload.get("elapsed_seconds") or 0)))
     _row("Project", _short_path(run.get("project_dir")))
     _row("HTML", _report_html_status(report_path, html_path))
+    if multiqc_path is not None:
+        _row("MultiQC", multiqc_path)
 
     _section("Workflow", BLUE)
     _row("Key", workflow.get("key"))
@@ -1290,7 +1297,14 @@ def _run_report_command(argv: List[str]) -> int:
         metavar="HTML",
         help="Write an HTML run report. Defaults to run-report.html unless a path is provided.",
     )
-    parser.add_argument("-O", "--overwrite", action="store_true", help="Overwrite files written by --refresh or --html.")
+    parser.add_argument(
+        "--multiqc",
+        nargs="?",
+        const=True,
+        metavar="MQC_YAML",
+        help="Write a MultiQC custom-content YAML file. Defaults to cbicall_mqc.yaml unless a path is provided.",
+    )
+    parser.add_argument("-O", "--overwrite", action="store_true", help="Overwrite files written by --refresh, --html, or --multiqc.")
     parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
     args = parser.parse_args(argv)
 
@@ -1322,10 +1336,17 @@ def _run_report_command(argv: List[str]) -> int:
         html_path.parent.mkdir(parents=True, exist_ok=True)
         write_run_report_html(report_path, payload, html_path=html_path)
 
+    multiqc_path = None
+    if args.multiqc is not None:
+        multiqc_path = report_path.parent / "cbicall_mqc.yaml" if args.multiqc is True else Path(args.multiqc)
+        if multiqc_path.exists() and not args.overwrite:
+            raise FileExistsError(f"MultiQC custom-content file already exists: {multiqc_path}. Use -O/--overwrite to replace it.")
+        write_multiqc_report(report_path, payload, output_path=multiqc_path)
+
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
     else:
-        _print_single_run_report(payload, report_path, html_path, args.refresh, refreshed, wrote_json)
+        _print_single_run_report(payload, report_path, html_path, multiqc_path, args.refresh, refreshed, wrote_json)
     return 0
 
 
@@ -1562,6 +1583,57 @@ def _print_multi_run_comparison(reports: List[dict]) -> None:
         _multi_status(_short_path(key), baseline, reports, lambda report, item=key: _multi_vcf_hash_value(item, report))
 
 
+
+def _pairwise_layer_status(section: dict, left: dict, right: dict) -> tuple:
+    statuses = []
+    details = []
+    for row in section["rows"]:
+        status_class, status_label, detail = _row_pair_status(row, left, right)
+        statuses.append(status_class)
+        if status_class in {"different", "missing", "note"}:
+            row_detail = f"{row['label']}={status_label}"
+            if detail:
+                row_detail += f" ({detail})"
+            details.append(row_detail)
+    return _aggregate_status(statuses), details
+
+
+def _print_all_to_all_comparison(reports: List[dict]) -> None:
+    _section("All-to-All Matrix", CYAN)
+    _row("Runs", len(reports))
+    _row("Pairs", (len(reports) * (len(reports) - 1)) // 2)
+    _print_run_comparison_legend()
+
+    for section in _comparison_sections_with_overall(reports):
+        print()
+        _section(section["section"], BLUE)
+        pair_statuses = []
+        pair_details = []
+        for left_index, left in enumerate(reports):
+            for right_index in range(left_index + 1, len(reports)):
+                right = reports[right_index]
+                pair = f"{_run_label(left)} vs {_run_label(right)}"
+                status, details = _pairwise_layer_status(section, left, right)
+                pair_statuses.append(status)
+                if status == "same":
+                    continue
+                detail_text = "; ".join(details[:3])
+                if len(details) > 3:
+                    detail_text += f"; +{len(details) - 3} more"
+                pair_details.append(f"{pair}: {status}" + (f" | {detail_text}" if detail_text else ""))
+        layer_status = _aggregate_status(pair_statuses)
+        if layer_status == "same":
+            _row("Status", "same across all pairs")
+        elif layer_status == "unavailable":
+            _row("Status", "not available across all pairs")
+        else:
+            _row("Status", layer_status)
+            max_details = 8
+            for detail in pair_details[:max_details]:
+                _row("Pair", detail)
+            if len(pair_details) > max_details:
+                _row("Pair", f"+{len(pair_details) - max_details} more non-matching pairs")
+
 def _print_run_comparison_legend() -> None:
     print()
     _section("Legend", YELLOW)
@@ -1649,6 +1721,18 @@ def _run_compare_runs_command(argv: List[str]) -> int:
         help="Human-readable labels for runs, in the same order as the run arguments. Accepts space-separated or comma-separated labels.",
     )
     parser.add_argument("--html", help="Write the HTML comparison report to this file. Defaults to <output>.html or compare-runs.html.")
+    parser.add_argument(
+        "--multiqc",
+        nargs="?",
+        const=True,
+        metavar="MQC_YAML",
+        help="Write a MultiQC custom-content YAML file. Defaults to <output>_mqc.yaml or compare-runs_mqc.yaml.",
+    )
+    parser.add_argument(
+        "--comparison-view",
+        choices=["baseline", "all-to-all", "both"],
+        help="Comparison layout. Defaults to baseline for two runs and both for three or more runs.",
+    )
     parser.add_argument("--no-html", action="store_true", help="Do not write the default HTML comparison report.")
     parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
     args = parser.parse_args(argv)
@@ -1673,6 +1757,13 @@ def _run_compare_runs_command(argv: List[str]) -> int:
         else:
             html_output = Path("compare-runs.html")
 
+    multiqc_output = None
+    if args.multiqc is not None:
+        if args.multiqc is True:
+            multiqc_output = Path(args.output).with_name(Path(args.output).stem + "_mqc.yaml") if args.output else Path("compare-runs_mqc.yaml")
+        else:
+            multiqc_output = Path(args.multiqc)
+
     if args.nocolor or args.output or html_output:
         os.environ["ANSI_COLORS_DISABLED"] = "1"
     _refresh_colors()
@@ -1681,12 +1772,19 @@ def _run_compare_runs_command(argv: List[str]) -> int:
     for report, alias in zip(reports, aliases):
         report["_report_alias"] = alias
 
+    comparison_view = args.comparison_view or ("baseline" if len(reports) == 2 else "both")
+
     buffer = io.StringIO()
     with redirect_stdout(buffer):
-        if len(reports) == 2:
-            _print_run_comparison(reports[0], reports[1])
-        else:
-            _print_multi_run_comparison(reports)
+        if comparison_view in {"baseline", "both"}:
+            if len(reports) == 2:
+                _print_run_comparison(reports[0], reports[1])
+            else:
+                _print_multi_run_comparison(reports)
+        if comparison_view in {"all-to-all", "both"}:
+            if comparison_view == "both":
+                print()
+            _print_all_to_all_comparison(reports)
     report_text = buffer.getvalue()
     print(report_text, end="")
     if args.output:
@@ -1696,8 +1794,11 @@ def _run_compare_runs_command(argv: List[str]) -> int:
         _row("Report", output)
     if html_output:
         html_output.parent.mkdir(parents=True, exist_ok=True)
-        html_output.write_text(render_compare_html(report_text, reports), encoding="utf-8")
+        html_output.write_text(render_compare_html(report_text, reports, comparison_view=comparison_view), encoding="utf-8")
         _row("HTML", html_output)
+    if multiqc_output:
+        write_compare_multiqc_report(reports, multiqc_output)
+        _row("MultiQC", multiqc_output)
     return 0
 
 
@@ -1933,13 +2034,16 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
         elapsed_seconds=elapsed,
         workflow_log=workflow_log,
     )
-    html_report_path = write_run_report_html(report_path, json.loads(report_path.read_text(encoding="utf-8")))
+    report_payload = json.loads(report_path.read_text(encoding="utf-8"))
+    html_report_path = write_run_report_html(report_path, report_payload)
+    multiqc_path = write_multiqc_report(report_path, report_payload) if arg.get("multiqc") else None
     _row("Log", workflow_log)
     _row("Report", report_path)
     _row("HTML", html_report_path)
+    if multiqc_path is not None:
+        _row("MultiQC", multiqc_path)
     if workflow.metadata.get("provider") == "nf-core":
-        report_data = json.loads(report_path.read_text(encoding="utf-8"))
-        _print_external_output_pointers(report_data)
+        _print_external_output_pointers(report_payload)
     if arg.get("verbose"):
         _row("Date", time.ctime())
 

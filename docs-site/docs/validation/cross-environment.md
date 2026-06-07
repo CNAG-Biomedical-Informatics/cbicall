@@ -40,8 +40,13 @@ Run comparison should report at least:
 Example command:
 
 ```bash
-bin/cbicall compare-runs run_local/ run_cloud/ run_hpc/ --output cross-env-compare.txt
+bin/cbicall compare-runs run_local/ run_cloud/ run_hpc/ \
+  --alias local cloud hpc \
+  --output cross-env-compare.txt
 ```
+
+For three or more runs, the report includes both the baseline comparison and an
+all-to-all reproducibility matrix.
 
 :::note[Interpretation]
 A different file inventory does not necessarily mean a different biological

@@ -223,11 +223,11 @@ directory or log file.
 
 | Command | Use |
 | --- | --- |
-| `bin/cbicall run -p parameters.yaml -t 4 [--runtime-profile cnag-hpc]` | Execute a normal analysis run. |
+| `bin/cbicall run -p parameters.yaml -t 4 [--runtime-profile cnag-hpc] [--multiqc]` | Execute a normal analysis run. Add `--multiqc` to write `cbicall_mqc.yaml` for MultiQC custom content. |
 | `bin/cbicall validate-parameters -p parameters.yaml [--runtime-profile cnag-hpc]` | Dry-run preflight for one concrete run. It validates the parameters YAML, workflow, runtime profile env file, and selected resource without launching the workflow. |
 | `bin/cbicall validate-resources` | Check the resource catalog and, optionally, one resource key. |
-| `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...] [--alias A B C]` | Compare two or more run directories or `run-report.json` files. Use `--alias` to label runs in reports. |
-| `bin/cbicall report RUN_DIR` | Read-only summary of one completed run. Add `--html` to write `run-report.html`, `--refresh` to update output-derived metadata in `run-report.json`, and `-O/--overwrite` to replace existing files. Use `--json` for structured output. |
+| `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...] [--alias A B C] [--comparison-view baseline\|all-to-all\|both] [--multiqc]` | Compare two or more run directories or `run-report.json` files. Three or more runs default to baseline plus all-to-all comparison. Use `--alias` to label runs and `--multiqc` to write a MultiQC custom-content summary. |
+| `bin/cbicall report RUN_DIR` | Read-only summary of one completed run. Add `--html` to write `run-report.html`, `--multiqc` to write `cbicall_mqc.yaml`, `--refresh` to update output-derived metadata in `run-report.json`, and `-O/--overwrite` to replace existing files. Use `--json` for structured output. |
 | `bin/cbicall test --wes-bash [--runtime-profile cnag-hpc]`, `--wes-snakemake`, `--wes-nextflow`, `--wes-cromwell`, `--mit-bash`, `--nf-core-demo`, `--nf-core-sarek`, `--backend-equivalence`, or `--all` | Runs contract-based integration examples. `--runtime-profile` is forwarded to the internal `cbicall run` calls. `--backend-equivalence` runs native WES backend-equivalence checks against the Bash baseline; Snakemake, Nextflow, Cromwell, and nf-core tests require their backends on `PATH` or configured through their documented environment variables. |
 
 For a higher-level explanation of included pipelines versus execution backends,

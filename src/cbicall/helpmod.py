@@ -63,6 +63,12 @@ def _build_parser(version: str, *, prog: str = "cbicall") -> argparse.ArgumentPa
         action="store_true",
         help="Do not print colors to STDOUT",
     )
+    parser.add_argument(
+        "--multiqc",
+        dest="multiqc",
+        action="store_true",
+        help="Write cbicall_mqc.yaml MultiQC custom content after a successful run",
+    )
 
     return parser
 
