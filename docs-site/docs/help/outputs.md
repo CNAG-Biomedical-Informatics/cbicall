@@ -50,11 +50,11 @@ Use `outputs.file_inventory.sha256` to check whether two run directories contain
 Two runs can be compared directly:
 
 ```bash
-bin/cbicall compare-runs run_a/ run_b/ run_c/ --output compare-report.txt
+bin/cbicall compare-runs run_a/ run_b/ run_c/ --alias local cloud hpc --output compare-report.txt
 ```
 
 The text report is the audit artifact. CBIcall also writes `compare-report.html`
-by default for browsing. See [Run Comparison](../usage/run-comparison) for
+by default for browsing. See [Run Comparison](../validation/run-comparison) for
 details and an example screenshot.
 
 ## External nf-core Workflows

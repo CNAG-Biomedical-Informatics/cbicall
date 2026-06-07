@@ -16,7 +16,7 @@ The **resource catalog** is the JSON inventory of those resource entries:
   <p><strong>Use this page when the question is:</strong> does this resource catalog, selected resource key, or installed resource directory match the workflow I am about to run?</p>
 </div>
 
-Use [Integration Tests](integration-tests) when you want to run the shipped
+Use [Integration Tests](../validation/integration-tests) when you want to run the shipped
 example workflows and compare output VCFs.
 
 For the resource model and JSON examples, see [Adding Resources](../technical-details/adding-resources).

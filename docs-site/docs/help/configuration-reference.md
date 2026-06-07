@@ -184,7 +184,7 @@ workflow and records resource key, version, and fingerprint provenance in
 `log.json` and `run-report.json`.
 
 Use [Resource Validation](../usage/resource-validation) for resource checks and
-[Run Comparison](../usage/run-comparison) to compare repeated runs.
+[Run Comparison](../validation/run-comparison) to compare repeated runs.
 
 ## Registry Version
 
@@ -226,7 +226,7 @@ directory or log file.
 | `bin/cbicall run -p parameters.yaml -t 4 [--runtime-profile cnag-hpc]` | Execute a normal analysis run. |
 | `bin/cbicall validate-parameters -p parameters.yaml [--runtime-profile cnag-hpc]` | Dry-run preflight for one concrete run. It validates the parameters YAML, workflow, runtime profile env file, and selected resource without launching the workflow. |
 | `bin/cbicall validate-resources` | Check the resource catalog and, optionally, one resource key. |
-| `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare two or more run directories or `run-report.json` files. |
+| `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...] [--alias A B C]` | Compare two or more run directories or `run-report.json` files. Use `--alias` to label runs in reports. |
 | `bin/cbicall report RUN_DIR` | Read-only summary of one completed run. Add `--html` to write `run-report.html`, `--refresh` to update output-derived metadata in `run-report.json`, and `-O/--overwrite` to replace existing files. Use `--json` for structured output. |
 | `bin/cbicall test --wes-bash [--runtime-profile cnag-hpc]`, `--wes-snakemake`, `--wes-nextflow`, `--wes-cromwell`, `--mit-bash`, `--nf-core-demo`, `--nf-core-sarek`, `--backend-equivalence`, or `--all` | Runs contract-based integration examples. `--runtime-profile` is forwarded to the internal `cbicall run` calls. `--backend-equivalence` runs native WES backend-equivalence checks against the Bash baseline; Snakemake, Nextflow, Cromwell, and nf-core tests require their backends on `PATH` or configured through their documented environment variables. |
 

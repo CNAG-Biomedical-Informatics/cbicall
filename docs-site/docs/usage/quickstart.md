@@ -61,7 +61,7 @@ the expected normalized hash declared by the integration contract. It requires
 the CBIcall-provided resource bundle to be installed and configured.
 
 :::tip[Need deeper checks?]
-Use [Integration Tests](integration-tests) for bundled WES/mtDNA test details,
+Use [Integration Tests](../validation/integration-tests) for bundled WES/mtDNA test details,
 [Configuration Reference](../help/configuration-reference) for
 `validate-parameters`, and [Resource Validation](resource-validation) for checking
 the selected resource entry.
@@ -102,5 +102,5 @@ For most WES/WGS runs, start with 4 threads and adjust after checking
 | Run nf-core workflows | [nf-core Provider](../backends/nf-core) |
 | Run real WES/WGS data | [End-to-end Example: WES](end-to-end-example-wes) |
 | Run mtDNA analysis | [End-to-end Example: mtDNA](end-to-end-example-mit) |
-| Check reproducibility | [Run Comparison](run-comparison) |
+| Check reproducibility | [Run Comparison](../validation/run-comparison) |
 | Understand generated files | [Outputs](../help/outputs) |

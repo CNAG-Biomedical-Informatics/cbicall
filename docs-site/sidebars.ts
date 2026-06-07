@@ -109,22 +109,37 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Reproducibility',
+      label: 'Validation & Reproducibility',
       items: [
         {
           type: 'doc',
-          id: 'usage/resource-validation',
-          label: 'Resource Validation',
+          id: 'validation/overview',
+          label: 'Overview',
         },
         {
           type: 'doc',
-          id: 'usage/integration-tests',
+          id: 'validation/integration-tests',
           label: 'Integration Tests',
         },
         {
           type: 'doc',
-          id: 'usage/run-comparison',
+          id: 'validation/cross-environment',
+          label: 'Cross-Environment',
+        },
+        {
+          type: 'doc',
+          id: 'validation/giab',
+          label: 'GIAB Benchmarking',
+        },
+        {
+          type: 'doc',
+          id: 'validation/run-comparison',
           label: 'Run Comparison',
+        },
+        {
+          type: 'doc',
+          id: 'usage/resource-validation',
+          label: 'Resource Validation',
         },
       ],
     },

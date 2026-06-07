@@ -13,7 +13,7 @@ This page is about execution tests. If the question is whether a parameters YAML
 resolves before launch, use `validate-parameters` as described in
 [Configuration Reference](../help/configuration-reference). If the question is
 whether a custom resource catalog or installed resource directory is valid, use
-[Resource Validation](resource-validation).
+[Resource Validation](../usage/resource-validation).
 
 ## Minimal Test
 
