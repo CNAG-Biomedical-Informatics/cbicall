@@ -81,30 +81,18 @@ Run it from the directory containing `nf-core-demo.yaml`:
 ../../bin/cbicall run -p nf-core-demo.yaml -t 4 --no-color
 ```
 
-:::tip[Workstation Docker alternative]
-On an x86_64 workstation with Docker installed, change `nfcore_profile` to
-`test,docker`. On HPC, prefer `test,singularity`; Docker is usually unavailable
-inside cluster jobs.
-:::
+<details>
+<summary>Runtime profile, cache, and CPU notes</summary>
 
-:::note[Default Singularity cache]
-For nf-core runs using `singularity`, if neither `NXF_SINGULARITY_CACHEDIR` nor
-`nfcore_singularity_cache_dir` is configured, Nextflow stores pulled images
-inside the run directory, usually under `work/singularity`, and may print:
+| Topic | Recommendation |
+| --- | --- |
+| Workstation Docker | `nfcore_profile: test,docker` is possible on x86_64 hosts with Docker installed. |
+| HPC containers | Prefer `test,singularity`; Docker is usually unavailable inside cluster jobs. |
+| Singularity cache | Set `NXF_SINGULARITY_CACHEDIR` in the shell or `nfcore_singularity_cache_dir` in YAML for repeated runs. |
+| nf-core/demo CPUs | Use at least `-t 4` and request matching scheduler CPUs. |
+| Tiny Sarek chr22 test | Can run with `-t 1`, although larger Sarek runs need appropriate scheduler resources. |
 
-```text
-WARN: Singularity cache directory has not been defined -- Remote image will be stored in the path: <run-dir>/work/singularity
-```
-
-For repeated or production runs, configure the cache explicitly through the
-shell, scheduler environment, or `nfcore_singularity_cache_dir`.
-:::
-
-:::note[CPU requirement]
-`nf-core/demo` includes steps that request more than one CPU. Use at least
-`-t 4` and request matching scheduler CPUs. The tiny Sarek chr22 smoke test can
-run with `-t 1`, but demo generally cannot.
-:::
+</details>
 
 ## Sarek Examples
 
@@ -224,49 +212,19 @@ export PYTHONPATH=/software/biomed/cbi_py3/lib/python3.10/site-packages:$PYTHONP
 The bundled SLURM examples set this directly in the generated job script rather
 than requiring a separate sourced bootstrap.
 
-:::tip[Container profile name]
-Many nf-core configs still use the profile name `singularity`, even when the
-cluster executable is Apptainer. If `test,apptainer` is not accepted by the
-pipeline, use `test,singularity`.
-:::
+<details>
+<summary>Additional HPC and Nextflow notes</summary>
 
-The thread value passed to CBIcall limits the workflow, but it does not allocate
-CPUs from the scheduler. Request enough CPUs in the batch job and pass the same
-value to CBIcall:
+| Issue | Action |
+| --- | --- |
+| Apptainer profile name | Use `test,singularity` if the nf-core pipeline does not accept `test,apptainer`. |
+| Scheduler CPUs | Request CPUs in SLURM and pass the same value to CBIcall, for example `-t "$SLURM_CPUS_PER_TASK"`. |
+| CPU request error | `Process requirement exceeds available CPUs` means the scheduler allocation is too small. |
+| Nextflow 26.04 parser issue | Set `NXF_SYNTAX_PARSER=v1` in the shell. This is not a CBIcall parameter. |
+| Shared cache permission error | Use a user-owned/project-owned cache and set `nfcore_singularity_cache_dir`. |
+| General backend setup | See the [nf-core configuration docs](https://nf-co.re/docs/usage/getting_started/configuration) and [Nextflow container docs](https://www.nextflow.io/docs/latest/container.html). |
 
-```bash
-#SBATCH --cpus-per-task=6
-
-../../bin/cbicall run -p nf-core-demo.yaml -t "$SLURM_CPUS_PER_TASK"
-```
-
-If Nextflow reports:
-
-```text
-Process requirement exceeds available CPUs -- req: 4; avail: 1
-```
-
-the scheduler job was started with too few CPUs. Request at least four CPUs for
-the nf-core/demo smoke test. The tiny Sarek chr22 smoke test can run with
-`-t 1`, but demo generally needs more than one CPU.
-
-:::info[Nextflow syntax parser]
-If Nextflow 26.04 or newer fails while parsing an older nf-core config, run with:
-
-```bash
-export NXF_SYNTAX_PARSER=v1
-```
-
-This is a Nextflow compatibility setting, not a CBIcall parameter.
-:::
-
-:::tip[Container cache]
-If Apptainer/Singularity cannot read an image from a shared Nextflow cache, use a
-user-owned or project-owned cache and point CBIcall to it with
-`nfcore_singularity_cache_dir`. For general container and offline setup, see the
-[nf-core documentation](https://nf-co.re/docs/usage/getting_started/configuration)
-and the [Nextflow container documentation](https://www.nextflow.io/docs/latest/container.html).
-:::
+</details>
 
 ## Logs
 
@@ -283,17 +241,14 @@ cbicall_nextflow_nf-core_<pipeline>_<mode>_<display-genome>_<run_id>/
 For task-level failures, start with `.nextflow.log` and the main CBIcall
 launcher log. Nextflow often reports the task work directory in the error text.
 
-:::tip[Debugging failed nf-core tasks]
-When a task reaches execution, Nextflow usually writes `.command.*` files under
-`work/<hash>/<task>/`. A compact first check is:
+<details>
+<summary>Debug failed nf-core tasks</summary>
 
-```bash
-cd work/<hash>/<task>
-ls -la .command*
-```
+| Check | Command or interpretation |
+| --- | --- |
+| Inspect task files | `cd work/<hash>/<task>` then `ls -la .command*` |
+| `.command.*` exists | The task reached execution; inspect `.command.err`, `.command.out`, or `.command.log`. |
+| `.command.*` absent | The task likely failed before execution, often because scheduler resources were too small. |
+| Generic debugging | See the [Nextflow troubleshooting documentation](https://www.nextflow.io/docs/latest/troubleshooting.html). |
 
-If those files are absent, the task likely failed before execution, commonly
-because the scheduler allocation was smaller than the task request. See the
-[Nextflow troubleshooting documentation](https://www.nextflow.io/docs/latest/troubleshooting.html)
-for generic backend-level debugging.
-:::
+</details>

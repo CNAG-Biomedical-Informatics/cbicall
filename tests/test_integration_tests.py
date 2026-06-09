@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from pathlib import Path
 
 import pytest
+import yaml
 
 from cbicall import integration_tests as integration_mod
 from cbicall.integration_tests import IntegrationTestError, TESTS, validate_contract
@@ -366,3 +367,213 @@ def test_run_release_equivalence_fails_on_vcf_hash_mismatch(tmp_path, monkeypatc
     assert rc == 1
     out = capsys.readouterr().out
     assert "normalized VCF hash differs from Bash baseline" in out
+
+
+
+def test_contract_loader_path_helpers_and_selection_errors(tmp_path):
+    selection = integration_mod.TestSelection("demo", "Demo", "missing.yaml")
+    with pytest.raises(FileNotFoundError):
+        integration_mod.load_contract(tmp_path, selection)
+
+    fixture = tmp_path / "tests" / "fixtures" / "integration"
+    fixture.mkdir(parents=True)
+    (fixture / "bad.yaml").write_text("- not\n- a mapping\n", encoding="utf-8")
+    with pytest.raises(IntegrationTestError, match="must be a mapping"):
+        integration_mod.load_contract(tmp_path, integration_mod.TestSelection("bad", "Bad", "bad.yaml"))
+
+    assert integration_mod._project_path(tmp_path, "relative") == tmp_path / "relative"
+    assert integration_mod._project_path(tmp_path, str(tmp_path / "absolute")) == tmp_path / "absolute"
+    workdir = tmp_path / "work"
+    assert integration_mod._work_path(workdir, "run") == workdir / "run"
+    assert integration_mod._work_path(workdir, str(tmp_path / "run")) == tmp_path / "run"
+    assert integration_mod.list_run_dirs(tmp_path / "missing", "cbicall_*") == []
+    assert integration_mod._parse_run_dir_from_stdout("nothing useful\n") is None
+    assert integration_mod._new_run_dir([], []) is None
+
+
+def test_validate_contract_suffix_contains_and_hash_error_paths(tmp_path):
+    _write_report(tmp_path)
+    report = json.loads((tmp_path / "run-report.json").read_text(encoding="utf-8"))
+    report["links"] = {"report": "sample-report.html", "message": "contains expected token"}
+    (tmp_path / "run-report.json").write_text(json.dumps(report), encoding="utf-8")
+    (tmp_path / "out.txt").write_text("A\nB\n", encoding="utf-8")
+
+    validate_contract(
+        tmp_path,
+        {
+            "json_expectations": [
+                {"path": "links.report", "endswith": "report.html"},
+                {"path": "links.message", "contains": "expected"},
+            ],
+            "hashes": [{"type": "normalized_text", "path": "out.txt", "records": 2, "sha256": _normalized_hash(["A", "B"])}],
+        },
+    )
+
+    with pytest.raises(IntegrationTestError, match="Missing JSON path"):
+        validate_contract(tmp_path, {"json_expectations": [{"path": "links.missing", "equals": "x"}]})
+    with pytest.raises(IntegrationTestError, match="missing file: run-report.json"):
+        validate_contract(tmp_path / "no-report", {"json_expectations": [{"path": "status", "equals": "success"}]})
+    with pytest.raises(IntegrationTestError, match="Hash target does not exist"):
+        validate_contract(tmp_path, {"hashes": [{"path": "missing.txt", "sha256": "x"}]})
+    with pytest.raises(IntegrationTestError, match="Record count mismatch"):
+        validate_contract(tmp_path, {"hashes": [{"path": "out.txt", "records": 3, "sha256": "x"}]})
+    with pytest.raises(IntegrationTestError, match="Unsupported hash type"):
+        validate_contract(tmp_path, {"hashes": [{"path": "out.txt", "type": "md5", "sha256": "x"}]})
+
+
+def test_run_one_handles_inline_parameters_and_missing_run_dir(tmp_path, monkeypatch, capsys):
+    workdir = tmp_path / "examples" / "input"
+    workdir.mkdir(parents=True)
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "cbicall").write_text("#!/bin/sh\n", encoding="utf-8")
+    _write_fixture(
+        tmp_path,
+        "inline.yaml",
+        {
+            "workdir": "examples/input",
+            "workflow_log": "workflow.log",
+            "run": {"parameters": {"mode": "single"}, "base_dir": ".", "run_glob": "cbicall_inline_*"},
+            "required_files": ["run-report.json", "workflow.log"],
+            "cleanup_paths": ["scratch.tmp"],
+        },
+    )
+    selection = integration_mod.TestSelection("inline", "Inline", "inline.yaml")
+
+    def fake_run(cmd, cwd, stdout, stderr, text, check):
+        param_file = Path(cmd[cmd.index("-p") + 1])
+        assert param_file.name.startswith("cbicall-inline.")
+        run_dir = workdir / "cbicall_inline_001"
+        run_dir.mkdir()
+        (run_dir / "run-report.json").write_text(json.dumps({"status": "success"}), encoding="utf-8")
+        (run_dir / "workflow.log").write_text("ok\n", encoding="utf-8")
+        (run_dir / "scratch.tmp").write_text("remove\n", encoding="utf-8")
+        return SimpleNamespace(returncode=0, stdout="Working directory: cbicall_inline_001\n")
+
+    monkeypatch.setattr(integration_mod.subprocess, "run", fake_run)
+    label, status, detail = integration_mod._run_one(
+        project_root=tmp_path,
+        selection=selection,
+        threads=1,
+        runtime_profile="local",
+        skip_missing_optional=False,
+        keep_external_work=False,
+    )
+    assert (label, status) == ("Inline", "passed")
+    assert detail.endswith("cbicall_inline_001")
+    assert not (workdir / "cbicall_inline_001" / "scratch.tmp").exists()
+    assert not list(workdir.glob("cbicall-inline.*.yaml"))
+    assert "Cleaning heavy execution state" in capsys.readouterr().out
+
+    fixture_dir = tmp_path / "tests" / "fixtures" / "integration"
+    (fixture_dir / "no-glob.yaml").write_text(yaml.safe_dump({"run": {"parameter_file": "param.yaml"}}, sort_keys=False), encoding="utf-8")
+    with pytest.raises(IntegrationTestError, match="run_glob"):
+        integration_mod._run_one(
+            project_root=tmp_path,
+            selection=integration_mod.TestSelection("noglob", "NoGlob", "no-glob.yaml"),
+            threads=1,
+            runtime_profile="local",
+            skip_missing_optional=False,
+            keep_external_work=False,
+        )
+
+
+def test_backend_availability_and_selected_tests(monkeypatch):
+    monkeypatch.delenv("CROMWELL_JAR", raising=False)
+    monkeypatch.setattr(integration_mod.shutil, "which", lambda name: None)
+    available, detail = integration_mod._backend_is_available(integration_mod.TESTS["wes-cromwell"])
+    assert available is False
+    assert "CROMWELL_JAR" in detail
+
+    monkeypatch.setenv("CROMWELL_JAR", "/opt/cromwell.jar")
+    assert integration_mod._backend_is_available(integration_mod.TESTS["wes-cromwell"])[0] is True
+
+    args = SimpleNamespace(
+        all=False,
+        wes_bash=True,
+        wes_snakemake=False,
+        wes_nextflow=True,
+        wes_cromwell=False,
+        mit_bash=False,
+        nf_core_demo=True,
+        nf_core_sarek=True,
+    )
+    selected = integration_mod.selected_tests_from_args(args)
+    assert [item.key for item in selected] == ["wes-bash", "wes-nextflow", "nf-core-demo", "nf-core-sarek"]
+
+    args.all = True
+    selected_all = integration_mod.selected_tests_from_args(args)
+    assert "wes-cromwell" in [item.key for item in selected_all]
+    assert "mit-bash" in [item.key for item in selected_all]
+
+
+
+def test_release_helpers_contract_fallback_and_metadata_errors(tmp_path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "run-report.json").write_text(json.dumps({"outputs": {"vcf_hash_reports": []}}), encoding="utf-8")
+    with pytest.raises(IntegrationTestError, match="No normalized VCF hash"):
+        integration_mod._release_vcf_hash(run_dir, {})
+
+    (run_dir / "sample.vcf").write_text("##h\n#CHROM\tPOS\n1\t10\n", encoding="utf-8")
+    contract = {"hashes": [{"type": "normalized_vcf", "path": "sample.vcf"}]}
+    fallback = integration_mod._release_vcf_hash(run_dir, contract)
+    assert fallback["source"] == "integration_contract"
+    assert fallback["normalized_records"] == "1"
+
+    baseline = tmp_path / "baseline"
+    candidate = tmp_path / "candidate"
+    _write_release_report(baseline, backend="bash")
+    _write_release_report(candidate, backend="snakemake")
+    data = json.loads((candidate / "run-report.json").read_text(encoding="utf-8"))
+    data["workflow"]["pipeline"] = "wgs"
+    (candidate / "run-report.json").write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(IntegrationTestError, match="Release metadata mismatch"):
+        integration_mod._check_release_metadata(baseline, candidate)
+
+
+def test_run_release_equivalence_failure_branches(tmp_path, monkeypatch, capsys):
+    def fail_baseline(**kwargs):
+        raise IntegrationTestError("baseline exploded")
+
+    monkeypatch.setattr(integration_mod, "_run_one", fail_baseline)
+    rc = integration_mod.run_release_equivalence_test(project_root=tmp_path, threads=1, runtime_profile="local")
+    assert rc == 1
+    assert "baseline exploded" in capsys.readouterr().out
+
+    bash_run = tmp_path / "bash_run"
+    cromwell_run = tmp_path / "cromwell_run"
+    _write_release_report(bash_run, backend="bash", records="6")
+    _write_release_report(cromwell_run, backend="cromwell", records="7")
+
+    def fake_run_one(**kwargs):
+        selection = kwargs["selection"]
+        if selection.key == "wes-bash":
+            return selection.label, "passed", str(bash_run)
+        if selection.key == "wes-cromwell":
+            return selection.label, "passed", str(cromwell_run)
+        raise AssertionError(selection.key)
+
+    monkeypatch.setattr(integration_mod, "_run_one", fake_run_one)
+    monkeypatch.setattr(integration_mod, "load_contract", lambda project_root, selection: {})
+    monkeypatch.setattr(integration_mod, "_backend_is_available", lambda selection: (selection.key == "wes-cromwell", "missing"))
+    rc = integration_mod.run_release_equivalence_test(project_root=tmp_path, threads=1, runtime_profile="local")
+    assert rc == 1
+    out = capsys.readouterr().out
+    assert "record count differs" in out
+
+
+def test_run_integration_tests_records_failed_summary(tmp_path, monkeypatch, capsys):
+    def fail_one(**kwargs):
+        raise IntegrationTestError("contract failed\nwith detail")
+
+    monkeypatch.setattr(integration_mod, "_run_one", fail_one)
+    rc = integration_mod.run_integration_tests(
+        project_root=tmp_path,
+        selected=[integration_mod.TESTS["wes-bash"]],
+        threads=1,
+        runtime_profile="local",
+    )
+    assert rc == 1
+    out = capsys.readouterr().out
+    assert "ERROR: contract failed" in out
+    assert "WES Bash: failed (contract failed)" in out

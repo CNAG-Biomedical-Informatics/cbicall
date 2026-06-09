@@ -128,7 +128,7 @@ def _multi_workflow_file_value(role: str, report: dict):
     entry = _workflow_file_map(report).get(role)
     if not entry:
         return None
-    return (entry.get("path"), entry.get("sha256"))
+    return entry.get("sha256") or entry.get("path")
 
 
 def _multi_vcf_hash_value(key: str, report: dict):

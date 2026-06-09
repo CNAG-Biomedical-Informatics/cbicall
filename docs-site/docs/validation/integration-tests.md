@@ -81,6 +81,12 @@ repeated runs, see [Run Comparison](run-comparison).
 
 ## Test Matrix
 
+The minimal WES Bash test is the default smoke test. Use the matrix below only
+when checking optional backends or external nf-core examples.
+
+<details>
+<summary>Show all integration-test commands</summary>
+
 | Command | Workflow path | Needs CBIcall bundle? | Extra requirement | Contract check |
 | --- | --- | --- | --- | --- |
 | `bin/cbicall test --wes-bash -t 1` | **Native WES**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | <span className="cbicallTestBadge cbicallTestBadgeNeutral">none</span> | Run report fields, expected files, **normalized VCF hash** |
@@ -93,30 +99,20 @@ repeated runs, see [Run Comparison](run-comparison).
 | `bin/cbicall test --backend-equivalence -t 1` | **Native WES backend equivalence** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | At least one non-Bash native backend available | Bash baseline plus available native WES backends; **same normalized final VCF** required |
 | `bin/cbicall test --all -t 1` | **Native tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Optional backends skipped if missing | Runs WES Bash, WES Snakemake, WES Nextflow, WES Cromwell, and mtDNA contracts |
 
-Useful variants:
+</details>
 
-```bash
-bin/cbicall test --backend-equivalence -t 1 --runtime-profile cnag-hpc
-bin/cbicall test --wes-bash -t 1 --runtime-profile cnag-hpc
-bin/cbicall test --nf-core-demo -t 4 --keep-external-work
-```
+<details>
+<summary>Advanced test flags and backend requirements</summary>
 
-**`--runtime-profile`** is for native CBIcall workflow profiles.
-**`--keep-external-work`** keeps heavy Nextflow state such as `work/` and
-`.nextflow/` after an nf-core contract test so you can inspect task-level
-details.
+| Item | Use |
+| --- | --- |
+| `--runtime-profile cnag-hpc` | Test the same native environment profile used for production runs. |
+| `--keep-external-work` | Keep nf-core/Nextflow `work/` and `.nextflow/` directories for debugging. |
+| Snakemake tests | Require `snakemake` on `PATH`. |
+| Nextflow and nf-core tests | Require `nextflow` on `PATH`; on CNAG HPC load it with `module load Nextflow/25.10.2`. |
+| Cromwell tests | Require `CROMWELL_JAR=/path/to/cromwell.jar` or a `cromwell` launcher on `PATH`. |
 
-:::note[Workflow backend dependencies]
-Snakemake, Nextflow, and Cromwell are not part of the CBIcall resource bundle.
-Install them in the runtime environment before running their backend-specific
-tests. For Cromwell, set `CROMWELL_JAR=/path/to/cromwell.jar` or put a
-`cromwell` launcher on `PATH`.
-For Nextflow or nf-core tests on CNAG HPC, load Nextflow first:
-
-```bash
-module load Nextflow/25.10.2
-```
-:::
+</details>
 
 ## Outputs
 

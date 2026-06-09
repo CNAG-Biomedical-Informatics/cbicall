@@ -1765,3 +1765,74 @@ def test_set_config_values_not_executable_bash_raises(monkeypatch, tmp_path):
         config_mod.set_config_values(
             {"mode": "single", "pipeline": "wes", "workflow_backend": "bash", "software_stack": "gatk-3.5"}
         )
+
+
+
+def test_merge_param_values_rejects_backend_provider_edge_cases():
+    cases = [
+        ({"workflow_backend": "nextflow", "software_stack": "gatk-3.5"}, "nextflow.*gatk-4.6"),
+        ({"workflow_backend": "nextflow", "pipeline": "mit", "software_stack": "gatk-4.6"}, "pipeline='mit'.*nextflow"),
+        ({"workflow_backend": "cromwell", "workflow_provider": "nf-core", "software_stack": "gatk-4.6"}, "nf-core.*nextflow"),
+        ({"workflow_backend": "cromwell", "software_stack": "gatk-3.5"}, "cromwell.*gatk-4.6"),
+        ({"workflow_backend": "cromwell", "pipeline": "mit", "software_stack": "gatk-4.6"}, "WES/WGS"),
+        ({"workflow_provider": "nf-core", "workflow_backend": "bash", "pipeline": "sarek", "nfcore_profile": "test"}, "nf-core.*nextflow"),
+        ({"workflow_provider": "nf-core", "workflow_backend": "nextflow", "pipeline": "sarek", "genome": "b37", "nfcore_profile": "test"}, "genome.*external"),
+        ({"workflow_provider": "", "workflow_backend": "bash"}, "workflow_provider.*non-empty"),
+        ({"workflow_provider": "nf-core", "workflow_backend": "nextflow", "pipeline": "", "nfcore_profile": "test"}, "pipeline must be a non-empty"),
+    ]
+    for params, pattern in cases:
+        with pytest.raises(ParameterValidationError, match=pattern):
+            config_mod._merge_and_validate_param_values({"mode": "single", "pipeline": "wes", "software_stack": "gatk-4.6", **params})
+
+
+def test_merge_param_values_rejects_backend_parameter_edge_cases():
+    cases = [
+        ({"snakemake_parameters": []}, "snakemake_parameters must be a mapping"),
+        ({"nextflow_parameters": []}, "nextflow_parameters must be a mapping"),
+        ({"cromwell_parameters": []}, "cromwell_parameters must be a mapping"),
+        ({"snakemake_parameters": {"target": "rule"}, "workflow_backend": "bash"}, "snakemake_parameters requires"),
+        ({"nextflow_parameters": {"foo": "bar"}, "workflow_backend": "bash"}, "nextflow_parameters requires"),
+        ({"workflow_provider": "nf-core", "workflow_backend": "nextflow", "pipeline": "sarek", "nfcore_profile": "test", "nextflow_parameters": {"foo": "bar"}}, "native workflow_backend='nextflow'"),
+        ({"cromwell_parameters": {"foo": "bar"}, "workflow_backend": "bash"}, "cromwell_parameters requires"),
+        ({"workflow_backend": "snakemake", "snakemake_parameters": {"target": "   "}}, "target must be"),
+        ({"workflow_backend": "snakemake", "snakemake_parameters": {"genome": "b37"}}, "snakemake_parameters cannot set"),
+        ({"workflow_backend": "nextflow", "nextflow_parameters": {"threads": 1}}, "nextflow_parameters cannot set"),
+        ({"workflow_backend": "cromwell", "cromwell_parameters": {"ref": "x"}}, "cromwell_parameters cannot set"),
+    ]
+    for params, pattern in cases:
+        with pytest.raises(ParameterValidationError, match=pattern):
+            config_mod._merge_and_validate_param_values({"mode": "single", "pipeline": "wes", "software_stack": "gatk-4.6", **params})
+
+
+def test_merge_param_values_rejects_resource_profile_and_nfcore_edges(tmp_path):
+    cases = [
+        ({"resource": None}, "resource cannot be null"),
+        ({"resource": "   "}, "resource must be"),
+        ({"profile": None}, "profile cannot be null"),
+        ({"profile": "   "}, "profile must be"),
+        ({"registry_version": "   "}, "registry_version must be"),
+        ({"nfcore_profile": "test"}, "nfcore_profile.*nf-core"),
+        ({"nfcore_parameters": {"genome": "test"}}, "nfcore_profile.*nf-core"),
+        ({"nfcore_singularity_cache_dir": "cache"}, "nfcore_singularity_cache_dir.*nf-core"),
+        ({"workflow_provider": "nf-core", "workflow_backend": "nextflow", "pipeline": "sarek"}, "requires 'nfcore_profile'"),
+        ({"workflow_provider": "nf-core", "workflow_backend": "nextflow", "pipeline": "sarek", "nfcore_profile": "test", "nfcore_parameters": []}, "nfcore_parameters must be"),
+        ({"workflow_provider": "nf-core", "workflow_backend": "nextflow", "pipeline": "sarek", "nfcore_profile": "test", "nfcore_parameters": {"outdir": "x"}}, "cannot set CBIcall-controlled"),
+        ({"workflow_provider": "nf-core", "workflow_backend": "nextflow", "pipeline": "sarek", "nfcore_profile": "test", "nfcore_singularity_cache_dir": "   "}, "must be a non-empty path"),
+    ]
+    for params, pattern in cases:
+        with pytest.raises(ParameterValidationError, match=pattern):
+            config_mod._merge_and_validate_param_values({"mode": "single", "pipeline": "wes", "software_stack": "gatk-4.6", **params})
+
+    existing = tmp_path / "regions.bed"
+    existing.write_text("chr1\t1\t2\n", encoding="utf-8")
+    resolved = config_mod._resolve_nfcore_param_paths(
+        {"input": "gs://bucket/input.csv", "list": ["missing.txt", existing.name], "nested": {"uri": "s3://bucket/ref.fa"}},
+        tmp_path,
+    )
+    assert resolved["input"] == "gs://bucket/input.csv"
+    assert resolved["list"][0] == "missing.txt"
+    assert resolved["list"][1] == str(existing.resolve())
+    assert resolved["nested"]["uri"] == "s3://bucket/ref.fa"
+    assert config_mod._path_label(" GATK/GRCh38:test ") == "GATK-GRCh38-test"
+    assert config_mod._path_label(None) == "no-genome"
+    assert config_mod._display_genome({"workflow_provider": "nf-core", "nfcore_parameters": {}}) == "no-genome"

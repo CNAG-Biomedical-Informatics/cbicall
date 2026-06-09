@@ -1,40 +1,35 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # Run Comparison
 
 `cbicall compare-runs` compares completed CBIcall run directories or
-`run-report.json` files. It is intended for reproducibility checks across
-repeated local runs, HPC runs, container runs, or cloud runs.
+`run-report.json` files. Use it to audit whether repeated local, HPC,
+container, cloud, or backend runs used the same framework, workflow, resources,
+execution contract, and comparable outputs.
 
-The command **does not try to prove that two biological analyses are equivalent**.
-It gives an audit trail for the framework layer: which CBIcall version ran,
-which registered pipeline was resolved, which backend-ready execution contract was launched, which workflow files were executed,
-which resource identity was selected, and whether normalized VCF output
-fingerprints and output file inventories match when available.
+:::note[Audit, not biological validation]
+`compare-runs` does **not** prove that two biological analyses are equivalent.
+It checks the CBIcall execution and output evidence recorded for completed runs.
+For variant-output reproducibility, start with the normalized VCF fingerprint.
+:::
 
-## Minimal Audit
+## Run It
+
+<Tabs groupId="compare-runs">
+<TabItem value="two-runs" label="Two runs" default>
 
 ```bash
 bin/cbicall compare-runs run_a/ run_b/ --output compare-report.txt
 ```
 
-Keep these files from each completed run:
+This prints a direct pairwise comparison and writes `compare-report.html` by
+default.
 
-| File | Why it matters |
-| --- | --- |
-| `run-report.json` | Compact provenance report used by `compare-runs`. |
-| `log.json` | Full resolved configuration, runtime parameters, and resource details. |
-| `cbicall-execution-contract.json` | Concrete backend-ready command, generated launch files, and normalized execution fingerprint. |
-| Workflow log | Execution log for the selected Bash, Snakemake, Nextflow, or Cromwell backend. |
-| `03_stats/*.vcf.sha256.txt` | Normalized VCF fingerprint report when produced by the workflow. |
+![Screenshot of a two-run CBIcall compare-runs HTML report, showing the overview for a Bash versus Snakemake comparison.](/img/compare-runs-two-overview.png)
 
-For a concise methods audit, archive `compare-report.txt`,
-`compare-report.html`, and the compared `run-report.json` files. The HTML report
-is written by default for manual browsing and contains the same comparison
-content as the text report.
-
-With two runs, CBIcall prints a direct pairwise comparison. With three or more
-runs, CBIcall prints both a baseline comparison and an all-to-all matrix. The
-first run is still used as the baseline for the baseline view, while the
-all-to-all view checks every pair of runs:
+</TabItem>
+<TabItem value="multiple-runs" label="Three or more runs">
 
 ```bash
 bin/cbicall compare-runs baseline_run/ repeat_1/ repeat_2/ repeat_3/ \
@@ -42,153 +37,151 @@ bin/cbicall compare-runs baseline_run/ repeat_1/ repeat_2/ repeat_3/ \
   --output compare-report.txt
 ```
 
-Use `--comparison-view baseline`, `--comparison-view all-to-all`, or
-`--comparison-view both` when you want to force one report shape. Without this
-option, the default is `baseline` for two runs and `both` for three or more
-runs.
+With three or more runs, CBIcall prints both a baseline comparison and an
+all-to-all matrix. Use aliases when run-directory names are long or opaque.
 
-## What Is Compared
+![Screenshot of a four-run CBIcall compare-runs HTML report, showing the overview for Bash, Snakemake, Nextflow, and Cromwell runs.](/img/compare-runs-multi-overview.png)
 
-| Layer | Fields |
-| --- | --- |
-| Framework | CBIcall version, Python version, Java version, configured native Java version, and workflow backend version recorded in `run-report.json`. |
-| Pipeline | Workflow key, registry version, entrypoint, and workflow fingerprint. |
-| Execution | Task count and peak RAM summaries when the backend provides an execution trace. |
-| Execution contract | Normalized execution-contract fingerprint, normalized command fingerprint, and generated backend launch-file hashes. |
-| Software | Software-version fingerprint when available. Native runs use declared tool versions from the resource catalog; nf-core runs use the workflow-reported software versions YAML. |
-| Workflow files | Entrypoint and helper/config file paths plus their SHA-256 values. |
-| Resources | Resource key and resource fingerprint from the selected resource catalog entry. |
-| Outputs | Run-directory file inventory fingerprint, human-readable recorded size, and normalized VCF fingerprints from native `03_stats/*.vcf.sha256.txt` files or registry-declared canonical external VCFs. |
+![Screenshot of the Baseline Matrix tab in a four-run CBIcall compare-runs HTML report.](/img/compare-runs-multi-baseline-matrix.png)
 
-:::note[Runtime fingerprints]
-Workflow and resource fingerprints are **computed at runtime** from the files and
-catalog entries actually resolved for the run. CBIcall deliberately does not
-store expected workflow hashes in the workflow registry or resource catalog:
-otherwise every harmless comment or formatting edit in a workflow script would
-force metadata churn before the next run.
-:::
+![Screenshot of the Pairwise Audit tab in a four-run CBIcall compare-runs HTML report, showing one NxN matrix per audit layer.](/img/compare-runs-multi-pairwise-audit.png)
 
-The workflow fingerprint is computed from the resolved workflow files. Any byte
-change in the entrypoint, helpers, Snakefile, or config files changes this
-fingerprint, including comment-only edits. This is deliberate: it tells the
-auditor that the implementation used for the second run was not exactly the same
-implementation used for the first run.
-
-The execution-contract fingerprint is computed from the backend-ready execution
-plan after replacing the run directory and run ID with placeholders. This lets
-repeat runs compare as the same execution contract even though their output
-directories and run IDs differ. Generated backend files, such as nf-core params
-files or Cromwell inputs/options JSON files, are listed separately with their own
-normalized hashes.
-
-When execution-trace evidence is available, CBIcall records the task count and
-peak RSS/VMEM summary. This is currently derived from Nextflow/nf-core
-`execution_trace_*.txt` files. Native Bash RAM use cannot be reconstructed unless
-the workflow is explicitly instrumented to record it.
-
-When software-version evidence is available, CBIcall records a separate
-fingerprint. For native workflows, this is based on the tool-version metadata
-declared by the selected resource catalog entry. For nf-core workflows, it is
-based on the software-version YAML generated by the workflow under
-`pipeline_info/`.
-
-The output fingerprint is different. It is computed from **normalized VCF records**,
-not from the raw VCF file bytes. This avoids reporting false differences caused
-only by VCF header timestamps, command lines, or compression metadata.
-
-For external nf-core workflows, CBIcall uses canonical output patterns declared
-in the workflow registry. For example, the Sarek registry entry points to the
-HaplotypeCaller VCF under `sarek/variant_calling/haplotypecaller/`, so repeated
-Sarek runs can be audited without hard-coding Sarek paths in `compare-runs`.
-
-The file inventory fingerprint is path-based, not content-based. It hashes the
-sorted list of relative file paths in the run directory, excluding
-`run-report.json` itself. CBIcall also records the total bytes represented by
-that inventory and the largest files, rendering them in human-readable units in
-HTML/text reports. This is useful for storage audits but is not used as the
-primary reproducibility fingerprint.
-
-The status vocabulary is intentionally small:
-
-| Status | Meaning |
-| --- | --- |
-| `same` | Values or fingerprints match. |
-| `different` | Values or fingerprints exist in all compared runs but differ. |
-| `missing` | Evidence is present in only some runs. |
-| `not available` | Evidence is not recorded in any compared run. |
-
-## How To Read The Result
-
-Use this order when auditing two runs:
-
-1. Check **Framework**. A different CBIcall version means the execution driver
-   changed between runs. A different Python or workflow backend version means
-   the runtime stack changed.
-2. Check **Execution** if a trace is available. Different task counts or peak
-   RAM values usually indicate a backend/runtime difference or a changed workflow
-   execution path.
-3. Check **Execution Contract**. A different contract or command hash means
-   CBIcall launched a different backend-ready plan, even if the same workflow
-   files were selected.
-4. Check **Pipeline**, **Software**, and **Workflow files**. A different
-   workflow fingerprint means the resolved workflow implementation changed. A
-   different software-version fingerprint means the declared or workflow-reported
-   tool table changed. Inspect the listed file fingerprints to locate a changed
-   workflow file.
-5. Check **Resources**. A different resource key or hash means the selected
-   external dependency set was not the same.
-6. Check **Outputs**. A different file inventory means the run directories do
-   not contain the same relative file layout. Matching normalized VCF
-   fingerprints indicate that the
-   compared variant records match under CBIcall's deterministic VCF comparison
-   rules.
-
-If the workflow fingerprint changed but the normalized VCF fingerprint is the
-same, the two runs produced the same compared VCF records despite an
-implementation text change. That is useful audit evidence, but the change should
-still be inspected before claiming full execution identity.
-
-## Reports
-
-The text report is the canonical audit artifact because it is easy to diff,
-archive, and attach to review material. The HTML report is generated by default
-as a static rendering of the same information for browsing, with tabs for the
-overview, baseline matrix, all-to-all matrix when applicable, evidence tables,
-and raw text report.
-
-The **Baseline Matrix** tab is useful for reference-run audits. Rows correspond
-to framework, workflow, resource, execution, and output fields; columns
-correspond to compared runs; and each cell shows whether that run is `same`,
-`different`, `missing`, `note`, or `not available` relative to the baseline.
-
-The **All-to-All** tab appears when the report includes all-to-all comparison. It
-shows heatmap-style N x N matrices for the overall audit and for each audit
-layer, including a dedicated final-VCF matrix when VCF fingerprints are
-available. Use `--alias` to make opaque run directories readable in both text
-and HTML reports.
-
-The **Evidence** tab is intentionally less visual. It keeps the baseline
-field-level values and compact fingerprints in table form so the heatmaps remain
-for scanning and the evidence remains for inspection. The **Raw Text** tab keeps
-the complete terminal-style report, including all-to-all text summaries.
-
-When `--output compare-report.txt` is used, the default HTML path is
-`compare-report.html`. Without `--output`, CBIcall writes `compare-runs.html` in
-the current directory. Use `--html custom-name.html` to choose another path, or
-`--no-html` for automation that only needs stdout or the text report.
-
-Use `--multiqc` to write a MultiQC custom-content YAML summary of the same
-comparison. With `--output compare-report.txt`, the default path is
-`compare-report_mqc.yaml`; otherwise it is `compare-runs_mqc.yaml`. Render it
-with standard MultiQC:
+</TabItem>
+<TabItem value="multiqc" label="MultiQC summary">
 
 ```bash
 bin/cbicall compare-runs run_local/ run_cloud/ run_hpc/ \
   --alias local cloud hpc \
   --output compare-report.txt \
   --multiqc
-multiqc compare-report_mqc.yaml
+multiqc compare-report_mqc/
 ```
+
+`--multiqc` writes a custom-content directory with numeric per-run statistics,
+pairwise status/similarity categories, aggregate status counts, and an overall
+audit-similarity heatmap. The CBIcall HTML report remains the detailed audit
+view.
+
+![Screenshot of a MultiQC report generated from CBIcall compare-runs custom content, showing the General Statistics table and CBIcall sections.](/img/multiqc-cbicall-overview.png)
+
+![Screenshot of the CBIcall audit similarity heatmap rendered in a standard MultiQC report.](/img/multiqc-cbicall-heatmap.png)
+
+</TabItem>
+</Tabs>
+
+## Keep These Files
+
+For a concise methods or reviewer audit, archive the comparison report plus the
+run reports that were compared.
+
+| File | Why it matters |
+| --- | --- |
+| `compare-report.txt` | Canonical text audit artifact; easy to diff and archive. |
+| `compare-report.html` | Static browser view with overview, matrices, evidence, and raw text. |
+| `run-report.json` | Compact provenance report used by `compare-runs`. |
+| `log.json` | Full resolved configuration, runtime parameters, and resource details. |
+| `cbicall-execution-contract.json` | Backend-ready command, generated launch files, and normalized execution fingerprint. |
+| Workflow log | Execution log for Bash, Snakemake, Nextflow, or Cromwell. |
+| `03_stats/*.vcf.sha256.txt` | Normalized VCF fingerprint report when produced by the workflow. |
+
+## What Is Compared
+
+| Layer | Main evidence |
+| --- | --- |
+| Framework | CBIcall, Python, Java, configured native Java, and backend versions. |
+| Pipeline | Workflow key, registry version, entrypoint, external release, and workflow fingerprint. |
+| Execution | Task count and peak RSS/VMEM when the backend provides an execution trace. |
+| Execution contract | Normalized execution-contract fingerprint, command fingerprint, and generated launch-file hashes. |
+| Software | Software-version fingerprint from the resource catalog or workflow-reported version table. |
+| Workflow files | Entrypoint and helper/config file paths plus SHA-256 values. |
+| Resources | Resource key, version, and fingerprint from the selected resource catalog entry. |
+| Outputs | File-inventory fingerprint, inventory size, and normalized VCF fingerprints. |
+
+:::tip[Most important output check]
+For output reproducibility, prioritize the **normalized VCF fingerprint**. It is
+computed from VCF records, not raw compressed bytes, so header timestamps,
+command lines, and compression metadata do not create false differences.
+:::
+
+## Read The HTML
+
+The text report is the canonical artifact, but the HTML report is easier to scan:
+
+| Tab | Use it for |
+| --- | --- |
+| Overview | Quick run count, status summary, and high-level differences. |
+| Baseline Matrix | Field-by-field comparison against the first run, when the report includes a baseline view. |
+| Pairwise Audit | One NxN matrix per audit layer, shown for multi-run all-to-all reports; each cell shows a derived category plus Jaccard similarity. |
+| Evidence | Baseline values and compact fingerprints behind the visual summaries. |
+| Raw Text | Exact terminal-style report embedded in the HTML. |
+
+:::note[Pairwise audit]
+The **Pairwise Audit** tab combines the two comparison signals in one matrix.
+Each cell combines CBIcall's strict pair status with a Jaccard similarity score
+over normalized report facts for the same run pair and audit layer. The visible
+category is derived for readability: `same`, `near`, `partial`, `diverged`,
+`missing`, or `n/a`; the hover text keeps the exact strict status. This helps
+triage and cluster comparable runs, but it does not replace exact hash
+comparisons or biological concordance analyses.
+:::
+
+## Interpret Differences
+
+Use this order when reading a comparison:
+
+1. Check **Framework** and **Software** to see whether the driver, runtime, or tool table changed.
+2. Check **Execution Contract** to confirm CBIcall launched the same backend-ready plan.
+3. Check **Pipeline** and **Workflow files** to locate changed workflow code or config.
+4. Check **Resources** to confirm the external dependency bundle matches.
+5. Check **Outputs**, especially the normalized VCF fingerprint.
+
+If the workflow fingerprint changed but the normalized VCF fingerprint is the
+same, the compared VCF records match under CBIcall's deterministic comparison
+rules. The workflow change should still be inspected before claiming full
+execution identity.
+
+:::info[Advanced view override]
+The default report shape is usually the right one: two runs get a direct
+comparison, and three or more runs get baseline plus all-to-all views. Use
+`--comparison-view baseline`, `--comparison-view all-to-all`, or
+`--comparison-view both` only when you need to force a specific report shape for
+an automated audit or manuscript figure.
+:::
+
+## Status Vocabulary
+
+| Status | Meaning |
+| --- | --- |
+| `same` | Values or fingerprints match. |
+| `different` | Values or fingerprints exist in all compared runs but differ. |
+| `missing` | Evidence is present in only some runs. |
+| `note` | Audit hint; not treated as a failed reproducibility check. |
+| `not available` | Evidence is not recorded in any compared run. |
+
+## Fingerprint Notes
+
+:::note[Runtime fingerprints]
+Workflow and resource fingerprints are computed at runtime from the files and
+catalog entries actually resolved for the run. CBIcall deliberately does not
+store expected workflow hashes in the registry or catalog, because harmless
+comment or formatting edits would otherwise require metadata churn.
+:::
+
+The execution-contract fingerprint is normalized by replacing the run directory
+and run ID with placeholders. This lets repeated runs compare as the same
+contract even when their output directories differ.
+
+For external nf-core workflows, CBIcall uses canonical output patterns declared
+in the workflow registry. For example, the Sarek entry points to the
+HaplotypeCaller VCF under `sarek/variant_calling/haplotypecaller/`, so repeated
+Sarek runs can be audited without hard-coding Sarek paths in `compare-runs`.
+
+The file-inventory fingerprint is path-based, not content-based. It hashes the
+sorted list of relative file paths in the run directory, excluding generated
+report files and backend work directories. Use it to audit run-directory layout;
+use normalized VCF hashes to audit compared variant records.
+
+## Inspect One Run
 
 To inspect one completed run without rerunning the workflow:
 
@@ -196,10 +189,8 @@ To inspect one completed run without rerunning the workflow:
 bin/cbicall report completed_run/
 ```
 
-This is read-only by default: it reads the existing `run-report.json` and prints
-a compact terminal summary without rewriting JSON or HTML.
-
-Use explicit flags when you want artifacts to be generated or refreshed:
+This is read-only by default. Add explicit flags when you want artifacts to be
+generated or refreshed:
 
 ```bash
 bin/cbicall report completed_run/ --html
@@ -208,20 +199,5 @@ bin/cbicall report completed_run/ --refresh --html -O
 ```
 
 `--html` writes `run-report.html`; `--refresh` updates output-derived metadata
-such as the file inventory and VCF hash sidecars in `run-report.json`.
-Existing files are not replaced unless `-O/--overwrite` is supplied. Use
-`--json` when automation needs structured metadata on stdout.
-
-![Screenshot of the CBIcall HTML run comparison report showing the combined status KPI and legend row, overview cards, and detailed comparison tabs.](/img/compare-runs-html-report.png)
-
-## Interpretation
-
-A changed workflow fingerprint means the resolved workflow files are not
-byte-identical. That is audit evidence, not automatically a failed analysis. For
-example, editing a comment in a Bash workflow changes the workflow hash but may
-leave the normalized VCF fingerprint unchanged.
-
-For output reproducibility, prioritize the **normalized VCF fingerprint**. Use
-the **file inventory fingerprint** to audit whether the run directory layout
-matches. For
-implementation provenance, inspect the **workflow and helper file fingerprints**.
+such as the file inventory and VCF hash sidecars in `run-report.json`. Existing
+files are not replaced unless `-O/--overwrite` is supplied.

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Optional
 from urllib.parse import quote
 
+from .audit_similarity import build_audit_similarity, qualitative_similarity_label
 from .cli_output import _format_duration, _short_path
 from .report_utils import (
     _aggregate_status,
@@ -1078,47 +1079,84 @@ def _pairwise_section_status(section: dict, left: dict, right: dict) -> tuple:
     return status, counts, summary or status
 
 
-def _all_to_all_matrix_html(reports: Optional[List[dict]], comparison_view: str = "baseline") -> str:
-    if not reports or len(reports) < 2 or comparison_view not in {"all-to-all", "both"}:
+def _similarity_score_label(score) -> str:
+    if score is None:
+        return "n/a"
+    return f"{score:.2f}"
+
+
+def _pairwise_audit_html(reports: Optional[List[dict]]) -> str:
+    if not reports or len(reports) < 2:
         return ""
 
     labels = [_matrix_run_label(report) for report in reports]
-    section_cards = []
+    similarity = build_audit_similarity(reports)
+    similarity_by_layer = {layer["name"]: layer for layer in similarity["layers"]}
+    headers = "".join(f"<th>{html.escape(label)}</th>" for label in labels)
+    cards = []
     for section in _comparison_sections_with_overall(reports):
-        headers = "".join(f"<th>{html.escape(label)}</th>" for label in labels)
+        layer = similarity_by_layer.get(section["section"])
         rows = []
         section_counts = {"same": 0, "different": 0, "missing": 0, "note": 0, "unavailable": 0}
         for left_index, left_report in enumerate(reports):
             cells = [f"<th>{html.escape(labels[left_index])}</th>"]
             for right_index, right_report in enumerate(reports):
+                sim_cell = layer["rows"][left_index][right_index] if layer else {"score": None, "shared": 0, "union": 0, "different": []}
+                score_label = _similarity_score_label(sim_cell.get("score"))
                 if left_index == right_index:
-                    cells.append('<td class="nxn-cell self"><span>self</span></td>')
+                    cells.append(
+                        '<td class="pairwise-cell self" title="Self comparison">'
+                        '<span class="pairwise-status">self</span>'
+                        f'<span class="pairwise-score">{html.escape(score_label)}</span>'
+                        '</td>'
+                    )
                     continue
                 status_class, counts, detail = _pairwise_section_status(section, left_report, right_report)
                 section_counts[status_class] = section_counts.get(status_class, 0) + 1
+                display_label = qualitative_similarity_label(status_class, sim_cell.get("score"))
+                display_class = "na" if display_label == "n/a" else display_label
+                title = (
+                    f"{labels[left_index]} vs {labels[right_index]}: strict status {status_class}; {detail}; "
+                    f"Jaccard {score_label}; shared {sim_cell.get('shared', 0)}/{sim_cell.get('union', 0)}"
+                )
+                if sim_cell.get("different"):
+                    title += "; similarity differs: " + "; ".join(sim_cell["different"])
                 cells.append(
-                    f'<td class="nxn-cell {status_class}" '
-                    f'title="{html.escape(labels[left_index])} vs {html.escape(labels[right_index])}: {html.escape(detail)}">'
-                    f'<span>{html.escape(_matrix_cell_label(status_class))}</span>'
+                    f'<td class="pairwise-cell strict-{html.escape(status_class)} cat-{html.escape(display_class)} sim-{html.escape(sim_cell.get("status", "unavailable"))}" '
+                    f'title="{html.escape(title)}">'
+                    f'<span class="pairwise-status">{html.escape(display_label)}</span>'
+                    f'<span class="pairwise-score">{html.escape(score_label)}</span>'
                     '</td>'
                 )
             rows.append("<tr>" + "".join(cells) + "</tr>")
-        section_cards.append(
-            '<section class="nxn-card">'
-            f'<h3>{html.escape(section["section"])}{_matrix_group_summary_html(section_counts)}</h3>'
-            '<div class="matrix-wrap"><table class="nxn-table">'
+
+        summary_items = _matrix_group_summary_html(section_counts)
+        if layer:
+            summary_items = summary_items.replace(
+                '</span></span>',
+                f'</span><span>median {_similarity_score_label(layer["summary"].get("median"))}</span></span>',
+                1,
+            )
+        cards.append(
+            '<section class="pairwise-card">'
+            f'<h3>{html.escape(section["section"])}{summary_items}</h3>'
+            '<div class="matrix-wrap"><table class="pairwise-table">'
             '<thead><tr><th>Run</th>' + headers + '</tr></thead>'
             '<tbody>' + "".join(rows) + '</tbody>'
             '</table></div>'
             '</section>'
         )
 
+    legend = (
+        _matrix_legend_html("all-to-all") +
+        '<div class="matrix-legend similarity-note"><span><b>score</b>Jaccard similarity, 1.00 means identical normalized audit facts for that layer</span></div>'
+    )
     return (
-        '<section class="nxn-section">'
-        '<h2>All-to-All Reproducibility Matrix</h2>'
-        '<p class="section-note">Each cell compares one run against another for the selected audit layer. Use this view to detect reproducibility clusters rather than only differences from the first run.</p>'
-        + _matrix_legend_html("all-to-all") +
-        '<div class="nxn-grid">' + "".join(section_cards) + '</div>'
+        '<section class="pairwise-section">'
+        '<h2>Pairwise Audit Matrix</h2>'
+        '<p class="section-note">Each cell combines the strict qualitative status with the quantitative Jaccard similarity score for the same run pair and audit layer. Use this as a triage view; exact fingerprints remain in Evidence.</p>'
+        + legend +
+        '<div class="pairwise-grid">' + "".join(cards) + '</div>'
         '</section>'
     )
 
@@ -1213,14 +1251,14 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
     )
     details = "\n          ".join(section_html)
     matrix_html = _compare_matrix_html(reports) if comparison_view in {"baseline", "both"} else ""
-    all_to_all_html = _all_to_all_matrix_html(reports, comparison_view)
+    pairwise_html = _pairwise_audit_html(reports)
     raw_report = html.escape(report_text)
     matrix_tab_input = '<input type="radio" name="compare-tabs" id="tab-matrix">' if matrix_html else ""
     matrix_tab_label = '<label for="tab-matrix">Baseline Matrix</label>' if matrix_html else ""
     matrix_tab_panel = '<div class="tab-panel matrix-panel">' + matrix_html + '</div>' if matrix_html else ""
-    all_to_all_tab_input = '<input type="radio" name="compare-tabs" id="tab-alltoall">' if all_to_all_html else ""
-    all_to_all_tab_label = '<label for="tab-alltoall">All-to-All</label>' if all_to_all_html else ""
-    all_to_all_tab_panel = '<div class="tab-panel alltoall-panel">' + all_to_all_html + '</div>' if all_to_all_html else ""
+    pairwise_tab_input = '<input type="radio" name="compare-tabs" id="tab-pairwise">' if pairwise_html else ""
+    pairwise_tab_label = '<label for="tab-pairwise">Pairwise Audit</label>' if pairwise_html else ""
+    pairwise_tab_panel = '<div class="tab-panel pairwise-panel">' + pairwise_html + '</div>' if pairwise_html else ""
 
     return """<!doctype html>
 <html lang="en">
@@ -1355,7 +1393,7 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
     }
     #tab-overview:checked ~ .tab-labels label[for="tab-overview"],
     #tab-matrix:checked ~ .tab-labels label[for="tab-matrix"],
-    #tab-alltoall:checked ~ .tab-labels label[for="tab-alltoall"],
+    #tab-pairwise:checked ~ .tab-labels label[for="tab-pairwise"],
     #tab-details:checked ~ .tab-labels label[for="tab-details"],
     #tab-raw:checked ~ .tab-labels label[for="tab-raw"] {
       background: var(--accent);
@@ -1367,7 +1405,7 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
     }
     #tab-overview:checked ~ .tab-panels .overview-panel,
     #tab-matrix:checked ~ .tab-panels .matrix-panel,
-    #tab-alltoall:checked ~ .tab-panels .alltoall-panel,
+    #tab-pairwise:checked ~ .tab-panels .pairwise-panel,
     #tab-details:checked ~ .tab-panels .details-panel,
     #tab-raw:checked ~ .tab-panels .raw-panel {
       display: block;
@@ -1661,6 +1699,235 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
       background: #eef1f5;
       color: #475569;
     }
+    .matrix-swatch.high { background: #d7f3f0; }
+    .matrix-swatch.medium { background: #fff0b8; }
+    .matrix-swatch.low { background: #ffd6d6; }
+    .similarity-section > .section-note {
+      padding-bottom: 0;
+    }
+    .similarity-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      padding: 0 16px 16px;
+    }
+    .similarity-card {
+      margin: 0;
+      border-color: #d7e4fb;
+      background: linear-gradient(180deg, #ffffff, #fbfdff);
+      box-shadow: 0 12px 28px rgba(16, 24, 40, 0.05);
+    }
+    .similarity-card:first-child {
+      grid-column: 1 / -1;
+      border-color: #9ec5fe;
+    }
+    .similarity-card h3 {
+      margin: 0;
+      padding: 10px 12px;
+      border-bottom: 1px solid #d7e4fb;
+      background: linear-gradient(90deg, #eef4ff, #f8fbff);
+      color: #1e3a8a;
+      font-size: 13px;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .similarity-card .matrix-group-counts {
+      float: right;
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .similarity-card .matrix-group-counts span {
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid #d7e4fb;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .similarity-table {
+      min-width: 430px;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .similarity-table th,
+    .similarity-table td {
+      width: 92px;
+      padding: 8px 9px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      text-align: center;
+      white-space: nowrap;
+    }
+    .similarity-table th:first-child {
+      width: 128px;
+      text-align: left;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: #fbfdff;
+      box-shadow: 7px 0 14px rgba(16, 24, 40, 0.04);
+    }
+    .similarity-table thead th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      text-transform: uppercase;
+    }
+    .similarity-cell {
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.72);
+    }
+    .similarity-cell span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.66);
+      padding: 3px 7px;
+    }
+    .similarity-cell.self { background: #eff6ff; color: #1d4ed8; }
+    .similarity-cell.same { background: #dff5e8; color: #166534; }
+    .similarity-cell.high { background: #d7f3f0; color: #0f766e; }
+    .similarity-cell.medium { background: #fff0b8; color: #92400e; }
+    .similarity-cell.low { background: #ffd6d6; color: #991b1b; }
+    .similarity-cell.unavailable { background: #eef1f5; color: #475569; }
+    .pairwise-section > .section-note {
+      padding-bottom: 0;
+    }
+    .pairwise-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      padding: 0 0 14px;
+    }
+    .pairwise-card {
+      margin: 0 16px;
+      border-color: #d7e4fb;
+      background: linear-gradient(180deg, #ffffff, #fbfdff);
+      box-shadow: 0 12px 28px rgba(16, 24, 40, 0.05);
+    }
+    .pairwise-card:first-child {
+      border-color: #9ec5fe;
+    }
+    .pairwise-card h3 {
+      margin: 0;
+      padding: 10px 12px;
+      border-bottom: 1px solid #d7e4fb;
+      background: linear-gradient(90deg, #eef4ff, #f8fbff);
+      color: #1e3a8a;
+      font-size: 13px;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .pairwise-card .matrix-group-counts {
+      float: right;
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .pairwise-card .matrix-group-counts span {
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid #d7e4fb;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .pairwise-table {
+      min-width: 560px;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .pairwise-table th,
+    .pairwise-table td {
+      width: 120px;
+      padding: 8px 9px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      text-align: center;
+      white-space: nowrap;
+    }
+    .pairwise-table th:first-child {
+      width: 140px;
+      text-align: left;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: #fbfdff;
+      box-shadow: 7px 0 14px rgba(16, 24, 40, 0.04);
+    }
+    .pairwise-table thead th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      text-transform: uppercase;
+    }
+    .pairwise-cell {
+      box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.76);
+    }
+    .pairwise-status,
+    .pairwise-score {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 3px 7px;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .pairwise-status {
+      min-width: 48px;
+      background: rgba(255, 255, 255, 0.68);
+    }
+    .pairwise-score {
+      min-width: 42px;
+      margin-left: 5px;
+      background: rgba(15, 23, 42, 0.08);
+      color: #0f172a;
+    }
+    .pairwise-cell.self { background: #eff6ff; color: #1d4ed8; }
+    .pairwise-cell.sim-same { background: linear-gradient(135deg, #dff5e8, #f4fbf7); }
+    .pairwise-cell.sim-high { background: linear-gradient(135deg, #d7f3f0, #f3fbfa); }
+    .pairwise-cell.sim-medium { background: linear-gradient(135deg, #fff0b8, #fffaf0); }
+    .pairwise-cell.sim-low { background: linear-gradient(135deg, #ffd6d6, #fff5f5); }
+    .pairwise-cell.sim-unavailable { background: linear-gradient(135deg, #eef1f5, #f8fafc); }
+    .pairwise-cell.cat-same .pairwise-status { color: #166534; background: #cdeeda; }
+    .pairwise-cell.cat-near .pairwise-status { color: #0f766e; background: #bfe9e5; }
+    .pairwise-cell.cat-partial .pairwise-status { color: #92400e; background: #ffe28a; }
+    .pairwise-cell.cat-diverged .pairwise-status { color: #991b1b; background: #ffc1c1; }
+    .pairwise-cell.cat-missing .pairwise-status { color: #991b1b; background: #ffd9d9; }
+    .pairwise-cell.cat-na .pairwise-status { color: #475569; background: #e2e8f0; }
+    .pairwise-cell.self .pairwise-status { color: #1d4ed8; background: #dbeafe; }
+    .pairwise-cell.sim-same .pairwise-score { color: #166534; background: #e4f6ec; }
+    .pairwise-cell.sim-high .pairwise-score { color: #0f766e; background: #d7f3f0; }
+    .pairwise-cell.sim-medium .pairwise-score { color: #92400e; background: #fff0b8; }
+    .pairwise-cell.sim-low .pairwise-score { color: #991b1b; background: #ffd6d6; }
+    .pairwise-cell.sim-unavailable .pairwise-score { color: #475569; background: #eef1f5; }
+    .similarity-note {
+      padding-top: 0;
+    }
     .nxn-section > .section-note {
       padding-bottom: 0;
     }
@@ -1874,13 +2141,13 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
     <div class="tabs">
       <input checked type="radio" name="compare-tabs" id="tab-overview">
       """ + matrix_tab_input + """
-      """ + all_to_all_tab_input + """
+      """ + pairwise_tab_input + """
       <input type="radio" name="compare-tabs" id="tab-details">
       <input type="radio" name="compare-tabs" id="tab-raw">
       <div class="tab-labels" aria-label="Report views">
         <label for="tab-overview">Overview</label>
         """ + matrix_tab_label + """
-        """ + all_to_all_tab_label + """
+        """ + pairwise_tab_label + """
         <label for="tab-details">Evidence</label>
         <label for="tab-raw">Raw Text</label>
       </div>
@@ -1895,7 +2162,7 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
           </section>
         </div>
         """ + matrix_tab_panel + """
-        """ + all_to_all_tab_panel + """
+        """ + pairwise_tab_panel + """
         <div class="tab-panel details-panel">
           """ + details + """
         </div>

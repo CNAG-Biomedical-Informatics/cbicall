@@ -67,7 +67,7 @@ def _build_parser(version: str, *, prog: str = "cbicall") -> argparse.ArgumentPa
         "--multiqc",
         dest="multiqc",
         action="store_true",
-        help="Write cbicall_mqc.yaml MultiQC custom content after a successful run",
+        help="Write cbicall_mqc/ MultiQC custom-content files after a successful run",
     )
 
     return parser

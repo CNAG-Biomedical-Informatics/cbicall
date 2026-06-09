@@ -221,14 +221,30 @@ directory or log file.
 
 ## Command Utilities
 
+Most users need only these commands:
+
 | Command | Use |
 | --- | --- |
-| `bin/cbicall run -p parameters.yaml -t 4 [--runtime-profile cnag-hpc] [--multiqc]` | Execute a normal analysis run. Add `--multiqc` to write `cbicall_mqc.yaml` for MultiQC custom content. |
-| `bin/cbicall validate-parameters -p parameters.yaml [--runtime-profile cnag-hpc]` | Dry-run preflight for one concrete run. It validates the parameters YAML, workflow, runtime profile env file, and selected resource without launching the workflow. |
-| `bin/cbicall validate-resources` | Check the resource catalog and, optionally, one resource key. |
-| `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...] [--alias A B C] [--comparison-view baseline\|all-to-all\|both] [--multiqc]` | Compare two or more run directories or `run-report.json` files. Three or more runs default to baseline plus all-to-all comparison. Use `--alias` to label runs and `--multiqc` to write a MultiQC custom-content summary. |
-| `bin/cbicall report RUN_DIR` | Read-only summary of one completed run. Add `--html` to write `run-report.html`, `--multiqc` to write `cbicall_mqc.yaml`, `--refresh` to update output-derived metadata in `run-report.json`, and `-O/--overwrite` to replace existing files. Use `--json` for structured output. |
-| `bin/cbicall test --wes-bash [--runtime-profile cnag-hpc]`, `--wes-snakemake`, `--wes-nextflow`, `--wes-cromwell`, `--mit-bash`, `--nf-core-demo`, `--nf-core-sarek`, `--backend-equivalence`, or `--all` | Runs contract-based integration examples. `--runtime-profile` is forwarded to the internal `cbicall run` calls. `--backend-equivalence` runs native WES backend-equivalence checks against the Bash baseline; Snakemake, Nextflow, Cromwell, and nf-core tests require their backends on `PATH` or configured through their documented environment variables. |
+| `bin/cbicall run -p parameters.yaml -t 4` | Execute one analysis. |
+| `bin/cbicall validate-parameters -p parameters.yaml` | Check one parameters YAML before launch. |
+| `bin/cbicall validate-resources` | Check the configured resource catalog and installed bundle. |
+| `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare completed runs. Three or more runs automatically include all-to-all evidence. |
+| `bin/cbicall report RUN_DIR` | Summarize one completed run. |
+| `bin/cbicall test --wes-bash -t 1` | Run the minimal shipped WES contract test. |
+
+<details>
+<summary>Advanced flags</summary>
+
+| Flag | Use when |
+| --- | --- |
+| `--runtime-profile cnag-hpc` | Running a native workflow with a site-specific environment profile. |
+| `--alias A B C` | Comparing runs whose directory names are long or opaque. |
+| `--multiqc` | Exporting CBIcall summaries as MultiQC custom content. |
+| `--html` | Rendering a browser report from an existing run report. |
+| `--refresh` | Updating output-derived metadata in `run-report.json` after files changed. |
+| Backend test flags | Optional integration checks; see [Integration Tests](../validation/integration-tests). |
+
+</details>
 
 For a higher-level explanation of included pipelines versus execution backends,
 see [Included Pipelines](../pipelines/overview) and

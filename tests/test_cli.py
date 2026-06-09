@@ -7,8 +7,10 @@ from types import SimpleNamespace
 from pathlib import Path
 
 import pytest
+import yaml
 
 from cbicall import cli as cli_mod
+from cbicall.html_reports import render_compare_html, render_run_report_html
 
 
 def test_write_log_creates_json(tmp_path):
@@ -56,6 +58,9 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     )
     (tmp_path / "workflow.log").write_text("workflow log\n", encoding="utf-8")
     (tmp_path / "log.json").write_text("{}\n", encoding="utf-8")
+    multiqc_dir = tmp_path / "cbicall_mqc"
+    multiqc_dir.mkdir()
+    (multiqc_dir / "stale_mqc.yaml").write_text("stale: true\n", encoding="utf-8")
     (tmp_path / "cbicall-execution-contract.json").write_text(
         json.dumps({
             "schema_version": 1,
@@ -143,6 +148,8 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     assert inventory["excluded"] == [
         ".nextflow",
         ".nextflow*",
+        "cbicall_mqc",
+        "cbicall_mqc.yaml",
         "cromwell-executions",
         "cromwell-logs",
         "cromwell-outputs",
@@ -160,7 +167,7 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     assert len(data["software_versions"]["sha256"]) == 64
     assert data["execution_contract"]["fingerprint"] == "contract-normalized"
     assert data["execution_contract"]["normalized_command_sha256"] == "command-normalized"
-    html_report = cli_mod._write_run_report_html(report, data)
+    html_report = cli_mod.write_run_report_html(report, data)
     assert html_report.is_file()
     html_text = html_report.read_text(encoding="utf-8")
     assert "<title>CBIcall Run Report</title>" in html_text
@@ -211,7 +218,7 @@ def test_run_report_html_caps_large_output_inventory(tmp_path):
         "run": {"project_dir": str(tmp_path), "run_id": "RID", "threads": 1},
     }
 
-    html_text = cli_mod._run_report_html(payload)
+    html_text = render_run_report_html(payload)
 
     assert "Showing 25 of 30 essential files" in html_text
     assert "Output Dashboard" in html_text
@@ -374,7 +381,7 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
     assert data["execution_trace"]["status_counts"] == {"COMPLETED": 2}
     assert data["execution_trace"]["max_peak_rss"]["value"] == "951.4 MB"
     assert data["execution_trace"]["max_peak_vmem"]["value"] == "12 GB"
-    html_report = cli_mod._write_run_report_html(report, data)
+    html_report = cli_mod.write_run_report_html(report, data)
     html_text = html_report.read_text(encoding="utf-8")
     assert "nf-core/sarek" in html_text
     assert "External Reports" in html_text
@@ -846,6 +853,134 @@ def test_report_command_requires_overwrite_for_existing_html(tmp_path):
     assert html_path.read_text(encoding="utf-8") == "keep me\n"
     assert cli_mod._run_report_command([str(run_dir), "--html", "--no-color", "--overwrite"]) == 0
     assert "CBIcall Run Report" in html_path.read_text(encoding="utf-8")
+
+
+def test_report_command_writes_multiqc_bundle(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    stats_dir = run_dir / "03_stats"
+    stats_dir.mkdir()
+    (stats_dir / "sample.coverage.txt").write_text(
+        """1
+sampleID	mode	total_reads	mean_cov	ten_pct	nondup_pct	ins_size	in_pct	out_pct
+sample	WES	244	12.5	98.1	91.2	161.5	85.5	14.5
+""",
+        encoding="utf-8",
+    )
+    (stats_dir / "sample.sex.txt").write_text(
+        """MEAN DEPTH FOR AUTOSOMES=12.3
+MEAN DEPTH FOR X=6.0
+MEAN DEPTH FOR Y=0.2
+THRESHOLD=3.0
+SEX=FEMALE
+""",
+        encoding="utf-8",
+    )
+    payload = {
+        "status": "success",
+        "elapsed_seconds": 120,
+        "framework": {"version": "1.2.3"},
+        "runtime": {"python": {"version": "3.12.3"}, "backend": {"version": "5.2.21"}},
+        "workflow": {"backend": "bash", "provider": "cbicall", "pipeline": "wes", "mode": "single", "fingerprint": "a" * 64},
+        "resources": {"bundle": {"key": "bundle", "version": "v1", "fingerprint": "b" * 64}},
+        "execution_contract": {"fingerprint": "c" * 64},
+        "outputs": {
+            "file_inventory": {"entries": 5, "total_bytes": 1048576},
+            "vcf_hash_reports": [
+                {"file": "sample.vcf.gz", "normalized_records": "10", "normalized_sha256": "d" * 64, "raw_sha256": "e" * 64}
+            ],
+        },
+        "run": {"run_id": "RID", "threads": 4, "display_genome": "b37"},
+    }
+    (run_dir / "run-report.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    assert cli_mod._run_report_command([str(run_dir), "--multiqc", "--no-color"]) == 0
+
+    out = capsys.readouterr().out
+    assert "MultiQC" in out
+    mqc_dir = run_dir / "cbicall_mqc"
+    files = sorted(path.name for path in mqc_dir.glob("*_mqc.yaml"))
+    assert files == [
+        "cbicall_final_outputs_mqc.yaml",
+        "cbicall_native_sample_qc_mqc.yaml",
+        "cbicall_run_general_stats_mqc.yaml",
+        "cbicall_run_identity_mqc.yaml",
+    ]
+    general = yaml.safe_load((mqc_dir / "cbicall_run_general_stats_mqc.yaml").read_text(encoding="utf-8"))
+    assert general["plot_type"] == "generalstats"
+    row = general["data"]["bash_wes_RID"]
+    assert row["elapsed_min"] == 2.0
+    assert row["output_size_mib"] == 1.0
+    assert row["final_vcf_records"] == 10
+    sample_qc = yaml.safe_load((mqc_dir / "cbicall_native_sample_qc_mqc.yaml").read_text(encoding="utf-8"))
+    assert sample_qc["data"]["sample"]["Mean coverage"] == 12.5
+    assert sample_qc["data"]["sample"]["Sex"] == "FEMALE"
+    final_outputs = yaml.safe_load((mqc_dir / "cbicall_final_outputs_mqc.yaml").read_text(encoding="utf-8"))
+    assert final_outputs["data"]["sample.vcf.gz"]["Normalized records"] == 10
+
+    with pytest.raises(FileExistsError, match="MultiQC custom-content directory already exists"):
+        cli_mod._run_report_command([str(run_dir), "--multiqc", "--no-color"])
+    with pytest.raises(ValueError, match="directory bundle"):
+        cli_mod._run_report_command([str(run_dir), "--multiqc", str(tmp_path / "old_mqc.yaml"), "--no-color"])
+
+
+def test_compare_runs_writes_multiqc_bundle(tmp_path, capsys):
+    runs = []
+    for label in ["local", "cloud", "hpc"]:
+        run_dir = tmp_path / label
+        run_dir.mkdir()
+        report = {
+            "status": "success",
+            "elapsed_seconds": 60,
+            "framework": {"version": "1.2.3"},
+            "runtime": {"python": {"version": "3.12.3"}, "backend": {"version": "5.2.21"}},
+            "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "files": [], "fingerprint": "workflow"},
+            "resources": {"bundle": {"key": "bundle", "version": "v1", "fingerprint": "resource"}},
+            "software_versions": {"sha256": "software"},
+            "execution_contract": {"fingerprint": "contract", "normalized_command_sha256": "command", "generated_files": []},
+            "outputs": {
+                "file_inventory": {"entries": 3, "total_bytes": 2048, "sha256": "manifest"},
+                "vcf_hash_reports": [{"file": "sample.vcf.gz", "normalized_sha256": "vcf", "normalized_records": 6}],
+            },
+            "run": {"threads": 1},
+        }
+        (run_dir / "run-report.json").write_text(json.dumps(report), encoding="utf-8")
+        runs.append(run_dir)
+
+    output = tmp_path / "compare-report.txt"
+    assert cli_mod._run_compare_runs_command(
+        [str(run) for run in runs]
+        + ["--alias", "local", "cloud", "hpc", "--output", str(output), "--multiqc", "--no-html", "--no-color"]
+    ) == 0
+
+    out = capsys.readouterr().out
+    assert "MultiQC" in out
+    mqc_dir = tmp_path / "compare-report_mqc"
+    files = sorted(path.name for path in mqc_dir.glob("*_mqc.yaml"))
+    assert files == [
+        "cbicall_compare_general_stats_mqc.yaml",
+        "cbicall_compare_pair_summary_mqc.yaml",
+        "cbicall_compare_similarity_heatmap_mqc.yaml",
+        "cbicall_compare_status_counts_mqc.yaml",
+    ]
+    general = yaml.safe_load((mqc_dir / "cbicall_compare_general_stats_mqc.yaml").read_text(encoding="utf-8"))
+    assert general["plot_type"] == "generalstats"
+    assert sorted(general["data"]) == ["cloud", "hpc", "local"]
+    pairs = yaml.safe_load((mqc_dir / "cbicall_compare_pair_summary_mqc.yaml").read_text(encoding="utf-8"))
+    assert len(pairs["data"]) == 3
+    assert pairs["data"]["local vs cloud"]["Overall category"] == "same"
+    assert pairs["data"]["local vs cloud"]["Overall similarity"] == 1.0
+    assert pairs["data"]["local vs cloud"]["Final VCF"] == "same"
+    heatmap = yaml.safe_load((mqc_dir / "cbicall_compare_similarity_heatmap_mqc.yaml").read_text(encoding="utf-8"))
+    assert heatmap["plot_type"] == "heatmap"
+    assert heatmap["pconfig"]["xcats_samples"] == ["local", "cloud", "hpc"]
+    assert heatmap["data"][0][1] == 1.0
+    counts = yaml.safe_load((mqc_dir / "cbicall_compare_status_counts_mqc.yaml").read_text(encoding="utf-8"))
+    assert counts["data"]["comparison"]["Pairs"] == 3
+    assert counts["data"]["comparison"]["Pairs same"] == 3
+
+    with pytest.raises(ValueError, match="directory bundle"):
+        cli_mod._run_compare_runs_command([str(run) for run in runs[:2]] + ["--multiqc", str(tmp_path / "compare_mqc.yaml"), "--no-html"])
 
 
 def test_run_with_spinner_no_spinner_calls_function():
@@ -1807,3 +1942,221 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
     assert seen["settings"].nfcore_profile == "docker"
     assert seen["settings"].nfcore_parameters["genome"] == "GATK.GRCh38"
     assert seen["settings"].nfcore_parameters["tools"] == "haplotypecaller"
+
+
+
+def test_render_compare_html_all_to_all_matrix_view():
+    def report(alias, workflow_hash="workflow", vcf_hash="vcf", files=3):
+        return {
+            "_report_alias": alias,
+            "framework": {"version": "1.2.3"},
+            "runtime": {
+                "python": {"version": "3.12.3"},
+                "java": {"version": "17.0.10"},
+                "configured_java": {"version": "1.8.0"},
+                "backend": {"version": "5.2.21"},
+            },
+            "workflow": {
+                "key": "bash/wes/single/gatk-4.6/v1",
+                "registry_version": "v1",
+                "entrypoint": "wes_single.sh",
+                "fingerprint": workflow_hash,
+                "files": [{"role": "entrypoint", "sha256": workflow_hash}],
+            },
+            "resources": {"bundle": {"key": "bundle", "version": "v1", "fingerprint": "resource"}},
+            "software_versions": {"sha256": "software"},
+            "execution_contract": {"fingerprint": "contract", "normalized_command_sha256": "command", "generated_files": []},
+            "execution_trace": {"tasks": 2, "max_peak_rss": {"bytes": 1000}, "max_peak_vmem": {"bytes": 2000}},
+            "outputs": {
+                "file_inventory": {"entries": files, "total_bytes": 1536, "sha256": f"inventory-{files}"},
+                "vcf_hash_reports": [{"file": "sample.vcf.gz", "normalized_sha256": vcf_hash}],
+            },
+        }
+
+    report_text = (
+        "Run Matrix\n"
+        "  Runs         => 3\n\n"
+        "All-to-All Matrix\n"
+        "  Framework    => see HTML\n\n"
+        "Legend\n"
+        "  same         => values or fingerprints match\n"
+    )
+    html_text = render_compare_html(
+        report_text,
+        reports=[report("local"), report("cloud"), report("hpc", workflow_hash="workflow-hpc", vcf_hash="vcf-hpc", files=4)],
+        comparison_view="both",
+    )
+
+    assert "Baseline Matrix" in html_text
+    assert "Pairwise Audit" in html_text
+    assert "Pairwise Audit Matrix" in html_text
+    assert "strict qualitative status" in html_text
+    assert "Jaccard similarity score" in html_text
+    assert "local" in html_text
+    assert "cloud" in html_text
+    assert "hpc" in html_text
+    assert "pairwise-cell self" in html_text
+    assert "cat-partial" in html_text
+    assert "cat-diverged" in html_text
+    assert "pairwise-status" in html_text
+    assert "pairwise-score" in html_text
+    assert "strict status different" in html_text
+    assert "Run Matrix" in html_text
+    assert "All-to-All Matrix" not in html_text.split("Raw Text", 1)[0]
+
+
+
+def test_cli_runtime_and_audit_helper_error_branches(tmp_path, monkeypatch):
+    monkeypatch.setattr(cli_mod.shutil, "which", lambda command: f"/usr/bin/{command}")
+
+    def raising_run(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(cli_mod.subprocess, "run", raising_run)
+    error_report = cli_mod._command_version("tool", ["--version"])
+    assert error_report["status"] == "error"
+    assert "boom" in error_report["error"]
+
+    def nonzero_run(*args, **kwargs):
+        return SimpleNamespace(returncode=2, stdout="", stderr="tool failed 1.2.3\n")
+
+    monkeypatch.setattr(cli_mod.subprocess, "run", nonzero_run)
+    nonzero = cli_mod._command_version("tool", ["--version"])
+    assert nonzero["status"] == "nonzero_exit"
+    assert nonzero["version"] == "1.2.3"
+    assert nonzero["detail"] == "tool failed 1.2.3"
+
+    monkeypatch.setattr(cli_mod.shutil, "which", lambda command: None)
+    missing = cli_mod._command_version("missing", ["--version"])
+    assert missing["status"] == "not_found"
+
+    env_missing = cli_mod._source_bash_env_variable(str(tmp_path / "missing.sh"), "JAVA8")
+    assert env_missing["status"] == "source_missing"
+
+    env_file = tmp_path / "env.sh"
+    env_file.write_text("#!/bin/sh\n", encoding="utf-8")
+    monkeypatch.setattr(cli_mod.subprocess, "run", raising_run)
+    assert cli_mod._source_bash_env_variable(str(env_file), "JAVA8")["status"] == "error"
+    monkeypatch.setattr(cli_mod.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=1, stdout="", stderr="bad\nmore\n"))
+    nonzero_env = cli_mod._source_bash_env_variable(str(env_file), "JAVA8")
+    assert nonzero_env["status"] == "nonzero_exit"
+    assert nonzero_env["detail"] == "bad"
+    monkeypatch.setattr(cli_mod.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=0, stdout="", stderr=""))
+    assert cli_mod._source_bash_env_variable(str(env_file), "JAVA8")["status"] == "not_set"
+    monkeypatch.setattr(cli_mod.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=0, stdout="/opt/java/bin/java", stderr=""))
+    ok_env = cli_mod._source_bash_env_variable(str(env_file), "JAVA8")
+    assert ok_env["status"] == "ok"
+    assert ok_env["path"] == "/opt/java/bin/java"
+
+
+def test_cli_configured_java_and_cromwell_runtime_branches(tmp_path, monkeypatch):
+    workflow = SimpleNamespace(metadata={}, backend="bash", helpers={}, config_file=None)
+    assert cli_mod._configured_native_java_report(None) is None
+    assert cli_mod._configured_native_java_report(SimpleNamespace(metadata={"provider": "nf-core"}, backend="bash", helpers={}, config_file=None)) is None
+    assert cli_mod._configured_native_java_report(workflow) is None
+
+    env_file = tmp_path / "env.sh"
+    env_file.write_text("#!/bin/sh\n", encoding="utf-8")
+    workflow.helpers = {"env": str(env_file)}
+    monkeypatch.setattr(cli_mod, "_source_bash_env_variable", lambda env, var: {"status": "not_set", "path": None})
+    bash_report = cli_mod._configured_native_java_report(workflow)
+    assert bash_report["name"] == "configured_java"
+    assert bash_report["status"] == "not_set"
+
+    config_missing = SimpleNamespace(metadata={}, backend="snakemake", helpers={}, config_file=str(tmp_path / "missing.yaml"))
+    assert cli_mod._configured_native_java_report(config_missing)["status"] == "source_missing"
+    bad_config = tmp_path / "bad.yaml"
+    bad_config.write_text("[", encoding="utf-8")
+    assert cli_mod._configured_native_java_report(SimpleNamespace(metadata={}, backend="nextflow", helpers={}, config_file=str(bad_config)))["status"] == "error"
+    empty_config = tmp_path / "empty.yaml"
+    empty_config.write_text("java: {}\n", encoding="utf-8")
+    assert cli_mod._configured_native_java_report(SimpleNamespace(metadata={}, backend="nextflow", helpers={}, config_file=str(empty_config)))["status"] == "not_set"
+
+    java_path = tmp_path / "java"
+    java_path.write_text("#!/bin/sh\n", encoding="utf-8")
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text(f"java:\n  {cli_mod._architecture_key()}: {java_path}\n", encoding="utf-8")
+    monkeypatch.setattr(cli_mod, "_command_version", lambda command, args: {"name": command, "status": "ok", "version": "17"})
+    ok = cli_mod._configured_native_java_report(SimpleNamespace(metadata={}, backend="nextflow", helpers={}, config_file=str(cfg)))
+    assert ok["name"] == "configured_java"
+    assert ok["source"].endswith(f":java.{cli_mod._architecture_key()}")
+
+    jar = tmp_path / "cromwell.jar"
+    jar.write_text("jar", encoding="utf-8")
+    monkeypatch.setenv("CROMWELL_JAR", str(jar))
+    monkeypatch.setenv("JAVA_CMD", "java17")
+    jar_report = cli_mod._cromwell_runtime_report()
+    assert jar_report["name"] == "cromwell"
+    assert jar_report["jar"] == str(jar)
+    assert len(jar_report["jar_sha256"]) == 64
+    monkeypatch.setenv("CROMWELL_JAR", str(tmp_path / "missing.jar"))
+    assert cli_mod._cromwell_runtime_report()["status"] == "not_found"
+
+
+def test_cli_output_collection_error_branches(tmp_path):
+    assert cli_mod._first_glob(tmp_path, "*.none") is None
+    output_report = {"external_summary": {"pipeline_info": {}}}
+    assert cli_mod._collect_execution_trace_summary(output_report) == {}
+    output_report["external_summary"]["pipeline_info"]["trace"] = str(tmp_path / "missing.txt")
+    assert cli_mod._collect_execution_trace_summary(output_report) == {}
+    trace = tmp_path / "trace.txt"
+    trace.write_text("", encoding="utf-8")
+    output_report["external_summary"]["pipeline_info"]["trace"] = str(trace)
+    assert cli_mod._collect_execution_trace_summary(output_report)["status"] == "empty"
+    trace.write_bytes(b"\xff\xfe")
+    assert cli_mod._collect_execution_trace_summary(output_report)["status"] == "read_error"
+
+    software_report = {"external_summary": {"pipeline_info": {}}}
+    assert cli_mod._collect_external_software_versions(software_report) == {}
+    software_report["external_summary"]["pipeline_info"]["software_versions"] = str(tmp_path / "missing.yml")
+    assert cli_mod._collect_external_software_versions(software_report) == {}
+    bad = tmp_path / "software.yml"
+    bad.write_text("[", encoding="utf-8")
+    software_report["external_summary"]["pipeline_info"]["software_versions"] = str(bad)
+    assert cli_mod._collect_external_software_versions(software_report)["status"] == "parse_error"
+    scalar = tmp_path / "scalar.yml"
+    scalar.write_text("42\n", encoding="utf-8")
+    software_report["external_summary"]["pipeline_info"]["software_versions"] = str(scalar)
+    parsed = cli_mod._collect_external_software_versions(software_report)
+    assert parsed["entries"] == {"value": 42}
+
+    assert cli_mod._collect_declared_resource_software_versions({"bundle": {}}) == {}
+    bad_catalog = tmp_path / "catalog.json"
+    bad_catalog.write_text("{", encoding="utf-8")
+    declared = cli_mod._collect_declared_resource_software_versions({"bundle": {"catalog": str(bad_catalog), "key": "bundle"}})
+    assert declared["status"] == "parse_error"
+    empty_catalog = tmp_path / "empty.json"
+    empty_catalog.write_text(json.dumps({"resources": {"bundle": {}}}), encoding="utf-8")
+    assert cli_mod._collect_declared_resource_software_versions({"bundle": {"catalog": str(empty_catalog), "key": "bundle"}}) == {}
+
+    invalid_contract = tmp_path / cli_mod.EXECUTION_CONTRACT_FILE
+    invalid_contract.write_text("{", encoding="utf-8")
+    contract = cli_mod._collect_execution_contract(tmp_path)
+    assert contract["status"] == "parse_error"
+
+
+def test_cli_compare_and_resource_guard_edge_branches(tmp_path, capsys):
+    cli_mod._compare_row("Both", None, None)
+    cli_mod._compare_execution_files({}, {})
+    cli_mod._compare_workflow_files({}, {})
+    cli_mod._compare_output_hashes({}, {})
+    cli_mod._compare_inventory_size({"outputs": {"file_inventory": {}}}, {"outputs": {"file_inventory": {}}})
+    out = capsys.readouterr().out
+    assert "not available" in out
+
+    with pytest.raises(cli_mod.ParameterValidationError, match="could not be verified"):
+        cli_mod._require_verified_resource(SimpleNamespace(resources={"bundle": {"key": "bundle", "runtime_check": {"status": "missing", "datadir": "/data", "source": "env"}}}))
+    cli_mod._require_verified_resource(SimpleNamespace(resources={"bundle": {"runtime_check": {"status": "verified"}}}))
+    cli_mod._require_verified_resource(SimpleNamespace(resources={"bundle": {"type": "external"}}))
+
+    assert cli_mod._report_html_status(tmp_path / "run-report.json", None).endswith("(missing)")
+    html = tmp_path / "run-report.html"
+    html.write_text("html", encoding="utf-8")
+    assert cli_mod._report_html_status(tmp_path / "run-report.json", html).endswith("(written)")
+    assert "no changes" in cli_mod._report_json_status(tmp_path / "run-report.json", True, False, False)
+    with pytest.raises(FileNotFoundError):
+        cli_mod._run_report_path(str(tmp_path / "missing"))
+    bad_json = tmp_path / "run-report.json"
+    bad_json.write_text("{", encoding="utf-8")
+    with pytest.raises(ValueError, match="Invalid run report JSON"):
+        cli_mod._load_run_report(str(bad_json))

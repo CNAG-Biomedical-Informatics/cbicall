@@ -30,13 +30,19 @@ point anywhere, CBIcall creates the run directory in the directory where
 | `cbicall-execution-contract.json` | Backend-ready execution plan created after CBIcall validates and resolves the parameters YAML. It records the command, CBIcall-controlled environment overrides, backend/provider identity, and generated backend launch files. |
 | `run-report.json` | Compact audit report with CBIcall version, Python version, Java version, workflow backend version, status, elapsed time, workflow file fingerprints, execution-contract fingerprint, resource key/version/fingerprint, output file inventory fingerprint, output fingerprints when available, and workflow log path. |
 | `run-report.html` | Human-readable tabbed rendering of `run-report.json` for browsing a completed run without reading JSON directly. It separates overview, evidence, outputs, and raw JSON views; links the main run evidence; and shows software-version evidence when available. Generate it from an existing run with `bin/cbicall report RUN_DIR --html`. |
-| `cbicall_mqc.yaml` | Optional MultiQC custom-content YAML generated with `bin/cbicall run --multiqc` or `bin/cbicall report RUN_DIR --multiqc`. It lets standard MultiQC reports include a compact CBIcall audit table without installing a CBIcall MultiQC plugin. |
+| `cbicall_mqc/` | Optional MultiQC custom-content directory generated with `bin/cbicall run --multiqc`, `bin/cbicall report RUN_DIR --multiqc`, or `bin/cbicall compare-runs ... --multiqc`. It lets standard MultiQC reports include compact CBIcall run/QC summaries, pairwise comparison tables, and audit-similarity heatmaps without installing a CBIcall MultiQC plugin. |
 | `<backend>_<software-stack>_<pipeline>_<mode>_<genome>.log` | Main workflow log for the selected backend. |
 | `logs/*.log` | Per-rule or per-step logs for Snakemake/GATK 4.6 workflows. |
 
 Use `config.resources.bundle.fingerprint` inside `log.json` to check whether two runs used the same declared external dependency set.
 
 Use `workflow.fingerprint` inside `run-report.json` to check whether two runs used the same resolved workflow file contents. If the fingerprint differs, inspect `workflow.files` to see which entrypoint, helper, Snakefile, or config file changed. The matching `run-report.html` file presents the same core audit fields in a browser-friendly view.
+
+![Screenshot of the native CBIcall run-report HTML overview tab, showing the run summary and audit sections.](/img/native-run-report-overview.png)
+
+![Screenshot of the native CBIcall run-report HTML evidence tab, showing workflow fingerprints, resource identity, runtime versions, and linked audit artifacts.](/img/native-run-report-evidence.png)
+
+![Screenshot of the native CBIcall run-report HTML outputs tab, showing canonical files, output inventory, and file-size summaries.](/img/native-run-report-outputs.png)
 
 Use `runtime.java` and `runtime.configured_java` to audit the Java visible on `PATH` and the native workflow Java configured through `env.sh` or shared backend config when available.
 
@@ -48,17 +54,19 @@ Use `software_versions.sha256` to audit the tool-version table when available. N
 
 ## MultiQC Custom Content
 
-CBIcall can write a MultiQC custom-content file for a completed run:
+CBIcall can write a MultiQC custom-content directory for a completed run:
 
 ```bash
 bin/cbicall report completed_run/ --multiqc
 multiqc completed_run/
 ```
 
-The generated `cbicall_mqc.yaml` is intentionally compact. It reports the run
-status, CBIcall version, backend, workflow provider, pipeline, genome, resource
-key, workflow/resource hashes, final VCF hash when available, file count,
-inventory size, and elapsed time. MultiQC treats it as custom content, so no
+The generated `cbicall_mqc/` directory contains several small `*_mqc.yaml` files.
+MultiQC renders these as compact CBIcall sections: numeric run statistics,
+workflow/resource identity, final-output fingerprints, and native sample QC when
+`03_stats/*.coverage.txt` or `03_stats/*.sex.txt` files are present. The full
+CBIcall audit remains in `run-report.json` and `run-report.html`; MultiQC is a
+companion summary for projects that already collect QC with MultiQC. No
 CBIcall-specific MultiQC plugin is required. Source installs include `multiqc`
 from `requirements.txt` so users can render the report directly.
 
@@ -77,7 +85,8 @@ bin/cbicall compare-runs run_a/ run_b/ run_c/ --alias local cloud hpc --output c
 ```
 
 The text report is the audit artifact. CBIcall also writes `compare-report.html`
-by default for browsing. See [Run Comparison](../validation/run-comparison) for
+by default for browsing, including field-level matrices and combined pairwise audit matrices with
+derived categories plus report-level similarity scores. See [Run Comparison](../validation/run-comparison) for
 details and an example screenshot.
 
 ## External nf-core Workflows

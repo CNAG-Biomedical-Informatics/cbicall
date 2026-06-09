@@ -481,6 +481,7 @@ def _collect_file_inventory(project_dir: Path) -> dict:
     excluded_roots = {
         "work",
         ".nextflow",
+        "cbicall_mqc",
         "cromwell-executions",
         "cromwell-logs",
         "cromwell-outputs",
@@ -1301,8 +1302,8 @@ def _run_report_command(argv: List[str]) -> int:
         "--multiqc",
         nargs="?",
         const=True,
-        metavar="MQC_YAML",
-        help="Write a MultiQC custom-content YAML file. Defaults to cbicall_mqc.yaml unless a path is provided.",
+        metavar="MQC_DIR",
+        help="Write a MultiQC custom-content directory. Defaults to cbicall_mqc/ unless a path is provided.",
     )
     parser.add_argument("-O", "--overwrite", action="store_true", help="Overwrite files written by --refresh, --html, or --multiqc.")
     parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
@@ -1338,9 +1339,9 @@ def _run_report_command(argv: List[str]) -> int:
 
     multiqc_path = None
     if args.multiqc is not None:
-        multiqc_path = report_path.parent / "cbicall_mqc.yaml" if args.multiqc is True else Path(args.multiqc)
+        multiqc_path = report_path.parent / "cbicall_mqc" if args.multiqc is True else Path(args.multiqc)
         if multiqc_path.exists() and not args.overwrite:
-            raise FileExistsError(f"MultiQC custom-content file already exists: {multiqc_path}. Use -O/--overwrite to replace it.")
+            raise FileExistsError(f"MultiQC custom-content directory already exists: {multiqc_path}. Use -O/--overwrite to replace it.")
         write_multiqc_report(report_path, payload, output_path=multiqc_path)
 
     if args.json:
@@ -1725,8 +1726,8 @@ def _run_compare_runs_command(argv: List[str]) -> int:
         "--multiqc",
         nargs="?",
         const=True,
-        metavar="MQC_YAML",
-        help="Write a MultiQC custom-content YAML file. Defaults to <output>_mqc.yaml or compare-runs_mqc.yaml.",
+        metavar="MQC_DIR",
+        help="Write a MultiQC custom-content directory. Defaults to <output>_mqc/ or compare-runs_mqc/.",
     )
     parser.add_argument(
         "--comparison-view",
@@ -1760,7 +1761,7 @@ def _run_compare_runs_command(argv: List[str]) -> int:
     multiqc_output = None
     if args.multiqc is not None:
         if args.multiqc is True:
-            multiqc_output = Path(args.output).with_name(Path(args.output).stem + "_mqc.yaml") if args.output else Path("compare-runs_mqc.yaml")
+            multiqc_output = Path(args.output).with_name(Path(args.output).stem + "_mqc") if args.output else Path("compare-runs_mqc")
         else:
             multiqc_output = Path(args.multiqc)
 

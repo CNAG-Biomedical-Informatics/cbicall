@@ -30,29 +30,20 @@ Validate the default catalog:
 bin/cbicall validate-resources
 ```
 
-Validate one resource key:
-
-```bash
-bin/cbicall validate-resources --resource cbicall-germline-resources-v1
-```
-
-For external nf-core workflows:
-
-```bash
-bin/cbicall validate-resources --resource nf-core-demo-managed-resources-v1
-bin/cbicall validate-resources --resource nf-core-sarek-managed-resources-v1
-```
-
-Validate a custom catalog:
-
-```bash
-bin/cbicall validate-resources \
-  --catalog /path/to/cbicall-resource-catalog.json \
-  --resource my-center-germline-v1
-```
-
 This checks the **catalog shape** and confirms that declared workflow
 compatibility keys exist.
+
+<details>
+<summary>Validate one resource key or a custom catalog</summary>
+
+| Case | Command |
+| --- | --- |
+| Native bundle | `bin/cbicall validate-resources --resource cbicall-germline-resources-v1` |
+| nf-core/demo | `bin/cbicall validate-resources --resource nf-core-demo-managed-resources-v1` |
+| nf-core/Sarek | `bin/cbicall validate-resources --resource nf-core-sarek-managed-resources-v1` |
+| Custom catalog | `bin/cbicall validate-resources --catalog /path/to/cbicall-resource-catalog.json --resource my-center-germline-v1` |
+
+</details>
 
 ## Validate One Run
 

@@ -165,7 +165,7 @@ def test_verify_resource_id_only_does_not_download_archive_parts(tmp_path, monke
 
     def fake_download_if_missing(filename, file_id, outdir, force=False):
         downloaded.append(filename)
-        (outdir / filename).write_text(f'{{"resource_key":"{mod.DEFAULT_BUNDLE_KEY}"}}\n', encoding="utf-8")
+        (outdir / filename).write_text('{"resource_key": "' + mod.DEFAULT_BUNDLE_KEY + '"}\n', encoding="utf-8")
 
     def fail_download_files(outdir, metadata, force=False):
         raise AssertionError("archive downloads should not run in --verify-resource-id-only mode")

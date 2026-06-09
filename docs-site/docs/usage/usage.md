@@ -56,19 +56,25 @@ their dedicated pages.
 
 ## Common Commands
 
+For most runs, keep the command simple:
+
 ```bash
 bin/cbicall run -p wes_single.yaml -t 4
-bin/cbicall run -p wes_cohort.yaml -t 8 -verbose
-bin/cbicall run -p mit_single.yaml -t 4 > run.log 2>&1
+```
+
+Use `-verbose` only when you need more startup detail. When output is redirected
+to a file, CBIcall disables ANSI colors automatically.
+
+<details>
+<summary>Background shell example</summary>
+
+```bash
 nohup bin/cbicall run -p parameters.yaml -t 4 > run.log 2>&1 &
 ```
 
-| Pattern | Use when |
-| --- | --- |
-| `bin/cbicall run -p wes_single.yaml -t 4` | Normal foreground run. |
-| `-verbose` | You want more CLI output while the workflow starts. |
-| `> run.log 2>&1` | You are saving terminal output to a file. ANSI colors are disabled automatically. |
-| `nohup ... &` | You need a simple long-running background job outside a scheduler. |
+Use this only for simple workstation runs. On HPC, prefer the scheduler script.
+
+</details>
 
 :::tip[Thread choice]
 For most WES/WGS runs, start with **4 threads per task**. See [Performance](../help/performance) for the benchmark and scaling guidance.
@@ -177,7 +183,13 @@ For workstation and cluster runs with nf-core workflows, see
 
 ## Backend-Specific Parameters
 
-Use backend-specific parameter blocks for values that belong to an execution backend rather than to CBIcall's global analysis contract.
+Most users should leave backend-specific parameter blocks unset. They are for
+values owned by the selected backend or external workflow, not for core CBIcall
+contract values such as `pipeline`, `genome`, `threads`, tool paths, reference
+paths, sample identity, or cohort workspace names.
+
+<details>
+<summary>Show backend-specific examples</summary>
 
 For targeted Snakemake execution, set a Snakemake target:
 
@@ -196,10 +208,9 @@ nextflow_parameters:
 ```
 
 For native CBIcall Cromwell workflows, pass advanced WDL inputs with
-`cromwell_parameters`. CBIcall still owns tool paths, reference paths, sample
-identity, genome, pipeline, and thread count.
+`cromwell_parameters`. CBIcall blocks overrides of inputs it owns.
 
-CBIcall still owns core values such as `pipeline`, `genome`, `threads`, helper script paths, and cohort workspace names, and refuses backend parameter blocks that try to override them.
+</details>
 
 ## Outputs and Logs
 
