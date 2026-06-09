@@ -9,7 +9,7 @@ import TabItem from '@theme/TabItem';
     [Installation](../installation/non-containerized)
 
 > **Architecture**
-    MToolBox supports **x86_64 only**. ARM-based systems, including Apple Silicon (M1/M2/M3), are **not supported**.
+    MToolBox supports **x86_64 only**. ARM-based systems, including Apple Silicon (M1/M2/M3/M4/M5), are **not supported**.
 
 ---
 

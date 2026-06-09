@@ -1,18 +1,27 @@
 # Architecture
 
-CBIcall is a **thin orchestration layer** around concrete variant-calling workflows.
-Its main responsibilities are:
+CBIcall is a **configuration-driven execution framework** for reproducible
+variant-calling workflows. It does not replace Bash, Snakemake, Nextflow, or
+Cromwell. Instead, it validates one user request, resolves it against approved
+workflow and resource definitions, launches the selected backend, and records the
+evidence needed to audit the run afterwards.
 
-- Reading a parameters YAML file
-- Validating required parameters, compatibility rules, and runtime resources
-- Resolving the selected **workflow backend**, **software stack**, **pipeline**, **mode**, and **registry version**
-- Preparing a deterministic run directory
-- Dispatching the appropriate Bash, Snakemake, Nextflow, Cromwell, or nf-core workflow
-- Recording logs, execution contracts, workflow fingerprints, resource provenance, and compact run reports
+The architecture is organized around a three-layer execution contract:
+
+| Layer | Purpose |
+| --- | --- |
+| **User parameters YAML** | Describes the analysis intent: pipeline, mode, genome, input data, workflow backend, workflow provider, software stack, and run-specific parameters. |
+| **Workflow registry YAML** | Maps the requested analysis to an approved workflow implementation, entrypoint, backend, provider, version, expected files, and canonical outputs. |
+| **Resource catalog JSON** | Defines external resources: reference bundles, workflow compatibility, resource identity, availability, and integrity metadata. |
+
+After these layers are validated and resolved, CBIcall creates a deterministic
+run directory, dispatches the selected workflow, and writes structured audit
+artifacts such as `log.json`, `cbicall-execution-contract.json`,
+`run-report.json`, optional HTML reports, and comparison reports.
 
 The actual bioinformatics work, such as alignment, variant calling, mtDNA
-analysis, and QC, is implemented in modular workflow files that can be extended
-or replaced.
+analysis, and QC, remains implemented in workflow files or upstream external
+pipelines.
 
 ---
 
@@ -20,10 +29,10 @@ or replaced.
 
 ![CBIcall architecture diagram](/img/architecture-diagram.png)
 
-_CBIcall resolves a validated parameters YAML into one registered workflow implementation and records the resolved runtime context._
+_CBIcall validates the user parameters YAML, resolves it against the workflow registry and resource catalog, launches the selected backend, and records audit outputs._
 
 <div className="cbicallNotePanel">
-  <p><strong>Mental model:</strong> users describe the run once in YAML; CBIcall resolves that request against the workflow registry and resource catalog, then records exactly what was executed.</p>
+  <p><strong>Mental model:</strong> the user parameters file describes what should be run; the workflow registry decides how it is run; the resource catalog defines which external dependencies are valid.</p>
 </div>
 
 ---
@@ -32,12 +41,13 @@ _CBIcall resolves a validated parameters YAML into one registered workflow imple
 
 | Component | Role | Main files or directories |
 | --- | --- | --- |
-| **CLI and validation layer** | Reads the parameters YAML, applies defaults, checks schema-level and compatibility rules, resolves runtime profiles, and starts the selected command. | `src/cbicall/cli.py`, `src/cbicall/config.py` |
-| **Workflow registry** | Developer-facing routing table that maps `workflow_backend`, `software_stack`, `pipeline`, `mode`, and `registry_version` to one implementation. Validate it with `bin/cbicall validate-registry` after editing. | `workflows/registry/cbicall-workflow-registry.yaml`, `src/cbicall/workflow_registry.py` |
-| **Resource catalog** | Declares external dependency sets, resource identifiers, compatible workflow keys, and checksum metadata for downloadable CBIcall bundles. | `resources/cbicall-resource-catalog.json`, `src/cbicall/resources.py` |
+| **Execution controller** | Reads the user parameters YAML, applies defaults, validates schema-level and compatibility rules, resolves runtime profiles, and starts the selected backend command. | `src/cbicall/cli.py`, `src/cbicall/config.py` |
+| **Validation schemas** | Define the structure and required fields for workflow registry entries and resource catalog entries; user parameters are validated by the configuration layer and compatibility checks. | `workflows/schema/`, `resources/cbicall-resource-catalog.schema.json`, `src/cbicall/config.py` |
+| **Workflow registry** | Developer-facing routing table that maps `workflow_provider`, `workflow_backend`, `software_stack`, `pipeline`, `mode`, and `registry_version` to one approved implementation. | `workflows/registry/cbicall-workflow-registry.yaml`, `src/cbicall/workflow_registry.py` |
+| **Resource catalog** | Declares external dependency sets, resource identifiers, compatible workflow keys, availability rules, and checksum metadata for downloadable CBIcall bundles. | `resources/cbicall-resource-catalog.json`, `src/cbicall/resources.py` |
 | **Workflow runners** | Execute the resolved implementation. Bash runs local scripts directly; Snakemake, native Nextflow, and Cromwell run bundled workflow files; external nf-core entries are launched through Nextflow. | `src/cbicall/execution.py` |
-| **Workflow implementations** | Contain the analysis logic for native WES, WGS, and mtDNA pipelines, plus registered external nf-core workflows. | `workflows/bash/`, `workflows/snakemake/`, `workflows/nextflow/`, `workflows/cromwell/` |
-| **Run audit layer** | Writes `log.json`, `run-report.json`, workflow fingerprints, selected resource identity, output fingerprints, and comparison reports. | `src/cbicall/cli.py`, `bin/cbicall compare-runs` |
+| **Workflow implementations** | Contain native CBIcall workflows and registered external workflow entries. Native workflows follow the CBIcall output contract; external workflows keep their upstream output layout. | `workflows/bash/`, `workflows/snakemake/`, `workflows/nextflow/`, `workflows/cromwell/` |
+| **Run audit layer** | Writes `log.json`, `cbicall-execution-contract.json`, `run-report.json`, workflow fingerprints, resource identity, output inventories, normalized VCF fingerprints, HTML reports, and comparison reports. | `src/cbicall/cli.py`, `src/cbicall/html_reports.py`, `bin/cbicall compare-runs` |
 | **Contract tests** | Run small examples and validate expected output contracts without keeping full `ref_*` run directories in the repository. | `src/cbicall/integration_tests.py`, `tests/fixtures/integration/` |
 
 ---
@@ -91,39 +101,31 @@ workflow registry declares canonical final outputs.
 
 ## Resolution model
 
-The parameters YAML selects a workflow in layers:
+The parameters YAML selects an analysis in layers:
 
 ```yaml
+workflow_provider: cbicall
 workflow_backend: bash
 software_stack: gatk-4.6
 pipeline: wes
 mode: single
+genome: b37
 ```
 
-CBIcall then resolves `default_registry_version` from the registry unless an
-advanced run pins a specific `registry_version`:
-
-```yaml
-registry_version: v1
-```
-
-For native CBIcall workflows, `software_stack` identifies the implementation
-family, for example `gatk-4.6`. For external nf-core workflows, users select
-`workflow_provider: nf-core`; CBIcall then resolves the internal software stack
-to `nf-core`, and the external workflow release is declared by the registry
+For native workflows, `workflow_provider: cbicall` is the default. For external
+nf-core workflows, users select `workflow_provider: nf-core` and
+`workflow_backend: nextflow`; the external release is declared by the registry
 entry.
 
-The selected run is therefore identified by:
-
-```text
-workflow_backend + software_stack + pipeline + mode + registry_version
-```
-
-Resource compatibility is resolved separately through the resource catalog. This
-keeps workflow routing and external dependency identity explicit but independent.
+CBIcall resolves `default_registry_version` from the registry unless an advanced
+run pins a specific `registry_version`. The resolved workflow identity therefore
+combines the provider, backend, software stack, pipeline, mode, genome, registry
+version, and workflow fingerprints. Resource compatibility is resolved
+separately through the resource catalog, so workflow routing and external
+dependency identity remain explicit but independent.
 
 <div className="cbicallNotePanel">
-  <p><strong>Run identity:</strong> the workflow registry identifies the code path; the resource catalog identifies the external dependency set. Both are written to run metadata.</p>
+  <p><strong>Run identity:</strong> the workflow registry identifies the code path and provider; the resource catalog identifies the external dependency set. Both are written to run metadata and comparison reports.</p>
 </div>
 
 ---
@@ -132,18 +134,26 @@ keeps workflow routing and external dependency identity explicit but independent
 
 CBIcall supports two analysis modes:
 
-- **Single mode**  
-  One sample is processed independently.
+| Mode | Meaning |
+| --- | --- |
+| `single` | One sample is processed independently. |
+| `cohort` | Joint or cohort-level analysis, depending on the selected pipeline. |
 
-- **Cohort mode**  
-  Joint or cohort-level analysis, depending on the selected pipeline.
+Workflow backends execute workflow definitions:
 
-The workflow backend is selected in the YAML:
+| Backend | Role |
+| --- | --- |
+| `bash` | Direct native shell workflow execution. |
+| `snakemake` | Native Snakemake workflow execution. |
+| `nextflow` | Native Nextflow workflow execution or external nf-core dispatch. |
+| `cromwell` | Native WDL/Cromwell workflow execution. |
 
-- `workflow_backend: bash`
-- `workflow_backend: snakemake`
-- `workflow_backend: nextflow`
-- `workflow_backend: cromwell`
+Workflow providers identify where the workflow comes from:
+
+| Provider | Meaning |
+| --- | --- |
+| `cbicall` | Workflow implementation is maintained as part of CBIcall and follows the CBIcall output contract. |
+| `nf-core` | Workflow implementation comes from nf-core and keeps its upstream output layout. |
 
 ::::tip[Backend choice]
 Bash workflows are direct and transparent. Snakemake, Nextflow, and Cromwell

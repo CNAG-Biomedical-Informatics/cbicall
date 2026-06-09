@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 
 import yaml
 
@@ -28,7 +28,7 @@ def _short_hash(value):
     return text
 
 
-def _run_label(payload: dict, report_path: Path | None = None) -> str:
+def _run_label(payload: dict, report_path: Optional[Path] = None) -> str:
     alias = str(payload.get("_report_alias") or "").strip()
     if alias:
         return alias
@@ -114,7 +114,7 @@ def _first_vcf_records(payload: dict):
 
 
 
-def _similarity_layer(reports: list, layer_name: str) -> dict | None:
+def _similarity_layer(reports: list, layer_name: str) -> Optional[dict]:
     similarity = build_audit_similarity(reports)
     for layer in similarity["layers"]:
         if layer["name"] == layer_name:
@@ -144,7 +144,7 @@ def _write_yaml(output_dir: Path, filename: str, payload: dict) -> Path:
     return output
 
 
-def _section_payload(section_id: str, section_name: str, description: str, plot_type: str, data, *, pconfig: dict | None = None, headers: dict | None = None) -> dict:
+def _section_payload(section_id: str, section_name: str, description: str, plot_type: str, data, *, pconfig: Optional[dict] = None, headers: Optional[dict] = None) -> dict:
     payload = {
         "id": section_id,
         **CBICALL_PARENT,
@@ -278,7 +278,7 @@ def _parse_native_sex_file(path: Path) -> dict:
 
 def _native_sample_qc_rows(report_path: Path) -> dict:
     stats_dir = report_path.parent / "03_stats"
-    rows: dict[str, dict] = {}
+    rows = {}
     if not stats_dir.is_dir():
         return rows
 
@@ -319,7 +319,7 @@ def _native_sample_qc_rows(report_path: Path) -> dict:
     return rows
 
 
-def build_native_sample_qc_payload(report_path: Path) -> dict | None:
+def build_native_sample_qc_payload(report_path: Path) -> Optional[dict]:
     data = _native_sample_qc_rows(report_path)
     if not data:
         return None
@@ -333,7 +333,7 @@ def build_native_sample_qc_payload(report_path: Path) -> dict | None:
     )
 
 
-def build_final_outputs_payload(report_path: Path, payload: dict) -> dict | None:
+def build_final_outputs_payload(report_path: Path, payload: dict) -> Optional[dict]:
     rows = {}
     for item in _vcf_hash_reports(payload):
         file_name = Path(str(item.get("file") or item.get("path") or "vcf")).name
@@ -386,7 +386,7 @@ def _clear_existing_bundle(output_dir: Path) -> None:
         if path.is_file():
             path.unlink()
 
-def _multiqc_output_dir(default_dir: Path, output_path: Path | None = None) -> Path:
+def _multiqc_output_dir(default_dir: Path, output_path: Optional[Path] = None) -> Path:
     output = output_path or default_dir
     if output.suffix.lower() in {".yaml", ".yml"}:
         raise ValueError(
@@ -396,7 +396,7 @@ def _multiqc_output_dir(default_dir: Path, output_path: Path | None = None) -> P
     return output
 
 
-def write_multiqc_report(report_path: Path, payload: dict, output_path: Path | None = None) -> Path:
+def write_multiqc_report(report_path: Path, payload: dict, output_path: Optional[Path] = None) -> Path:
     output_dir = _multiqc_output_dir(report_path.parent / "cbicall_mqc", output_path)
     output_dir.mkdir(parents=True, exist_ok=True)
     _clear_existing_bundle(output_dir)
@@ -571,7 +571,7 @@ def write_compare_multiqc_report(reports: list, output_path: Path) -> Path:
     output_dir = _multiqc_output_dir(output_path)
     output_dir.mkdir(parents=True, exist_ok=True)
     _clear_existing_bundle(output_dir)
-    sections: Iterable[tuple[str, dict]] = [
+    sections = [
         ("cbicall_compare_general_stats_mqc.yaml", build_compare_general_stats_payload(reports)),
         ("cbicall_compare_pair_summary_mqc.yaml", build_compare_pair_summary_payload(reports)),
         ("cbicall_compare_status_counts_mqc.yaml", build_compare_status_counts_payload(reports)),
