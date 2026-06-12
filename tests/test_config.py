@@ -195,6 +195,39 @@ def test_read_param_file_resolves_input_dir_relative_to_yaml(tmp_path):
     assert cfg["input_dir"] == str(sample_dir.resolve())
 
 
+def test_read_param_file_rejects_missing_input_dir(tmp_path):
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: single\n"
+        "pipeline: wes\n"
+        "workflow_backend: bash\n"
+        "software_stack: gatk-4.6\n"
+        "input_dir: inputs/MISSING_SAMPLE\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ParameterValidationError, match="input_dir does not exist"):
+        config_mod.read_param_file(str(p))
+
+
+def test_read_param_file_rejects_input_dir_file(tmp_path):
+    fastq_file = tmp_path / "not_a_directory.fastq.gz"
+    fastq_file.write_text("reads\n", encoding="utf-8")
+
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: single\n"
+        "pipeline: wes\n"
+        "workflow_backend: bash\n"
+        "software_stack: gatk-4.6\n"
+        f"input_dir: {fastq_file.name}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ParameterValidationError, match="input_dir is not a directory"):
+        config_mod.read_param_file(str(p))
+
+
 def test_read_param_file_accepts_project_dir(tmp_path):
     p1 = tmp_path / "params_project_dir.yaml"
     p1.write_text(
@@ -1379,6 +1412,19 @@ def test_set_config_values_sarek_resolves_external_nfcore_workflow(monkeypatch, 
 # --------------------------
 # “Normal” branches
 # --------------------------
+
+def test_set_config_values_rejects_missing_input_dir(tmp_path):
+    with pytest.raises(ParameterValidationError, match="input_dir does not exist"):
+        config_mod.set_config_values(
+            {
+                "mode": "single",
+                "pipeline": "wes",
+                "workflow_backend": "bash",
+                "software_stack": "gatk-4.6",
+                "input_dir": str(tmp_path / "missing"),
+            }
+        )
+
 
 def test_set_config_values_sample_sets_output_basename(monkeypatch, tmp_path):
     root = fake_project(

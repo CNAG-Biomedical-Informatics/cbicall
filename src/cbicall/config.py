@@ -47,6 +47,14 @@ SOFTWARE_STACK_VALUES = {"gatk-3.5", "gatk-4.6"}
 GENOME_VALUES = {"b37", "hg38", "rsrs", "external"}
 
 
+def _validate_input_dir(input_dir: Path) -> None:
+    """Fail fast when a user-provided input directory is missing or invalid."""
+    if not input_dir.exists():
+        raise ParameterValidationError(f"input_dir does not exist: {input_dir}")
+    if not input_dir.is_dir():
+        raise ParameterValidationError(f"input_dir is not a directory: {input_dir}")
+
+
 # Defaults
 _DEFAULTS = {
     "mode": "single",
@@ -469,6 +477,7 @@ def read_param_file(yaml_file: str) -> dict:
         input_dir = Path(cfg["input_dir"])
         if not input_dir.is_absolute():
             input_dir = yaml_path.parent / input_dir
+        _validate_input_dir(input_dir)
         cfg["input_dir"] = str(input_dir.resolve())
 
     # Make sample_map absolute (resolve relative to YAML location)
@@ -508,6 +517,8 @@ def _merge_and_validate_param_values(params: dict) -> dict:
     _validate_backend_parameter_settings(cfg_in)
     _validate_resource_settings(cfg_in)
     _validate_nfcore_settings(cfg_in)
+    if cfg_in.get("input_dir") is not None:
+        _validate_input_dir(Path(cfg_in["input_dir"]))
     _apply_genome_rules(cfg_in, user_provided_genome=("genome" in params))
     _validate_enum("genome", cfg_in["genome"], GENOME_VALUES)
     _validate_combos(cfg_in)

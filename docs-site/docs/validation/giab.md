@@ -1,6 +1,3 @@
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
 # GIAB Benchmarking
 
 Genome in a Bottle (GIAB) benchmarking is analytical validation of the selected
@@ -16,24 +13,61 @@ resources, runtime context, and final-output fingerprints.
 
 ## Benchmark Plan
 
-The GIAB validation flow is organized into two WGS benchmarks:
+The GIAB validation flow is one WGS joint-genotyping benchmark evaluated as
+three sample-level truth comparisons. CBIcall produces one joint-genotyped trio
+VCF for HG002, HG003, and HG004; each sample is then extracted from that joint
+VCF and compared against that sample's own GIAB v4.2.1 GRCh38 truth VCF and
+confident BED.
 
-| Benchmark | Purpose | Samples |
-| --- | --- | --- |
-| Single-sample WGS on GRCh38 | Compare each native CBIcall single-sample WGS callset against its matching GIAB truth set. | Three Ashkenazim trio samples, reported independently. |
-| Trio WGS joint genotyping | Evaluate the native CBIcall WGS cohort workflow on the trio after single-sample gVCF generation. | Father, mother, and son jointly genotyped as a trio. |
+:::note[No joint trio truth VCF]
+For GIAB small-variant benchmarking, the standard comparison is sample-level:
+query VCF versus truth VCF inside confident regions. This page does not use a
+single "joint trio truth VCF". The joint-called trio VCF is evaluated by
+extracting HG002, HG003, and HG004 and benchmarking the three sample VCFs
+separately; Mendelian consistency is a separate trio-level QC.
+:::
+
+| Sample | Relationship | CBIcall query | GIAB truth resources |
+| --- | --- | --- | --- |
+| HG002 / NA24385 | Son | HG002 extracted from the CBIcall joint-genotyped trio VCF | `HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz` and `HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed` |
+| HG003 / NA24149 | Father | HG003 extracted from the CBIcall joint-genotyped trio VCF | `HG003_GRCh38_1_22_v4.2.1_benchmark.vcf.gz` and `HG003_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed` |
+| HG004 / NA24143 | Mother | HG004 extracted from the CBIcall joint-genotyped trio VCF | `HG004_GRCh38_1_22_v4.2.1_benchmark.vcf.gz` and `HG004_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed` |
 
 ## Shared FASTQ Preparation
 
-The benchmark starts from the GIAB Ashkenazim trio FASTQs. The download was
-driven by a plain-text aria2 input manifest:
+The benchmark starts from the official GIAB Ashkenazim trio FASTQs hosted by
+NCBI under `ReferenceSamples/giab/data/AshkenazimTrio/`. The local benchmark
+keeps one directory per trio member:
+
+| GIAB sample | Relationship | NCBI GIAB FTP source | Local FASTQ directory |
+| --- | --- | --- | --- |
+| HG002 / NA24385 | Son | `HG002_NA24385_son/NIST_HiSeq_HG002_Homogeneity-10953946/HG002_HiSeq300x_fastq/` | `AshkenazimTrio_fastq/HG002_NA24385_son/` |
+| HG003 / NA24149 | Father | `HG003_NA24149_father/NIST_HiSeq_HG003_Homogeneity-12389378/HG003_HiSeq300x_fastq/` | `AshkenazimTrio_fastq/HG003_NA24149_father/` |
+| HG004 / NA24143 | Mother | `HG004_NA24143_mother/NIST_HiSeq_HG004_Homogeneity-14572558/HG004_HiSeq300x_fastq/` | `AshkenazimTrio_fastq/HG004_NA24143_mother/` |
+
+For this run, the selected FASTQ URLs were stored in a local `aria2` input file
+and downloaded as a resumable background job. Any equivalent download method is
+acceptable if it records the same source URLs and preserves the sample-specific
+directory structure.
+
+<details className="cbicallCodeDetails">
+<summary>Example aria2 input records</summary>
+<div>
 
 ```text
-giab_AJtrio_persondir_aria2.txt
+https://ftp.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/HG002_NA24385_son/NIST_HiSeq_HG002_Homogeneity-10953946/HG002_HiSeq300x_fastq/140528_D00360_0018_AH8VC6ADXX/Project_RM8391_RM8392/Sample_2A1/2A1_CGATGT_L001_R1_001.fastq.gz
+  dir=/media/mrueda/4TBA/GIAB/AshkenazimTrio_fastq/HG002_NA24385_son
+  out=140528_D00360_0018_AH8VC6ADXX__Project_RM8391_RM8392__Sample_2A1__2A1_CGATGT_L001_R1_001.fastq.gz
+  checksum=md5=c2ae5e412fb211974f9a9a46a5392428
+
+https://ftp.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/HG002_NA24385_son/NIST_HiSeq_HG002_Homogeneity-10953946/HG002_HiSeq300x_fastq/140528_D00360_0018_AH8VC6ADXX/Project_RM8391_RM8392/Sample_2A1/2A1_CGATGT_L001_R2_001.fastq.gz
+  dir=/media/mrueda/4TBA/GIAB/AshkenazimTrio_fastq/HG002_NA24385_son
+  out=140528_D00360_0018_AH8VC6ADXX__Project_RM8391_RM8392__Sample_2A1__2A1_CGATGT_L001_R2_001.fastq.gz
+  checksum=md5=83826a956fc90c501645391314b2abf3
 ```
 
-Each line in that manifest points to one FASTQ URL from the GIAB Ashkenazim trio
-directory. The download was run as a resumable background job:
+</div>
+</details>
 
 <details className="cbicallCodeDetails">
 <summary>FASTQ download command</summary>
@@ -116,55 +150,127 @@ cat $(<r2.list) \
 </div>
 </details>
 
-## Benchmarks
+## Truth Set Preparation
 
-<Tabs groupId="giab-benchmark">
-<TabItem value="single-wgs" label="Single-Sample WGS" default>
-
-This benchmark compares each **native CBIcall WGS single-sample pipeline using
-GATK 4.6** on GRCh38 against its matching GIAB truth set. The comparison uses
-`hap.py` with the `vcfeval` engine.
-
-| Field | Value |
-| --- | --- |
-| Samples | Three Ashkenazim trio samples, reported independently |
-| Sequencing data | Downsampled GIAB high-depth WGS FASTQs |
-| CBIcall workflow | Native WGS single-sample pipeline, `workflow_backend: bash`, `software_stack: gatk-4.6`, `genome: hg38` |
-| Truth VCF/BED | Matching GIAB GRCh38 benchmark VCF and BED per sample |
-| Reference | Broad GRCh38 resource FASTA: `resources_broad_hg38_v0_Homo_sapiens_assembly38.fasta` |
-| Comparison tool | `hap.py` with `--engine vcfeval` |
-| Output summary | `results_<sample>_happy.summary.csv` |
-
-### Run CBIcall
-
-Create one WGS single-sample parameters YAML per downsampled trio sample. This
-example is for the son sample, HG002 / NA24385:
+Download the per-sample GIAB v4.2.1 GRCh38 truth VCFs, VCF indexes, and
+confident-region BED files for HG002, HG003, and HG004:
 
 <details className="cbicallCodeDetails">
-<summary>Single-sample CBIcall YAML</summary>
+<summary>Download GIAB truth sets</summary>
 <div>
 
-```yaml
-mode: single
-pipeline: wgs
-workflow_backend: bash
-software_stack: gatk-4.6
-cleanup_bam: true
-genome: hg38
-input_dir: AshkenazimTrio_fastq/HG002_NA24385_son/
+```bash
+mkdir -p /media/mrueda/4TBA/GIAB/truthsets
+
+wget -c -P /media/mrueda/4TBA/GIAB/truthsets \
+  https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz \
+  https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz.tbi \
+  https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/NISTv4.2.1/GRCh38/HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed \
+  https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG003_NA24149_father/latest/GRCh38/HG003_GRCh38_1_22_v4.2.1_benchmark.vcf.gz \
+  https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG003_NA24149_father/latest/GRCh38/HG003_GRCh38_1_22_v4.2.1_benchmark.vcf.gz.tbi \
+  https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG003_NA24149_father/latest/GRCh38/HG003_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed \
+  https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG004_NA24143_mother/latest/GRCh38/HG004_GRCh38_1_22_v4.2.1_benchmark.vcf.gz \
+  https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG004_NA24143_mother/latest/GRCh38/HG004_GRCh38_1_22_v4.2.1_benchmark.vcf.gz.tbi \
+  https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG004_NA24143_mother/latest/GRCh38/HG004_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed
 ```
 
 </div>
 </details>
 
-For the general execution pattern, see [General Usage](../usage). Then run CBIcall as usual:
+Expected files:
+
+```text
+HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
+HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz.tbi
+HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed
+HG003_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
+HG003_GRCh38_1_22_v4.2.1_benchmark.vcf.gz.tbi
+HG003_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed
+HG004_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
+HG004_GRCh38_1_22_v4.2.1_benchmark.vcf.gz.tbi
+HG004_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed
+```
+
+## Benchmark Workflow
+
+This benchmark compares the **native CBIcall WGS joint-genotyping pipeline using
+GATK 4.6** on GRCh38 against the matching GIAB truth sets. The joint VCF is
+split into three sample VCFs, and each sample comparison uses `hap.py` with the
+`vcfeval` engine.
+
+| Field | Value |
+| --- | --- |
+| Samples | Three Ashkenazim trio samples extracted from one joint-genotyped VCF |
+| Upstream sequencing data | Downsampled GIAB high-depth WGS FASTQs |
+| CBIcall input | Three gVCFs generated from the downsampled trio FASTQs |
+| CBIcall workflow | Native WGS joint-genotyping pipeline, `workflow_backend: bash`, `software_stack: gatk-4.6`, `genome: hg38` |
+| Truth VCF/BED | Matching GIAB GRCh38 benchmark VCF and BED per sample |
+| Reference | Broad GRCh38 resource FASTA: `resources_broad_hg38_v0_Homo_sapiens_assembly38.fasta` |
+| Comparison tool | Locally built `local/hap.py` Docker image, `hap.py` with `--engine vcfeval` |
+| Output summary | `results_<sample>_happy.summary.csv` |
+
+### Run CBIcall
+
+Create a sample map that points to the three trio gVCFs generated from the same
+downsampled FASTQs:
 
 <details className="cbicallCodeDetails">
-<summary>Single-sample CBIcall command</summary>
+<summary>Trio gVCF sample map</summary>
+<div>
+
+```text
+sample	gvcf
+HG002	/path/to/HG002.hc.g.vcf.gz
+HG003	/path/to/HG003.hc.g.vcf.gz
+HG004	/path/to/HG004.hc.g.vcf.gz
+```
+
+</div>
+</details>
+
+Then run the WGS joint-genotyping workflow:
+
+<details className="cbicallCodeDetails">
+<summary>Joint-genotyping CBIcall YAML</summary>
+<div>
+
+```yaml
+mode: cohort
+pipeline: wgs
+workflow_backend: bash
+software_stack: gatk-4.6
+genome: hg38
+sample_map: /path/to/giab_trio_sample_map.tsv
+```
+
+</div>
+</details>
+
+<details className="cbicallCodeDetails">
+<summary>Joint-genotyping CBIcall command</summary>
 <div>
 
 ```bash
-bin/cbicall run -p <sample>_wgs_hg38.yaml -t 4
+bin/cbicall run -p giab_trio_wgs_hg38.yaml -t 4
+```
+
+</div>
+</details>
+
+Extract one query VCF per trio member from the CBIcall joint VCF:
+
+<details className="cbicallCodeDetails">
+<summary>Extract sample VCFs from the joint VCF</summary>
+<div>
+
+```bash
+bcftools view -s HG002 -Oz -o HG002.joint.vcf.gz trio.joint.vcf.gz
+bcftools view -s HG003 -Oz -o HG003.joint.vcf.gz trio.joint.vcf.gz
+bcftools view -s HG004 -Oz -o HG004.joint.vcf.gz trio.joint.vcf.gz
+
+tabix -p vcf HG002.joint.vcf.gz
+tabix -p vcf HG003.joint.vcf.gz
+tabix -p vcf HG004.joint.vcf.gz
 ```
 
 </div>
@@ -180,26 +286,39 @@ run-report.html
 <workflow>.log
 ```
 
-### Prepare hap.py Environment
+### Prepare hap.py Docker Image
 
-On the workstation used for this run, `hap.py` was loaded through a shell
-bootstrap script:
+The prebuilt `pkrusche/hap.py:latest` image could not be pulled because Docker
+rejected its deprecated image manifest format. For this benchmark, `hap.py` was
+therefore built locally from the checked-out `hap.py` source tree:
 
 <details className="cbicallCodeDetails">
-<summary>hap.py module environment</summary>
+<summary>Build the local hap.py image</summary>
 <div>
 
 ```bash
-source ~/load_happy.sh
+cd /media/mrueda/4TBA/GIAB/hap.py
+docker build -t local/hap.py .
 ```
 
-The script loaded these modules:
+</div>
+</details>
+
+The local image name is `local/hap.py`. The build also ran
+`bin/test_haplotypes`, which passed without errors.
+
+<details className="cbicallCodeDetails">
+<summary>Smoke-test the local hap.py image</summary>
+<div>
 
 ```bash
-module load GCC/10.2.0
-module load OpenSSL/1.1
-module load Python/2.7.18-GCCcore-10.2.0
-module load Java
+docker run --rm local/hap.py /opt/hap.py/bin/hap.py --version
+```
+
+Expected version:
+
+```text
+Hap.py v0.3.15
 ```
 
 </div>
@@ -207,126 +326,105 @@ module load Java
 
 ### Run hap.py
 
-Run the comparison from the CBIcall final-VCF directory:
+Run each comparison from the directory that contains the extracted sample VCFs:
 
 <details className="cbicallCodeDetails">
 <summary>Enter the final-VCF directory</summary>
 <div>
 
 ```bash
-cd /path/to/<sample>_cbicall_bash_wgs_single_hg38_gatk-4.6_<run_id>/02_varcall/
+cd /path/to/giab_joint_benchmark/
 ```
 
 </div>
 </details>
 
-Create the `vcfeval` reference SDF once from the same GRCh38 FASTA used for the
-benchmark:
+The hg38 reference directory used in this benchmark is:
+
+```text
+/media/mrueda/4TBB/cbicall-data/Databases/GATK_bundle/hg38
+```
+
+The FASTA passed to `hap.py -r` is the Broad/GATK hg38 FASTA:
+
+```text
+/media/mrueda/4TBB/cbicall-data/Databases/GATK_bundle/hg38/resources_broad_hg38_v0_Homo_sapiens_assembly38.fasta
+```
+
+The reference already had the required `.fai` and `.dict` companion files:
+
+```text
+resources_broad_hg38_v0_Homo_sapiens_assembly38.fasta.fai
+resources_broad_hg38_v0_Homo_sapiens_assembly38.dict
+```
+
+For `--engine=vcfeval`, RTG requires an SDF reference created from the **exact
+same FASTA** passed to `hap.py -r`. Create this once:
 
 <details className="cbicallCodeDetails">
 <summary>Create the RTG reference SDF</summary>
 <div>
 
 ```bash
-rtg format \
-  -o ../../../benchmark/resources_broad_hg38_v0_Homo_sapiens_assembly38 \
-  ../../../benchmark/resources_broad_hg38_v0_Homo_sapiens_assembly38.fasta
+docker run --rm \
+  -v /media/mrueda/4TBB/cbicall-data/Databases/GATK_bundle/hg38:/ref \
+  local/hap.py \
+  /opt/hap.py/libexec/rtg-tools-install/rtg format \
+  -o /ref/resources_broad_hg38_v0_Homo_sapiens_assembly38.sdf \
+  /ref/resources_broad_hg38_v0_Homo_sapiens_assembly38.fasta
+```
+
+RTG reported:
+
+```text
+Detected: Human GRCh38 with UCSC naming
+Number of sequences: 3366
+Total residues: 3217346917
 ```
 
 </div>
 </details>
 
-Then run `hap.py`:
+Then mount both the dataset and the reference directory when running `hap.py`:
 
 <details className="cbicallCodeDetails">
 <summary>hap.py comparison command</summary>
 <div>
 
 ```bash
-hap.py \
-  ../../../benchmark/<sample>_GRCh38_1_22_benchmark.vcf.gz \
-  <sample>.hc.QC.vcf.gz \
-  -f ../../../benchmark/<sample>_GRCh38_1_22_benchmark.bed \
-  -r ../../../benchmark/resources_broad_hg38_v0_Homo_sapiens_assembly38.fasta \
-  -o results_<sample>_happy \
-  --engine vcfeval \
-  --engine-vcfeval-template ../../../benchmark/resources_broad_hg38_v0_Homo_sapiens_assembly38 \
-  --threads 8 \
-  > results_<sample>_happy.log 2>&1
+docker run --rm \
+  -v /path/to/HG002:/data \
+  -v /media/mrueda/4TBB/cbicall-data/Databases/GATK_bundle/hg38:/ref \
+  -v /media/mrueda/4TBA/GIAB/truthsets:/truth \
+  local/hap.py \
+  /opt/hap.py/bin/hap.py \
+  /truth/HG002_GRCh38_1_22_v4.2.1_benchmark.vcf.gz \
+  /data/HG002.joint.vcf.gz \
+  -f /truth/HG002_GRCh38_1_22_v4.2.1_benchmark_noinconsistent.bed \
+  -r /ref/resources_broad_hg38_v0_Homo_sapiens_assembly38.fasta \
+  --engine=vcfeval \
+  --engine-vcfeval-template /ref/resources_broad_hg38_v0_Homo_sapiens_assembly38.sdf \
+  -o /data/HG002.happy
 ```
 
 </div>
 </details>
 
-The main summary table is:
+Expected outputs are:
 
 ```text
-results_<sample>_happy.summary.csv
+HG002.happy.summary.csv
+HG002.happy.extended.csv
+HG002.happy.metrics.json
+HG002.happy.roc.*.csv.gz
+HG002.happy.vcf.gz
+HG002.happy.vcf.gz.tbi
 ```
 
-</TabItem>
-<TabItem value="trio-wgs" label="Trio Joint Genotyping">
-
-This benchmark evaluates the **native CBIcall WGS cohort pipeline using GATK
-4.6** on the three downsampled Ashkenazim trio samples after single-sample gVCF
-generation.
-
-| Field | Value |
-| --- | --- |
-| Samples | Father, mother, and son from the Ashkenazim trio |
-| Input to cohort step | Single-sample gVCFs generated by CBIcall from the same downsampled FASTQs |
-| CBIcall workflow | Native WGS cohort pipeline, `workflow_backend: bash`, `software_stack: gatk-4.6`, `genome: hg38` |
-| Benchmark outputs | Joint-genotyped trio VCF and CBIcall audit files |
-| Planned checks | Truth-set comparison per sample and trio-level consistency checks |
-
-Create a cohort sample map from the three single-sample gVCFs:
-
-<details className="cbicallCodeDetails">
-<summary>Trio cohort sample map</summary>
-<div>
-
-```text
-sample	gvcf
-<father>	/path/to/<father>.hc.g.vcf.gz
-<mother>	/path/to/<mother>.hc.g.vcf.gz
-<son>	/path/to/<son>.hc.g.vcf.gz
-```
-
-</div>
-</details>
-
-Then run the WGS cohort workflow:
-
-<details className="cbicallCodeDetails">
-<summary>Trio cohort CBIcall YAML</summary>
-<div>
-
-```yaml
-mode: cohort
-pipeline: wgs
-workflow_backend: bash
-software_stack: gatk-4.6
-resource: "cbicall-germline-resources-v1"
-genome: hg38
-sample_map: /path/to/giab_trio_sample_map.tsv
-```
-
-</div>
-</details>
-
-<details className="cbicallCodeDetails">
-<summary>Trio cohort CBIcall command</summary>
-<div>
-
-```bash
-bin/cbicall run -p giab_trio_wgs_hg38.yaml -t 4
-```
-
-</div>
-</details>
-
-Keep the same CBIcall audit files as for the single-sample benchmark, plus the
-cohort final VCF and any downstream truth-set or trio-consistency summaries.
-
-</TabItem>
-</Tabs>
+:::tip[Engine and reference consistency]
+Use `--engine=vcfeval` for GIAB/WGS benchmarking. The default `xcmp` engine is
+better reserved for quick checks or reproducing older `hap.py` behavior. The
+query VCF, truth VCF, confident BED, reference FASTA, and SDF must all use
+matching coordinates and contig naming; here the reference is Broad/GATK hg38
+with UCSC-style contigs such as `chr1`.
+:::
