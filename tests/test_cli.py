@@ -88,6 +88,9 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
         {
             "project_dir": str(tmp_path),
             "run_id": "RIDREPORT",
+            "hostname": "test-host",
+            "host_threads": 12,
+            "host_threads_minus_one": 11,
             "workflow_backend": "bash",
             "profile": "cnag-hpc",
             "genome": "b37",
@@ -129,6 +132,9 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     assert data["runtime"]["python"]["version"] == sys.version.split()[0]
     assert data["runtime"]["backend"]["name"] == "bash"
     assert data["elapsed_seconds"] == 12.346
+    assert data["run"]["hostname"] == "test-host"
+    assert data["run"]["host_threads"] == 12
+    assert data["run"]["host_threads_minus_one"] == 11
     assert data["resources"]["bundle"]["version"] == "v1"
     assert data["resources"]["bundle"]["fingerprint"] == "abc"
     assert data["workflow_log"].endswith("workflow.log")
@@ -171,6 +177,7 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     assert html_report.is_file()
     html_text = html_report.read_text(encoding="utf-8")
     assert "<title>CBIcall Run Report</title>" in html_text
+    assert "test-host" in html_text
     assert "Human-readable summary generated from" in html_text
     assert "bash/wes/single/gatk-4.6/v1" in html_text
     assert "normalized" in html_text

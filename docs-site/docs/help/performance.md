@@ -30,6 +30,10 @@ CBIcall adds negligible orchestration overhead. The Python wrapper typically rem
 Some workflow steps can be split further, for example across FASTQ chunks or genomic intervals. This may shorten one job, but it does not necessarily reduce total CPU time. On a Slurm cluster with a fixed CPU allocation, **1 job with 24 threads** and **6 jobs with 4 threads each** use the same simultaneous CPU budget. CBIcall deliberately favors moderate per-job thread counts because the intended production use case is running thousands of jobs on Slurm. This matters most for WGS, where one job can run for days.
 :::
 
+### Benchmark Setup
+
+The WES and WGS benchmarks below were run on the same **HP Z2 G8 Tower Workstation** running **Linux Mint 20.3 (Una)** (`x86_64`) with an **Intel Xeon W-1350P @ 4.00 GHz**, **6 physical cores / 12 hardware threads**, and **32 GB RAM**. Runs wrote to an **HDD** rather than an SSD. The GATK/Picard memory setting was fixed at `MEM=8G` in `env.sh` for all thread counts.
+
 <Tabs groupId="performance-benchmark">
 <TabItem value="wes" label="WES" default>
 
@@ -40,7 +44,7 @@ For example, on a 12-core workstation:
 - Running **3 tasks with 4 threads each** is typically preferable to
 - Running **1 task with all 12 threads**
 
-The benchmark below shows the shape of this scaling for **WES single-sample calling** on the 1000 Genomes sample **HG00103** using run accession **SRR1596639**. The paired FASTQ inputs were **1.9 GB** (`R1`) and **2.0 GB** (`R2`). Runs used an **HP Z2 G8 Tower Workstation** (`x86_64`) with an **Intel Xeon W-1350P @ 4.00 GHz**, **6 physical cores / 12 hardware threads**, and **31 GiB RAM**. The GATK/Picard memory setting was fixed at `MEM=8G` in `env.sh` for all thread counts.
+The benchmark below shows the shape of this scaling for **WES single-sample calling** on the 1000 Genomes sample **HG00103** using run accession **SRR1596639**. The paired FASTQ inputs were **1.9 GB** (`R1`) and **2.0 GB** (`R2`), with mean coverage of **97.2x**.
 
 The biggest gain comes from moving from 2 to 4 threads; after 6 threads, the improvement is small.
 
@@ -58,7 +62,15 @@ The biggest gain comes from moving from 2 to 4 threads; after 6 threads, the imp
 </TabItem>
 <TabItem value="wgs" label="WGS">
 
-WGS cluster benchmark data will be added here.
+WGS single-sample runs are substantially longer than WES runs. Measurements for the 1000 Genomes sample **HG00097** used paired FASTQ inputs totaling **162 GB** compressed, with mean coverage of **31.9x**, and show modest improvement when increasing from 8 to 12 threads.
+
+![Run time versus number of threads for WGS single-mode](/img/run-time-wgs.svg)
+
+| Threads | Runtime (hours) |
+| ---: | ---: |
+| 4 | 70.0 |
+| 8 | 63.45 |
+| 12 | 60.0 |
 
 </TabItem>
 </Tabs>

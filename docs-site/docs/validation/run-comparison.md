@@ -97,6 +97,14 @@ run reports that were compared.
 | Resources | Resource key, version, and fingerprint from the selected resource catalog entry. |
 | Outputs | File-inventory fingerprint, inventory size, and normalized VCF fingerprints. |
 
+:::note[Runtime context versus reproducibility]
+Single-run reports include runtime context such as hostname and host thread
+count. `compare-runs` does not treat hostname as a reproducibility criterion:
+cross-machine runs are expected to have different hostnames. For reproducibility,
+focus on workflow, resource, execution-contract, software, and final-output
+fingerprints.
+:::
+
 :::tip[Most important output check]
 For output reproducibility, prioritize the **normalized VCF fingerprint**. It is
 computed from VCF records, not raw compressed bytes, so header timestamps,

@@ -115,6 +115,35 @@
   padding: 1rem;
 }
 
+.cbicallCodeDetails {
+  margin: 1rem 0;
+  border: 1px solid rgba(15, 111, 143, 0.24);
+  border-left: 5px solid var(--ifm-color-primary);
+  border-radius: 8px;
+  background: rgba(239, 248, 250, 0.65);
+  box-shadow: 0 8px 20px rgba(15, 47, 67, 0.045);
+}
+
+.cbicallCodeDetails summary {
+  padding: 0.75rem 1rem;
+  color: var(--ifm-color-primary-darkest);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.cbicallCodeDetails > div {
+  padding: 0 1rem 1rem;
+}
+
+[data-theme='dark'] .cbicallCodeDetails {
+  background: rgba(15, 111, 143, 0.12);
+  border-color: rgba(95, 183, 210, 0.25);
+}
+
+[data-theme='dark'] .cbicallCodeDetails summary {
+  color: var(--ifm-color-primary-lightest);
+}
+
 .about-hero {
   margin: 1.2rem 0 1.6rem;
   padding: 1.25rem 1.4rem;

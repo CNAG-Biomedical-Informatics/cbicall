@@ -897,6 +897,9 @@ def write_run_report(
         "run": {
             "run_id": resolved_config.run_id,
             "project_dir": resolved_config.project_dir,
+            "hostname": resolved_config.hostname,
+            "host_threads": resolved_config.host_threads,
+            "host_threads_minus_one": resolved_config.host_threads_minus_one,
             "threads": arg.get("threads"),
             "genome": resolved_config.genome,
             "display_genome": resolved_config.display_genome,
@@ -1237,6 +1240,7 @@ def _print_single_run_report(
     _row("Report", _report_json_status(report_path, refresh_requested, refreshed, wrote_json))
     _row("Status", payload.get("status"))
     _row("Run ID", run.get("run_id"))
+    _row("Hostname", run.get("hostname"))
     _row("Elapsed", _format_duration(float(payload.get("elapsed_seconds") or 0)))
     _row("Project", _short_path(run.get("project_dir")))
     _row("HTML", _report_html_status(report_path, html_path))

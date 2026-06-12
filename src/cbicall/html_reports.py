@@ -458,6 +458,7 @@ def _run_report_html(payload: dict) -> str:
                 ("Workflow backend", _nested(payload, "runtime", "backend", "name")),
                 ("Backend version", _nested(payload, "runtime", "backend", "version")),
                 ("Backend path", _nested(payload, "runtime", "backend", "path")),
+                ("Hostname", _nested(payload, "run", "hostname")),
             ],
         ),
         _html_section(
