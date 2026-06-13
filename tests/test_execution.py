@@ -27,6 +27,7 @@ def test_execution_builds_bash_command_with_flags(tmp_path, monkeypatch):
         "debug": False,
         "cleanup_bam": True,
         "genome": "b37",
+        "qc_coverage_region": "chr22",
         "inputs": {"input_dir": None, "sample_map": "map.txt"},
         "snakemake_parameters": {},
         "nextflow_parameters": {},
@@ -36,6 +37,7 @@ def test_execution_builds_bash_command_with_flags(tmp_path, monkeypatch):
             "pipeline": "wes",
             "mode": "single",
             "software_stack": "gatk-4.6",
+            "registry_version": "v1",
             "entrypoint": script,
             "config_file": None,
             "helpers": {},
@@ -51,12 +53,14 @@ def test_execution_builds_bash_command_with_flags(tmp_path, monkeypatch):
     assert "--cleanup-bam" in recorded["cmd"]
     assert "--sample-map" in recorded["cmd"]
     assert recorded["env"]["GENOME"] == "b37"
+    assert recorded["env"]["CBICALL_COVERAGE_REGION"] == "chr22"
     assert recorded["cwd"] == project_dir
     assert recorded["backend"] == "bash"
     contract = json.loads((project_dir / "cbicall-execution-contract.json").read_text(encoding="utf-8"))
     assert contract["kind"] == "cbicall_execution_contract"
-    assert contract["workflow"]["key"] == "bash/wes/single/gatk-4.6/legacy"
-    assert contract["environment_overrides"] == {"GENOME": "b37"}
+    assert contract["workflow"]["key"] == "bash/wes/single/gatk-4.6/v1"
+    assert contract["environment_overrides"] == {"CBICALL_COVERAGE_REGION": "chr22", "GENOME": "b37"}
+    assert contract["run"]["qc_coverage_region"] == "chr22"
     assert contract["command"]["argv"] == recorded["cmd"]
     assert "PATH" not in contract["environment_overrides"]
     assert len(contract["fingerprint"]) == 64
@@ -89,6 +93,7 @@ def test_execution_passes_resolved_env_file_to_bash(tmp_path, monkeypatch):
             "pipeline": "wes",
             "mode": "single",
             "software_stack": "gatk-4.6",
+            "registry_version": "v1",
             "entrypoint": str(tmp_path / "wes_single.sh"),
             "config_file": None,
             "helpers": {"env": str(env_file)},
@@ -97,6 +102,7 @@ def test_execution_passes_resolved_env_file_to_bash(tmp_path, monkeypatch):
 
     assert execution.WorkflowExecutor(settings).run() is True
     assert recorded["env"]["CBICALL_ENV_FILE"] == str(env_file)
+    assert recorded["env"]["CBICALL_COVERAGE_REGION"] == "chr1"
 
 
 def test_execution_debug_prints(monkeypatch, tmp_path, capsys):
@@ -123,6 +129,7 @@ def test_execution_debug_prints(monkeypatch, tmp_path, capsys):
             "pipeline": "wes",
             "mode": "single",
             "software_stack": "gatk-3.5",
+            "registry_version": "v1",
             "entrypoint": str(tmp_path / "wes_single.sh"),
             "config_file": None,
             "helpers": {},
@@ -163,6 +170,7 @@ def test_execution_builds_bash_command_gatk35_has_no_extra_flags(tmp_path, monke
             "pipeline": "wes",
             "mode": "single",
             "software_stack": "gatk-3.5",
+            "registry_version": "v1",
             "entrypoint": script,
             "config_file": None,
             "helpers": {},
@@ -191,6 +199,7 @@ def test_execution_builds_snakemake_command_and_config(tmp_path, monkeypatch):
         "run_id": "RID777",
         "debug": False,
         "genome": "hg38",
+        "qc_coverage_region": "chr22",
         "inputs": {"input_dir": None, "sample_map": None},
         "snakemake_parameters": {},
         "nextflow_parameters": {},
@@ -200,6 +209,7 @@ def test_execution_builds_snakemake_command_and_config(tmp_path, monkeypatch):
             "pipeline": "wes",
             "mode": "single",
             "software_stack": "gatk-4.6",
+            "registry_version": "v1",
             "entrypoint": snakefile,
             "config_file": str(tmp_path / "config.yaml"),
             "helpers": {},
@@ -212,6 +222,7 @@ def test_execution_builds_snakemake_command_and_config(tmp_path, monkeypatch):
     assert "--configfile" in cmd
     assert str(tmp_path / "config.yaml") in cmd
     assert "genome=hg38" in cmd
+    assert "qc_coverage_region=chr22" in cmd
     assert "pipeline=wes" in cmd
     assert recorded["backend"] == "snakemake"
 
@@ -243,6 +254,7 @@ def test_execution_builds_snakemake_partial_rule_command(tmp_path, monkeypatch):
             "pipeline": "wes",
             "mode": "single",
             "software_stack": "gatk-4.6",
+            "registry_version": "v1",
             "entrypoint": snakefile,
             "config_file": str(tmp_path / "config.yaml"),
             "helpers": {},
@@ -272,6 +284,7 @@ def test_execution_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
         "run_id": "RIDNF",
         "debug": False,
         "genome": "hg38",
+        "qc_coverage_region": "chr22",
         "inputs": {"input_dir": None, "sample_map": None},
         "snakemake_parameters": {},
         "nextflow_parameters": {"emit_report": True, "scatter_count": 2},
@@ -282,6 +295,7 @@ def test_execution_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
             "pipeline": "wgs",
             "mode": "single",
             "software_stack": "gatk-4.6",
+            "registry_version": "v1",
             "entrypoint": workflow,
             "config_file": config,
             "helpers": {
@@ -300,6 +314,7 @@ def test_execution_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
     assert "--pipeline" in cmd and "wgs" in cmd
     assert "--genome" in cmd and "hg38" in cmd
     assert "--cleanup_bam" in cmd and "true" in cmd
+    assert "--qc_coverage_region" in cmd and "chr22" in cmd
     assert "--vcf2hash_script" in cmd
     assert "--emit_report" in cmd
     assert "--scatter_count" in cmd and "2" in cmd
@@ -339,6 +354,7 @@ def test_execution_builds_nextflow_cohort_command_with_sample_map(tmp_path, monk
             "pipeline": "wes",
             "mode": "cohort",
             "software_stack": "gatk-4.6",
+            "registry_version": "v1",
             "entrypoint": str(tmp_path / "wes_cohort.nf"),
             "config_file": str(tmp_path / "config.yaml"),
             "helpers": {"vcf2hash": str(tmp_path / "vcf2hash.sh")},
@@ -371,6 +387,7 @@ def test_execution_nextflow_cohort_requires_sample_map(tmp_path):
             "pipeline": "wes",
             "mode": "cohort",
             "software_stack": "gatk-4.6",
+            "registry_version": "v1",
             "entrypoint": str(tmp_path / "wes_cohort.nf"),
             "config_file": str(tmp_path / "config.yaml"),
             "helpers": {},
@@ -542,6 +559,7 @@ def test_snakemake_missing_snakefile_raises(tmp_path):
             "pipeline": "wes",
             "mode": "single",
             "software_stack": "gatk-4.6",
+            "registry_version": "v1",
             "entrypoint": None,
             "config_file": None,
             "helpers": {},
@@ -567,6 +585,7 @@ def test_execution_raises_if_projectdir_missing(tmp_path):
             "pipeline": "wes",
             "mode": "single",
             "software_stack": "gatk-3.5",
+            "registry_version": "v1",
             "entrypoint": str(tmp_path / "wes_single.sh"),
             "config_file": None,
             "helpers": {},
@@ -665,6 +684,7 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
         "debug": False,
         "profile": "local",
         "genome": "b37",
+        "qc_coverage_region": "chr22",
         "inputs": {"input_dir": str(input_dir), "sample_map": None},
         "snakemake_parameters": {},
         "nextflow_parameters": {},
@@ -676,6 +696,7 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
             "pipeline": "wes",
             "mode": "single",
             "software_stack": "gatk-4.6",
+            "registry_version": "v1",
             "entrypoint": str(wdl),
             "config_file": str(config),
             "helpers": {
@@ -697,6 +718,7 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
     assert inputs["CBIcallWesSingle.id"] == "CNAG99901P"
     assert inputs["CBIcallWesSingle.bwa"] == "/data/NGSutils/bwa/bwa"
     assert inputs["CBIcallWesSingle.ref"] == "/data/Databases/GATK_bundle/b37/ref.fasta"
+    assert inputs["CBIcallWesSingle.qc_coverage_region"] == "chr22"
     assert inputs["CBIcallWesSingle.extra_label"] == "audit"
     assert (project_dir / "cbicall_cromwell.fastq_pairs.tsv").read_text(encoding="utf-8").count("\n") == 1
     assert (project_dir / "02_varcall" / "CNAG99901P.hc.QC.vcf.gz").is_file()
@@ -770,6 +792,7 @@ def test_execution_builds_and_promotes_cromwell_wgs_cohort(tmp_path, monkeypatch
             "pipeline": "wgs",
             "mode": "cohort",
             "software_stack": "gatk-4.6",
+            "registry_version": "v1",
             "entrypoint": str(wdl),
             "config_file": str(config),
             "helpers": {
@@ -821,6 +844,7 @@ def test_execution_cromwell_requires_runtime(tmp_path, monkeypatch):
             "pipeline": "wes",
             "mode": "single",
             "software_stack": "gatk-4.6",
+            "registry_version": "v1",
             "entrypoint": str(wdl),
             "config_file": str(config),
             "helpers": {"coverage": "coverage.sh", "vcf2sex": "vcf2sex.sh", "vcf2hash": "vcf2hash.sh"},
@@ -846,6 +870,7 @@ def test_run_raises_on_invalid_backend(tmp_path):
             "pipeline": "wes",
             "mode": "single",
             "software_stack": "gatk-3.5",
+            "registry_version": "v1",
             "entrypoint": None,
             "config_file": None,
             "helpers": {},

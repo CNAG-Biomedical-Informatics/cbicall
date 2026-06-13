@@ -28,8 +28,9 @@ def test_workflow_registry_resolve_errors_and_version_syntax(tmp_path):
     with pytest.raises(WorkflowResolutionError, match="missing helper keys"):
         wr.resolve_workflow_spec(cfg, registry, tmp_path)
 
-    assert wr._resolve_pipeline_implementation("legacy.sh", None, backend="bash", software_stack="gatk", pipeline="wes", mode="single") == ("legacy", "legacy.sh")
-    with pytest.raises(WorkflowResolutionError, match="legacy registry syntax"):
+    with pytest.raises(WorkflowResolutionError, match="expected a versioned object"):
+        wr._resolve_pipeline_implementation("legacy.sh", None, backend="bash", software_stack="gatk", pipeline="wes", mode="single")
+    with pytest.raises(WorkflowResolutionError, match="expected a versioned object"):
         wr._resolve_pipeline_implementation("legacy.sh", "v1", backend="bash", software_stack="gatk", pipeline="wes", mode="single")
     with pytest.raises(WorkflowResolutionError, match="expected a versioned object"):
         wr._resolve_pipeline_implementation([], None, backend="bash", software_stack="gatk", pipeline="wes", mode="single")

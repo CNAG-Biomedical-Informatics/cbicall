@@ -264,14 +264,6 @@ def _resolve_pipeline_implementation(
     mode: str,
 ) -> Tuple[str, Any]:
     label = f"{backend}/{software_stack}/{pipeline}/{mode}"
-    if isinstance(mode_cfg, str):
-        if requested_registry_version:
-            raise WorkflowResolutionError(
-                f"registry_version was set to '{requested_registry_version}', but {label} "
-                "uses legacy registry syntax without registry versions."
-            )
-        return "legacy", mode_cfg
-
     if not isinstance(mode_cfg, dict):
         raise WorkflowResolutionError(f"Invalid registry entry for {label}: expected a versioned object.")
 

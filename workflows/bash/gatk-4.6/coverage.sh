@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#   Coverage stats for chromosome 1 using exome (WES) or whole-genome (WGS)
+#   Coverage stats for CBICALL_COVERAGE_REGION, defaulting to chr1
 #   Uses $SAM and $REF from env.sh, avoids division-by-zero,
 #   prints total_reads as an additional column.
 #   Handles conversion of Picard IntervalList (1-based inclusive) to 0-based BED.
@@ -32,18 +32,23 @@ DEDUPBAM=$3
 mode="${4:-WES}"
 mode_upper="${mode^^}"
 
-# Auto-detect chromosome naming style from the reference index (chr1 vs 1)
-if awk 'BEGIN{ok=0} $1=="chr1"{ok=1} END{exit !ok}' "${FASTA}.fai"; then
-  chrN="chr1"
+requested_region="${CBICALL_COVERAGE_REGION:-chr1}"
+if awk -v chr="$requested_region" '$1==chr {found=1} END{exit !found}' "${FASTA}.fai"; then
+  chrN="$requested_region"
+elif [[ "$requested_region" == chr* ]] && awk -v chr="${requested_region#chr}" '$1==chr {found=1} END{exit !found}' "${FASTA}.fai"; then
+  chrN="${requested_region#chr}"
+elif [[ "$requested_region" != chr* ]] && awk -v chr="chr${requested_region}" '$1==chr {found=1} END{exit !found}' "${FASTA}.fai"; then
+  chrN="chr${requested_region}"
 else
-  chrN="1"
+  echo "Error: coverage region '$requested_region' not found in ${FASTA}.fai" >&2
+  exit 1
 fi
 
-# Create a temp file to hold a 0-based BED region for chr1
+# Create a temp file to hold a 0-based BED region for the selected contig
 TMPREG=$(mktemp)
 case "$mode_upper" in
   WES)
-    # WES: filter Picard IntervalList (1-based inclusive) for chr1,
+    # WES: filter Picard IntervalList (1-based inclusive) for the selected contig,
     # then convert to 0-based, half-open BED by subtracting 1 from the start.
     # Normalize contig naming in output to match $chrN.
     if [ -z "${INTERVAL_LIST:-}" ] || [ ! -f "$INTERVAL_LIST" ]; then
@@ -88,10 +93,10 @@ esac
 REGION="$TMPREG"
 
 # Compute total span (bp) of the BED regions
-span=$(awk '{s+=($3-$2)} END{print s}' "$REGION")
+span=$(awk '{s+=($3-$2)} END{print s+0}' "$REGION")
 
 # Sum of depths (including duplicates) from raw BAM over the region
-dup_sum=$("${SAM}" depth -b "$REGION" "$RAWBAM" 2>/dev/null | awk '{s+=$3} END{print s}')
+dup_sum=$("${SAM}" depth -b "$REGION" "$RAWBAM" 2>/dev/null | awk '{s+=$3} END{print s+0}')
 
 # Count total reads in BAM and bail if empty
 total_reads=$("${SAM}" view -c "$RAWBAM")
@@ -124,11 +129,8 @@ ins_size=$("${SAM}" view "$RAWBAM" | awk '$9>0 && $9<600 {sum+=$9; cnt++} END {i
     in_pct  = (tot>0      ? 100 * r_in/tot    : 0)
     out_pct = (tot>0      ? 100 * r_out/tot   : 0)
 
-    # print header with added total_reads column
-    printf "%s\n", chr
-    printf "sampleID\tmode\ttotal_reads\tmean_cov\tten_pct\tnondup_pct\tins_size\tin_pct\tout_pct\n"
-    # print data line including tot
-    printf "%s\t%s\t%d\t%.1f\t%.1f\t%.1f\t%s\t%.1f\t%.1f\n", sid, mode, tot, mean, p10, nondup, ins, in_pct, out_pct
+    printf "region\tsampleID\tmode\ttotal_reads\tmean_cov\tten_pct\tnondup_pct\tins_size\tin_pct\tout_pct\n"
+    printf "%s\t%s\t%s\t%d\t%.1f\t%.1f\t%.1f\t%s\t%.1f\t%.1f\n", chr, sid, mode, tot, mean, p10, nondup, ins, in_pct, out_pct
   }'
 
 # Cleanup temporary BED file

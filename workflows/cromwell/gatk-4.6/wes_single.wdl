@@ -7,6 +7,7 @@ workflow CBIcallWesSingle {
     String genome
     Int threads
     Boolean cleanup_bam
+    String qc_coverage_region
     File fastq_pairs_tsv
     String tmpdir
     String bwa
@@ -34,6 +35,7 @@ workflow CBIcallWesSingle {
       genome = genome,
       threads = threads,
       cleanup_bam = cleanup_bam,
+      qc_coverage_region = qc_coverage_region,
       fastq_pairs_tsv = fastq_pairs_tsv,
       tmpdir = tmpdir,
       bwa = bwa,
@@ -72,6 +74,7 @@ task RunWesSingle {
     String genome
     Int threads
     Boolean cleanup_bam
+    String qc_coverage_region
     File fastq_pairs_tsv
     String tmpdir
     String bwa
@@ -252,16 +255,24 @@ task RunWesSingle {
       2>> "$LOG"
 
     echo "STEP 10: Coverage, sex determination, and VCF hash" 2>> "$LOG"
-    if [[ "~{ref}" == *b37*.fasta ]]; then
-      chrN=1
+    requested_region="~{qc_coverage_region}"
+    if awk -v chr="$requested_region" '$1==chr {found=1} END{exit !found}' "~{ref}.fai"; then
+      chrN="$requested_region"
+    elif [[ "$requested_region" == chr* ]] && awk -v chr="${requested_region#chr}" '$1==chr {found=1} END{exit !found}' "~{ref}.fai"; then
+      chrN="${requested_region#chr}"
+    elif [[ "$requested_region" != chr* ]] && awk -v chr="chr${requested_region}" '$1==chr {found=1} END{exit !found}' "~{ref}.fai"; then
+      chrN="chr${requested_region}"
     else
-      chrN=chr1
+      echo "Error: coverage region '$requested_region' not found in ~{ref}.fai" >&2
+      exit 1
     fi
+    chr_file=$(printf '%s' "$chrN" | sed 's/[^A-Za-z0-9_.-]/_/g')
+    export CBICALL_COVERAGE_REGION="$chrN"
 
     bam_raw="$BAMDIR/~{id}.rg.merged.dedup.bam"
     bam_recal="$BAMDIR/~{id}.rg.merged.dedup.recal.bam"
-    out_raw="$STATSDIR/$chrN.raw.bam"
-    out_dedup="$STATSDIR/$chrN.dedup.bam"
+    out_raw="$STATSDIR/$chr_file.raw.bam"
+    out_dedup="$STATSDIR/$chr_file.dedup.bam"
 
     ~{samtools} view -b "$bam_raw" "$chrN" > "$out_raw" 2>> "$LOG"
     ~{samtools} view -b "$bam_recal" "$chrN" > "$out_dedup" 2>> "$LOG"

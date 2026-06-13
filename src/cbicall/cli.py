@@ -903,12 +903,14 @@ def write_run_report(
             "threads": arg.get("threads"),
             "genome": resolved_config.genome,
             "display_genome": resolved_config.display_genome,
+            "qc_coverage_region": resolved_config.qc_coverage_region,
             "run_mode": resolved_config.run_mode,
         },
         "inputs": resolved_config.inputs.to_dict(),
         "parameters": {
             "paramfile": arg.get("paramfile"),
             "cleanup_bam": params.get("cleanup_bam", False),
+            "qc_coverage_region": resolved_config.qc_coverage_region,
             "snakemake_parameters": resolved_config.snakemake_parameters,
             "nextflow_parameters": resolved_config.nextflow_parameters,
             "cromwell_parameters": resolved_config.cromwell_parameters,
@@ -1813,6 +1815,7 @@ def _run_test_command(argv: List[str]) -> int:
         description="Run the bundled CBIcall integration tests from examples/input.",
     )
     parser.add_argument("--wes-bash", action="store_true", help="Run the Bash WES integration test.")
+    parser.add_argument("--wes-bash-gatk35", action="store_true", help="Run the legacy Bash WES GATK 3.5 integration test.")
     parser.add_argument(
         "--wes-snakemake",
         action="store_true",
@@ -1864,6 +1867,7 @@ def _run_test_command(argv: List[str]) -> int:
 
     selectors = [
         args.wes_bash,
+        args.wes_bash_gatk35,
         args.wes_snakemake,
         args.wes_nextflow,
         args.wes_cromwell,
@@ -1886,8 +1890,8 @@ def _run_test_command(argv: List[str]) -> int:
     selected = selected_tests_from_args(args)
     if not selected:
         parser.error(
-            "select at least one test with --wes-bash, --wes-snakemake, "
-            "--wes-nextflow, --wes-cromwell, --mit-bash, --nf-core-demo, "
+            "select at least one test with --wes-bash, --wes-bash-gatk35, "
+            "--wes-snakemake, --wes-nextflow, --wes-cromwell, --mit-bash, --nf-core-demo, "
             "--nf-core-sarek, --backend-equivalence, or --all"
         )
 
@@ -2001,6 +2005,7 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
             "nfcore_parameters": resolved_config.nfcore_parameters,
             "nfcore_singularity_cache_dir": resolved_config.nfcore_singularity_cache_dir,
             "genome": resolved_config.genome,
+            "qc_coverage_region": resolved_config.qc_coverage_region,
             "cleanup_bam": params.get("cleanup_bam", False),
             "run_mode": resolved_config.run_mode,
             "inputs": resolved_config.inputs.to_dict(),

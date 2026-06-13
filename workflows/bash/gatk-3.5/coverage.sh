@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 #
-#   Coverage stats for chr1
+#   Coverage stats for CBICALL_COVERAGE_REGION, defaulting to chr1.
+#
+#   Keep this helper Agilent-based: the legacy GATK 3.5 WES workflow also uses
+#   $EXOM/hg19.chr*.bed and flank100bp intervals for BQSR and UnifiedGenotyper.
+#   GATK 4.6 uses the Broad interval list and has its own coverage helper.
 #
 #   Last Modified: May/02/2025
 #
@@ -8,7 +12,7 @@ set -eu
 
 # Check arguments
 if [ $# -ne 3 ]; then
-  echo "Usage: $0 <sampleID> <chr1.raw.bam> <chr1.dedup.bam>" >&2
+  echo "Usage: $0 <sampleID> <region.raw.bam> <region.dedup.bam>" >&2
   exit 1
 fi
 
@@ -18,9 +22,22 @@ BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source env.sh from the same directory
 source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
 
-chrN=chr1
+requested_region="${CBICALL_COVERAGE_REGION:-chr1}"
+if [[ "$requested_region" == chr* ]]; then
+  chrN="$requested_region"
+else
+  chrN="chr${requested_region}"
+fi
 REGION=$EXOM/hg19.$chrN.bed
 EXOME_COORD=$EXOM/hg19_coor.$chrN.txt
+if [ ! -f "$REGION" ]; then
+  echo "Error: coverage region file not found: $REGION" >&2
+  exit 1
+fi
+if [ ! -f "$EXOME_COORD" ]; then
+  echo "Error: coverage coordinate file not found: $EXOME_COORD" >&2
+  exit 1
+fi
 sid=$1
 RAWBAM=$2
 DEDUPBAM=$3
@@ -32,7 +49,7 @@ if [ "$exon_span" -eq 0 ]; then
 fi
 
 # Sum of depths in the raw BAM
-dup_sum=$("$SAM" depth -b "$REGION" "$RAWBAM" 2>/dev/null | awk '{sum+=$3} END{print sum}')
+dup_sum=$("$SAM" depth -b "$REGION" "$RAWBAM" 2>/dev/null | awk '{sum+=$3} END{print sum+0}')
 if [ "$dup_sum" -eq 0 ]; then
   echo "Warning: duplicate‐sum is zero for $chrN (no raw coverage?)" >&2
 fi
@@ -82,11 +99,9 @@ END {
   read_ex  = total_reads > 0 ? 100 * exome_reads   / total_reads   : 0
   read_out = total_reads > 0 ? 100 * out_exome      / total_reads   : 0
 
-  # print table
-  printf "%s\n", chrN
-  printf "sampleID\tmean_coverage\tten_reads%%\tnonduplicate%%\tmean_insert_size\treads_in_exome%%\treads_out_of_exome%%\n"
-  printf "%s\t%4.1f\t%4.1f\t%4.1f\t%s\t%4.1f\t%4.1f\n",
-         sid, depth, r10, nondup, ins_size, read_ex, read_out
+  printf "region\tsampleID\tmode\ttotal_reads\tmean_cov\tten_pct\tnondup_pct\tins_size\tin_pct\tout_pct\n"
+  printf "%s\t%s\tWES\t%d\t%4.1f\t%4.1f\t%4.1f\t%s\t%4.1f\t%4.1f\n",
+         chrN, sid, total_reads, depth, r10, nondup, ins_size, read_ex, read_out
 }
 '
 

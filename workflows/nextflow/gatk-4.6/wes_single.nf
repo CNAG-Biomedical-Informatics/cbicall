@@ -168,7 +168,20 @@ def launchDirFile = new File(workflow.launchDir.toString())
 def rawid = launchDirFile.getParentFile()?.getName() ?: launchDirFile.getName()
 def ID = rawid.split("_", 2)[0]
 
-def CHR1 = REF.contains("b37") ? "1" : "chr1"
+def requestedCoverageRegion = (params.qc_coverage_region ?: System.getenv('CBICALL_COVERAGE_REGION') ?: 'chr1').toString().trim()
+if( !requestedCoverageRegion ) {
+    throw new IllegalArgumentException("qc_coverage_region must be a non-empty contig name")
+}
+def refContigs = new File("${REF}.fai").readLines().collect { it.split('\t')[0] } as Set
+def normalizeCoverageRegion = { String region, Set contigs ->
+    if( contigs.contains(region) ) return region
+    if( region.startsWith('chr') && contigs.contains(region.substring(3)) ) return region.substring(3)
+    def prefixed = "chr${region}".toString()
+    if( !region.startsWith('chr') && contigs.contains(prefixed) ) return prefixed
+    throw new IllegalArgumentException("coverage region '${region}' not found in ${REF}.fai")
+}
+def CHR1 = normalizeCoverageRegion(requestedCoverageRegion, refContigs)
+def CHR1_FILE = CHR1.replaceAll(/[^A-Za-z0-9_.-]/, '_')
 
 println "Sample ID: ${ID}"
 println "Pipeline: ${PIPELINE}"
@@ -200,6 +213,7 @@ def ENV_BLOCK = """
 export TMPDIR=${q(TMPDIR)}
 export LC_ALL=C
 export GATK_DISABLE_AUTO_S3_UPLOAD=true
+export CBICALL_COVERAGE_REGION=${q(CHR1)}
 """
 
 /****************************************************************
@@ -505,8 +519,8 @@ process COVERAGE_STATS {
     bam_raw=${q(raw_bam)}
     bam_recal=${q(recal_bam)}
 
-    out_raw=${q("${CHR1}.raw.bam")}
-    out_dedup=${q("${CHR1}.dedup.bam")}
+    out_raw=${q("${CHR1_FILE}.raw.bam")}
+    out_dedup=${q("${CHR1_FILE}.dedup.bam")}
 
     ${SAM} view -b "\$bam_raw" "\$chrN" > "\$out_raw" 2>> ${q("${ID}.08_coverage_stats.log")}
     ${SAM} view -b "\$bam_recal" "\$chrN" > "\$out_dedup" 2>> ${q("${ID}.08_coverage_stats.log")}

@@ -1882,3 +1882,28 @@ def test_merge_param_values_rejects_resource_profile_and_nfcore_edges(tmp_path):
     assert config_mod._path_label(" GATK/GRCh38:test ") == "GATK-GRCh38-test"
     assert config_mod._path_label(None) == "no-genome"
     assert config_mod._display_genome({"workflow_provider": "nf-core", "nfcore_parameters": {}}) == "no-genome"
+
+
+def test_qc_coverage_region_is_validated_and_reserved():
+    cfg = config_mod._merge_and_validate_param_values({"qc_coverage_region": " chr22 "})
+    assert cfg["qc_coverage_region"] == "chr22"
+
+    for bad in (None, "", "chr 22", "chr22:1-100", "beds/chr22.bed"):
+        with pytest.raises(ParameterValidationError, match="qc_coverage_region"):
+            config_mod._merge_and_validate_param_values({"qc_coverage_region": bad})
+
+    with pytest.raises(ParameterValidationError, match="snakemake_parameters cannot set"):
+        config_mod._merge_and_validate_param_values({
+            "workflow_backend": "snakemake",
+            "snakemake_parameters": {"qc_coverage_region": "chr22"},
+        })
+    with pytest.raises(ParameterValidationError, match="nextflow_parameters cannot set"):
+        config_mod._merge_and_validate_param_values({
+            "workflow_backend": "nextflow",
+            "nextflow_parameters": {"qc_coverage_region": "chr22"},
+        })
+    with pytest.raises(ParameterValidationError, match="cromwell_parameters cannot set"):
+        config_mod._merge_and_validate_param_values({
+            "workflow_backend": "cromwell",
+            "cromwell_parameters": {"qc_coverage_region": "chr22"},
+        })

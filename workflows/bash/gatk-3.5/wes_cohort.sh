@@ -19,21 +19,21 @@ function usage {
 
 MA00024_exome  <-- ID taken from here
 ├── MA0002401P_ex
-│  └── cbicall_bash_wes_single_146723488708442
+│  └── cbicall_bash_gatk-3.5_wes_single_b37_146723488708442
 │      ├── 01_bam
 │      ├── 02_varcall
 │      └── 03_stats
 ├── MA0002402M_ex
-│  └── cbicall_bash_wes_single_146727114980481
+│  └── cbicall_bash_gatk-3.5_wes_single_b37_146727114980481
 │      ├── 01_bam
 │      ├── 02_varcall
 │      └── 03_stats
 ├── MA0002402P_ex
-│  └── cbicall_bash_wes_single_146730170886696
+│  └── cbicall_bash_gatk-3.5_wes_single_b37_146730170886696
 │      ├── 01_bam
 │      ├── 02_varcall
 │      └── 03_stats
-└── cbicall_bash_wes_cohort_146774466308431 <- The script expects that you are submitting the job from inside this directory
+└── cbicall_bash_gatk-3.5_wes_cohort_b37_146774466308431 <- The script expects that you are submitting the job from inside this directory
     ├── 01_varcall
     └── 02_stats
     """
@@ -68,13 +68,13 @@ JACCARD=$BINDIR/jaccard.sh
 DIR=$( pwd )
 
 # Check that nomenclature exists
-if [[ $DIR != *cbicall_bash_wes_cohort* ]]
+if [[ $DIR != *cbicall_bash_gatk-3.5_wes_cohort* ]]
  then 
   usage
 fi
 
 # Fetching the cohort id "MA00052"
-# /media/mrueda/2TB/Project_MA/cbicall/Project_MA/MA00052_exome/cbicall_wes_cohort_bash_1234567890
+# /media/mrueda/2TB/Project_MA/cbicall/Project_MA/MA00052_exome/cbicall_bash_gatk-3.5_wes_cohort_b37_1234567890
 # MA00052 <---
 cohort=$( echo $DIR | awk -F'/' '{print $--NF}' | awk -F'_' '{print $1}' )
 echo $cohort
@@ -113,9 +113,9 @@ do
  
  echo "Creating string with multiple BAMs from cohort"
  # We append all inputs over the string tmp_in
- # NB: they MUST be  ../*_{ex,wg}/*cbicall_bash_wes_single*/
+ # NB: they MUST be  ../*_{ex,wg}/*cbicall_bash_gatk-3.5_wes_single*/
  tmp_in=''
- for tmp_bam in ../../??????????_{ex,wg}/*cbicall_bash_wes_single_*/01_bam/input.merged.filtered.realigned.fixed.dedup.$chrN.recal.bam
+ for tmp_bam in ../../??????????_{ex,wg}/*cbicall_bash_gatk-3.5_wes_single_b37_*/01_bam/input.merged.filtered.realigned.fixed.dedup.$chrN.recal.bam
  do
   tmp_in="${tmp_in} -I $tmp_bam "
  done

@@ -28,6 +28,7 @@ def test_execution_snakemake_with_sample_map_adds_workspace_and_sample_map(tmp_p
             "pipeline": "wgs",
             "mode": "cohort",
             "software_stack": "gatk-4.6",
+            "registry_version": "v1",
             "entrypoint": str(tmp_path / "wgs_cohort.smk"),
             "config_file": None,
             "helpers": {},

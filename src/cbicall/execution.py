@@ -240,6 +240,10 @@ class BaseRunner:
         return str(self.settings.workflow.software_stack)
 
     @property
+    def qc_coverage_region(self) -> str:
+        return str(self.settings.qc_coverage_region or "chr1")
+
+    @property
     def workflow(self):
         return self.settings.workflow
 
@@ -265,6 +269,9 @@ class BaseRunner:
 
     def _base_env(self) -> Dict[str, str]:
         return os.environ.copy()
+
+    def _coverage_env(self) -> Dict[str, str]:
+        return {"CBICALL_COVERAGE_REGION": self.qc_coverage_region}
 
     def env_overrides(self) -> Optional[Dict[str, str]]:
         return None
@@ -326,6 +333,7 @@ class BaseRunner:
                 "threads": int(self.settings.threads),
                 "profile": self.settings.profile,
                 "genome": self.settings.genome,
+                "qc_coverage_region": self.settings.qc_coverage_region,
                 "cleanup_bam": bool(self.settings.cleanup_bam),
                 "run_mode": self.settings.run_mode,
             },
@@ -382,7 +390,8 @@ class BaseRunner:
 class BashRunner(BaseRunner):
     def env_overrides(self) -> Optional[Dict[str, str]]:
         # Bash workflow scripts source this resolved file at runtime.
-        env_updates = {"GENOME": self.genome}
+        env_updates = self._coverage_env()
+        env_updates["GENOME"] = self.genome
         env_file = self.workflow.helpers.get("env")
         if env_file:
             env_updates["CBICALL_ENV_FILE"] = str(env_file)
@@ -417,6 +426,9 @@ class BashRunner(BaseRunner):
 
 
 class SnakemakeRunner(BaseRunner):
+    def env_overrides(self) -> Optional[Dict[str, str]]:
+        return self._coverage_env()
+
     def build_command(self) -> List[str]:
         script = self.workflow.entrypoint
         if not script:
@@ -438,7 +450,7 @@ class SnakemakeRunner(BaseRunner):
         if smk_config:
             cmd += ["--configfile", str(smk_config)]
 
-        snk_config_kvs: List[str] = [f"genome={self.genome}"]
+        snk_config_kvs: List[str] = [f"genome={self.genome}", f"qc_coverage_region={self.qc_coverage_region}"]
 
         if self.software_stack != "gatk-3.5":
             snk_config_kvs.append(f"pipeline={self.pipeline}")
@@ -460,6 +472,11 @@ class SnakemakeRunner(BaseRunner):
 
 
 class NextflowRunner(BaseRunner):
+    def env_overrides(self) -> Optional[Dict[str, str]]:
+        if self._is_nfcore_workflow():
+            return None
+        return self._coverage_env()
+
     def _is_nfcore_workflow(self) -> bool:
         return self.workflow.metadata.get("provider") == "nf-core"
 
@@ -565,6 +582,8 @@ class NextflowRunner(BaseRunner):
             str(int(self.settings.threads)),
             "--cleanup_bam",
             "true" if bool(self.settings.cleanup_bam) else "false",
+            "--qc_coverage_region",
+            self.qc_coverage_region,
         ]
 
         sample_map = self.inputs.sample_map
@@ -603,6 +622,9 @@ class NextflowRunner(BaseRunner):
 
 
 class CromwellRunner(BaseRunner):
+    def env_overrides(self) -> Optional[Dict[str, str]]:
+        return self._coverage_env()
+
     @property
     def workflow_name(self) -> str:
         return "CBIcallCohort" if self.mode == "cohort" else "CBIcallWesSingle"
@@ -697,6 +719,7 @@ class CromwellRunner(BaseRunner):
             prefix + "pipeline": self.pipeline,
             prefix + "genome": self.genome,
             prefix + "threads": int(self.settings.threads),
+            prefix + "qc_coverage_region": self.qc_coverage_region,
             prefix + "tmpdir": str(expanded["tmpdir"]),
             prefix + "gatk4_cmd": self._gatk4_cmd_for_mode(expanded),
             prefix + "ref": str(resources["ref"]),

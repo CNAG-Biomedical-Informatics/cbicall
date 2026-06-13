@@ -726,9 +726,9 @@ def test_report_command_summarizes_run_without_writing_by_default(tmp_path, caps
         "workflow": {
             "backend": "bash",
             "software_stack": "gatk-4.6",
+            "registry_version": "v1",
             "pipeline": "wes",
             "mode": "single",
-            "registry_version": "v1",
             "key": "bash/wes/single/gatk-4.6/v1",
             "fingerprint": "workflow-hash",
             "files": [],
@@ -868,9 +868,8 @@ def test_report_command_writes_multiqc_bundle(tmp_path, capsys):
     stats_dir = run_dir / "03_stats"
     stats_dir.mkdir()
     (stats_dir / "sample.coverage.txt").write_text(
-        """1
-sampleID	mode	total_reads	mean_cov	ten_pct	nondup_pct	ins_size	in_pct	out_pct
-sample	WES	244	12.5	98.1	91.2	161.5	85.5	14.5
+        """region	sampleID	mode	total_reads	mean_cov	ten_pct	nondup_pct	ins_size	in_pct	out_pct
+1	sample	WES	244	12.5	98.1	91.2	161.5	85.5	14.5
 """,
         encoding="utf-8",
     )
@@ -920,6 +919,7 @@ SEX=FEMALE
     assert row["output_size_mib"] == 1.0
     assert row["final_vcf_records"] == 10
     sample_qc = yaml.safe_load((mqc_dir / "cbicall_native_sample_qc_mqc.yaml").read_text(encoding="utf-8"))
+    assert sample_qc["data"]["sample"]["Region"] == "1"
     assert sample_qc["data"]["sample"]["Mean coverage"] == 12.5
     assert sample_qc["data"]["sample"]["Sex"] == "FEMALE"
     final_outputs = yaml.safe_load((mqc_dir / "cbicall_final_outputs_mqc.yaml").read_text(encoding="utf-8"))
@@ -1314,6 +1314,7 @@ def test_main_happy_path(monkeypatch, tmp_path):
                 "pipeline": "wes",
                 "mode": "single",
                 "software_stack": "gatk-3.5",
+                "registry_version": "v1",
                 "entrypoint": "/x.sh",
                 "config_file": None,
                 "helpers": {},
@@ -1384,6 +1385,7 @@ def test_main_run_subcommand_happy_path(monkeypatch, tmp_path, capsys):
                 "pipeline": "wes",
                 "mode": "single",
                 "software_stack": "gatk-4.6",
+                "registry_version": "v1",
                 "entrypoint": "/x_run.sh",
                 "config_file": None,
                 "helpers": {},
@@ -1458,6 +1460,7 @@ def test_main_verbose_prints(monkeypatch, tmp_path, capsys):
                 "pipeline": "wes",
                 "mode": "single",
                 "software_stack": "gatk-3.5",
+                "registry_version": "v1",
                 "entrypoint": "/x.sh",
                 "config_file": None,
                 "helpers": {},
@@ -1523,6 +1526,7 @@ def test_main_warns_when_genome_is_inferred(monkeypatch, tmp_path, capsys):
                 "pipeline": "wes",
                 "mode": "single",
                 "software_stack": "gatk-3.5",
+                "registry_version": "v1",
                 "entrypoint": "/x.sh",
                 "config_file": None,
                 "helpers": {},
@@ -1589,6 +1593,7 @@ def test_main_partial_run_warning_and_metadata(monkeypatch, tmp_path, capsys):
                 "pipeline": "wes",
                 "mode": "single",
                 "software_stack": "gatk-4.6",
+                "registry_version": "v1",
                 "entrypoint": "/x.smk",
                 "config_file": "/cfg.yaml",
                 "helpers": {},
@@ -1748,6 +1753,7 @@ def test_main_no_color_disables_ansi_output(monkeypatch, tmp_path, capsys):
                 "pipeline": "wes",
                 "mode": "single",
                 "software_stack": "gatk-3.5",
+                "registry_version": "v1",
                 "entrypoint": "/x.sh",
                 "config_file": None,
                 "helpers": {},
@@ -1811,6 +1817,7 @@ def test_main_passes_wgs_cohort_workflow_keys(monkeypatch, tmp_path):
                 "pipeline": "wgs",
                 "mode": "cohort",
                 "software_stack": "gatk-4.6",
+                "registry_version": "v1",
                 "entrypoint": "/x_wgs_cohort.sh",
                 "config_file": "/x_config.yaml",
                 "helpers": {},

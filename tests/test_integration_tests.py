@@ -32,6 +32,7 @@ def _normalized_hash(lines):
 def test_validate_contract_accepts_required_files_json_and_normalized_gzip_hash(tmp_path):
     _write_report(tmp_path)
     (tmp_path / "workflow.log").write_text("ok\n", encoding="utf-8")
+    (tmp_path / "sample.coverage.txt").write_text("region\tsampleID\nchr22\tCNAG99901P\n", encoding="utf-8")
     with gzip.open(tmp_path / "sample.vcf.gz", "wt", encoding="utf-8") as handle:
         handle.write("##header\n")
         handle.write("#CHROM\tPOS\n")
@@ -44,6 +45,9 @@ def test_validate_contract_accepts_required_files_json_and_normalized_gzip_hash(
             {"path": "status", "equals": "success"},
             {"path": "workflow.backend", "equals": "bash"},
             {"path": "resources.bundle.key", "equals": "cbicall-germline-resources-v1"},
+        ],
+        "text_expectations": [
+            {"path": "sample.coverage.txt", "startswith": "region\tsampleID", "contains": "CNAG99901P", "matches": "^(chr)?22\t"},
         ],
         "hashes": [
             {
@@ -419,6 +423,16 @@ def test_validate_contract_suffix_contains_and_hash_error_paths(tmp_path):
         validate_contract(tmp_path, {"hashes": [{"path": "out.txt", "records": 3, "sha256": "x"}]})
     with pytest.raises(IntegrationTestError, match="Unsupported hash type"):
         validate_contract(tmp_path, {"hashes": [{"path": "out.txt", "type": "md5", "sha256": "x"}]})
+    with pytest.raises(IntegrationTestError, match="Text expectation target does not exist"):
+        validate_contract(tmp_path, {"text_expectations": [{"path": "missing.txt", "contains": "x"}]})
+    with pytest.raises(IntegrationTestError, match="Text expectation failed"):
+        validate_contract(tmp_path, {"text_expectations": [{"path": "out.txt", "contains": "missing"}]})
+    with pytest.raises(IntegrationTestError, match="Text expectation failed"):
+        validate_contract(tmp_path, {"text_expectations": [{"path": "out.txt", "startswith": "B"}]})
+    with pytest.raises(IntegrationTestError, match="Text expectation failed"):
+        validate_contract(tmp_path, {"text_expectations": [{"path": "out.txt", "endswith": "C"}]})
+    with pytest.raises(IntegrationTestError, match="Text expectation failed"):
+        validate_contract(tmp_path, {"text_expectations": [{"path": "out.txt", "matches": "^missing"}]})
 
 
 def test_run_one_handles_inline_parameters_and_missing_run_dir(tmp_path, monkeypatch, capsys):
@@ -490,6 +504,7 @@ def test_backend_availability_and_selected_tests(monkeypatch):
     args = SimpleNamespace(
         all=False,
         wes_bash=True,
+        wes_bash_gatk35=False,
         wes_snakemake=False,
         wes_nextflow=True,
         wes_cromwell=False,

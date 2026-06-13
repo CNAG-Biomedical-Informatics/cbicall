@@ -77,6 +77,7 @@ _DEFAULTS = {
     "registry_version": None,
     "project_dir": "cbicall",
     "cleanup_bam": False,
+    "qc_coverage_region": "chr1",
     "genome": None,  # Option 1: effective default assigned in _apply_genome_rules
     "resource": "cbicall-germline-resources-v1",
 }
@@ -245,7 +246,7 @@ def _validate_backend_parameter_settings(cfg: dict) -> None:
             raise ParameterValidationError("snakemake_parameters.target must be a non-empty string when provided.")
         snakemake_parameters["target"] = target.strip()
 
-    reserved_snakemake = sorted(set(snakemake_parameters) & {"genome", "pipeline", "sample_map", "workspace"})
+    reserved_snakemake = sorted(set(snakemake_parameters) & {"genome", "pipeline", "qc_coverage_region", "sample_map", "workspace"})
     if reserved_snakemake:
         raise ParameterValidationError(
             "snakemake_parameters cannot set CBIcall-controlled parameters: " + ", ".join(reserved_snakemake)
@@ -258,6 +259,7 @@ def _validate_backend_parameter_settings(cfg: dict) -> None:
             "genome",
             "threads",
             "cleanup_bam",
+            "qc_coverage_region",
             "sample_map",
             "workspace",
             "coverage_script",
@@ -278,6 +280,7 @@ def _validate_backend_parameter_settings(cfg: dict) -> None:
             "genome",
             "threads",
             "cleanup_bam",
+            "qc_coverage_region",
             "fastq_pairs_tsv",
             "sample_map",
             "workspace",
@@ -327,6 +330,20 @@ def _validate_profile_settings(cfg: dict) -> None:
     if not cfg["profile"].strip():
         raise ParameterValidationError("profile must be a non-empty value.")
     cfg["profile"] = cfg["profile"].strip()
+
+
+def _validate_qc_coverage_settings(cfg: dict) -> None:
+    region = cfg.get("qc_coverage_region")
+    if region is None:
+        raise ParameterValidationError("qc_coverage_region cannot be null.")
+    region = str(region).strip()
+    if not region:
+        raise ParameterValidationError("qc_coverage_region must be a non-empty contig name.")
+    if any(char.isspace() for char in region):
+        raise ParameterValidationError("qc_coverage_region must not contain whitespace.")
+    if any(char in region for char in ("/", "\\", ":")):
+        raise ParameterValidationError("qc_coverage_region must be a contig name, not a path or interval.")
+    cfg["qc_coverage_region"] = region
 
 
 def _validate_registry_version_settings(cfg: dict) -> None:
@@ -460,6 +477,7 @@ def read_param_file(yaml_file: str) -> dict:
     _normalize_workflow_provider_settings(cfg)
     _validate_enums_except_genome(cfg)
     _validate_profile_settings(cfg)
+    _validate_qc_coverage_settings(cfg)
     _validate_registry_version_settings(cfg)
     _validate_backend_parameter_settings(cfg)
     _validate_resource_settings(cfg)
@@ -513,6 +531,7 @@ def _merge_and_validate_param_values(params: dict) -> dict:
     _normalize_workflow_provider_settings(cfg_in)
     _validate_enums_except_genome(cfg_in)
     _validate_profile_settings(cfg_in)
+    _validate_qc_coverage_settings(cfg_in)
     _validate_registry_version_settings(cfg_in)
     _validate_backend_parameter_settings(cfg_in)
     _validate_resource_settings(cfg_in)
@@ -671,6 +690,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         nfcore_singularity_cache_dir=cfg_in.get("nfcore_singularity_cache_dir"),
         genome=cfg_in["genome"],
         display_genome=_display_genome(cfg_in),
+        qc_coverage_region=cfg_in["qc_coverage_region"],
         pipeline=cfg_in["pipeline"],
         mode=cfg_in["mode"],
         software_stack=cfg_in["software_stack"],
@@ -706,6 +726,7 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         nfcore_singularity_cache_dir=config.nfcore_singularity_cache_dir,
         genome=config.genome,
         display_genome=config.display_genome,
+        qc_coverage_region=config.qc_coverage_region,
         pipeline=config.pipeline,
         mode=config.mode,
         software_stack=config.software_stack,

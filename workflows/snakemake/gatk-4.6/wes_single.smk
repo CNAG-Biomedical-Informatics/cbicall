@@ -36,6 +36,10 @@ if PIPELINE == "wes" and GENOME == "hg38":
     raise ValueError("genome='hg38' is only supported for pipeline='wgs'")
 
 CLEANUP_BAM = bool(config.get("cleanup_bam", False))
+QC_COVERAGE_REGION = str(config.get("qc_coverage_region") or os.environ.get("CBICALL_COVERAGE_REGION") or "chr1").strip()
+if not QC_COVERAGE_REGION:
+    raise ValueError("qc_coverage_region must be a non-empty contig name")
+os.environ["CBICALL_COVERAGE_REGION"] = QC_COVERAGE_REGION
 
 THREADS = workflow.cores or int(config.get("threads", 4))
 
@@ -107,7 +111,20 @@ for r1 in FASTQ_R1:
 
 RG_BAMS = [os.path.join(BAMDIR, f"{b}.rg.bam") for b in FASTQ_BASES]
 
-CHR1 = "1" if "b37" in str(REF) else "chr1"
+def normalize_coverage_region(region, ref):
+    with open(ref + ".fai", "r", encoding="utf-8") as handle:
+        contigs = {line.split("\t", 1)[0] for line in handle if line.strip()}
+    if region in contigs:
+        return region
+    if region.startswith("chr") and region[3:] in contigs:
+        return region[3:]
+    prefixed = "chr" + region
+    if not region.startswith("chr") and prefixed in contigs:
+        return prefixed
+    raise ValueError(f"coverage region '{region}' not found in {ref}.fai")
+
+CHR1 = normalize_coverage_region(QC_COVERAGE_REGION, REF)
+CHR1_FILE = "".join(ch if ch.isalnum() or ch in "_.-" else "_" for ch in CHR1)
 
 # -----------------------------
 # Targets
@@ -391,8 +408,8 @@ rule coverage_stats:
         bam_raw="{input.raw}"
         bam_recal="{input.recal}"
 
-        out_raw="{STATSDIR}/{CHR1}.raw.bam"
-        out_dedup="{STATSDIR}/{CHR1}.dedup.bam"
+        out_raw="{STATSDIR}/{CHR1_FILE}.raw.bam"
+        out_dedup="{STATSDIR}/{CHR1_FILE}.dedup.bam"
 
         {SAM} view -b "$bam_raw"   "$chrN" > "$out_raw"   2>> {log}
         {SAM} view -b "$bam_recal" "$chrN" > "$out_dedup" 2>> {log}

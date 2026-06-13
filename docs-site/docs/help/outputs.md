@@ -142,9 +142,18 @@ Applies to `pipeline: wes` or `pipeline: wgs` with `mode: single`.
 | `02_varcall/<id>.hc.QC.vcf.gz.tbi` | Tabix index for the final VCF. |
 | `02_varcall/<id>.hc.g.vcf.gz` | Per-sample gVCF. Use this as input for cohort joint genotyping. |
 | `02_varcall/<id>.hc.g.vcf.gz.tbi` | Tabix index for the gVCF. |
-| `03_stats/<id>.coverage.txt` | Coverage summary. |
+| `03_stats/<id>.coverage.txt` | Coverage summary with a `region`-first tabular schema. |
 | `03_stats/<id>.sex.txt` | Sex inference result from the final VCF. |
 | `03_stats/<id>.vcf.sha256.txt` | Per-VCF SHA-256 report with raw and normalized VCF fingerprints. |
+
+Coverage files use one tabular row per sample:
+
+```text
+region	sampleID	mode	total_reads	mean_cov	ten_pct	nondup_pct	ins_size	in_pct	out_pct
+1	CNAG99901P	WES	244	0.0	0.0	0.0	161.5	0.0	100.0
+```
+
+`region` records the contig used for the lightweight coverage summary. It defaults to `chr1` and can be changed with `qc_coverage_region` in the parameters YAML; this does not change variant-calling intervals. For WES runs, `in_pct` and `out_pct` describe reads inside or outside the target definition used by the selected workflow implementation.
 
 <details>
 <summary>Intermediate files</summary>

@@ -1,4 +1,10 @@
-from cbicall.audit_similarity import build_audit_similarity, qualitative_similarity_label
+from cbicall.audit_similarity import (
+    _normalize_value,
+    _run_label,
+    _status_for_score,
+    build_audit_similarity,
+    qualitative_similarity_label,
+)
 
 
 def _report(alias="run", workflow_hash="workflow", vcf_hash="vcf", backend="1.0", workflow_path="/tmp/a/wes.sh"):
@@ -80,3 +86,40 @@ def test_qualitative_similarity_label_categories():
     assert qualitative_similarity_label("different", 0.60) == "diverged"
     assert qualitative_similarity_label("missing", 0.95) == "missing"
     assert qualitative_similarity_label("unavailable", None) == "n/a"
+
+
+def test_audit_similarity_labels_run_report_parent_when_alias_missing():
+    report = {"_report_path": "/tmp/cbicall_run/run-report.json"}
+
+    assert _run_label(report, 0) == "cbicall_run"
+
+
+def test_audit_similarity_normalizes_nested_values_and_paths():
+    normalized = _normalize_value({
+        "path": "/tmp/deep/project/sample.vcf.gz",
+        "hashes": ["B" * 64, None, "a" * 64],
+        "flag": True,
+    })
+
+    assert "sample.vcf.gz" in normalized
+    assert "aaaaaaaaaaaaaaaa" in normalized
+    assert "bbbbbbbbbbbbbbbb" in normalized
+    assert _normalize_value(("/tmp/a/one.txt", "/tmp/b/two.txt")) == '["one.txt","two.txt"]'
+
+
+def test_audit_similarity_score_status_boundaries():
+    assert _status_for_score(None) == "unavailable"
+    assert _status_for_score(0.97) == "high"
+    assert _status_for_score(0.82) == "medium"
+    assert _status_for_score(0.2) == "low"
+
+
+def test_audit_similarity_remaining_path_normalization_branches():
+    assert _run_label({"_report_path": "/tmp/a/b/c/not-report.json"}, 0).endswith("not-report.json")
+    assert _normalize_value("/") == "/"
+
+    class PathLikeObject:
+        def __str__(self):
+            return "/tmp/custom/object.txt"
+
+    assert _normalize_value(PathLikeObject()) == "object.txt"

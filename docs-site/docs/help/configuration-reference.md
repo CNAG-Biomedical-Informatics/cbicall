@@ -42,6 +42,7 @@ genome:          b37
 | `sample_map` | `null` | path | Cohort-mode TSV containing sample IDs and gVCF paths. Relative paths are resolved from the YAML file location. |
 | `project_dir` | `cbicall` | path or prefix | Prefix for the generated run directory. |
 | `cleanup_bam` | `false` | `true`, `false` | Deletes intermediate BAM and BAI files after successful WES/WGS single-sample runs. |
+| `qc_coverage_region` | `chr1` | contig name | Contig used only for the lightweight coverage summary. It does not change variant-calling intervals. |
 
 The resource catalog is the inventory of selectable resource entries and their
 workflow compatibility metadata.
@@ -256,8 +257,8 @@ see [Included Pipelines](../pipelines/overview) and
 | --- | --- | --- |
 | `registry_version` | Registry default, currently `v1` | Advanced pin for a specific CBIcall registry version. Leave unset for normal runs. |
 | `snakemake_parameters` | `{}` | Snakemake-specific options. `target` selects a Snakemake target instead of the default `all`; other keys are passed through as extra `--config key=value` entries after CBIcall-managed config values. |
-| `nextflow_parameters` | `{}` | Native CBIcall Nextflow parameters passed as `--key value`. CBIcall blocks keys it owns, such as `pipeline`, `genome`, `threads`, helper scripts, and cohort workspace settings. |
-| `cromwell_parameters` | `{}` | Native CBIcall Cromwell/WDL inputs for advanced workflow-specific values. CBIcall blocks overrides of inputs it owns, including tool paths, reference paths, sample identity, genome, pipeline, and thread count. |
+| `nextflow_parameters` | `{}` | Native CBIcall Nextflow parameters passed as `--key value`. CBIcall blocks keys it owns, such as `pipeline`, `genome`, `threads`, `qc_coverage_region`, helper scripts, and cohort workspace settings. |
+| `cromwell_parameters` | `{}` | Native CBIcall Cromwell/WDL inputs for advanced workflow-specific values. CBIcall blocks overrides of inputs it owns, including tool paths, reference paths, sample identity, genome, pipeline, `qc_coverage_region`, and thread count. |
 | `nfcore_profile` | `null` | nf-core profile passed to external nf-core workflows, for example `docker`, `singularity`, or `test,singularity`. |
 | `nfcore_parameters` | `{}` | Pass-through nf-core parameters written to the generated params file. CBIcall controls `outdir` and `max_cpus`. |
 | `nfcore_singularity_cache_dir` | `null` | Optional Singularity/Apptainer image cache directory for external nf-core workflows. CBIcall writes it to the generated Nextflow config as cache and library directories. |

@@ -299,19 +299,25 @@ echo ">>> STEP 9: Hard-filter & write QC.vcf"
 #------------------------------------------------------------------------------
 echo ">>> STEP 10: Coverage, Sex Determination & VCF Hash" 2>> "$LOG"
 
-# choose chromosome 1 naming
-if [[ "$REF" == *b37*.fasta ]]; then
-  chrN=1
+requested_region="${CBICALL_COVERAGE_REGION:-chr1}"
+if awk -v chr="$requested_region" '$1==chr {found=1} END{exit !found}' "${REF}.fai"; then
+  chrN="$requested_region"
+elif [[ "$requested_region" == chr* ]] && awk -v chr="${requested_region#chr}" '$1==chr {found=1} END{exit !found}' "${REF}.fai"; then
+  chrN="${requested_region#chr}"
+elif [[ "$requested_region" != chr* ]] && awk -v chr="chr${requested_region}" '$1==chr {found=1} END{exit !found}' "${REF}.fai"; then
+  chrN="chr${requested_region}"
 else
-  chrN=chr1
+  echo "Error: coverage region '$requested_region' not found in ${REF}.fai" >&2
+  exit 1
 fi
+chr_file=${chrN//[^A-Za-z0-9_.-]/_}
 
 bam_raw="$BAMDIR/${id}.rg.merged.dedup.bam"
 bam_recal="$BAMDIR/${id}.rg.merged.dedup.recal.bam"
-out_raw="$STATSDIR/${chrN}.raw.bam"
-out_dedup="$STATSDIR/${chrN}.dedup.bam"
+out_raw="$STATSDIR/${chr_file}.raw.bam"
+out_dedup="$STATSDIR/${chr_file}.dedup.bam"
 
-# extract chr1 (or “1”) reads and redirect errors
+# extract selected coverage-region reads and redirect errors
 $SAM view -b "$bam_raw" "$chrN"  > "$out_raw"   2>> "$LOG"
 $SAM view -b "$bam_recal" "$chrN"  > "$out_dedup" 2>> "$LOG"
 

@@ -118,8 +118,8 @@ to:
 
 ### 10. Coverage & Sex Determination
 
-- Extract chromosome 1 reads from raw and recalibrated BAMs.
-- Compute coverage statistics.
+- Extract reads from the selected QC coverage contig from raw and recalibrated BAMs.
+- Compute coverage statistics in a `region`-first tabular file. The region defaults to `chr1` and can be changed with `qc_coverage_region`.
 - Infer sample sex from final VCF using a dedicated script.
 - Outputs:
   - `03_stats/<id>.coverage.txt`
@@ -135,7 +135,7 @@ to:
 | `02_varcall/<id>.hc.raw.vcf.gz`        | Raw VCF after GenotypeGVCFs                         |
 | `02_varcall/<id>.hc.vqsr.vcf.gz`       | VCF after VQSR (if VQSR was applied)                |
 | `02_varcall/<id>.hc.QC.vcf.gz`         | Final QC-filtered VCF (recommended)                 |
-| `03_stats/<id>.coverage.txt`           | Coverage metrics                                    |
+| `03_stats/<id>.coverage.txt`           | Coverage metrics (`region`, sample, mode, read counts, depth, duplicate and target percentages) |
 | `03_stats/<id>.sex.txt`                | Sex determination result                            |
 | `logs/<id>.log`                        | Main pipeline log                                   |
 

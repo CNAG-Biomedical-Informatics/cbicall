@@ -246,7 +246,7 @@ def _parse_native_coverage_file(path: Path) -> list[dict]:
         return []
     header_index = None
     for idx, line in enumerate(lines):
-        if line.startswith("sampleID	"):
+        if line.startswith("region	sampleID	"):
             header_index = idx
             break
     if header_index is None or header_index + 1 >= len(lines):
@@ -289,6 +289,7 @@ def _native_sample_qc_rows(report_path: Path) -> dict:
             rows[sample].update(
                 _compact_dict(
                     {
+                        "Region": item.get("region"),
                         "Mode": item.get("mode"),
                         "Total reads": _as_int(item.get("total_reads")),
                         "Mean coverage": _as_float(item.get("mean_cov")),

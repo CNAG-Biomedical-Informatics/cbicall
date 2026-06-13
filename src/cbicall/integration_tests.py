@@ -29,6 +29,7 @@ class TestSelection:
 
 TESTS: Dict[str, TestSelection] = {
     "wes-bash": TestSelection("wes-bash", "WES Bash", "native-wes-bash.yaml"),
+    "wes-bash-gatk35": TestSelection("wes-bash-gatk35", "WES Bash GATK 3.5", "native-wes-bash-gatk35.yaml"),
     "wes-snakemake": TestSelection(
         "wes-snakemake",
         "WES Snakemake",
@@ -150,6 +151,31 @@ def _check_json_expectations(report_path: Path, expectations: List[dict]) -> Non
         if "contains" in item and str(item["contains"]) not in str(observed):
             raise IntegrationTestError(
                 f"JSON expectation failed for {path}: expected to contain {item['contains']!r}, observed {observed!r}"
+            )
+
+
+def _check_text_expectations(run_dir: Path, expectations: List[dict]) -> None:
+    for item in expectations:
+        rel_path = item["path"]
+        path = _work_path(run_dir, rel_path)
+        if not path.is_file():
+            raise IntegrationTestError(f"Text expectation target does not exist: {rel_path}")
+        text = "\n".join(_read_text_lines(path))
+        if "contains" in item and str(item["contains"]) not in text:
+            raise IntegrationTestError(
+                f"Text expectation failed for {rel_path}: expected to contain {item['contains']!r}"
+            )
+        if "startswith" in item and not text.startswith(str(item["startswith"])):
+            raise IntegrationTestError(
+                f"Text expectation failed for {rel_path}: expected prefix {item['startswith']!r}"
+            )
+        if "endswith" in item and not text.endswith(str(item["endswith"])):
+            raise IntegrationTestError(
+                f"Text expectation failed for {rel_path}: expected suffix {item['endswith']!r}"
+            )
+        if "matches" in item and re.search(str(item["matches"]), text, flags=re.MULTILINE) is None:
+            raise IntegrationTestError(
+                f"Text expectation failed for {rel_path}: expected regex {item['matches']!r}"
             )
 
 
@@ -317,6 +343,11 @@ def validate_contract(run_dir: Path, contract: dict) -> None:
             errors.append(str(exc))
     elif contract.get("json_expectations"):
         errors.append("missing file: run-report.json")
+
+    try:
+        _check_text_expectations(run_dir, contract.get("text_expectations", []))
+    except IntegrationTestError as exc:
+        errors.append(str(exc))
 
     if errors:
         raise IntegrationTestError("\n".join(errors))
@@ -638,6 +669,8 @@ def selected_tests_from_args(args: argparse.Namespace) -> List[TestSelection]:
     selected: List[TestSelection] = []
     if args.all or args.wes_bash:
         selected.append(TESTS["wes-bash"])
+    if args.wes_bash_gatk35:
+        selected.append(TESTS["wes-bash-gatk35"])
     if args.all or args.wes_snakemake:
         selected.append(TESTS["wes-snakemake"])
     if args.all or args.wes_nextflow:

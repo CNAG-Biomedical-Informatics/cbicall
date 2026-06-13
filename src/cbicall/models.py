@@ -38,7 +38,7 @@ class WorkflowSpec:
             pipeline=str(data["pipeline"]),
             mode=str(data["mode"]),
             software_stack=str(data["software_stack"]),
-            registry_version=str(data.get("registry_version", "legacy")),
+            registry_version=str(data["registry_version"]),
             entrypoint=data.get("entrypoint"),
             config_file=data.get("config_file"),
             helpers=dict(data.get("helpers", {})),
@@ -70,6 +70,7 @@ class RunSettings:
     profile: str
     genome: Optional[str]
     cleanup_bam: bool
+    qc_coverage_region: str
     inputs: InputsSpec
     workflow: WorkflowSpec
     snakemake_parameters: Dict[str, Any] = field(default_factory=dict)
@@ -98,6 +99,7 @@ class RunSettings:
             nfcore_singularity_cache_dir=data.get("nfcore_singularity_cache_dir"),
             genome=data.get("genome"),
             cleanup_bam=bool(data.get("cleanup_bam", False)),
+            qc_coverage_region=str(data.get("qc_coverage_region", "chr1")),
             run_mode=str(data.get("run_mode", "full")),
             inputs=InputsSpec.from_mapping(data.get("inputs", {})),
             workflow=WorkflowSpec.from_mapping(data["workflow"]),
@@ -118,6 +120,7 @@ class RunSettings:
             "nfcore_singularity_cache_dir": self.nfcore_singularity_cache_dir,
             "genome": self.genome,
             "cleanup_bam": self.cleanup_bam,
+            "qc_coverage_region": self.qc_coverage_region,
             "run_mode": self.run_mode,
             "inputs": self.inputs.to_dict(),
             "workflow": self.workflow.to_dict(),
@@ -132,6 +135,7 @@ class ResolvedConfig:
     profile: str
     genome: Optional[str]
     display_genome: Optional[str]
+    qc_coverage_region: str
     pipeline: str
     mode: str
     software_stack: str
@@ -183,10 +187,11 @@ class ResolvedConfig:
             nfcore_singularity_cache_dir=data.get("nfcore_singularity_cache_dir"),
             genome=data.get("genome"),
             display_genome=data.get("display_genome"),
+            qc_coverage_region=str(data.get("qc_coverage_region", "chr1")),
             pipeline=str(pipeline),
             mode=str(mode),
             software_stack=str(software_stack),
-            registry_version=str(registry_version) if registry_version is not None else "legacy",
+            registry_version=str(registry_version),
             inputs=InputsSpec.from_mapping(data.get("inputs", {})),
             workflow=WorkflowSpec.from_mapping(data["workflow"]),
             run_id=str(run_id),
@@ -218,6 +223,7 @@ class ResolvedConfig:
             "nfcore_singularity_cache_dir": self.nfcore_singularity_cache_dir,
             "genome": self.genome,
             "display_genome": self.display_genome,
+            "qc_coverage_region": self.qc_coverage_region,
             "pipeline": self.pipeline,
             "mode": self.mode,
             "software_stack": self.software_stack,

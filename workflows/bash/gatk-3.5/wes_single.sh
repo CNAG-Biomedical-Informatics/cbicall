@@ -28,7 +28,7 @@ MA00047_exome
     ├── MA0004701P_ex_S5_L001_R2_001.fastq.gz
     ├── MA0004701P_ex_S5_L002_R1_001.fastq.gz
     ├── MA0004701P_ex_S5_L002_R2_001.fastq.gz
-    └── cbicall_bash_wes_single_146657420113136 <- The script expects that you are submitting the job from inside this directory
+    └── cbicall_bash_gatk-3.5_wes_single_b37_146657420113136 <- The script expects that you are submitting the job from inside this directory
         ├── 01_bam
         ├── 02_varcall
         └── 03_stats
@@ -56,7 +56,7 @@ BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source env.sh from the same directory
 source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
 
-# Scripts to calculate miscellanea stats on coverage (chr1) and determine sex
+# Scripts to calculate coverage summary on the selected QC contig and determine sex.
 COV=$BINDIR/coverage.sh
 VCF2SEX=$BINDIR/vcf2sex.sh
 VCF2HASH=$BINDIR/vcf2hash.sh
@@ -65,7 +65,7 @@ VCF2HASH=$BINDIR/vcf2hash.sh
 DIR=$( pwd )
 
 # Check that nomenclature exists
-if [[ $DIR != *cbicall_bash_wes_single* ]]
+if [[ $DIR != *cbicall_bash_gatk-3.5_wes_single* ]]
  then 
   usage
 fi 
@@ -436,32 +436,36 @@ $GATK \
 #                                #
 ##################################
 # $0 sid orig_bam dedup_bam
-# Stats for chr1 only
+# Lightweight coverage summary for the selected QC contig.
 # Splitting the BAM file x Chr while keeping the header ^@SQ and read groups @RG
 # Note that GATK needs headers that match the contigs af $REF 
+requested_region="${CBICALL_COVERAGE_REGION:-chr1}"
 if [[ $REF == *b37*.fasta ]]
  then
-  chrN=1
+  chrN="${requested_region#chr}"
  else
-  chrN=chr1
+  if [[ "$requested_region" == chr* ]]; then
+    chrN="$requested_region"
+  else
+    chrN="chr${requested_region}"
+  fi
 fi
+chr_file=${chrN//[^A-Za-z0-9_.-]/_}
 echo "Computing stats on coverage for $chrN"
 # NB: Tested on 04/26/16
 # bam_raw=input.merged.bam
-#sampleID	mean_coverage	ten_reads%	nonduplicate%	mean_insert_size	reads_in_exome%	reads_out_of_exome%
-#sample_XXX		96.1		98.2		97.5		208.726		99.7		 0.3
+#region	sampleID	mode	total_reads	mean_cov	ten_pct	nondup_pct	ins_size	in_pct	out_pct
+#chr1	sample_XXX	WES	1000000	96.1	98.2	97.5	208.7	99.7	0.3
 # bam_raw=input.merged.bam.realigned.bam.fixed.bam
-#sampleID	mean_coverage	ten_reads%	nonduplicate%	mean_insert_size	reads_in_exome%	reads_out_of_exome%
-#sample_XXX		96.1		98.2		97.5		208.73		99.7		 0.3
 # Using input.merged.bam.realigned.bam.fixed.bam
 
 bam_raw=$BAMDIR/input.merged.filtered.realigned.fixed.bam
 bam_raw_index=$BAMDIR/input.merged.filtered.realigned.fixed.bai
 bam_dedup=$BAMDIR/input.merged.filtered.realigned.fixed.dedup.bam
 bam_dedup_index=$BAMDIR/input.merged.filtered.realigned.fixed.dedup.bai
-out_raw=$STATSDIR/$chrN.raw.bam
-out_dedup=$STATSDIR/$chrN.dedup.bam
-stats_log=$STATSDIR/coverage.txt
+out_raw=$STATSDIR/$chr_file.raw.bam
+out_dedup=$STATSDIR/$chr_file.dedup.bam
+stats_log=$STATSDIR/$id.coverage.txt
 
 # Before using $SAM view we need to rename the index (must be foo.bam.bai instead of foo.bai)
 # This step is also important for mit_cohort.sh

@@ -12,6 +12,10 @@ required_files:
   - 02_varcall/CNAG99901P.hc.QC.vcf.gz
   - 03_stats/CNAG99901P.coverage.txt
   - 03_stats/CNAG99901P.sex.txt
+text_expectations:
+  - path: 03_stats/CNAG99901P.coverage.txt
+    startswith: "region\tsampleID"
+    matches: "^(chr)?22\t"
 json_expectations:
   - path: status
     equals: success
@@ -29,6 +33,8 @@ json_expectations:
     equals: cbicall-germline-resources-v1
   - path: run.display_genome
     equals: b37
+  - path: run.qc_coverage_region
+    equals: chr22
 hashes:
   - name: wes_filtered_vcf
     type: normalized_vcf

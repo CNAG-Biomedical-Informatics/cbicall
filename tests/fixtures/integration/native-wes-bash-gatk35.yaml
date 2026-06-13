@@ -1,23 +1,25 @@
 workdir: examples/input
-workflow_log: snakemake_gatk-4.6_wes_single_b37.log
+workflow_log: bash_gatk-3.5_wes_single_b37.log
 run:
   parameters:
     mode: single
     pipeline: wes
-    workflow_backend: snakemake
-    software_stack: gatk-4.6
+    workflow_backend: bash
+    software_stack: gatk-3.5
     resource: cbicall-germline-resources-v1
     input_dir: CNAG999_exome/CNAG99901P_ex
     qc_coverage_region: chr22
   base_dir: CNAG999_exome/CNAG99901P_ex
-  run_glob: cbicall_snakemake_gatk-4.6_wes_single_b37_*
+  run_glob: cbicall_bash_gatk-3.5_wes_single_b37_*
 required_files:
   - log.json
   - run-report.json
   - run-report.html
-  - snakemake_gatk-4.6_wes_single_b37.log
-  - 02_varcall/CNAG99901P.hc.QC.vcf.gz
+  - bash_gatk-3.5_wes_single_b37.log
+  - 02_varcall/CNAG99901P.ug.QC.vcf
   - 03_stats/CNAG99901P.coverage.txt
+  - 03_stats/CNAG99901P.sex.txt
+  - 03_stats/CNAG99901P.vcf.sha256.txt
 text_expectations:
   - path: 03_stats/CNAG99901P.coverage.txt
     startswith: "region\tsampleID"
@@ -26,13 +28,13 @@ json_expectations:
   - path: status
     equals: success
   - path: workflow.backend
-    equals: snakemake
+    equals: bash
   - path: workflow.pipeline
     equals: wes
   - path: workflow.mode
     equals: single
   - path: workflow.software_stack
-    equals: gatk-4.6
+    equals: gatk-3.5
   - path: workflow.registry_version
     equals: v1
   - path: resources.bundle.key
@@ -42,9 +44,9 @@ json_expectations:
   - path: run.qc_coverage_region
     equals: chr22
 hashes:
-  - name: wes_filtered_vcf
+  - name: CNAG99901P.ug.QC.vcf
     type: normalized_vcf
-    path: 02_varcall/CNAG99901P.hc.QC.vcf.gz
+    path: 02_varcall/CNAG99901P.ug.QC.vcf
     pattern: ^#
-    records: 6
-    sha256: 621373dda8e79602e84f24b5e5082914b046c341ba64c7e15c8ce97172559baf
+    records: 32
+    sha256: b9dd085145970deca0e36db5fb4af74527f1f04b17cbfd778aa793511e12ac11
