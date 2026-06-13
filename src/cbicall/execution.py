@@ -389,9 +389,10 @@ class BaseRunner:
 
 class BashRunner(BaseRunner):
     def env_overrides(self) -> Optional[Dict[str, str]]:
-        # Bash workflow scripts source this resolved file at runtime.
         env_updates = self._coverage_env()
         env_updates["GENOME"] = self.genome
+        # Bash runtime profiles are implemented by selecting the registry-resolved
+        # env helper. Non-Bash backends use their own config/params mechanisms.
         env_file = self.workflow.helpers.get("env")
         if env_file:
             env_updates["CBICALL_ENV_FILE"] = str(env_file)

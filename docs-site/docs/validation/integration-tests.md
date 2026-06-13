@@ -23,11 +23,16 @@ From the repository root:
 bin/cbicall test --wes-bash -t 1
 ```
 
-On HPC, pass the same runtime profile you use for normal runs:
+On HPC, pass the same runtime profile you use for normal Bash runs:
 
 ```bash
 bin/cbicall test --wes-bash -t 1 --runtime-profile cnag-hpc
 ```
+
+:::note[Bash-specific profile]
+`--runtime-profile` selects a registry-resolved Bash `env.sh` mapping. Other
+backends use their own configuration/profile mechanisms.
+:::
 
 | Check | What it confirms |
 | --- | --- |
@@ -42,7 +47,7 @@ Use backend-equivalence mode before tagging or publishing an image:
 bin/cbicall test --backend-equivalence -t 1 --runtime-profile local
 ```
 
-On HPC, use the same runtime profile as normal runs:
+On HPC, use the same Bash runtime profile as normal runs:
 
 ```bash
 bin/cbicall test --backend-equivalence -t 1 --runtime-profile cnag-hpc

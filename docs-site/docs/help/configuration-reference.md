@@ -198,10 +198,17 @@ registry version and a run must pin a non-default one.
 
 ## Runtime Profiles
 
-CBIcall native profiles select the environment mapping used by a workflow. The
-default profile is `local`; additional profiles can be declared in the workflow
-registry when the same workflow needs more than one `env.sh` layout, for example
-on a shared HPC system.
+CBIcall runtime profiles are currently a **native Bash environment-file feature**.
+The default profile is `local`; additional profiles can be declared in the
+workflow registry when the same Bash workflow needs more than one `env.sh`
+layout, for example on a shared HPC system. At launch, CBIcall passes the
+selected Bash env file through `CBICALL_ENV_FILE`, and the Bash script sources it
+instead of its colocated `$BINDIR/env.sh` fallback.
+
+Snakemake, Nextflow, Cromwell, and nf-core workflows do not use this Bash env-file
+switch. They use their own backend-specific configuration mechanisms, such as
+Snakemake `config.yaml`, Nextflow params/config/profiles, Cromwell WDL inputs,
+or nf-core profiles.
 
 Select a non-default CBIcall profile on the CLI:
 

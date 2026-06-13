@@ -103,6 +103,7 @@ def test_execution_passes_resolved_env_file_to_bash(tmp_path, monkeypatch):
     assert execution.WorkflowExecutor(settings).run() is True
     assert recorded["env"]["CBICALL_ENV_FILE"] == str(env_file)
     assert recorded["env"]["CBICALL_COVERAGE_REGION"] == "chr1"
+    assert recorded["env"]["GENOME"] == "b37"
 
 
 def test_execution_debug_prints(monkeypatch, tmp_path, capsys):
