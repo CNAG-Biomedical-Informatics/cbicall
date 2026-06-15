@@ -71,29 +71,6 @@ const config: Config = {
           position: 'left',
         },
         {
-          type: 'dropdown',
-          label: 'Reference',
-          position: 'left',
-          items: [
-            {
-              to: '/docs/help/configuration-reference',
-              label: 'Configuration Reference',
-            },
-            {
-              to: '/docs/help/outputs',
-              label: 'Outputs',
-            },
-            {
-              to: '/docs/help/troubleshooting',
-              label: 'Troubleshooting',
-            },
-            {
-              to: '/docs/help/faq',
-              label: 'FAQ',
-            },
-          ],
-        },
-        {
           href: 'https://github.com/CNAG-Biomedical-Informatics/cbicall',
           label: 'GitHub',
           position: 'right',

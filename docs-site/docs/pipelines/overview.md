@@ -1,24 +1,20 @@
-# Included Pipelines
+import WorkflowCompatibilityMatrix from '@site/src/components/WorkflowCompatibilityMatrix.mdx';
 
-CBIcall ships curated variant-calling pipelines for Illumina DNA sequencing.
-These are the analyses available out of the box.
+# Workflows
 
-| Included pipeline | Modes | Main output |
+CBIcall separates **what analysis is run** from **how it is executed**.
+
+| Concept | YAML key | Meaning |
 | --- | --- | --- |
-| WES | Single-sample and cohort joint genotyping | Germline VCF/gVCF outputs for exome data |
-| WGS | Single-sample and cohort joint genotyping | Germline VCF/gVCF outputs for genome data |
-| mtDNA | Single-sample and cohort/family analysis | mtDNA VCF, prioritized variant table, and browser report |
+| Pipeline | `pipeline` | The analysis family: `wes`, `wgs`, `mit`, or a registered external pipeline such as `sarek`. |
+| Mode | `mode` | The run shape, usually `single` or `cohort`. |
+| Backend | `workflow_backend` | The execution technology: Bash, Snakemake, Nextflow, or Cromwell. |
+| Provider | `workflow_provider` | Who supplies the workflow: `cbicall` for native workflows, `nf-core` for registered external workflows. |
 
-The selected pipeline is configured with `pipeline` and `mode`:
-
-```yaml
-pipeline: wes
-mode: single
-```
-
-The workflow backend is configured separately with `workflow_backend`. See
-[Native Backends](../backends/native) for Bash, Snakemake, Nextflow, Cromwell,
-and external nf-core execution.
+A workflow is **native** when it produces the CBIcall output contract: standard
+run directory, logs, reports, output inventory, and final-output fingerprints
+when available. External workflows can still be launched and audited by CBIcall,
+but they keep their upstream output layout and runtime assumptions.
 
 ## Pipeline Guides
 
@@ -27,16 +23,25 @@ and external nf-core execution.
 | Process one WES/WGS sample from FASTQ | [WES/WGS Single-Sample](wes-wgs-single) |
 | Joint-genotype a WES/WGS cohort from gVCFs | [WES/WGS Cohort](wes-wgs-cohort) |
 | Run mitochondrial variant calling | [mtDNA](mtdna) |
+| Run selected external nf-core workflows | [External nf-core](../backends/nf-core) |
 
-## Backend Availability
+## Backend Roles
 
-Backend coverage differs by pipeline family:
+| Backend | Native role |
+| --- | --- |
+| Bash | Broadest native backend; includes WES, WGS, and mtDNA scripts. |
+| Snakemake | Native WES/WGS implementation for rule-based execution and partial targets. |
+| Nextflow | Native WES/WGS implementation plus registered external nf-core workflows. |
+| Cromwell | Native WDL implementation for GATK 4.6 WES/WGS workflows. |
 
-| Pipeline | Bash | Snakemake | Nextflow | Cromwell |
-| --- | --- | --- | --- | --- |
-| WES | Yes | Yes | Yes | Single-sample only |
-| WGS | Yes | Yes | Yes | No |
-| mtDNA | Yes | No | No | No |
+:::info[Backend-native validation]
+CBIcall validates the parameters YAML against the workflow registry and resource
+catalog, then writes a `cbicall-execution-contract.json` for the concrete command
+it launches. Syntax or semantic validation inside each workflow language remains
+backend-native: use `bash -n`, Snakemake lint/dry-run checks, Nextflow validation,
+or `womtool validate` for WDL/Cromwell workflows.
+:::
 
-External nf-core workflows are registered through the Nextflow backend, but they
-are not part of the included WES/WGS/mtDNA pipeline set.
+## Compatibility Matrix
+
+<WorkflowCompatibilityMatrix />

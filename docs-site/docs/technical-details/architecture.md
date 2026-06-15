@@ -1,3 +1,5 @@
+import WorkflowCompatibilityMatrix from '@site/src/components/WorkflowCompatibilityMatrix.mdx';
+
 # Architecture
 
 CBIcall is a **configuration-driven execution framework** for reproducible
@@ -199,28 +201,7 @@ default, generate both terminal and HTML summaries.
 
 ## Supported workflows
 
-### Native CBIcall workflows
-
-| Pipeline | Mode | Genome | Software stack | Bash | Snakemake | Nextflow | Cromwell |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| **WES** | `single` | `b37` | `gatk-3.5`, `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` | `gatk-4.6` | `gatk-4.6` |
-| **WES** | `cohort` | `b37` | `gatk-3.5`, `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` | `gatk-4.6` | `gatk-4.6` |
-| **WGS** | `single` | `b37`, `hg38` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` |
-| **WGS** | `cohort` | `b37`, `hg38` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` |
-| **mtDNA** | `single` | `rsrs` | `gatk-3.5` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
-| **mtDNA** | `cohort` | `rsrs` | `gatk-3.5` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
-
-::::warning[mtDNA platform limitation]
-The bundled mtDNA workflow is not supported on ARM / aarch64 because of legacy
-third-party dependencies.
-::::
-
-### Registered nf-core workflows
-
-| Pipeline | Mode | Registry source | Release | Resource model |
-| --- | --- | --- | --- | --- |
-| `demo` | `single` | `nf-core/demo` | `1.1.0` | Nextflow/nf-core managed |
-| `sarek` | `cohort` | `nf-core/sarek` | `3.8.1` | Nextflow/nf-core managed |
+<WorkflowCompatibilityMatrix />
 
 ---
 

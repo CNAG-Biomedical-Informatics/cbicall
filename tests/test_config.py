@@ -1831,6 +1831,19 @@ def test_merge_param_values_rejects_backend_provider_edge_cases():
             config_mod._merge_and_validate_param_values({"mode": "single", "pipeline": "wes", "software_stack": "gatk-4.6", **params})
 
 
+def test_merge_param_values_tolerates_known_mode_specific_keys():
+    cfg = config_mod._merge_and_validate_param_values({
+        "mode": "cohort",
+        "pipeline": "wgs",
+        "workflow_backend": "bash",
+        "software_stack": "gatk-4.6",
+        "cleanup_bam": True,
+    })
+
+    assert cfg["mode"] == "cohort"
+    assert cfg["cleanup_bam"] is True
+
+
 def test_merge_param_values_rejects_backend_parameter_edge_cases():
     cases = [
         ({"snakemake_parameters": []}, "snakemake_parameters must be a mapping"),

@@ -89,9 +89,11 @@ task RunCohort {
 
     if [ "~{pipeline}" = "wes" ]; then
       INTERVAL_ARG="-L ~{interval_list}"
+      MERGE_INTERVALS_ARG="--merge-input-intervals true"
       echo "WES mode: restricting to ~{interval_list}" | tee -a "$LOG"
     else
       INTERVAL_ARG=""
+      MERGE_INTERVALS_ARG=""
       echo "WGS mode: processing whole genome" | tee -a "$LOG"
     fi
 
@@ -101,7 +103,7 @@ task RunCohort {
     ~{gatk4_cmd} GenomicsDBImport \
       --sample-name-map "~{sample_map}" \
       --genomicsdb-workspace-path "~{workspace}" \
-      --merge-input-intervals true \
+      $MERGE_INTERVALS_ARG \
       $INTERVAL_ARG \
       --tmp-dir "~{tmpdir}" \
       2>> "../$LOG"

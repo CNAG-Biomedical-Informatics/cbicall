@@ -107,6 +107,7 @@ def INTERVAL_LIST = expandPlaceholders(
     [bundle: BUNDLE] + lvl2
 )
 def INTERVAL_ARG = PIPELINE == 'wes' ? "-L ${q(INTERVAL_LIST)}" : ""
+def MERGE_INTERVALS_ARG = PIPELINE == 'wes' ? "--merge-input-intervals true" : ""
 
 def VCF2HASH = params.vcf2hash_script ? params.vcf2hash_script.toString() : file("${projectDir}/vcf2hash.sh").toString()
 
@@ -153,7 +154,7 @@ process GENOMICSDB_IMPORT {
     ${GATK4_64G} GenomicsDBImport \\
       --sample-name-map ${q(sample_map)} \\
       --genomicsdb-workspace-path ${q(WORKSPACE_NAME)} \\
-      --merge-input-intervals true \\
+      ${MERGE_INTERVALS_ARG} \\
       ${INTERVAL_ARG} \\
       --tmp-dir ${q(TMPDIR)} \\
       2>> ${q("01_genomicsdbimport.log")}

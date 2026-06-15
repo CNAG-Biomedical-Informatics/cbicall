@@ -52,8 +52,7 @@ bundle. Registered nf-core workflows can be validated and launched without that
 bundle; Nextflow/nf-core manages the external workflow's own test data,
 containers, and references.
 
-Use [Included Pipelines](pipelines/overview) for the shipped analyses and
-[Native Backends](backends/native) for the supported workflow backends.
+Use [Workflows](pipelines/overview) for supported pipelines, native backends, and registered external providers.
 
 ## Installation at a Glance
 
@@ -72,7 +71,6 @@ Use [Included Pipelines](pipelines/overview) for the shipped analyses and
 | Run the native shipped test data | [Quickstart](usage/quickstart) |
 | Run WES/WGS data | [WES Example](usage/end-to-end-example-wes) |
 | Run mtDNA analysis | [mtDNA Example](usage/end-to-end-example-mit) |
-| See included pipelines | [Included Pipelines](pipelines/overview) |
-| Understand workflow backends | [Native Backends](backends/native) |
+| See supported workflows | [Workflows](pipelines/overview) |
 | Understand output files | [Outputs](help/outputs) |
 | See the system design | [Architecture](technical-details/architecture) |

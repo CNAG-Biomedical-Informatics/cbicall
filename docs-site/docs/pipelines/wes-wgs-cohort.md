@@ -34,6 +34,13 @@ Use this when:
 - **VQSR resources** (SNP and INDEL training sets).
 - Optional **interval list** for WES mode.
 
+:::note[WES interval source]
+The interval resource depends on the software stack. Legacy `gatk-3.5` Bash WES
+uses Agilent SureSelect hg19 BED files, while current `gatk-4.6` native WES uses
+the GATK bundle / Broad b37 exome interval list. See the
+[FAQ](../help/faq#wes--wgs) for details.
+:::
+
 ---
 
 ## Workflow

@@ -10,13 +10,29 @@ CBIcall supports:
 - **GRCh37 / b37**: GATK-compatible reference genome
 - **GRCh38 / hg38**: GATK-compatible reference genome
 
+For native WES/WGS workflows, support depends on the selected software stack.
+This table describes **CBIcall-shipped workflows**, not every possible use of
+GATK upstream:
+
+| Stack | CBIcall WES reference | CBIcall WGS support/reference | Main use |
+| --- | --- | --- | --- |
+| `gatk-3.5` | `b37` | No CBIcall WGS workflow | Legacy Bash WES workflows and mtDNA prerequisites |
+| `gatk-4.6` | `b37` | `b37` or `hg38` | Current native WES/WGS workflows |
+
 </details>
 
-<details>
-<summary>What capture kits are used for WES?</summary>
 
-- **GATK 3.5**: exome capture is based on Agilent SureSelect.
-- **GATK 4.6**: exome and WGS references are based on the GATK bundle.
+<details>
+<summary>Which exome regions are used for WES?</summary>
+
+Native WES interval resources differ between the legacy and current stacks:
+
+| Stack | WES interval resource | Used for |
+| --- | --- | --- |
+| `gatk-3.5` | Agilent SureSelect hg19 BED files (`hg19.chr*.bed` and flanked `hg19.chr*.flank100bp.bed`) | BQSR, recalibrated BAM generation, UnifiedGenotyper variant calling, and coverage summaries |
+| `gatk-4.6` | GATK bundle / Broad b37 exome interval list (`b37_Broad.human.exome.b37.interval_list`) | BQSR, HaplotypeCaller, GenotypeGVCFs, and coverage summaries for WES mode |
+
+WGS mode does not use WES capture intervals.
 
 </details>
 
@@ -75,7 +91,7 @@ For mtDNA, `GT` tells you **which allele** was detected, not **how much** of it 
 
 **External workflows** are third-party workflows registered in CBIcall. Today this means selected nf-core workflows launched through Nextflow. CBIcall validates the YAML contract, pins the registered workflow, and writes provenance and run reports, while nf-core keeps its own output layout, profiles, containers, and reference-resource assumptions.
 
-See [Native Backends](../backends/native), [nf-core Provider](../backends/nf-core), and [Resource Validation](../usage/resource-validation).
+See [Workflows](../pipelines/overview), [External nf-core](../backends/nf-core), and [Resource Validation](../usage/resource-validation).
 
 </details>
 

@@ -75,9 +75,11 @@ fi
 # Set interval argument for WES vs WGS
 if [ "$PIPELINE" = "WES" ]; then
   INTERVAL_ARG="-L $INTERVAL_LIST"
+  MERGE_INTERVALS_ARG="--merge-input-intervals true"
   echo "WES mode: restricting to $INTERVAL_LIST"
 else
   INTERVAL_ARG=""
+  MERGE_INTERVALS_ARG=""
   echo "WGS mode: processing whole genome"
 fi
 
@@ -111,7 +113,7 @@ set -x
 "$GATK4_BIN" $GATK4_JAVA_OPTS_64G GenomicsDBImport \
   --sample-name-map "$SAMPLE_MAP" \
   --genomicsdb-workspace-path "$WORKSPACE" \
-  --merge-input-intervals true \
+  $MERGE_INTERVALS_ARG \
   $INTERVAL_ARG \
   --tmp-dir "$TMPDIR" \
   2>> "$LOG"

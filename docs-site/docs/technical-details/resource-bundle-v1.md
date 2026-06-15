@@ -41,8 +41,9 @@ This bundle is compatible with the packaged workflows below.
 | Backend | WES | WGS | mtDNA |
 | --- | --- | --- | --- |
 | `bash` | `single`, `cohort` with `gatk-3.5` or `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-3.5` |
-| `snakemake` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | Not supported |
-| `nextflow` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | Not supported |
+| `snakemake` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
+| `nextflow` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
+| `cromwell` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
 
 CBIcall checks the exact workflow key internally, for example
 `nextflow/wgs/cohort/gatk-4.6/v1`.

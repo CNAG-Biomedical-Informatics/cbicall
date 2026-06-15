@@ -143,6 +143,50 @@ def test_execution_debug_prints(monkeypatch, tmp_path, capsys):
     assert "GENOME=b37" in out
 
 
+def test_execution_ignores_cleanup_bam_for_bash_cohort(tmp_path, monkeypatch):
+    recorded = {}
+
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "backend": backend})
+
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
+
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    sample_map = tmp_path / "sample_map.tsv"
+    sample_map.write_text("S1\t/s1.g.vcf.gz\n", encoding="utf-8")
+    script = str(tmp_path / "wgs_cohort.sh")
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 4,
+        "run_id": "RIDBASHCOHORT",
+        "debug": False,
+        "cleanup_bam": True,
+        "genome": "hg38",
+        "inputs": {"input_dir": None, "sample_map": str(sample_map)},
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
+        "run_mode": "full",
+        "workflow": {
+            "backend": "bash",
+            "pipeline": "wgs",
+            "mode": "cohort",
+            "software_stack": "gatk-4.6",
+            "registry_version": "v1",
+            "entrypoint": script,
+            "config_file": None,
+            "helpers": {},
+        },
+    }
+
+    assert execution.WorkflowExecutor(settings).run() is True
+    assert recorded["cmd"][:5] == [script, "-t", "4", "--pipeline", "wgs"]
+    assert "--sample-map" in recorded["cmd"]
+    assert "--cleanup-bam" not in recorded["cmd"]
+    assert recorded["backend"] == "bash"
+
+
 def test_execution_builds_bash_command_gatk35_has_no_extra_flags(tmp_path, monkeypatch):
     recorded = {}
 
@@ -199,6 +243,7 @@ def test_execution_builds_snakemake_command_and_config(tmp_path, monkeypatch):
         "threads": 12,
         "run_id": "RID777",
         "debug": False,
+        "cleanup_bam": True,
         "genome": "hg38",
         "qc_coverage_region": "chr22",
         "inputs": {"input_dir": None, "sample_map": None},
@@ -225,6 +270,49 @@ def test_execution_builds_snakemake_command_and_config(tmp_path, monkeypatch):
     assert "genome=hg38" in cmd
     assert "qc_coverage_region=chr22" in cmd
     assert "pipeline=wes" in cmd
+    assert "cleanup_bam=true" in cmd
+    assert recorded["backend"] == "snakemake"
+
+
+def test_execution_ignores_cleanup_bam_for_snakemake_cohort(tmp_path, monkeypatch):
+    recorded = {}
+
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "backend": backend})
+
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
+
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    sample_map = tmp_path / "sample_map.tsv"
+    sample_map.write_text("S1\t/s1.g.vcf.gz\n", encoding="utf-8")
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 4,
+        "run_id": "RIDSMKCOHORT",
+        "debug": False,
+        "cleanup_bam": True,
+        "genome": "b37",
+        "inputs": {"input_dir": None, "sample_map": str(sample_map)},
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
+        "run_mode": "full",
+        "workflow": {
+            "backend": "snakemake",
+            "pipeline": "wgs",
+            "mode": "cohort",
+            "software_stack": "gatk-4.6",
+            "registry_version": "v1",
+            "entrypoint": str(tmp_path / "wgs_cohort.smk"),
+            "config_file": str(tmp_path / "config.yaml"),
+            "helpers": {},
+        },
+    }
+
+    assert execution.WorkflowExecutor(settings).run() is True
+    assert "sample_map=" + str(sample_map) in recorded["cmd"]
+    assert "cleanup_bam=true" not in recorded["cmd"]
     assert recorded["backend"] == "snakemake"
 
 
@@ -349,7 +437,7 @@ def test_execution_builds_nextflow_cohort_command_with_sample_map(tmp_path, monk
         "snakemake_parameters": {},
         "nextflow_parameters": {},
         "run_mode": "full",
-        "cleanup_bam": False,
+        "cleanup_bam": True,
         "workflow": {
             "backend": "nextflow",
             "pipeline": "wes",
@@ -366,6 +454,7 @@ def test_execution_builds_nextflow_cohort_command_with_sample_map(tmp_path, monk
     cmd = recorded["cmd"]
     assert "--sample_map" in cmd and str(sample_map) in cmd
     assert "--workspace" in cmd and "cohort.genomicsdb.RIDNFCOHORT" in cmd
+    assert "--cleanup_bam" not in cmd
     assert "--vcf2hash_script" in cmd
 
 

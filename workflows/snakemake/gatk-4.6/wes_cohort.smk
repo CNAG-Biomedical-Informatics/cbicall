@@ -63,7 +63,12 @@ VARCALLDIR = "02_varcall"
 os.makedirs(LOGDIR, exist_ok=True)
 os.makedirs(VARCALLDIR, exist_ok=True)
 
-INTERVAL_ARG = f"-L {shlex.quote(INTERVAL_LIST)}" if PIPELINE == "wes" else ""
+if PIPELINE == "wes":
+    INTERVAL_ARG = f"-L {shlex.quote(INTERVAL_LIST)}"
+    MERGE_INTERVALS_ARG = "--merge-input-intervals true"
+else:
+    INTERVAL_ARG = ""
+    MERGE_INTERVALS_ARG = ""
 
 def count_samples(path):
     with open(path, "r") as f:
@@ -117,7 +122,7 @@ rule genomicsdbimport:
         {GATK4_64G} GenomicsDBImport \
           --sample-name-map {input.sample_map} \
           --genomicsdb-workspace-path {params.workspace} \
-          --merge-input-intervals true \
+          {MERGE_INTERVALS_ARG} \
           {INTERVAL_ARG} \
           --tmp-dir {TMPDIR} \
           2>> {log}

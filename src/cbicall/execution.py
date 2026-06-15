@@ -389,10 +389,13 @@ class BaseRunner:
 
 class BashRunner(BaseRunner):
     def env_overrides(self) -> Optional[Dict[str, str]]:
+        # Bash workflows source env.sh before resolving references and helper paths.
+        # Keep these as explicit handoff variables from the validated YAML contract:
+        # GENOME selects the env.sh reference block; CBICALL_COVERAGE_REGION controls
+        # the lightweight QC helper; CBICALL_ENV_FILE carries Bash runtime profiles.
+        # Non-Bash backends use their own config/params mechanisms instead.
         env_updates = self._coverage_env()
         env_updates["GENOME"] = self.genome
-        # Bash runtime profiles are implemented by selecting the registry-resolved
-        # env helper. Non-Bash backends use their own config/params mechanisms.
         env_file = self.workflow.helpers.get("env")
         if env_file:
             env_updates["CBICALL_ENV_FILE"] = str(env_file)
@@ -411,7 +414,7 @@ class BashRunner(BaseRunner):
         if self.software_stack != "gatk-3.5":
             cmd += ["--pipeline", self.pipeline]
 
-            if bool(self.settings.cleanup_bam):
+            if bool(self.settings.cleanup_bam) and self.mode == "single":
                 cmd.append("--cleanup-bam")
 
             sample_map = self.inputs.sample_map
@@ -455,6 +458,8 @@ class SnakemakeRunner(BaseRunner):
 
         if self.software_stack != "gatk-3.5":
             snk_config_kvs.append(f"pipeline={self.pipeline}")
+            if self.mode == "single":
+                snk_config_kvs.append(f"cleanup_bam={_parameter_value_to_string(bool(self.settings.cleanup_bam))}")
 
             sample_map = self.inputs.sample_map
             if sample_map:
@@ -581,11 +586,11 @@ class NextflowRunner(BaseRunner):
             self.genome,
             "--threads",
             str(int(self.settings.threads)),
-            "--cleanup_bam",
-            "true" if bool(self.settings.cleanup_bam) else "false",
             "--qc_coverage_region",
             self.qc_coverage_region,
         ]
+        if self.mode == "single":
+            cmd += ["--cleanup_bam", "true" if bool(self.settings.cleanup_bam) else "false"]
 
         sample_map = self.inputs.sample_map
         if self.mode == "cohort":

@@ -1,3 +1,5 @@
+import WorkflowCompatibilityMatrix from '@site/src/components/WorkflowCompatibilityMatrix.mdx';
+
 # Configuration Reference
 
 CBIcall runs from a YAML parameters file plus CLI runtime settings.
@@ -49,22 +51,7 @@ workflow compatibility metadata.
 
 ## Compatibility Matrix
 
-| Workflow | Supported |
-| --- | --- |
-| `gatk-4.6` + `bash` + `wes single/cohort` | Yes |
-| `gatk-4.6` + `bash` + `wgs single/cohort` | Yes |
-| `gatk-4.6` + `snakemake` + `wes single/cohort` | Yes |
-| `gatk-4.6` + `snakemake` + `wgs single/cohort` | Yes |
-| `gatk-4.6` + `nextflow` + `wes single/cohort` | Yes |
-| `gatk-4.6` + `nextflow` + `wgs single/cohort` | Yes |
-| `gatk-4.6` + `cromwell` + `wes single/cohort` | Yes |
-| `gatk-4.6` + `cromwell` + `wgs single/cohort` | Yes |
-| `nf-core` + `nextflow` + `demo single` | External nf-core smoke test |
-| `nf-core` + `nextflow` + `sarek cohort` | External nf-core/Sarek workflow |
-| `gatk-3.5` + `bash` + `wes single/cohort` | Legacy |
-| `gatk-3.5` + `bash` + `mit single/cohort` | Yes, x86_64 only |
-| `mit` + `snakemake` or `nextflow` | No |
-| `gatk-3.5` + `snakemake` or `nextflow` | No |
+<WorkflowCompatibilityMatrix />
 
 :::info[Genome rules]
 - `pipeline: mit` always uses `genome: rsrs`.
@@ -254,9 +241,8 @@ Most users need only these commands:
 
 </details>
 
-For a higher-level explanation of included pipelines versus execution backends,
-see [Included Pipelines](../pipelines/overview) and
-[Native Backends](../backends/native).
+For a higher-level explanation of pipelines, providers, and execution backends,
+see [Workflows](../pipelines/overview).
 
 ## Advanced Keys
 
