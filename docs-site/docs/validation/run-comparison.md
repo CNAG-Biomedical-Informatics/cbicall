@@ -175,9 +175,18 @@ store expected workflow hashes in the registry or catalog, because harmless
 comment or formatting edits would otherwise require metadata churn.
 :::
 
-The execution-contract fingerprint is normalized by replacing the run directory
-and run ID with placeholders. This lets repeated runs compare as the same
-contract even when their output directories differ.
+:::note[Normalized execution contracts]
+The execution-contract fingerprint is normalized by replacing the concrete run directory and run ID with placeholders before hashing:
+
+```json
+"normalization": {
+  "project_dir": "{PROJECT_DIR}",
+  "run_id": "{RUN_ID}"
+}
+```
+
+The raw contract still records audit details, but the fingerprint ignores these expected per-run values so repeated launches can compare as the same backend-ready execution plan.
+:::
 
 For external nf-core workflows, CBIcall uses canonical output patterns declared
 in the workflow registry. For example, the Sarek entry points to the

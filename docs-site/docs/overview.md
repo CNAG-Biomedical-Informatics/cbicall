@@ -28,7 +28,7 @@ run comparison across computing environments.
 ## What CBIcall Does
 
 CBIcall does not re-implement alignment or variant-calling algorithms; those
-steps remain in curated workflows built from established tools such as BWA,
+steps remain in curated pipeline implementations built from established tools such as BWA,
 GATK, MToolBox, Snakemake, Nextflow, Cromwell, and selected nf-core pipelines.
 
 - validates the **parameters YAML** and compatibility contract before launch
@@ -45,14 +45,14 @@ executes it.
 | --- | --- |
 | Out-of-box analysis pipelines | WES, WGS, and mtDNA variant calling |
 | Workflow backends | Bash, Snakemake, Nextflow, and Cromwell |
-| External workflows | Registered nf-core workflows launched through the Nextflow backend |
+| External provider entries | Registered nf-core pipelines launched through the Nextflow backend |
 
-The native CBIcall WES/WGS/mtDNA workflows use the CBIcall-provided resource
-bundle. Registered nf-core workflows can be validated and launched without that
-bundle; Nextflow/nf-core manages the external workflow's own test data,
+The native CBIcall WES/WGS/mtDNA pipeline implementations use the CBIcall-provided resource
+bundle. Registered nf-core provider entries can be validated and launched without that
+bundle; Nextflow/nf-core manages the external pipeline's own test data,
 containers, and references.
 
-Use [Workflows](pipelines/overview) for supported pipelines, native backends, and registered external providers.
+Use [Included Pipelines](pipelines/overview) for the shipped analyses and [Native Backends](backends/native) for the supported workflow backends.
 
 ## Installation at a Glance
 
@@ -71,6 +71,7 @@ Use [Workflows](pipelines/overview) for supported pipelines, native backends, an
 | Run the native shipped test data | [Quickstart](usage/quickstart) |
 | Run WES/WGS data | [WES Example](usage/end-to-end-example-wes) |
 | Run mtDNA analysis | [mtDNA Example](usage/end-to-end-example-mit) |
-| See supported workflows | [Workflows](pipelines/overview) |
+| See included pipelines | [Included Pipelines](pipelines/overview) |
+| Understand workflow backends | [Native Backends](backends/native) |
 | Understand output files | [Outputs](help/outputs) |
 | See the system design | [Architecture](technical-details/architecture) |

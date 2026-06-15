@@ -63,9 +63,9 @@ export default function Home() {
               <p>Docker, Apptainer, and non-containerized setup paths.</p>
             </Link>
             <Link className={styles.card} to="/docs/pipelines/overview">
-              <span>Workflows</span>
-              <h2>Supported Workflows</h2>
-              <p>Native pipelines, workflow backends, and selected external nf-core providers.</p>
+              <span>Pipelines</span>
+              <h2>Included Analyses</h2>
+              <p>Curated WES, WGS, and mtDNA pipelines for single-sample and cohort use.</p>
             </Link>
             <Link className={styles.card} to="/docs/validation/run-comparison">
               <span>Reproducibility</span>
@@ -75,7 +75,7 @@ export default function Home() {
             <Link className={styles.card} to="/docs/technical-details/adding-a-pipeline">
               <span>Developers</span>
               <h2>Extend</h2>
-              <p>Registry-driven workflow wiring for adding new pipelines.</p>
+              <p>Registry-driven backend wiring for adding new pipelines.</p>
             </Link>
           </div>
         </section>

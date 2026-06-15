@@ -20,7 +20,7 @@
     "prism-react-renderer": "^2.4.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "webpack": "5.101.3"
+    "webpack": "5.107.2"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.10.1",
@@ -30,5 +30,10 @@
   },
   "engines": {
     "node": ">=20.0"
+  },
+  "overrides": {
+    "serialize-javascript": "7.0.5",
+    "shell-quote": "1.8.4",
+    "uuid": "11.1.1"
   }
 }

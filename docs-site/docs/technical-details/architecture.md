@@ -3,9 +3,9 @@ import WorkflowCompatibilityMatrix from '@site/src/components/WorkflowCompatibil
 # Architecture
 
 CBIcall is a **configuration-driven execution framework** for reproducible
-variant-calling workflows. It does not replace Bash, Snakemake, Nextflow, or
+variant-calling pipelines. It does not replace Bash, Snakemake, Nextflow, or
 Cromwell. Instead, it validates one user request, resolves it against approved
-workflow and resource definitions, launches the selected backend, and records the
+workflow-registry and resource definitions, launches the selected backend, and records the
 evidence needed to audit the run afterwards.
 
 The architecture is organized around a three-layer execution contract:
@@ -17,12 +17,12 @@ The architecture is organized around a three-layer execution contract:
 | **Resource catalog JSON** | Defines external resources: reference bundles, workflow compatibility, resource identity, availability, and integrity metadata. |
 
 After these layers are validated and resolved, CBIcall creates a deterministic
-run directory, dispatches the selected workflow, and writes structured audit
+run directory, dispatches the selected pipeline implementation, and writes structured audit
 artifacts such as `log.json`, `cbicall-execution-contract.json`,
 `run-report.json`, optional HTML reports, and comparison reports.
 
 The actual bioinformatics work, such as alignment, variant calling, mtDNA
-analysis, and QC, remains implemented in workflow files or upstream external
+analysis, and QC, remains implemented in backend workflow files or upstream external
 pipelines.
 
 ---
@@ -92,13 +92,13 @@ output directory, while CBIcall adds audit files at the run-directory root.
 
 ---
 
-## Native and external workflows
+## Native and External Implementations
 
 CBIcall uses **native** to describe the output contract, not the workflow
-language. A workflow is CBIcall-native when it writes the expected CBIcall run
-layout inside the generated `cbicall_*` directory. A workflow is external when
-CBIcall launches and audits it but the workflow keeps its upstream output
-layout. External workflows can still participate in run comparison when the
+language. A pipeline implementation is CBIcall-native when it writes the expected CBIcall run
+layout inside the generated `cbicall_*` directory. An implementation is external when
+CBIcall launches and audits it but the upstream pipeline keeps its own output
+layout. External provider entries can still participate in run comparison when the
 workflow registry declares canonical final outputs.
 
 ## Resolution model
@@ -114,8 +114,8 @@ mode: single
 genome: b37
 ```
 
-For native workflows, `workflow_provider: cbicall` is the default. For external
-nf-core workflows, users select `workflow_provider: nf-core` and
+For native pipeline implementations, `workflow_provider: cbicall` is the default. For external
+nf-core provider entries, users select `workflow_provider: nf-core` and
 `workflow_backend: nextflow`; the external release is declared by the registry
 entry.
 
@@ -150,18 +150,18 @@ Workflow backends execute workflow definitions:
 | `nextflow` | Native Nextflow workflow execution or external nf-core dispatch. |
 | `cromwell` | Native WDL/Cromwell workflow execution. |
 
-Workflow providers identify where the workflow comes from:
+Workflow providers identify where the implementation comes from:
 
 | Provider | Meaning |
 | --- | --- |
-| `cbicall` | Workflow implementation is maintained as part of CBIcall and follows the CBIcall output contract. |
-| `nf-core` | Workflow implementation comes from nf-core and keeps its upstream output layout. |
+| `cbicall` | Pipeline implementation is maintained as part of CBIcall and follows the CBIcall output contract. |
+| `nf-core` | Pipeline implementation comes from nf-core and keeps its upstream output layout. |
 
 ::::tip[Backend choice]
 Bash workflows are direct and transparent. Snakemake, Nextflow, and Cromwell
-can provide backend-managed orchestration for CBIcall-native workflows when
-those workflows produce the CBIcall output contract.
-External nf-core workflows are also launched through the Nextflow backend, but
+can provide backend-managed orchestration for CBIcall-native implementations when
+those implementations produce the CBIcall output contract.
+External nf-core provider entries are also launched through the Nextflow backend, but
 their test data, containers, and references are managed by nf-core/Nextflow
 rather than by the CBIcall resource bundle.
 ::::
@@ -190,7 +190,7 @@ Every run records three complementary metadata files:
 
 | File | Purpose |
 | --- | --- |
-| **`log.json`** | Detailed run log with resolved configuration, selected workflow, runtime profile, resource bundle identity, and command context. |
+| **`log.json`** | Detailed run log with resolved configuration, selected implementation, runtime profile, resource bundle identity, and command context. |
 | **`cbicall-execution-contract.json`** | Backend-ready execution plan created after validation and registry/resource resolution, including the command, generated backend files, and controlled environment overrides. |
 | **`run-report.json`** | Compact audit report for comparing runs, including execution-contract, workflow, resource, software, output inventory, and canonical output fingerprints, status, and elapsed time. |
 
@@ -199,7 +199,7 @@ default, generate both terminal and HTML summaries.
 
 ---
 
-## Supported workflows
+## Supported Pipelines and Backends
 
 <WorkflowCompatibilityMatrix />
 
@@ -210,8 +210,8 @@ default, generate both terminal and HTML summaries.
 | Command | Checks |
 | --- | --- |
 | **`bin/cbicall validate-registry`** | Workflow registry structure, schema, referenced files, and compatible resource keys. |
-| **`bin/cbicall validate-parameters -p parameters.yaml`** | One concrete run setup, including parameter compatibility, selected workflow, runtime profile, and installed resource identity when applicable. |
-| **`bin/cbicall test --wes-bash`**, `--backend-equivalence`, and related flags | Contract integration examples that run selected workflows; backend-equivalence mode compares normalized WES VCF output across native backends. |
+| **`bin/cbicall validate-parameters -p parameters.yaml`** | One concrete run setup, including parameter compatibility, selected implementation, runtime profile, and installed resource identity when applicable. |
+| **`bin/cbicall test --wes-bash`**, `--backend-equivalence`, and related flags | Contract integration examples that run selected pipeline implementations; backend-equivalence mode compares normalized WES VCF output across native backends. |
 
 ---
 
