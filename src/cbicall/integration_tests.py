@@ -100,6 +100,28 @@ def _work_path(workdir: Path, value: str) -> Path:
     return workdir / path
 
 
+def _contract_env(project_root: Path, contract: dict) -> Dict[str, str]:
+    values = contract.get("env") or {}
+    if not isinstance(values, dict):
+        raise IntegrationTestError("Integration contract env must be a mapping.")
+
+    env = os.environ.copy()
+    for key, value in values.items():
+        if not isinstance(key, str) or not key:
+            raise IntegrationTestError("Integration contract env keys must be non-empty strings.")
+        if value is None:
+            env.pop(key, None)
+            continue
+
+        text = str(value)
+        path = Path(text)
+        project_value = project_root / path
+        if not path.is_absolute() and project_value.exists():
+            text = str(project_value)
+        env[key] = text
+    return env
+
+
 def list_run_dirs(base_dir: Path, run_glob: str) -> List[Path]:
     if not base_dir.is_dir():
         return []
@@ -561,6 +583,7 @@ def _run_one(
     proc = subprocess.run(
         cmd,
         cwd=str(workdir),
+        env=_contract_env(project_root, contract),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -760,7 +783,7 @@ def selected_tests_from_args(args: argparse.Namespace) -> List[TestSelection]:
     selected: List[TestSelection] = []
     if args.all or args.wes_bash:
         selected.append(TESTS["wes-bash"])
-    if args.wes_cohort_bash:
+    if args.all or args.wes_cohort_bash:
         selected.append(TESTS["wes-cohort-bash"])
     if args.wes_bash_gatk35:
         selected.append(TESTS["wes-bash-gatk35"])

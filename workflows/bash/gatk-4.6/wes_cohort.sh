@@ -79,9 +79,18 @@ esac
 # GenomicsDBImport requires explicit intervals. WGS derives whole-contig
 # intervals from the reference dictionary inside 01_genomicsdb.
 if [ "$PIPELINE" = "WES" ]; then
-  INTERVAL_ARG="-L $INTERVAL_LIST"
+  WES_INTERVAL_LIST="${CBICALL_INTERVAL_LIST:-$INTERVAL_LIST}"
+  if [ -z "${WES_INTERVAL_LIST:-}" ] || [ ! -f "$WES_INTERVAL_LIST" ]; then
+    echo "Error: WES interval list is not set or not found: ${WES_INTERVAL_LIST:-<unset>}" >&2
+    exit 1
+  fi
+  INTERVAL_ARG="-L $WES_INTERVAL_LIST"
   MERGE_INTERVALS_ARG="--merge-input-intervals true"
-  echo "WES mode: restricting to $INTERVAL_LIST"
+  if [ -n "${CBICALL_INTERVAL_LIST:-}" ]; then
+    echo "WES mode: restricting to $WES_INTERVAL_LIST (CBICALL_INTERVAL_LIST override)" | tee -a "$LOG"
+  else
+    echo "WES mode: restricting to $WES_INTERVAL_LIST" | tee -a "$LOG"
+  fi
 else
   if [ -z "${REF_DICT:-}" ] || [ ! -f "$REF_DICT" ]; then
     echo "Error: REF_DICT is not set or not found (mode=WGS)." >&2
@@ -107,7 +116,7 @@ else
   ' "$REF_DICT" > "$WGS_INTERVAL_LIST"
   INTERVAL_ARG="-L $WGS_INTERVAL_LIST"
   MERGE_INTERVALS_ARG=""
-  echo "WGS mode: generated whole-genome intervals from $REF_DICT"
+  echo "WGS mode: generated whole-genome intervals from $REF_DICT" | tee -a "$LOG"
 fi
 
 # Derived output names

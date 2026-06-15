@@ -104,13 +104,14 @@ examples.
 | `bin/cbicall test --nf-core-demo -t 4` | **nf-core/demo** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile | Generated params/config, run reports, **pipeline info**, **MultiQC anchors** |
 | `bin/cbicall test --nf-core-sarek -t 4` | **nf-core/Sarek** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile and Sarek inputs/resources | Generated params/config, run reports, **pipeline info**, **MultiQC anchors**, declared canonical outputs when produced |
 | `bin/cbicall test --backend-equivalence -t 1` | **Native WES backend equivalence** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | At least one non-Bash native backend available | Bash baseline plus available native WES backends; **same normalized final VCF** required |
-| `bin/cbicall test --all -t 1` | **Native tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Optional backends skipped if missing | Runs WES Bash, WES Snakemake, WES Nextflow, WES Cromwell, and mtDNA contracts; the WES cohort test is opt-in |
+| `bin/cbicall test --all -t 1` | **Native tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Optional backends skipped if missing | Runs WES Bash, WES cohort Bash, WES Snakemake, WES Nextflow, WES Cromwell, and mtDNA contracts |
 
 </details>
 
 The WES cohort Bash test is intentionally slower than the single-sample checks:
 it first runs the WES Bash contract to create a real gVCF, then runs joint
-genotyping with the normal bundled WES interval list.
+genotyping over a chr22 interval fixture. The production workflow still uses
+the bundled WES interval list unless `CBICALL_INTERVAL_LIST` is set explicitly.
 
 <details>
 <summary>Advanced test flags and backend requirements</summary>

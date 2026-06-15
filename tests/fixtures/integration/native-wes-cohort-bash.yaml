@@ -1,8 +1,10 @@
 workdir: examples/input
 workflow_log: bash_gatk-4.6_wes_cohort_b37.log
 notes:
-  - This opt-in test first runs the WES Bash single-sample contract, then runs cohort joint genotyping over the normal bundled WES interval list.
-  - It can take longer than the other integration tests.
+  - This opt-in test first runs the WES Bash single-sample contract, then runs cohort joint genotyping over a chr22 interval fixture.
+  - It is still heavier than the single-sample integration tests.
+env:
+  CBICALL_INTERVAL_LIST: tests/fixtures/integration/wes-cohort-chr22.interval_list
 setup_runs:
   - wes-bash
 setup_files_from_runs:
@@ -37,6 +39,8 @@ required_files:
 text_expectations:
   - path: logs/cohort_joint_genotyping.log
     contains: ">>> Step 1: GenomicsDBImport"
+  - path: logs/cohort_joint_genotyping.log
+    contains: "WES mode: restricting to"
   - path: logs/cohort_joint_genotyping.log
     contains: "Cohort QC VCF written: cohort.gv.QC.vcf.gz"
 json_expectations:

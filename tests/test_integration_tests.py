@@ -158,6 +158,7 @@ def test_run_integration_tests_executes_and_cleans_contract_run(tmp_path, monkey
     workdir.mkdir(parents=True)
     (tmp_path / "bin").mkdir()
     (tmp_path / "bin" / "cbicall").write_text("#!/bin/sh\n", encoding="utf-8")
+    (tmp_path / "fixture.interval_list").write_text("22\t1\t100\t+\tchr22\n", encoding="utf-8")
     (workdir / "param.yaml").write_text("mode: single\n", encoding="utf-8")
     _write_fixture(
         tmp_path,
@@ -171,13 +172,15 @@ def test_run_integration_tests_executes_and_cleans_contract_run(tmp_path, monkey
                 "run_glob": "cbicall_bash_test_*",
             },
             "notes": ["This test prints a setup note."],
+            "env": {"CBICALL_INTERVAL_LIST": "fixture.interval_list"},
             "required_files": ["run-report.json", "run-report.html", "workflow.log"],
             "json_expectations": [{"path": "status", "equals": "success"}],
             "cleanup_paths": ["work"],
         },
     )
 
-    def fake_run(cmd, cwd, stdout, stderr, text, check):
+    def fake_run(cmd, cwd, env, stdout, stderr, text, check):
+        assert env["CBICALL_INTERVAL_LIST"] == str(tmp_path / "fixture.interval_list")
         run_dir = workdir / "cbicall_bash_test_001"
         run_dir.mkdir()
         (run_dir / "run-report.json").write_text(json.dumps({"status": "success"}), encoding="utf-8")
@@ -226,7 +229,7 @@ def test_run_integration_tests_keeps_external_work_when_requested(tmp_path, monk
     )
     (workdir / "nf-core-demo.yaml").write_text("workflow_provider: nf-core\n", encoding="utf-8")
 
-    def fake_run(cmd, cwd, stdout, stderr, text, check):
+    def fake_run(cmd, cwd, env, stdout, stderr, text, check):
         run_dir = workdir / "cbicall_nextflow_nf-core_demo_single_no-genome_001"
         run_dir.mkdir()
         (run_dir / "run-report.json").write_text(
@@ -485,7 +488,7 @@ def test_run_one_handles_inline_parameters_and_missing_run_dir(tmp_path, monkeyp
     )
     selection = integration_mod.TestSelection("inline", "Inline", "inline.yaml")
 
-    def fake_run(cmd, cwd, stdout, stderr, text, check):
+    def fake_run(cmd, cwd, env, stdout, stderr, text, check):
         param_file = Path(cmd[cmd.index("-p") + 1])
         assert param_file.name.startswith("cbicall-inline.")
         run_dir = workdir / "cbicall_inline_001"
@@ -559,7 +562,7 @@ def test_backend_availability_and_selected_tests(monkeypatch):
     args.all = True
     args.wes_cohort_bash = False
     selected_all = integration_mod.selected_tests_from_args(args)
-    assert "wes-cohort-bash" not in [item.key for item in selected_all]
+    assert "wes-cohort-bash" in [item.key for item in selected_all]
     assert "wes-cromwell" in [item.key for item in selected_all]
     assert "mit-bash" in [item.key for item in selected_all]
 
