@@ -690,6 +690,7 @@ class CromwellRunner(BaseRunner):
         self.workdir.mkdir(parents=True, exist_ok=True)
         output_dirs = (
             "01_bam",
+            "01_genomicsdb",
             "02_varcall",
             "03_stats",
             "logs",

@@ -117,11 +117,11 @@ the GATK bundle / Broad b37 exome interval list. See the
 | `QD2` | `QD < 2.0` |
 | `FS60` | `FS > 60.0` |
 | `MQ40` | `MQ < 40.0` |
-| `MQRS-12.5` | `MQRankSum < -12.5` |
-| `RPRS-8` | `ReadPosRankSum < -8.0` |
+| `MQRS-12.5` | `MQRankSum < -12.5`, when `MQRankSum` is present |
+| `RPRS-8` | `ReadPosRankSum < -8.0`, when `ReadPosRankSum` is present |
 | `QD2_indel` | `QD < 2.0` |
 | `FS200` | `FS > 200.0` |
-| `RPRS-20` | `ReadPosRankSum < -20.0` |
+| `RPRS-20` | `ReadPosRankSum < -20.0`, when `ReadPosRankSum` is present |
 
 ### 10. Coverage & Sex Determination
 

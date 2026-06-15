@@ -29,6 +29,11 @@ class TestSelection:
 
 TESTS: Dict[str, TestSelection] = {
     "wes-bash": TestSelection("wes-bash", "WES Bash", "native-wes-bash.yaml"),
+    "wes-cohort-bash": TestSelection(
+        "wes-cohort-bash",
+        "WES Cohort Bash",
+        "native-wes-cohort-bash.yaml",
+    ),
     "wes-bash-gatk35": TestSelection("wes-bash-gatk35", "WES Bash GATK 3.5", "native-wes-bash-gatk35.yaml"),
     "wes-snakemake": TestSelection(
         "wes-snakemake",
@@ -369,6 +374,76 @@ def _write_inline_parameters(workdir: Path, key: str, payload: dict) -> Path:
     return Path(handle.name)
 
 
+def _write_setup_files_from_runs(workdir: Path, contract: dict, setup_runs: Dict[str, Path]) -> List[Path]:
+    paths: List[Path] = []
+    for item in contract.get("setup_files_from_runs", []):
+        run_key = item["run"]
+        if run_key not in setup_runs:
+            raise IntegrationTestError(f"Setup run was not executed: {run_key}")
+        run_dir = setup_runs[run_key]
+        source = _work_path(run_dir, item["source"])
+        if not source.is_file():
+            raise IntegrationTestError(f"Setup source does not exist: {source}")
+        if item.get("source_index"):
+            source_index = _work_path(run_dir, item["source_index"])
+            if not source_index.is_file():
+                raise IntegrationTestError(f"Setup source index does not exist: {source_index}")
+
+        if item.get("sample_map"):
+            path = _work_path(workdir, item["sample_map"])
+            path.parent.mkdir(parents=True, exist_ok=True)
+            lines = [f"{sample}\t{source}" for sample in item.get("samples", [])]
+            if not lines:
+                raise IntegrationTestError(f"Setup sample map requires at least one sample: {path}")
+            path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            paths.append(path)
+    return paths
+
+
+def _cleanup_setup_files(paths: List[Path], workdir: Path) -> None:
+    for path in paths:
+        path.unlink(missing_ok=True)
+    parents = sorted({path.parent for path in paths}, key=lambda path: len(path.parts), reverse=True)
+    for parent in parents:
+        if parent == workdir:
+            continue
+        try:
+            parent.rmdir()
+        except OSError:
+            pass
+
+
+def _run_setup_runs(
+    *,
+    project_root: Path,
+    contract: dict,
+    threads: int,
+    runtime_profile: str,
+    keep_external_work: bool,
+    stack: List[str],
+) -> Dict[str, Path]:
+    setup_runs: Dict[str, Path] = {}
+    for key in contract.get("setup_runs", []):
+        if key in stack:
+            raise IntegrationTestError(f"Recursive integration setup dependency: {' -> '.join(stack + [key])}")
+        if key not in TESTS:
+            raise IntegrationTestError(f"Unknown integration setup dependency: {key}")
+        print(f"Preparing setup run: {TESTS[key].label}")
+        label, status, detail = _run_one(
+            project_root=project_root,
+            selection=TESTS[key],
+            threads=threads,
+            runtime_profile=runtime_profile,
+            skip_missing_optional=False,
+            keep_external_work=keep_external_work,
+            stack=stack + [key],
+        )
+        if status != "passed":
+            raise IntegrationTestError(f"Setup run did not pass: {label} ({status})")
+        setup_runs[key] = Path(detail)
+    return setup_runs
+
+
 def _parameter_file(project_root: Path, workdir: Path, key: str, contract: dict) -> Tuple[Path, Optional[Path]]:
     run = contract.get("run", {})
     if "parameter_file" in run:
@@ -419,7 +494,9 @@ def _run_one(
     runtime_profile: str,
     skip_missing_optional: bool,
     keep_external_work: bool,
+    stack: Optional[List[str]] = None,
 ) -> Tuple[str, str, str]:
+    stack = stack or [selection.key]
     if selection.key == "wes-cromwell" and not (os.environ.get("CROMWELL_JAR") or shutil.which("cromwell")):
         detail = "CROMWELL_JAR or cromwell executable not found"
         if skip_missing_optional and selection.optional_in_all:
@@ -441,6 +518,17 @@ def _run_one(
     if not run_glob:
         raise IntegrationTestError("Contract run section must define run_glob")
 
+    setup_files: List[Path] = []
+    temp_param: Optional[Path] = None
+    setup_runs = _run_setup_runs(
+        project_root=project_root,
+        contract=contract,
+        threads=threads,
+        runtime_profile=runtime_profile,
+        keep_external_work=keep_external_work,
+        stack=stack,
+    )
+    setup_files.extend(_write_setup_files_from_runs(workdir, contract, setup_runs))
     param_file, temp_param = _parameter_file(project_root, workdir, selection.key, contract)
     launcher_fd, launcher_name = tempfile.mkstemp(
         prefix=f"cbicall-test-{selection.key}.",
@@ -467,6 +555,8 @@ def _run_one(
     print(f"TEST: {selection.label}")
     print("========================================")
     print(f"Running {selection.label} integration test...")
+    for note in contract.get("notes", []):
+        print(f"Note: {note}")
 
     proc = subprocess.run(
         cmd,
@@ -509,6 +599,7 @@ def _run_one(
     finally:
         if temp_param:
             temp_param.unlink(missing_ok=True)
+        _cleanup_setup_files(setup_files, workdir)
 
 
 def run_integration_tests(
@@ -669,6 +760,8 @@ def selected_tests_from_args(args: argparse.Namespace) -> List[TestSelection]:
     selected: List[TestSelection] = []
     if args.all or args.wes_bash:
         selected.append(TESTS["wes-bash"])
+    if args.wes_cohort_bash:
+        selected.append(TESTS["wes-cohort-bash"])
     if args.wes_bash_gatk35:
         selected.append(TESTS["wes-bash-gatk35"])
     if args.all or args.wes_snakemake:

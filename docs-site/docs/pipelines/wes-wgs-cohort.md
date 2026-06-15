@@ -49,7 +49,8 @@ the GATK bundle / Broad b37 exome interval list. See the
 
 - Imports all gVCFs into a **GenomicsDB workspace**.
 - Handles both WES (interval-limited) and WGS (whole genome) modes.
-- Output: on-disk database accessed as `gendb://<workspace>`.
+- Output: on-disk database under `01_genomicsdb/`, accessed as
+  `gendb://<workspace>`.
 
 ### 2. Joint Genotyping (GenotypeGVCFs)
 
@@ -106,11 +107,11 @@ The best available VCF (VQSR-filtered or raw) is used as input to the next step.
 | `QD2` | `QD < 2.0` |
 | `FS60` | `FS > 60.0` |
 | `MQ40` | `MQ < 40.0` |
-| `MQRS-12.5` | `MQRankSum < -12.5` |
-| `RPRS-8` | `ReadPosRankSum < -8.0` |
+| `MQRS-12.5` | `MQRankSum < -12.5`, when `MQRankSum` is present |
+| `RPRS-8` | `ReadPosRankSum < -8.0`, when `ReadPosRankSum` is present |
 | `QD2_indel` | `QD < 2.0` |
 | `FS200` | `FS > 200.0` |
-| `RPRS-20` | `ReadPosRankSum < -20.0` |
+| `RPRS-20` | `ReadPosRankSum < -20.0`, when `ReadPosRankSum` is present |
 
 This QC VCF is the primary cohort workflow output for downstream tools and
 project-level review.
@@ -118,6 +119,10 @@ project-level review.
 ---
 
 ## Output Files
+
+In these filenames, `gv` means `GenotypeGVCFs`: the raw VCF is the direct
+joint-genotyped output from that GATK step, and the QC VCF is the filtered
+version used downstream.
 
 | File                                | Description                                        |
 |-------------------------------------|----------------------------------------------------|

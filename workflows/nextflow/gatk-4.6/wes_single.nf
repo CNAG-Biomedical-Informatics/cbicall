@@ -490,11 +490,11 @@ process VQSR_AND_QC {
       --filter-name "QD2"        --filter-expression "QD < 2.0" \\
       --filter-name "FS60"       --filter-expression "FS > 60.0" \\
       --filter-name "MQ40"       --filter-expression "MQ < 40.0" \\
-      --filter-name "MQRS-12.5"  --filter-expression "MQRankSum < -12.5" \\
-      --filter-name "RPRS-8"     --filter-expression "ReadPosRankSum < -8.0" \\
+      --filter-name "MQRS-12.5"  --filter-expression "vc.hasAttribute('MQRankSum') && MQRankSum < -12.5" \\
+      --filter-name "RPRS-8"     --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -8.0" \\
       --filter-name "QD2_indel"  --filter-expression "QD < 2.0" \\
       --filter-name "FS200"      --filter-expression "FS > 200.0" \\
-      --filter-name "RPRS-20"    --filter-expression "ReadPosRankSum < -20.0" \\
+      --filter-name "RPRS-20"    --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -20.0" \\
       -O ${q("${ID}.hc.QC.vcf.gz")} \\
       2>> ${q("${ID}.07_vqsr_and_qc.log")}
     """

@@ -213,18 +213,21 @@ bin/cbicall run -p wes_cohort.yaml -t 4
 After completion, you will find:
 ```
 cbicall_bash_gatk-4.6_wes_cohort_b37_*/
+  01_genomicsdb/
   02_varcall/
   logs/
 ```
 
 Where:
 
+- GenomicsDB workspaces and WGS-derived interval lists are stored in `01_genomicsdb/`
 - Final VCF files are stored in `02_varcall/`  
 - Logs for all pipeline steps are under `logs/`  
 
 :::tip[What you get]
 - Final joint VCF: `02_varcall/cohort.gv.QC.vcf.gz`
-- GenomicsDB workspace and raw cohort VCF in `02_varcall/`
+- GenomicsDB workspace in `01_genomicsdb/`
+- Raw cohort VCF in `02_varcall/`
 - Run metadata: `log.json`
 
 See [Outputs](../help/outputs) for the full file reference.

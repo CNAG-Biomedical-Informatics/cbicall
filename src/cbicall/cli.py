@@ -479,6 +479,7 @@ def _collect_execution_contract(project_dir: Path) -> dict:
 def _collect_file_inventory(project_dir: Path) -> dict:
     excluded = {"run-report.json", "run-report.html", "cbicall_mqc.yaml"}
     excluded_roots = {
+        "01_genomicsdb",
         "work",
         ".nextflow",
         "cbicall_mqc",
@@ -1815,6 +1816,11 @@ def _run_test_command(argv: List[str]) -> int:
         description="Run the bundled CBIcall integration tests from examples/input.",
     )
     parser.add_argument("--wes-bash", action="store_true", help="Run the Bash WES integration test.")
+    parser.add_argument(
+        "--wes-cohort-bash",
+        action="store_true",
+        help="Run the Bash WES cohort joint-genotyping integration test.",
+    )
     parser.add_argument("--wes-bash-gatk35", action="store_true", help="Run the legacy Bash WES GATK 3.5 integration test.")
     parser.add_argument(
         "--wes-snakemake",
@@ -1867,6 +1873,7 @@ def _run_test_command(argv: List[str]) -> int:
 
     selectors = [
         args.wes_bash,
+        args.wes_cohort_bash,
         args.wes_bash_gatk35,
         args.wes_snakemake,
         args.wes_nextflow,
@@ -1890,7 +1897,7 @@ def _run_test_command(argv: List[str]) -> int:
     selected = selected_tests_from_args(args)
     if not selected:
         parser.error(
-            "select at least one test with --wes-bash, --wes-bash-gatk35, "
+            "select at least one test with --wes-bash, --wes-cohort-bash, --wes-bash-gatk35, "
             "--wes-snakemake, --wes-nextflow, --wes-cromwell, --mit-bash, --nf-core-demo, "
             "--nf-core-sarek, --backend-equivalence, or --all"
         )

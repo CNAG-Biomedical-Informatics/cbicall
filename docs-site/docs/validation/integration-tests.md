@@ -87,7 +87,8 @@ repeated runs, see [Run Comparison](run-comparison).
 ## Test Matrix
 
 The minimal WES Bash test is the default smoke test. Use the matrix below only
-when checking optional backends or external nf-core examples.
+when checking optional backends, the heavier cohort path, or external nf-core
+examples.
 
 <details>
 <summary>Show all integration-test commands</summary>
@@ -95,6 +96,7 @@ when checking optional backends or external nf-core examples.
 | Command | Workflow path | Needs CBIcall bundle? | Extra requirement | Contract check |
 | --- | --- | --- | --- | --- |
 | `bin/cbicall test --wes-bash -t 1` | **Native WES**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | <span className="cbicallTestBadge cbicallTestBadgeNeutral">none</span> | Run report fields, expected files, **normalized VCF hash** |
+| `bin/cbicall test --wes-cohort-bash -t 1` | **Native WES cohort**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Runs WES Bash first, then reuses its real gVCF with fake cohort sample names | Run report fields, expected files, **GenomicsDB marker**, raw/QC cohort VCFs |
 | `bin/cbicall test --wes-snakemake -t 1` | **Native WES**, Snakemake | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `snakemake` on `PATH` | Run report fields, expected files, **normalized VCF hash** |
 | `bin/cbicall test --wes-nextflow -t 1` | **Native WES**, Nextflow | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `nextflow` on `PATH` | Run report fields, expected files, **normalized VCF hash** |
 | `bin/cbicall test --wes-cromwell -t 1` | **Native WES**, Cromwell | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `CROMWELL_JAR` or `cromwell` on `PATH` | Generated inputs/options/metadata, run report fields, expected files, **normalized VCF hash** |
@@ -102,9 +104,13 @@ when checking optional backends or external nf-core examples.
 | `bin/cbicall test --nf-core-demo -t 4` | **nf-core/demo** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile | Generated params/config, run reports, **pipeline info**, **MultiQC anchors** |
 | `bin/cbicall test --nf-core-sarek -t 4` | **nf-core/Sarek** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile and Sarek inputs/resources | Generated params/config, run reports, **pipeline info**, **MultiQC anchors**, declared canonical outputs when produced |
 | `bin/cbicall test --backend-equivalence -t 1` | **Native WES backend equivalence** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | At least one non-Bash native backend available | Bash baseline plus available native WES backends; **same normalized final VCF** required |
-| `bin/cbicall test --all -t 1` | **Native tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Optional backends skipped if missing | Runs WES Bash, WES Snakemake, WES Nextflow, WES Cromwell, and mtDNA contracts |
+| `bin/cbicall test --all -t 1` | **Native tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Optional backends skipped if missing | Runs WES Bash, WES Snakemake, WES Nextflow, WES Cromwell, and mtDNA contracts; the WES cohort test is opt-in |
 
 </details>
+
+The WES cohort Bash test is intentionally slower than the single-sample checks:
+it first runs the WES Bash contract to create a real gVCF, then runs joint
+genotyping with the normal bundled WES interval list.
 
 <details>
 <summary>Advanced test flags and backend requirements</summary>

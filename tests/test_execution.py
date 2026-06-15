@@ -904,6 +904,7 @@ def test_execution_builds_and_promotes_cromwell_wgs_cohort(tmp_path, monkeypatch
     assert inputs["CBIcallCohort.ref_dict"] == "/data/Databases/GATK_bundle/b37/ref.dict"
     assert inputs["CBIcallCohort.min_snp_for_vqsr"] == 10
     assert not (project_dir / "cbicall_cromwell.fastq_pairs.tsv").exists()
+    assert (project_dir / "01_genomicsdb").is_dir()
     assert (project_dir / "02_varcall" / "cohort.gv.QC.vcf.gz").is_file()
     assert (project_dir / "03_stats" / "cohort.gv.QC.vcf.sha256.txt").is_file()
     assert (project_dir / "logs" / "cohort_joint_genotyping.log").is_file()

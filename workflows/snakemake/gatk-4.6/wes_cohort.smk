@@ -58,10 +58,12 @@ SAMPLE_MAP = config.get("sample_map", "").strip()
 if not SAMPLE_MAP:
     raise ValueError("config[sample_map] must be set (or passed via --config sample_map=...)")
 
-# Output dirs match bash: 02_varcall; logs
+# Output dirs match bash: 01_genomicsdb; 02_varcall; logs
 LOGDIR = "logs"
+GENOMICSDBDIR = "01_genomicsdb"
 VARCALLDIR = "02_varcall"
 os.makedirs(LOGDIR, exist_ok=True)
+os.makedirs(GENOMICSDBDIR, exist_ok=True)
 os.makedirs(VARCALLDIR, exist_ok=True)
 
 def write_wgs_interval_list(ref_dict, out_path):
@@ -85,7 +87,7 @@ if PIPELINE == "wes":
     INTERVAL_ARG = f"-L {shlex.quote(INTERVAL_LIST)}"
     MERGE_INTERVALS_ARG = "--merge-input-intervals true"
 else:
-    WGS_INTERVAL_LIST = os.path.join(VARCALLDIR, "wgs.whole_genome.interval_list")
+    WGS_INTERVAL_LIST = os.path.abspath(os.path.join(GENOMICSDBDIR, "wgs.whole_genome.interval_list"))
     write_wgs_interval_list(REF_DICT, WGS_INTERVAL_LIST)
     INTERVAL_ARG = f"-L {shlex.quote(WGS_INTERVAL_LIST)}"
     MERGE_INTERVALS_ARG = ""
@@ -96,15 +98,16 @@ def count_samples(path):
 
 SAMPLE_COUNT = count_samples(SAMPLE_MAP)
 
-# workspace: accept from wrapper; if relative, anchor under 02_varcall (bash does: cd 02_varcall)
+# workspace: accept from wrapper; if relative, anchor under 01_genomicsdb
 WORKSPACE = config.get("workspace", "").strip()
 
 # If not provided, pick a default name
 if not WORKSPACE:
     WORKSPACE = f"cohort.genomicsdb.{SAMPLE_COUNT}"
 
-# Wrapper always sends relative -> keep everything under 02_varcall
-WORKSPACE = os.path.join(VARCALLDIR, WORKSPACE)
+# Wrapper always sends relative -> keep the GenomicsDB workspace under 01_genomicsdb
+if not os.path.isabs(WORKSPACE):
+    WORKSPACE = os.path.join(GENOMICSDBDIR, WORKSPACE)
 
 # Outputs (match bash filenames inside 02_varcall)
 COHORT_RAW_VCF = os.path.join(VARCALLDIR, "cohort.gv.raw.vcf.gz")
@@ -125,7 +128,7 @@ rule genomicsdbimport:
     input:
         sample_map=SAMPLE_MAP
     output:
-        done=os.path.join(VARCALLDIR, "genomicsdbimport.done")
+        done=os.path.join(GENOMICSDBDIR, "genomicsdbimport.done")
     params:
         workspace=WORKSPACE
     threads: THREADS
@@ -152,7 +155,7 @@ rule genomicsdbimport:
 
 rule genotype_gvcfs_cohort:
     input:
-        db_done=os.path.join(VARCALLDIR, "genomicsdbimport.done")
+        db_done=os.path.join(GENOMICSDBDIR, "genomicsdbimport.done")
     output:
         raw=COHORT_RAW_VCF
     params:
@@ -273,11 +276,11 @@ rule vqsr_and_qc:
           --filter-name "QD2"        --filter-expression "QD < 2.0" \
           --filter-name "FS60"       --filter-expression "FS > 60.0" \
           --filter-name "MQ40"       --filter-expression "MQ < 40.0" \
-          --filter-name "MQRS-12.5"  --filter-expression "MQRankSum < -12.5" \
-          --filter-name "RPRS-8"     --filter-expression "ReadPosRankSum < -8.0" \
+          --filter-name "MQRS-12.5"  --filter-expression "vc.hasAttribute('MQRankSum') && MQRankSum < -12.5" \
+          --filter-name "RPRS-8"     --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -8.0" \
           --filter-name "QD2_indel"  --filter-expression "QD < 2.0" \
           --filter-name "FS200"      --filter-expression "FS > 200.0" \
-          --filter-name "RPRS-20"    --filter-expression "ReadPosRankSum < -20.0" \
+          --filter-name "RPRS-20"    --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -20.0" \
           -O {output.qc} \
           --tmp-dir {TMPDIR} \
           2>> {log}

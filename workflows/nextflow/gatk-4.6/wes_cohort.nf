@@ -109,9 +109,11 @@ def INTERVAL_LIST = expandPlaceholders(
 )
 def VCF2HASH = params.vcf2hash_script ? params.vcf2hash_script.toString() : file("${projectDir}/vcf2hash.sh").toString()
 
+def GENOMICSDBDIR = "01_genomicsdb"
 def VARCALLDIR = "02_varcall"
 def STATSDIR   = "03_stats"
 def LOGDIR     = "logs"
+new File(GENOMICSDBDIR).mkdirs()
 new File(VARCALLDIR).mkdirs()
 new File(STATSDIR).mkdirs()
 new File(LOGDIR).mkdirs()
@@ -146,7 +148,7 @@ if (PIPELINE == 'wes') {
     INTERVAL_ARG = "-L ${q(INTERVAL_LIST)}"
     MERGE_INTERVALS_ARG = "--merge-input-intervals true"
 } else {
-    def WGS_INTERVAL_LIST = new File("${VARCALLDIR}/wgs.whole_genome.interval_list").absolutePath
+    def WGS_INTERVAL_LIST = new File("${GENOMICSDBDIR}/wgs.whole_genome.interval_list").absolutePath
     writeWgsIntervalList(REF_DICT, WGS_INTERVAL_LIST)
     INTERVAL_ARG = "-L ${q(WGS_INTERVAL_LIST)}"
     MERGE_INTERVALS_ARG = ""
@@ -169,8 +171,8 @@ println "REF: ${REF}"
 process GENOMICSDB_IMPORT {
     cpus { params.threads as int }
 
-    publishDir VARCALLDIR, mode: 'copy', pattern: "genomicsdbimport.done"
-    publishDir VARCALLDIR, mode: 'copy', pattern: "${WORKSPACE_NAME}"
+    publishDir GENOMICSDBDIR, mode: 'copy', pattern: "genomicsdbimport.done"
+    publishDir GENOMICSDBDIR, mode: 'copy', pattern: "${WORKSPACE_NAME}"
     publishDir LOGDIR, mode: 'copy', pattern: '*.log'
 
     input:
@@ -312,11 +314,11 @@ process VQSR_AND_QC_COHORT {
       --filter-name "QD2"        --filter-expression "QD < 2.0" \\
       --filter-name "FS60"       --filter-expression "FS > 60.0" \\
       --filter-name "MQ40"       --filter-expression "MQ < 40.0" \\
-      --filter-name "MQRS-12.5"  --filter-expression "MQRankSum < -12.5" \\
-      --filter-name "RPRS-8"     --filter-expression "ReadPosRankSum < -8.0" \\
+      --filter-name "MQRS-12.5"  --filter-expression "vc.hasAttribute('MQRankSum') && MQRankSum < -12.5" \\
+      --filter-name "RPRS-8"     --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -8.0" \\
       --filter-name "QD2_indel"  --filter-expression "QD < 2.0" \\
       --filter-name "FS200"      --filter-expression "FS > 200.0" \\
-      --filter-name "RPRS-20"    --filter-expression "ReadPosRankSum < -20.0" \\
+      --filter-name "RPRS-20"    --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -20.0" \\
       -O cohort.gv.QC.vcf.gz \\
       --tmp-dir ${q(TMPDIR)} \\
       2>> ${q("03_vqsr_and_qc.log")}

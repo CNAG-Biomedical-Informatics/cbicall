@@ -84,18 +84,23 @@ task RunCohort {
     export LC_ALL=C
     export GATK_DISABLE_AUTO_S3_UPLOAD=true
 
+    GENOMICSDBDIR="01_genomicsdb"
     VARCALLDIR="02_varcall"
     STATSDIR="03_stats"
     LOGDIR="logs"
-    mkdir -p "$VARCALLDIR" "$STATSDIR" "$LOGDIR"
+    mkdir -p "$GENOMICSDBDIR" "$VARCALLDIR" "$STATSDIR" "$LOGDIR"
     LOG="$LOGDIR/cohort_joint_genotyping.log"
+    case "~{workspace}" in
+      /*) WORKSPACE_PATH="~{workspace}" ;;
+      *) WORKSPACE_PATH="$GENOMICSDBDIR/~{workspace}" ;;
+    esac
 
     if [ "~{pipeline}" = "wes" ]; then
       INTERVAL_ARG="-L ~{interval_list}"
       MERGE_INTERVALS_ARG="--merge-input-intervals true"
       echo "WES mode: restricting to ~{interval_list}" | tee -a "$LOG"
     else
-      WGS_INTERVAL_LIST="$(pwd)/$VARCALLDIR/wgs.whole_genome.interval_list"
+      WGS_INTERVAL_LIST="$(pwd)/$GENOMICSDBDIR/wgs.whole_genome.interval_list"
       awk '
         /^@/ {
           print
@@ -118,21 +123,23 @@ task RunCohort {
       echo "WGS mode: generated whole-genome intervals from ~{ref_dict}" | tee -a "$LOG"
     fi
 
-    cd "$VARCALLDIR"
-
-    echo "Step 1: GenomicsDBImport" | tee -a "../$LOG"
+    echo "Step 1: GenomicsDBImport" | tee -a "$LOG"
     ~{gatk4_cmd} GenomicsDBImport \
       --sample-name-map "~{sample_map}" \
-      --genomicsdb-workspace-path "~{workspace}" \
+      --genomicsdb-workspace-path "$WORKSPACE_PATH" \
       $MERGE_INTERVALS_ARG \
       $INTERVAL_ARG \
       --tmp-dir "~{tmpdir}" \
-      2>> "../$LOG"
+      2>> "$LOG"
+
+    echo ok > "$GENOMICSDBDIR/genomicsdbimport.done"
+
+    cd "$VARCALLDIR"
 
     echo "Step 2: GenotypeGVCFs" | tee -a "../$LOG"
     ~{gatk4_cmd} GenotypeGVCFs \
       -R "~{ref}" \
-      -V "gendb://~{workspace}" \
+      -V "gendb://$WORKSPACE_PATH" \
       -O cohort.gv.raw.vcf.gz \
       --stand-call-conf 10 \
       --tmp-dir "~{tmpdir}" \
@@ -216,11 +223,11 @@ task RunCohort {
       --filter-name "QD2"        --filter-expression "QD < 2.0" \
       --filter-name "FS60"       --filter-expression "FS > 60.0" \
       --filter-name "MQ40"       --filter-expression "MQ < 40.0" \
-      --filter-name "MQRS-12.5"  --filter-expression "MQRankSum < -12.5" \
-      --filter-name "RPRS-8"     --filter-expression "ReadPosRankSum < -8.0" \
+      --filter-name "MQRS-12.5"  --filter-expression "vc.hasAttribute('MQRankSum') && MQRankSum < -12.5" \
+      --filter-name "RPRS-8"     --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -8.0" \
       --filter-name "QD2_indel"  --filter-expression "QD < 2.0" \
       --filter-name "FS200"      --filter-expression "FS > 200.0" \
-      --filter-name "RPRS-20"    --filter-expression "ReadPosRankSum < -20.0" \
+      --filter-name "RPRS-20"    --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -20.0" \
       -O cohort.gv.QC.vcf.gz \
       --tmp-dir "~{tmpdir}" \
       2>> "../$LOG"

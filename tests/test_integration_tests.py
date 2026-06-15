@@ -115,6 +115,36 @@ def test_validate_contract_accepts_canonical_json_hash(tmp_path):
     validate_contract(tmp_path, contract)
 
 
+def test_write_setup_files_from_runs_creates_fake_sample_map(tmp_path):
+    workdir = tmp_path / "work"
+    run_dir = tmp_path / "single-run"
+    gvcf = run_dir / "02_varcall" / "sample.hc.g.vcf.gz"
+    gvcf.parent.mkdir(parents=True)
+    workdir.mkdir()
+    gvcf.write_text("gvcf\n", encoding="utf-8")
+    (gvcf.parent / "sample.hc.g.vcf.gz.tbi").write_text("index\n", encoding="utf-8")
+
+    contract = {
+        "setup_files_from_runs": [
+            {
+                "run": "wes-bash",
+                "source": "02_varcall/sample.hc.g.vcf.gz",
+                "source_index": "02_varcall/sample.hc.g.vcf.gz.tbi",
+                "sample_map": "cohort-map.tsv",
+                "samples": ["FAKE_01", "FAKE_02"],
+            }
+        ]
+    }
+
+    paths = integration_mod._write_setup_files_from_runs(workdir, contract, {"wes-bash": run_dir})
+
+    assert paths == [workdir / "cohort-map.tsv"]
+    assert (workdir / "cohort-map.tsv").read_text(encoding="utf-8") == (
+        f"FAKE_01\t{gvcf}\n"
+        f"FAKE_02\t{gvcf}\n"
+    )
+
+
 def _write_fixture(project_root: Path, name: str, payload: dict) -> None:
     fixture_dir = project_root / "tests" / "fixtures" / "integration"
     fixture_dir.mkdir(parents=True)
@@ -140,6 +170,7 @@ def test_run_integration_tests_executes_and_cleans_contract_run(tmp_path, monkey
                 "base_dir": ".",
                 "run_glob": "cbicall_bash_test_*",
             },
+            "notes": ["This test prints a setup note."],
             "required_files": ["run-report.json", "run-report.html", "workflow.log"],
             "json_expectations": [{"path": "status", "equals": "success"}],
             "cleanup_paths": ["work"],
@@ -169,6 +200,7 @@ def test_run_integration_tests_executes_and_cleans_contract_run(tmp_path, monkey
     assert not (workdir / "cbicall_bash_test_001" / "work").exists()
     out = capsys.readouterr().out
     assert "SUCCESS: WES Bash integration contract passed." in out
+    assert "Note: This test prints a setup note." in out
 
 
 def test_run_integration_tests_keeps_external_work_when_requested(tmp_path, monkeypatch):
@@ -504,6 +536,7 @@ def test_backend_availability_and_selected_tests(monkeypatch):
     args = SimpleNamespace(
         all=False,
         wes_bash=True,
+        wes_cohort_bash=False,
         wes_bash_gatk35=False,
         wes_snakemake=False,
         wes_nextflow=True,
@@ -515,8 +548,18 @@ def test_backend_availability_and_selected_tests(monkeypatch):
     selected = integration_mod.selected_tests_from_args(args)
     assert [item.key for item in selected] == ["wes-bash", "wes-nextflow", "nf-core-demo", "nf-core-sarek"]
 
+    args.wes_bash = False
+    args.wes_cohort_bash = True
+    args.wes_nextflow = False
+    args.nf_core_demo = False
+    args.nf_core_sarek = False
+    selected = integration_mod.selected_tests_from_args(args)
+    assert [item.key for item in selected] == ["wes-cohort-bash"]
+
     args.all = True
+    args.wes_cohort_bash = False
     selected_all = integration_mod.selected_tests_from_args(args)
+    assert "wes-cohort-bash" not in [item.key for item in selected_all]
     assert "wes-cromwell" in [item.key for item in selected_all]
     assert "mit-bash" in [item.key for item in selected_all]
 

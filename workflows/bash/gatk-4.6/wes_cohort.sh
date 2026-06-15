@@ -13,7 +13,7 @@ Usage: $0 -m <sample_map.tsv> [-p wes|wgs] [-w <workspace>] [-t <threads>]
 
   -s  --sample-map   Sample map file for --sample-name-map (required)
   -p  --pipeline    'wes' (default) or 'wgs'
-  -w  --workspace   GenomicsDB workspace path (default: ./cohort.genomicsdb.<job_id>)
+  -w  --workspace   GenomicsDB workspace name/path (relative names are stored under 01_genomicsdb)
   -h  --help        Show this help
 EOF
   exit 1
@@ -46,12 +46,12 @@ source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
 
 # Prepare output directories and logging
 dir=$(pwd)
+GENOMICSDBDIR=$dir/01_genomicsdb
 VARCALLDIR=$dir/02_varcall
 LOGDIR=$dir/logs
+mkdir -p "$GENOMICSDBDIR"
 mkdir -p "$VARCALLDIR"
 mkdir -p "$LOGDIR"
-
-cd $VARCALLDIR
 
 LOG="$LOGDIR/cohort_joint_genotyping.log"
 
@@ -68,12 +68,16 @@ if [ ! -s "$SAMPLE_MAP" ]; then
 fi
 SAMPLE_COUNT=$(wc -l < "$SAMPLE_MAP" | tr -d ' ')
 if [ -z "$WORKSPACE" ]; then
-  WORKSPACE="${WORKSPACE}_${SAMPLE_COUNT}"
+  WORKSPACE="cohort.genomicsdb.${SAMPLE_COUNT}"
 fi
+case "$WORKSPACE" in
+  /*) WORKSPACE_PATH="$WORKSPACE" ;;
+  *) WORKSPACE_PATH="$GENOMICSDBDIR/$WORKSPACE" ;;
+esac
 
 # Set interval argument for WES vs WGS.
 # GenomicsDBImport requires explicit intervals. WGS derives whole-contig
-# intervals from the reference dictionary inside the run directory.
+# intervals from the reference dictionary inside 01_genomicsdb.
 if [ "$PIPELINE" = "WES" ]; then
   INTERVAL_ARG="-L $INTERVAL_LIST"
   MERGE_INTERVALS_ARG="--merge-input-intervals true"
@@ -83,7 +87,7 @@ else
     echo "Error: REF_DICT is not set or not found (mode=WGS)." >&2
     exit 1
   fi
-  WGS_INTERVAL_LIST="$VARCALLDIR/wgs.whole_genome.interval_list"
+  WGS_INTERVAL_LIST="$GENOMICSDBDIR/wgs.whole_genome.interval_list"
   awk '
     /^@/ {
       print
@@ -120,7 +124,7 @@ echo "## Cohort GenomicsDBImport -> Genotype -> VQSR/Hard-filter"
 echo "sample_map: $SAMPLE_MAP"
 echo "pipeline: $PIPELINE"
 echo "sample_count: $SAMPLE_COUNT"
-echo "workspace: $WORKSPACE"
+echo "workspace: $WORKSPACE_PATH"
 echo "out_vcf: $COHORT_RAW_VCF"
 echo "tmpdir: $TMPDIR"
 echo "log: $LOG"
@@ -130,17 +134,18 @@ echo "" | tee -a "$LOG"
 # Step 1: GenomicsDBImport
 # -----------------------------------------------------------------------------
 echo ">>> Step 1: GenomicsDBImport" | tee -a "$LOG"
-mkdir -p "$(dirname "$WORKSPACE")"
+mkdir -p "$(dirname "$WORKSPACE_PATH")"
 
 set -x
 "$GATK4_BIN" $GATK4_JAVA_OPTS_64G GenomicsDBImport \
   --sample-name-map "$SAMPLE_MAP" \
-  --genomicsdb-workspace-path "$WORKSPACE" \
+  --genomicsdb-workspace-path "$WORKSPACE_PATH" \
   $MERGE_INTERVALS_ARG \
   $INTERVAL_ARG \
   --tmp-dir "$TMPDIR" \
   2>> "$LOG"
 set +x
+echo ok > "$GENOMICSDBDIR/genomicsdbimport.done"
 
 # -----------------------------------------------------------------------------
 # Step 2: GenotypeGVCFs
@@ -151,10 +156,12 @@ if [ -z "${REF:-}" ]; then
   exit 1
 fi
 
+cd "$VARCALLDIR"
+
 set -x
 "$GATK4_BIN" $GATK4_JAVA_OPTS_64G GenotypeGVCFs \
   -R "$REF" \
-  -V "gendb://$WORKSPACE" \
+  -V "gendb://$WORKSPACE_PATH" \
   -O "$COHORT_RAW_VCF" \
   --stand-call-conf 10 \
   --tmp-dir "$TMPDIR" \
@@ -277,11 +284,11 @@ set -x
   --filter-name "QD2"        --filter-expression "QD < 2.0" \
   --filter-name "FS60"       --filter-expression "FS > 60.0" \
   --filter-name "MQ40"       --filter-expression "MQ < 40.0" \
-  --filter-name "MQRS-12.5"  --filter-expression "MQRankSum < -12.5" \
-  --filter-name "RPRS-8"     --filter-expression "ReadPosRankSum < -8.0" \
+  --filter-name "MQRS-12.5"  --filter-expression "vc.hasAttribute('MQRankSum') && MQRankSum < -12.5" \
+  --filter-name "RPRS-8"     --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -8.0" \
   --filter-name "QD2_indel"  --filter-expression "QD < 2.0" \
   --filter-name "FS200"      --filter-expression "FS > 200.0" \
-  --filter-name "RPRS-20"    --filter-expression "ReadPosRankSum < -20.0" \
+  --filter-name "RPRS-20"    --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -20.0" \
   -O "$COHORT_QC_VCF" \
   --tmp-dir "$TMPDIR" \
   2>> "$LOG"

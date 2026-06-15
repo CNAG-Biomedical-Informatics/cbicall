@@ -154,6 +154,7 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     assert inventory["excluded"] == [
         ".nextflow",
         ".nextflow*",
+        "01_genomicsdb",
         "cbicall_mqc",
         "cbicall_mqc.yaml",
         "cromwell-executions",

@@ -196,6 +196,9 @@ If VQSR is skipped because there are too few variants, the final `*.hc.QC.vcf.gz
 
 Applies to `pipeline: wes` or `pipeline: wgs` with `mode: cohort`.
 
+In cohort output filenames, `gv` is shorthand for `GenotypeGVCFs`, the GATK
+step that converts the GenomicsDB workspace into a joint-genotyped VCF.
+
 ### Recommended Files
 
 | File | Use |
@@ -208,8 +211,9 @@ Applies to `pipeline: wes` or `pipeline: wgs` with `mode: cohort`.
 
 | File | Meaning |
 | --- | --- |
-| `02_varcall/cohort.genomicsdb.<run-id>/` | GenomicsDB workspace used by `GenomicsDBImport`. |
-| `02_varcall/genomicsdbimport.done` | Snakemake marker showing that GenomicsDB import completed. |
+| `01_genomicsdb/cohort.genomicsdb.<run-id>/` | GenomicsDB workspace used by `GenomicsDBImport`. |
+| `01_genomicsdb/genomicsdbimport.done` | Backend marker showing that GenomicsDB import completed. |
+| `01_genomicsdb/wgs.whole_genome.interval_list` | WGS-only interval list derived from the reference dictionary for GenomicsDBImport and GenotypeGVCFs. |
 | `02_varcall/cohort.gv.raw.vcf.gz` | Raw cohort VCF from `GenotypeGVCFs`. |
 | `02_varcall/cohort.gv.raw.vcf.gz.tbi` | Tabix index for the raw cohort VCF. |
 | `logs/01_genomicsdbimport.log` | GenomicsDB import log. |
@@ -217,6 +221,12 @@ Applies to `pipeline: wes` or `pipeline: wgs` with `mode: cohort`.
 | `logs/03_vqsr_and_qc.log` | VQSR and final filtering log. |
 
 </details>
+
+:::note[GenomicsDB inventory scope]
+`01_genomicsdb/` is a large intermediate workspace and is excluded from the
+audited file inventory in `run-report.json`. Final VCFs, stats, logs, execution
+contracts, and output hashes remain part of the reproducibility surface.
+:::
 
 <details>
 <summary>Conditional VQSR files</summary>

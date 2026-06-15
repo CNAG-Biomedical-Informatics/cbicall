@@ -1,0 +1,60 @@
+workdir: examples/input
+workflow_log: bash_gatk-4.6_wes_cohort_b37.log
+notes:
+  - This opt-in test first runs the WES Bash single-sample contract, then runs cohort joint genotyping over the normal bundled WES interval list.
+  - It can take longer than the other integration tests.
+setup_runs:
+  - wes-bash
+setup_files_from_runs:
+  - run: wes-bash
+    source: 02_varcall/CNAG99901P.hc.g.vcf.gz
+    source_index: 02_varcall/CNAG99901P.hc.g.vcf.gz.tbi
+    sample_map: cbicall-test-wes-cohort-sample-map.tsv
+    samples:
+      - CBICALL_COHORT_01
+      - CBICALL_COHORT_02
+      - CBICALL_COHORT_03
+run:
+  parameters:
+    mode: cohort
+    pipeline: wes
+    workflow_backend: bash
+    software_stack: gatk-4.6
+    resource: cbicall-germline-resources-v1
+    sample_map: cbicall-test-wes-cohort-sample-map.tsv
+  base_dir: .
+  run_glob: cbicall_bash_gatk-4.6_wes_cohort_b37_*
+required_files:
+  - log.json
+  - run-report.json
+  - run-report.html
+  - bash_gatk-4.6_wes_cohort_b37.log
+  - 01_genomicsdb/genomicsdbimport.done
+  - 02_varcall/cohort.gv.raw.vcf.gz
+  - 02_varcall/cohort.gv.raw.vcf.gz.tbi
+  - 02_varcall/cohort.gv.QC.vcf.gz
+  - 02_varcall/cohort.gv.QC.vcf.gz.tbi
+text_expectations:
+  - path: logs/cohort_joint_genotyping.log
+    contains: ">>> Step 1: GenomicsDBImport"
+  - path: logs/cohort_joint_genotyping.log
+    contains: "Cohort QC VCF written: cohort.gv.QC.vcf.gz"
+json_expectations:
+  - path: status
+    equals: success
+  - path: workflow.backend
+    equals: bash
+  - path: workflow.pipeline
+    equals: wes
+  - path: workflow.mode
+    equals: cohort
+  - path: workflow.software_stack
+    equals: gatk-4.6
+  - path: workflow.registry_version
+    equals: v1
+  - path: resources.bundle.key
+    equals: cbicall-germline-resources-v1
+  - path: run.display_genome
+    equals: b37
+cleanup_paths:
+  - 01_genomicsdb
