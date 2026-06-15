@@ -22,6 +22,12 @@ def test_gatk46_cohort_merge_input_intervals_is_wes_only():
         ), relpath
 
         assert "MERGE_INTERVALS_ARG" in text.split("GenomicsDBImport", 1)[1], relpath
+        assert "wgs.whole_genome.interval_list" in text, relpath
+        assert (
+            "generated whole-genome intervals" in text
+            or "write_wgs_interval_list" in text
+            or "writeWgsIntervalList" in text
+        ), relpath
         direct_command_args = [
             "  --merge-input-intervals true \\",
             "      --merge-input-intervals true \\",

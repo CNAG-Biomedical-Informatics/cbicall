@@ -10,6 +10,7 @@ workflow CBIcallCohort {
     String tmpdir
     String gatk4_cmd
     String ref
+    String ref_dict
     String dbsnp
     String mills_indels
     String hapmap
@@ -32,6 +33,7 @@ workflow CBIcallCohort {
       tmpdir = tmpdir,
       gatk4_cmd = gatk4_cmd,
       ref = ref,
+      ref_dict = ref_dict,
       dbsnp = dbsnp,
       mills_indels = mills_indels,
       hapmap = hapmap,
@@ -62,6 +64,7 @@ task RunCohort {
     String tmpdir
     String gatk4_cmd
     String ref
+    String ref_dict
     String dbsnp
     String mills_indels
     String hapmap
@@ -92,9 +95,27 @@ task RunCohort {
       MERGE_INTERVALS_ARG="--merge-input-intervals true"
       echo "WES mode: restricting to ~{interval_list}" | tee -a "$LOG"
     else
-      INTERVAL_ARG=""
+      WGS_INTERVAL_LIST="$(pwd)/$VARCALLDIR/wgs.whole_genome.interval_list"
+      awk '
+        /^@/ {
+          print
+          if ($1 == "@SQ") {
+            sn = ""; ln = ""
+            for (i = 1; i <= NF; i++) {
+              if ($i ~ /^SN:/) sn = substr($i, 4)
+              if ($i ~ /^LN:/) ln = substr($i, 4)
+            }
+            if (sn != "" && ln != "") intervals[++n] = sn "\t1\t" ln "\t+\t" sn
+          }
+          next
+        }
+        END {
+          for (i = 1; i <= n; i++) print intervals[i]
+        }
+      ' "~{ref_dict}" > "$WGS_INTERVAL_LIST"
+      INTERVAL_ARG="-L $WGS_INTERVAL_LIST"
       MERGE_INTERVALS_ARG=""
-      echo "WGS mode: processing whole genome" | tee -a "$LOG"
+      echo "WGS mode: generated whole-genome intervals from ~{ref_dict}" | tee -a "$LOG"
     fi
 
     cd "$VARCALLDIR"

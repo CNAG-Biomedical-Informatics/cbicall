@@ -71,16 +71,39 @@ if [ -z "$WORKSPACE" ]; then
   WORKSPACE="${WORKSPACE}_${SAMPLE_COUNT}"
 fi
 
-# interval argument for WES vs WGS
-# Set interval argument for WES vs WGS
+# Set interval argument for WES vs WGS.
+# GenomicsDBImport requires explicit intervals. WGS derives whole-contig
+# intervals from the reference dictionary inside the run directory.
 if [ "$PIPELINE" = "WES" ]; then
   INTERVAL_ARG="-L $INTERVAL_LIST"
   MERGE_INTERVALS_ARG="--merge-input-intervals true"
   echo "WES mode: restricting to $INTERVAL_LIST"
 else
-  INTERVAL_ARG=""
+  if [ -z "${REF_DICT:-}" ] || [ ! -f "$REF_DICT" ]; then
+    echo "Error: REF_DICT is not set or not found (mode=WGS)." >&2
+    exit 1
+  fi
+  WGS_INTERVAL_LIST="$VARCALLDIR/wgs.whole_genome.interval_list"
+  awk '
+    /^@/ {
+      print
+      if ($1 == "@SQ") {
+        sn = ""; ln = ""
+        for (i = 1; i <= NF; i++) {
+          if ($i ~ /^SN:/) sn = substr($i, 4)
+          if ($i ~ /^LN:/) ln = substr($i, 4)
+        }
+        if (sn != "" && ln != "") intervals[++n] = sn "\t1\t" ln "\t+\t" sn
+      }
+      next
+    }
+    END {
+      for (i = 1; i <= n; i++) print intervals[i]
+    }
+  ' "$REF_DICT" > "$WGS_INTERVAL_LIST"
+  INTERVAL_ARG="-L $WGS_INTERVAL_LIST"
   MERGE_INTERVALS_ARG=""
-  echo "WGS mode: processing whole genome"
+  echo "WGS mode: generated whole-genome intervals from $REF_DICT"
 fi
 
 # Derived output names

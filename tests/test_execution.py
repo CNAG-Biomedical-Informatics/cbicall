@@ -707,6 +707,7 @@ def _write_cromwell_config(tmp_path):
         "    bundle: '{dbdir}/GATK_bundle/b37'\n"
         "    ref: '{bundle}/ref.fasta'\n"
         "    refgz: '{bundle}/ref.fasta.gz'\n"
+        "    ref_dict: '{bundle}/ref.dict'\n"
         "    dbsnp: '{dbdir}/dbsnp.vcf.gz'\n"
         "    mills_indels: '{bundle}/mills.vcf.gz'\n"
         "    kg_indels: '{bundle}/kg.vcf.gz'\n"
@@ -808,6 +809,7 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
     assert inputs["CBIcallWesSingle.id"] == "CNAG99901P"
     assert inputs["CBIcallWesSingle.bwa"] == "/data/NGSutils/bwa/bwa"
     assert inputs["CBIcallWesSingle.ref"] == "/data/Databases/GATK_bundle/b37/ref.fasta"
+    assert inputs["CBIcallWesSingle.ref_dict"] == "/data/Databases/GATK_bundle/b37/ref.dict"
     assert inputs["CBIcallWesSingle.qc_coverage_region"] == "chr22"
     assert inputs["CBIcallWesSingle.extra_label"] == "audit"
     assert (project_dir / "cbicall_cromwell.fastq_pairs.tsv").read_text(encoding="utf-8").count("\n") == 1
@@ -899,6 +901,7 @@ def test_execution_builds_and_promotes_cromwell_wgs_cohort(tmp_path, monkeypatch
     assert inputs["CBIcallCohort.sample_map"] == str(sample_map.resolve())
     assert inputs["CBIcallCohort.workspace"] == "cohort.genomicsdb.RIDCOHORT"
     assert inputs["CBIcallCohort.gatk4_cmd"].endswith("-Xmx64G")
+    assert inputs["CBIcallCohort.ref_dict"] == "/data/Databases/GATK_bundle/b37/ref.dict"
     assert inputs["CBIcallCohort.min_snp_for_vqsr"] == 10
     assert not (project_dir / "cbicall_cromwell.fastq_pairs.tsv").exists()
     assert (project_dir / "02_varcall" / "cohort.gv.QC.vcf.gz").is_file()

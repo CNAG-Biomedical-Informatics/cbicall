@@ -39,6 +39,7 @@ GATK4_64G = config["gatk4_cmd"].format(ngsutils=NGSUTILS, mem=MEM_GENOTYPE)
 resource_cfg  = config["resources"][GENOME]
 bundle        = resource_cfg["bundle"].format(dbdir=DBDIR)
 REF           = resource_cfg["ref"].format(bundle=bundle)
+REF_DICT      = resource_cfg["ref_dict"].format(bundle=bundle)
 INTERVAL_LIST = resource_cfg.get("interval_list", "").format(bundle=bundle)
 
 dbSNP        = resource_cfg["dbsnp"].format(dbdir=DBDIR)
@@ -63,11 +64,30 @@ VARCALLDIR = "02_varcall"
 os.makedirs(LOGDIR, exist_ok=True)
 os.makedirs(VARCALLDIR, exist_ok=True)
 
+def write_wgs_interval_list(ref_dict, out_path):
+    intervals = []
+    with open(ref_dict, "r", encoding="utf-8") as src, open(out_path, "w", encoding="utf-8") as out:
+        for line in src:
+            if line.startswith("@"):
+                out.write(line)
+                if line.startswith("@SQ"):
+                    fields = {}
+                    for item in line.rstrip("\n").split("\t")[1:]:
+                        if ":" in item:
+                            key, value = item.split(":", 1)
+                            fields[key] = value
+                    if fields.get("SN") and fields.get("LN"):
+                        intervals.append(f"{fields['SN']}\t1\t{fields['LN']}\t+\t{fields['SN']}\n")
+        out.writelines(intervals)
+
+
 if PIPELINE == "wes":
     INTERVAL_ARG = f"-L {shlex.quote(INTERVAL_LIST)}"
     MERGE_INTERVALS_ARG = "--merge-input-intervals true"
 else:
-    INTERVAL_ARG = ""
+    WGS_INTERVAL_LIST = os.path.join(VARCALLDIR, "wgs.whole_genome.interval_list")
+    write_wgs_interval_list(REF_DICT, WGS_INTERVAL_LIST)
+    INTERVAL_ARG = f"-L {shlex.quote(WGS_INTERVAL_LIST)}"
     MERGE_INTERVALS_ARG = ""
 
 def count_samples(path):

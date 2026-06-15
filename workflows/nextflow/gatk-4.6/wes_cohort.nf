@@ -89,6 +89,7 @@ if( !RESOURCE_CFG ) {
 
 def BUNDLE       = expandPlaceholders(RESOURCE_CFG.bundle.toString(), lvl2)
 def REF          = expandPlaceholders(RESOURCE_CFG.ref.toString(), [bundle: BUNDLE] + lvl2)
+def REF_DICT     = expandPlaceholders(RESOURCE_CFG.ref_dict.toString(), [bundle: BUNDLE] + lvl2)
 def DBSNP        = expandPlaceholders(RESOURCE_CFG.dbsnp.toString(), lvl2 + [bundle: BUNDLE])
 def MILLS_INDELS = expandPlaceholders(RESOURCE_CFG.mills_indels.toString(), [bundle: BUNDLE] + lvl2)
 def HAPMAP       = expandPlaceholders(RESOURCE_CFG.hapmap.toString(), [bundle: BUNDLE] + lvl2)
@@ -106,9 +107,6 @@ def INTERVAL_LIST = expandPlaceholders(
     RESOURCE_CFG.interval_list.toString(),
     [bundle: BUNDLE] + lvl2
 )
-def INTERVAL_ARG = PIPELINE == 'wes' ? "-L ${q(INTERVAL_LIST)}" : ""
-def MERGE_INTERVALS_ARG = PIPELINE == 'wes' ? "--merge-input-intervals true" : ""
-
 def VCF2HASH = params.vcf2hash_script ? params.vcf2hash_script.toString() : file("${projectDir}/vcf2hash.sh").toString()
 
 def VARCALLDIR = "02_varcall"
@@ -117,6 +115,42 @@ def LOGDIR     = "logs"
 new File(VARCALLDIR).mkdirs()
 new File(STATSDIR).mkdirs()
 new File(LOGDIR).mkdirs()
+
+def writeWgsIntervalList(String refDict, String outPath) {
+    def intervals = []
+    def out = new File(outPath)
+    out.parentFile.mkdirs()
+    out.withWriter('UTF-8') { writer ->
+        new File(refDict).eachLine('UTF-8') { line ->
+            if (line.startsWith('@')) {
+                writer.writeLine(line)
+                if (line.startsWith('@SQ')) {
+                    def fields = [:]
+                    line.split('\t').drop(1).each { item ->
+                        def parts = item.split(':', 2)
+                        if (parts.size() == 2) fields[parts[0]] = parts[1]
+                    }
+                    if (fields.SN && fields.LN) {
+                        intervals << "${fields.SN}\t1\t${fields.LN}\t+\t${fields.SN}"
+                    }
+                }
+            }
+        }
+        intervals.each { writer.writeLine(it) }
+    }
+}
+
+def INTERVAL_ARG
+def MERGE_INTERVALS_ARG
+if (PIPELINE == 'wes') {
+    INTERVAL_ARG = "-L ${q(INTERVAL_LIST)}"
+    MERGE_INTERVALS_ARG = "--merge-input-intervals true"
+} else {
+    def WGS_INTERVAL_LIST = new File("${VARCALLDIR}/wgs.whole_genome.interval_list").absolutePath
+    writeWgsIntervalList(REF_DICT, WGS_INTERVAL_LIST)
+    INTERVAL_ARG = "-L ${q(WGS_INTERVAL_LIST)}"
+    MERGE_INTERVALS_ARG = ""
+}
 
 def ENV_BLOCK = """
 export TMPDIR=${q(TMPDIR)}

@@ -729,6 +729,7 @@ class CromwellRunner(BaseRunner):
             prefix + "tmpdir": str(expanded["tmpdir"]),
             prefix + "gatk4_cmd": self._gatk4_cmd_for_mode(expanded),
             prefix + "ref": str(resources["ref"]),
+            prefix + "ref_dict": str(resources["ref_dict"]),
             prefix + "dbsnp": str(resources["dbsnp"]),
             prefix + "mills_indels": str(resources["mills_indels"]),
             prefix + "hapmap": str(resources["hapmap"]),
