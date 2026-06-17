@@ -20,8 +20,9 @@
 #   | Y       | 59034050 | 59373566 | X       | 154931044 | 155270560 |
 #
 #   2 - vcf2sex from samtools: Black Box. Not a very popular choice /pro/NGSutils/samtools-0.1.19/bcftools/bcftools +vcf2sex -h
-#   3 - GATK: In our lab, we run GATK DepthOfCoverage with 3 beds (autosomes, chrX, chrY) to get 3 mean coverages. 
-#      Females should have cov(X)>>cov(Y)  <=== USED
+#   3 - GATK: In our lab, we run GATK DepthOfCoverage with 3 beds (autosomes, chrX, chrY) to get 3 mean coverages.
+#      Here we use VCF sample DP as a lightweight proxy. Females should have cov(X)>>cov(Y), but WGS can contain
+#      noisy chrY variant records in female samples, so X/autosome ratio is used as an additional guard.
 #    
 #   NB: We are processing the WES vcf as it comes (PASS and non-PASS vars ) but keep in mind that other data can be messy (e.g., low pass WGS).
 
@@ -45,9 +46,14 @@ source "${CBICALL_ENV_FILE:-$SCRIPT_DIR/env.sh}"
 
 VCF=$1
 
+print_method_comment() {
+  echo "# METHOD: sex inferred from VCF FORMAT/DP; X/autosome ratio guards against noisy chrY variant records."
+}
+
 # Bail out early on empty VCF (no non-header lines)
 if ! zgrep -q -v '^#' "$VCF"; then
   echo "[$(date +'%Y-%m-%d %H:%M:%S')] No variant records found in $VCF"
+  print_method_comment
   echo "SEX=UNKNOWN"
   exit 0
 fi
@@ -92,9 +98,14 @@ MEAN_DEPTH_AUTOSOMES=$(mean_depth_for_scope autosomes)
 MEAN_DEPTH_X=$(mean_depth_for_scope X)
 MEAN_DEPTH_Y=$(mean_depth_for_scope Y)
 
+X_AUTOSOME_RATIO="NA"
+if [ "$MEAN_DEPTH_AUTOSOMES" != "NA" ] && [ "$MEAN_DEPTH_X" != "NA" ]; then
+  X_AUTOSOME_RATIO=$( echo "$MEAN_DEPTH_X" "$MEAN_DEPTH_AUTOSOMES" | awk '{if ($2 > 0) printf "%.2f", $1/$2; else print "NA"}' )
+fi
+
 if [ "$MEAN_DEPTH_AUTOSOMES" != "NA" ] && [ "$MEAN_DEPTH_X" != "NA" ] && [ "$MEAN_DEPTH_Y" = "NA" ]; then
-  X_AUTOSOME_RATIO=$( echo "$MEAN_DEPTH_X" "$MEAN_DEPTH_AUTOSOMES" | awk '{printf "%.2f", $1/$2}' )
   if awk -v ratio="$X_AUTOSOME_RATIO" 'BEGIN { exit !(ratio >= 0.55) }'; then
+    print_method_comment
     echo "MEAN DEPTH FOR AUTOSOMES=$MEAN_DEPTH_AUTOSOMES"
     echo "MEAN DEPTH FOR X=$MEAN_DEPTH_X"
     echo "MEAN DEPTH FOR Y=$MEAN_DEPTH_Y"
@@ -106,6 +117,7 @@ if [ "$MEAN_DEPTH_AUTOSOMES" != "NA" ] && [ "$MEAN_DEPTH_X" != "NA" ] && [ "$MEA
 fi
 
 if [ "$MEAN_DEPTH_AUTOSOMES" = "NA" ] || [ "$MEAN_DEPTH_X" = "NA" ] || [ "$MEAN_DEPTH_Y" = "NA" ]; then
+  print_method_comment
   echo "MEAN DEPTH FOR AUTOSOMES=$MEAN_DEPTH_AUTOSOMES"
   echo "MEAN DEPTH FOR X=$MEAN_DEPTH_X"
   echo "MEAN DEPTH FOR Y=$MEAN_DEPTH_Y"
@@ -128,16 +140,21 @@ else
   THRESHOLD=$( echo "$MEAN_DEPTH_AUTOSOMES" | awk '{print int($1/3.0)}' ) # Taking integer part
 fi
 
-# Determining sex by Female cov(X)>>cov(Y)
-DIFF_DEPTH=$( echo "$MEAN_DEPTH_X" "$MEAN_DEPTH_Y" | awk '{print int($1-$2)}' ) # Taking integer part
-if [ "$DIFF_DEPTH" -ge "$THRESHOLD" ]
-then
+# Determining sex by female-like X/autosome ratio or Female cov(X)>>cov(Y)
+if [ "$X_AUTOSOME_RATIO" != "NA" ] && awk -v ratio="$X_AUTOSOME_RATIO" 'BEGIN { exit !(ratio >= 0.75) }'; then
   SEX="FEMALE"
-else 
-  SEX="MALE"
+else
+  DIFF_DEPTH=$( echo "$MEAN_DEPTH_X" "$MEAN_DEPTH_Y" | awk '{print int($1-$2)}' ) # Taking integer part
+  if [ "$DIFF_DEPTH" -ge "$THRESHOLD" ]
+  then
+    SEX="FEMALE"
+  else
+    SEX="MALE"
+  fi
 fi
 
 # Printing results to stdout
+print_method_comment
 echo "MEAN DEPTH FOR AUTOSOMES=$MEAN_DEPTH_AUTOSOMES"
 echo "MEAN DEPTH FOR X=$MEAN_DEPTH_X"
 echo "MEAN DEPTH FOR Y=$MEAN_DEPTH_Y"
