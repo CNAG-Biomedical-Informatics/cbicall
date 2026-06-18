@@ -6,7 +6,7 @@ import pytest
 
 
 REPO_ROOT = os.path.dirname(os.path.dirname(__file__))
-METHOD_COMMENT = "# METHOD: sex inferred from VCF FORMAT/DP; X/autosome ratio guards against noisy chrY variant records."
+METHOD_COMMENT = "# METHOD: sex inferred for QC from VCF-derived depth proxies. If X/autosome ratio >= 0.75, classify FEMALE; otherwise classify FEMALE only when X-Y depth difference >= THRESHOLD."
 
 VCF2SEX_SCRIPTS = [
     os.path.join(REPO_ROOT, "workflows", "bash", "gatk-3.5", "vcf2sex.sh"),
@@ -65,7 +65,10 @@ def test_vcf2sex_reports_unknown_when_x_y_depths_are_absent(script, tmp_path):
         "MEAN DEPTH FOR AUTOSOMES=3.00",
         "MEAN DEPTH FOR X=NA",
         "MEAN DEPTH FOR Y=NA",
+        "X_AUTOSOME_RATIO=NA",
+        "X_MINUS_Y_DEPTH=NA",
         "THRESHOLD=NA",
+        "DECISION=Insufficient autosome, X, or Y depth values",
         "SEX=UNKNOWN",
     ]
 
@@ -88,9 +91,11 @@ def test_vcf2sex_reports_likely_female_when_y_depth_is_absent(script, tmp_path):
         "MEAN DEPTH FOR AUTOSOMES=101.00",
         "MEAN DEPTH FOR X=63.00",
         "MEAN DEPTH FOR Y=NA",
+        "X_AUTOSOME_RATIO=0.62",
+        "X_MINUS_Y_DEPTH=NA",
         "THRESHOLD=NA",
+        "DECISION=X/autosome ratio >= 0.55 and no usable Y records",
         "SEX=FEMALE_LIKELY",
-        "REASON=No usable Y records; X/autosome ratio compatible with female",
     ]
 
 
@@ -112,7 +117,10 @@ def test_vcf2sex_keeps_unknown_when_y_depth_is_absent_and_x_ratio_is_low(script,
         "MEAN DEPTH FOR AUTOSOMES=101.00",
         "MEAN DEPTH FOR X=50.00",
         "MEAN DEPTH FOR Y=NA",
+        "X_AUTOSOME_RATIO=0.50",
+        "X_MINUS_Y_DEPTH=NA",
         "THRESHOLD=NA",
+        "DECISION=Insufficient autosome, X, or Y depth values",
         "SEX=UNKNOWN",
     ]
 
@@ -135,7 +143,10 @@ def test_vcf2sex_uses_dp_format_position(script, tmp_path):
         "MEAN DEPTH FOR AUTOSOMES=60.00",
         "MEAN DEPTH FOR X=40.00",
         "MEAN DEPTH FOR Y=1.00",
+        "X_AUTOSOME_RATIO=0.67",
+        "X_MINUS_Y_DEPTH=39",
         "THRESHOLD=20",
+        "DECISION=X-Y depth difference >= threshold",
         "SEX=FEMALE",
     ]
 
@@ -159,7 +170,10 @@ def test_vcf2sex_uses_x_autosome_ratio_when_y_variant_depth_is_noisy(script, tmp
         "MEAN DEPTH FOR AUTOSOMES=31.00",
         "MEAN DEPTH FOR X=27.00",
         "MEAN DEPTH FOR Y=44.00",
+        "X_AUTOSOME_RATIO=0.87",
+        "X_MINUS_Y_DEPTH=-17",
         "THRESHOLD=8",
+        "DECISION=X/autosome ratio >= 0.75",
         "SEX=FEMALE",
     ]
 
@@ -183,6 +197,9 @@ def test_vcf2sex_keeps_male_when_x_autosome_ratio_is_low(script, tmp_path):
         "MEAN DEPTH FOR AUTOSOMES=31.00",
         "MEAN DEPTH FOR X=15.00",
         "MEAN DEPTH FOR Y=28.00",
+        "X_AUTOSOME_RATIO=0.48",
+        "X_MINUS_Y_DEPTH=-13",
         "THRESHOLD=8",
+        "DECISION=X/autosome ratio < 0.75 and X-Y depth difference < threshold",
         "SEX=MALE",
     ]

@@ -159,7 +159,7 @@ region	sampleID	mode	total_reads	mean_cov	ten_pct	nondup_pct	ins_size	in_pct	out
 
 `region` records the contig used for the lightweight coverage summary. It defaults to `chr1` and can be changed with `qc_coverage_region` in the parameters YAML; this does not change variant-calling intervals. For WES runs, `in_pct` and `out_pct` describe reads inside or outside the target definition used by the selected workflow implementation.
 
-Sex files are a lightweight QC signal derived from final VCF `FORMAT/DP` values. The helper compares autosomal, X, and Y variant-record depths and uses an X/autosome-ratio guard to avoid classifying noisy chrY variant records in WGS female samples as male. It does not require BCFtools; `bcftools +guess-ploidy` can be used separately as an independent manual cross-check when available.
+Sex files are a lightweight QC signal, not a definitive biological or clinical sex determination method. The helper reports autosomal, X, and Y variant-record depths, the X/autosome ratio, the X-Y depth difference, the threshold, and the decision rule used for the final sex call. It does not require BCFtools; `bcftools +guess-ploidy` can be used separately as an independent manual cross-check when available.
 
 <details>
 <summary>Intermediate files</summary>

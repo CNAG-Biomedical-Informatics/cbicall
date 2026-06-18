@@ -8,23 +8,34 @@
 
 #########################################################################
 #
-#   Quick solution for determing sex of samples.
+#   Lightweight sex inference QC for native CBIcall workflows.
 #
-#   In order to determine the sex from VCFs I tested different choices:
-#   
-#   1 - Number of Variants in chrY (and chrX). Now, it turns out that exome files from Male/Female samples contain variants
-#       in chrY (~150-200). At first I thought they were within PARs (pseudoautosomal; see below), but they were not. We assume that they are simply mapping errors. 
-#   http://blog.kokocinski.net/index.php/par-regions?blog=2
-#   --------+----------+----------+---------+-----------+-----------+
-#   | Y       |    10001 |  2649520 | X       |     60001 |   2699520 |
-#   | Y       | 59034050 | 59373566 | X       | 154931044 | 155270560 |
+#   Several VCF-based options were considered:
 #
-#   2 - vcf2sex from samtools: Black Box. Not a very popular choice /pro/NGSutils/samtools-0.1.19/bcftools/bcftools +vcf2sex -h
-#   3 - GATK: In our lab, we run GATK DepthOfCoverage with 3 beds (autosomes, chrX, chrY) to get 3 mean coverages.
-#      Here we use VCF sample DP as a lightweight proxy. Females should have cov(X)>>cov(Y), but WGS can contain
-#      noisy chrY variant records in female samples, so X/autosome ratio is used as an additional guard.
-#    
-#   NB: We are processing the WES vcf as it comes (PASS and non-PASS vars ) but keep in mind that other data can be messy (e.g., low pass WGS).
+#   1 - Count variants on chrY and chrX. This is not robust: exome and WGS VCFs from female samples
+#       can still contain chrY records, usually from mapping noise rather than PARs.
+#       PAR reference:
+#       http://blog.kokocinski.net/index.php/par-regions?blog=2
+#       --------+----------+----------+---------+-----------+-----------+
+#       | Y       |    10001 |  2649520 | X       |     60001 |   2699520 |
+#       | Y       | 59034050 | 59373566 | X       | 154931044 | 155270560 |
+#
+#   2 - samtools-0.1.19 bcftools +vcf2sex. This is legacy and behaves as a black box.
+#
+#   3 - bcftools +guess-ploidy. This is a good independent VCF-based cross-check when a modern
+#       bcftools build and BCFTOOLS_PLUGINS are available, for example:
+#       BCFTOOLS_PLUGINS=/path/to/bcftools/plugins bcftools +guess-ploidy -g hg38 -t GT sample.vcf.gz
+#       CBIcall does not use it here because modern bcftools is not part of the official resource bundle.
+#
+#   4 - GATK DepthOfCoverage on autosomes, chrX, and chrY. This is stronger when BAM-derived
+#       chromosome-level coverage is required, but it is heavier and not used in this lightweight helper.
+#
+#   5 - USED BY CBICALL: VCF FORMAT/DP proxy. The helper compares mean DP on autosomal, chrX,
+#       and chrY variant records. It first applies an X/autosome-ratio guard to avoid false male calls
+#       from noisy chrY records in female WGS samples; otherwise it falls back to the X-Y depth difference.
+#
+#   NB: This is a QC signal, not definitive biological or clinical sex determination.
+#   NB: We process the VCF as produced by the workflow, including PASS and non-PASS records.
 
 set -eu
 
@@ -47,7 +58,7 @@ source "${CBICALL_ENV_FILE:-$SCRIPT_DIR/env.sh}"
 VCF=$1
 
 print_method_comment() {
-  echo "# METHOD: sex inferred from VCF FORMAT/DP; X/autosome ratio guards against noisy chrY variant records."
+  echo "# METHOD: sex inferred for QC from VCF-derived depth proxies. If X/autosome ratio >= 0.75, classify FEMALE; otherwise classify FEMALE only when X-Y depth difference >= THRESHOLD."
 }
 
 # Bail out early on empty VCF (no non-header lines)
@@ -109,9 +120,11 @@ if [ "$MEAN_DEPTH_AUTOSOMES" != "NA" ] && [ "$MEAN_DEPTH_X" != "NA" ] && [ "$MEA
     echo "MEAN DEPTH FOR AUTOSOMES=$MEAN_DEPTH_AUTOSOMES"
     echo "MEAN DEPTH FOR X=$MEAN_DEPTH_X"
     echo "MEAN DEPTH FOR Y=$MEAN_DEPTH_Y"
+    echo "X_AUTOSOME_RATIO=$X_AUTOSOME_RATIO"
+    echo "X_MINUS_Y_DEPTH=NA"
     echo "THRESHOLD=NA"
+    echo "DECISION=X/autosome ratio >= 0.55 and no usable Y records"
     echo "SEX=FEMALE_LIKELY"
-    echo "REASON=No usable Y records; X/autosome ratio compatible with female"
     exit 0
   fi
 fi
@@ -121,7 +134,10 @@ if [ "$MEAN_DEPTH_AUTOSOMES" = "NA" ] || [ "$MEAN_DEPTH_X" = "NA" ] || [ "$MEAN_
   echo "MEAN DEPTH FOR AUTOSOMES=$MEAN_DEPTH_AUTOSOMES"
   echo "MEAN DEPTH FOR X=$MEAN_DEPTH_X"
   echo "MEAN DEPTH FOR Y=$MEAN_DEPTH_Y"
+  echo "X_AUTOSOME_RATIO=$X_AUTOSOME_RATIO"
+  echo "X_MINUS_Y_DEPTH=NA"
   echo "THRESHOLD=NA"
+  echo "DECISION=Insufficient autosome, X, or Y depth values"
   echo "SEX=UNKNOWN"
   exit 0
 fi
@@ -141,16 +157,16 @@ else
 fi
 
 # Determining sex by female-like X/autosome ratio or Female cov(X)>>cov(Y)
+DIFF_DEPTH=$( echo "$MEAN_DEPTH_X" "$MEAN_DEPTH_Y" | awk '{print int($1-$2)}' ) # Taking integer part
 if [ "$X_AUTOSOME_RATIO" != "NA" ] && awk -v ratio="$X_AUTOSOME_RATIO" 'BEGIN { exit !(ratio >= 0.75) }'; then
   SEX="FEMALE"
+  DECISION="X/autosome ratio >= 0.75"
+elif [ "$DIFF_DEPTH" -ge "$THRESHOLD" ]; then
+  SEX="FEMALE"
+  DECISION="X-Y depth difference >= threshold"
 else
-  DIFF_DEPTH=$( echo "$MEAN_DEPTH_X" "$MEAN_DEPTH_Y" | awk '{print int($1-$2)}' ) # Taking integer part
-  if [ "$DIFF_DEPTH" -ge "$THRESHOLD" ]
-  then
-    SEX="FEMALE"
-  else
-    SEX="MALE"
-  fi
+  SEX="MALE"
+  DECISION="X/autosome ratio < 0.75 and X-Y depth difference < threshold"
 fi
 
 # Printing results to stdout
@@ -158,5 +174,8 @@ print_method_comment
 echo "MEAN DEPTH FOR AUTOSOMES=$MEAN_DEPTH_AUTOSOMES"
 echo "MEAN DEPTH FOR X=$MEAN_DEPTH_X"
 echo "MEAN DEPTH FOR Y=$MEAN_DEPTH_Y"
+echo "X_AUTOSOME_RATIO=$X_AUTOSOME_RATIO"
+echo "X_MINUS_Y_DEPTH=$DIFF_DEPTH"
 echo "THRESHOLD=$THRESHOLD"
+echo "DECISION=$DECISION"
 echo "SEX=$SEX"

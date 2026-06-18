@@ -127,7 +127,7 @@ the GATK bundle / Broad b37 exome interval list. See the
 
 - Extract reads from the selected QC coverage contig from raw and recalibrated BAMs.
 - Compute coverage statistics in a `region`-first tabular file. The region defaults to `chr1` and can be changed with `qc_coverage_region`.
-- Infer sample sex from final VCF `FORMAT/DP` values using a dedicated script. The sex file includes a `# METHOD` comment; an X/autosome-ratio guard reduces false male calls from noisy chrY records in WGS female samples.
+- Infer sample sex from VCF-derived depth proxies using a dedicated script. The sex file includes a `# METHOD` comment plus `X_AUTOSOME_RATIO`, `X_MINUS_Y_DEPTH`, `THRESHOLD`, and `DECISION` fields so the final call is auditable.
 - Outputs:
   - `03_stats/<id>.coverage.txt`
   - `03_stats/<id>.sex.txt`
