@@ -339,7 +339,7 @@
 
 .giabHeatmap {
   display: grid;
-  grid-template-columns: minmax(5.5rem, 0.8fr) repeat(2, minmax(7rem, 1fr));
+  grid-template-columns: minmax(5.5rem, 0.8fr) repeat(4, minmax(7rem, 1fr));
   gap: 0.35rem;
   margin: 1rem 0 1.35rem;
   padding: 0.8rem;
@@ -508,6 +508,6 @@
   }
 
   .giabHeatmap {
-    grid-template-columns: 5.5rem repeat(2, 7rem);
+    grid-template-columns: 5.5rem repeat(4, 7rem);
   }
 }
