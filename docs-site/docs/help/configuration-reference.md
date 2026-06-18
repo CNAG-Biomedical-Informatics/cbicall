@@ -42,7 +42,11 @@ genome:          b37
 | `genome` | inferred | `b37`, `hg38`, `rsrs`, `external` | Reference genome. If omitted, CBIcall uses `b37` for WES/WGS, `rsrs` for mtDNA, and `external` for nf-core/Sarek. |
 | `input_dir` | `null` | path | Input sample or project directory. Relative paths are resolved from the YAML file location. |
 | `sample_map` | `null` | path | Cohort-mode TSV containing sample IDs and gVCF paths. Relative paths are resolved from the YAML file location. |
+| `input_vcf` | `null` | path | Gathered raw VCF used by native GATK 4.6 cohort `cohort_stage: finalize`. Relative paths are resolved from the YAML file location. |
 | `project_dir` | `cbicall` | path or prefix | Prefix for the generated run directory. |
+| `output_basename` | `null` | filename stem | Optional basename for generated VCFs. In staged cohort runs this is useful for names such as `cohort.chr1`. |
+| `cohort_stage` | `all` | `all`, `shard`, `finalize` | Native GATK 4.6 cohort staging mode. `all` keeps the standard one-job behavior. |
+| `interval_shard` | `null` | contig label | Required for `cohort_stage: shard`; selects the contig or interval-list shard to joint-genotype. |
 | `cleanup_bam` | `false` | `true`, `false` | Deletes intermediate BAM and BAI files after successful WES/WGS single-sample runs. |
 | `qc_coverage_region` | `chr1` | contig name | Contig used only for the lightweight coverage summary. It does not change variant-calling intervals. |
 
@@ -87,6 +91,42 @@ software_stack:    gatk-4.6
 genome:          b37
 sample_map:      ./sample_map.tsv
 ```
+
+#### Staged Cohort Runs
+
+Native GATK 4.6 cohort runs can be split into shard jobs and one finalize job.
+This is useful when running chromosomes in parallel on a scheduler.
+
+Shard one contig:
+
+```yaml
+mode:            cohort
+pipeline:        wgs
+workflow_backend: bash
+software_stack:    gatk-4.6
+genome:          hg38
+sample_map:      ./sample_map.tsv
+cohort_stage:    shard
+interval_shard:  chr1
+output_basename: cohort.chr1
+```
+
+After all raw shard VCFs have been concatenated and indexed, run final filtering:
+
+```yaml
+mode:            cohort
+pipeline:        wgs
+workflow_backend: bash
+software_stack:    gatk-4.6
+genome:          hg38
+cohort_stage:    finalize
+input_vcf:       ./cohort.gathered.gv.raw.vcf.gz
+output_basename: cohort
+```
+
+Staged cohort keys are currently supported only with CBIcall-native
+`software_stack: gatk-4.6`, `mode: cohort`, and `workflow_backend` set to
+`bash`, `snakemake`, `nextflow`, or `cromwell`.
 
 ### mtDNA
 

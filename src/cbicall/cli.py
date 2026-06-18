@@ -906,6 +906,9 @@ def write_run_report(
             "display_genome": resolved_config.display_genome,
             "qc_coverage_region": resolved_config.qc_coverage_region,
             "run_mode": resolved_config.run_mode,
+            "output_basename": resolved_config.output_basename,
+            "cohort_stage": resolved_config.cohort_stage,
+            "interval_shard": resolved_config.interval_shard,
         },
         "inputs": resolved_config.inputs.to_dict(),
         "parameters": {
@@ -1821,6 +1824,11 @@ def _run_test_command(argv: List[str]) -> int:
         action="store_true",
         help="Run the Bash WES cohort joint-genotyping integration test.",
     )
+    parser.add_argument(
+        "--wes-cohort-bash-sharded",
+        action="store_true",
+        help="Run the Bash WES cohort staged shard integration test.",
+    )
     parser.add_argument("--wes-bash-gatk35", action="store_true", help="Run the legacy Bash WES GATK 3.5 integration test.")
     parser.add_argument(
         "--wes-snakemake",
@@ -1874,6 +1882,7 @@ def _run_test_command(argv: List[str]) -> int:
     selectors = [
         args.wes_bash,
         args.wes_cohort_bash,
+        args.wes_cohort_bash_sharded,
         args.wes_bash_gatk35,
         args.wes_snakemake,
         args.wes_nextflow,
@@ -1897,7 +1906,7 @@ def _run_test_command(argv: List[str]) -> int:
     selected = selected_tests_from_args(args)
     if not selected:
         parser.error(
-            "select at least one test with --wes-bash, --wes-cohort-bash, --wes-bash-gatk35, "
+            "select at least one test with --wes-bash, --wes-cohort-bash, --wes-cohort-bash-sharded, --wes-bash-gatk35, "
             "--wes-snakemake, --wes-nextflow, --wes-cromwell, --mit-bash, --nf-core-demo, "
             "--nf-core-sarek, --backend-equivalence, or --all"
         )
@@ -2014,6 +2023,9 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
             "genome": resolved_config.genome,
             "qc_coverage_region": resolved_config.qc_coverage_region,
             "cleanup_bam": params.get("cleanup_bam", False),
+            "output_basename": resolved_config.output_basename,
+            "cohort_stage": resolved_config.cohort_stage,
+            "interval_shard": resolved_config.interval_shard,
             "run_mode": resolved_config.run_mode,
             "inputs": resolved_config.inputs.to_dict(),
             "workflow": resolved_config.workflow.to_dict(),

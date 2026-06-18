@@ -113,3 +113,22 @@ def test_gatk46_small_cohort_excludes_inbreeding_coeff():
         assert "SAMPLE_COUNT < 10" in text or '"$SAMPLE_COUNT" -lt 10' in text, relpath
         genotype_command = text.split("GenotypeGVCFs", 1)[1]
         assert "GENOTYPE_ANNOTATION_EXCLUDE_ARG" in genotype_command, relpath
+
+
+def test_gatk46_cohort_supports_staged_shard_finalize_controls():
+    workflow_files = [
+        "workflows/bash/gatk-4.6/wes_cohort.sh",
+        "workflows/snakemake/gatk-4.6/wes_cohort.smk",
+        "workflows/nextflow/gatk-4.6/wes_cohort.nf",
+        "workflows/cromwell/gatk-4.6/wes_cohort.wdl",
+    ]
+    for relpath in workflow_files:
+        text = (REPO_ROOT / relpath).read_text(encoding="utf-8")
+        assert "cohort_stage" in text or "COHORT_STAGE" in text, relpath
+        assert "output_basename" in text or "OUTPUT_BASENAME" in text, relpath
+        assert "interval_shard" in text or "INTERVAL_SHARD" in text, relpath
+        assert "input_vcf" in text or "INPUT_VCF" in text, relpath
+        assert "shard" in text, relpath
+        assert "finalize" in text, relpath
+        assert "RAW_VCF_FOR_FILTERING" in text or "rawvcf" in text or "RAW_VCF_FOR_FILTERING" in text, relpath
+        assert ".gv.raw.vcf.gz" in text, relpath

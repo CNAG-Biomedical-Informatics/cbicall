@@ -29,6 +29,22 @@ if PIPELINE == "wes" and GENOME == "hg38":
     raise ValueError("genome='hg38' is only supported for pipeline='wgs'")
 
 THREADS = workflow.cores or int(config.get("threads", 4))
+COHORT_STAGE = str(config.get("cohort_stage", "all")).strip()
+if COHORT_STAGE not in ("all", "shard", "finalize"):
+    raise ValueError("config[cohort_stage] must be 'all', 'shard', or 'finalize'")
+OUTPUT_BASENAME = str(config.get("output_basename", "cohort")).strip()
+if not OUTPUT_BASENAME or OUTPUT_BASENAME in (".", ".."):
+    raise ValueError("config[output_basename] must be a non-empty filename stem")
+INTERVAL_SHARD = str(config.get("interval_shard", "")).strip()
+INPUT_VCF = str(config.get("input_vcf", "")).strip()
+if COHORT_STAGE == "shard" and not INTERVAL_SHARD:
+    raise ValueError("config[interval_shard] must be set when cohort_stage='shard'")
+if COHORT_STAGE == "finalize" and not INPUT_VCF:
+    raise ValueError("config[input_vcf] must be set when cohort_stage='finalize'")
+if COHORT_STAGE == "finalize" and INTERVAL_SHARD:
+    raise ValueError("cohort_stage='finalize' does not use interval_shard")
+if COHORT_STAGE == "shard" and INPUT_VCF:
+    raise ValueError("cohort_stage='shard' does not use input_vcf")
 
 # Same GATK command style as your wes_single config
 MEM          = config.get("mem", "8G")
@@ -53,9 +69,8 @@ INDEL_RES = resource_cfg["indel_res"].format(mills_indels=MILLS_INDELS)
 MIN_SNP_FOR_VQSR   = int(config.get("min_snp_for_vqsr", 1000))
 MIN_INDEL_FOR_VQSR = int(config.get("min_indel_for_vqsr", 8000))
 
-# sample map is required for cohort workflow
 SAMPLE_MAP = config.get("sample_map", "").strip()
-if not SAMPLE_MAP:
+if COHORT_STAGE != "finalize" and not SAMPLE_MAP:
     raise ValueError("config[sample_map] must be set (or passed via --config sample_map=...)")
 
 # Output dirs match bash: 01_genomicsdb; 02_varcall; logs
@@ -66,7 +81,22 @@ os.makedirs(LOGDIR, exist_ok=True)
 os.makedirs(GENOMICSDBDIR, exist_ok=True)
 os.makedirs(VARCALLDIR, exist_ok=True)
 
-def write_wgs_interval_list(ref_dict, out_path):
+def write_wes_shard_interval_list(source_list, shard, out_path):
+    found = False
+    with open(source_list, "r", encoding="utf-8") as src, open(out_path, "w", encoding="utf-8") as out:
+        for line in src:
+            if line.startswith("@"):
+                out.write(line)
+                continue
+            fields = line.rstrip("\n").split("\t")
+            if fields and fields[0] == shard:
+                out.write(line)
+                found = True
+    if not found:
+        raise ValueError(f"No intervals found for shard {shard} in {source_list}")
+
+
+def write_wgs_interval_list(ref_dict, out_path, shard=None):
     intervals = []
     with open(ref_dict, "r", encoding="utf-8") as src, open(out_path, "w", encoding="utf-8") as out:
         for line in src:
@@ -78,17 +108,31 @@ def write_wgs_interval_list(ref_dict, out_path):
                         if ":" in item:
                             key, value = item.split(":", 1)
                             fields[key] = value
-                    if fields.get("SN") and fields.get("LN"):
+                    if fields.get("SN") and fields.get("LN") and (shard is None or fields["SN"] == shard):
                         intervals.append(f"{fields['SN']}\t1\t{fields['LN']}\t+\t{fields['SN']}\n")
+        if shard is not None and not intervals:
+            raise ValueError(f"No reference contig found for shard {shard} in {ref_dict}")
         out.writelines(intervals)
 
 
-if PIPELINE == "wes":
-    INTERVAL_ARG = f"-L {shlex.quote(INTERVAL_LIST)}"
+if COHORT_STAGE == "finalize":
+    INTERVAL_ARG = ""
+    MERGE_INTERVALS_ARG = ""
+elif PIPELINE == "wes":
+    if INTERVAL_SHARD:
+        WES_SHARD_INTERVAL_LIST = os.path.abspath(os.path.join(GENOMICSDBDIR, f"wes.{INTERVAL_SHARD}.interval_list"))
+        write_wes_shard_interval_list(INTERVAL_LIST, INTERVAL_SHARD, WES_SHARD_INTERVAL_LIST)
+        INTERVAL_ARG = f"-L {shlex.quote(WES_SHARD_INTERVAL_LIST)}"
+    else:
+        INTERVAL_ARG = f"-L {shlex.quote(INTERVAL_LIST)}"
     MERGE_INTERVALS_ARG = "--merge-input-intervals true"
 else:
-    WGS_INTERVAL_LIST = os.path.abspath(os.path.join(GENOMICSDBDIR, "wgs.whole_genome.interval_list"))
-    write_wgs_interval_list(REF_DICT, WGS_INTERVAL_LIST)
+    if INTERVAL_SHARD:
+        WGS_INTERVAL_LIST = os.path.abspath(os.path.join(GENOMICSDBDIR, f"wgs.{INTERVAL_SHARD}.interval_list"))
+        write_wgs_interval_list(REF_DICT, WGS_INTERVAL_LIST, shard=INTERVAL_SHARD)
+    else:
+        WGS_INTERVAL_LIST = os.path.abspath(os.path.join(GENOMICSDBDIR, "wgs.whole_genome.interval_list"))
+        write_wgs_interval_list(REF_DICT, WGS_INTERVAL_LIST)
     INTERVAL_ARG = f"-L {shlex.quote(WGS_INTERVAL_LIST)}"
     MERGE_INTERVALS_ARG = ""
 
@@ -96,7 +140,7 @@ def count_samples(path):
     with open(path, "r") as f:
         return sum(1 for line in f if line.strip())
 
-SAMPLE_COUNT = count_samples(SAMPLE_MAP)
+SAMPLE_COUNT = count_samples(SAMPLE_MAP) if COHORT_STAGE != "finalize" else 0
 GENOTYPE_ANNOTATION_EXCLUDE_ARG = "-AX InbreedingCoeff" if SAMPLE_COUNT < 10 else ""
 
 # workspace: accept from wrapper; if relative, anchor under 01_genomicsdb
@@ -111,19 +155,21 @@ if not os.path.isabs(WORKSPACE):
     WORKSPACE = os.path.join(GENOMICSDBDIR, WORKSPACE)
 
 # Outputs (match bash filenames inside 02_varcall)
-COHORT_RAW_VCF = os.path.join(VARCALLDIR, "cohort.gv.raw.vcf.gz")
-COHORT_QC_VCF  = os.path.join(VARCALLDIR, "cohort.gv.QC.vcf.gz")
+COHORT_RAW_VCF = os.path.join(VARCALLDIR, f"{OUTPUT_BASENAME}.gv.raw.vcf.gz")
+COHORT_QC_VCF  = os.path.join(VARCALLDIR, f"{OUTPUT_BASENAME}.gv.QC.vcf.gz")
 
-COHORT_VQSR_SNP       = os.path.join(VARCALLDIR, "cohort.snp.recal.vcf.gz")
-COHORT_SNP_TRANCHES   = os.path.join(VARCALLDIR, "cohort.snp.tranches.txt")
-COHORT_VQSR_INDEL     = os.path.join(VARCALLDIR, "cohort.indel.recal.vcf.gz")
-COHORT_INDEL_TRANCHES = os.path.join(VARCALLDIR, "cohort.indel.tranches.txt")
-COHORT_POST_SNP       = os.path.join(VARCALLDIR, "cohort.post_snp.vcf.gz")
-COHORT_POST_VQSR      = os.path.join(VARCALLDIR, "cohort.vqsr.vcf.gz")
+COHORT_VQSR_SNP       = os.path.join(VARCALLDIR, f"{OUTPUT_BASENAME}.snp.recal.vcf.gz")
+COHORT_SNP_TRANCHES   = os.path.join(VARCALLDIR, f"{OUTPUT_BASENAME}.snp.tranches.txt")
+COHORT_VQSR_INDEL     = os.path.join(VARCALLDIR, f"{OUTPUT_BASENAME}.indel.recal.vcf.gz")
+COHORT_INDEL_TRANCHES = os.path.join(VARCALLDIR, f"{OUTPUT_BASENAME}.indel.tranches.txt")
+COHORT_POST_SNP       = os.path.join(VARCALLDIR, f"{OUTPUT_BASENAME}.post_snp.vcf.gz")
+COHORT_POST_VQSR      = os.path.join(VARCALLDIR, f"{OUTPUT_BASENAME}.vqsr.vcf.gz")
+RAW_VCF_FOR_FILTERING = INPUT_VCF if COHORT_STAGE == "finalize" else COHORT_RAW_VCF
+FINAL_TARGET = COHORT_RAW_VCF if COHORT_STAGE == "shard" else COHORT_QC_VCF
 
 rule all:
     input:
-        COHORT_QC_VCF
+        FINAL_TARGET
 
 rule genomicsdbimport:
     input:
@@ -185,7 +231,7 @@ rule genotype_gvcfs_cohort:
 
 rule vqsr_and_qc:
     input:
-        raw=COHORT_RAW_VCF
+        raw=RAW_VCF_FOR_FILTERING
     output:
         qc=COHORT_QC_VCF
     log:
@@ -288,5 +334,5 @@ rule vqsr_and_qc:
           2>> {log}
 
         echo "Cohort QC VCF written: {output.qc}" >> {log}
-        echo "All done. Cohort raw: {COHORT_RAW_VCF} ; Cohort QC: {output.qc}" >> {log}
+        echo "All done. Cohort raw: {input.raw} ; Cohort QC: {output.qc}" >> {log}
         """

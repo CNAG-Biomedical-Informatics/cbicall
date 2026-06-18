@@ -34,6 +34,11 @@ TESTS: Dict[str, TestSelection] = {
         "WES Cohort Bash",
         "native-wes-cohort-bash.yaml",
     ),
+    "wes-cohort-bash-sharded": TestSelection(
+        "wes-cohort-bash-sharded",
+        "WES Cohort Bash Sharded",
+        "native-wes-cohort-bash-sharded.yaml",
+    ),
     "wes-bash-gatk35": TestSelection("wes-bash-gatk35", "WES Bash GATK 3.5", "native-wes-bash-gatk35.yaml"),
     "wes-snakemake": TestSelection(
         "wes-snakemake",
@@ -785,6 +790,8 @@ def selected_tests_from_args(args: argparse.Namespace) -> List[TestSelection]:
         selected.append(TESTS["wes-bash"])
     if args.all or args.wes_cohort_bash:
         selected.append(TESTS["wes-cohort-bash"])
+    if args.all or args.wes_cohort_bash_sharded:
+        selected.append(TESTS["wes-cohort-bash-sharded"])
     if args.wes_bash_gatk35:
         selected.append(TESTS["wes-bash-gatk35"])
     if args.all or args.wes_snakemake:

@@ -1642,6 +1642,7 @@ def test_run_test_command_all_selects_native_backends_and_skips_missing(monkeypa
     assert [item.key for item in seen["selected"]] == [
         "wes-bash",
         "wes-cohort-bash",
+        "wes-cohort-bash-sharded",
         "wes-snakemake",
         "wes-nextflow",
         "wes-cromwell",
@@ -1652,6 +1653,22 @@ def test_run_test_command_all_selects_native_backends_and_skips_missing(monkeypa
     assert seen["runtime_profile"] == "cnag-hpc"
     assert seen["skip_missing_optional"] is True
     assert seen["keep_external_work"] is False
+
+
+def test_run_test_command_selects_sharded_wes_cohort(monkeypatch, tmp_path):
+    seen = {}
+
+    def fake_run_integration_tests(**kwargs):
+        seen.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(cli_mod, "_project_root", lambda: tmp_path)
+    monkeypatch.setattr(cli_mod, "run_integration_tests", fake_run_integration_tests)
+
+    assert cli_mod._run_test_command(["--wes-cohort-bash-sharded", "-t", "2"]) == 0
+    assert [item.key for item in seen["selected"]] == ["wes-cohort-bash-sharded"]
+    assert seen["threads"] == 2
+    assert seen["skip_missing_optional"] is False
 
 
 def test_run_test_command_explicit_snakemake_requires_backend(monkeypatch, tmp_path):

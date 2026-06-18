@@ -540,6 +540,7 @@ def test_backend_availability_and_selected_tests(monkeypatch):
         all=False,
         wes_bash=True,
         wes_cohort_bash=False,
+        wes_cohort_bash_sharded=False,
         wes_bash_gatk35=False,
         wes_snakemake=False,
         wes_nextflow=True,
@@ -559,10 +560,16 @@ def test_backend_availability_and_selected_tests(monkeypatch):
     selected = integration_mod.selected_tests_from_args(args)
     assert [item.key for item in selected] == ["wes-cohort-bash"]
 
-    args.all = True
     args.wes_cohort_bash = False
+    args.wes_cohort_bash_sharded = True
+    selected = integration_mod.selected_tests_from_args(args)
+    assert [item.key for item in selected] == ["wes-cohort-bash-sharded"]
+
+    args.all = True
+    args.wes_cohort_bash_sharded = False
     selected_all = integration_mod.selected_tests_from_args(args)
     assert "wes-cohort-bash" in [item.key for item in selected_all]
+    assert "wes-cohort-bash-sharded" in [item.key for item in selected_all]
     assert "wes-cromwell" in [item.key for item in selected_all]
     assert "mit-bash" in [item.key for item in selected_all]
 

@@ -6,12 +6,14 @@ from typing import Any, Dict, Mapping, Optional
 class InputsSpec:
     input_dir: Optional[str] = None
     sample_map: Optional[str] = None
+    input_vcf: Optional[str] = None
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "InputsSpec":
         return cls(
             input_dir=data.get("input_dir"),
             sample_map=data.get("sample_map"),
+            input_vcf=data.get("input_vcf"),
         )
 
     def to_dict(self) -> Dict[str, Optional[str]]:
@@ -71,6 +73,9 @@ class RunSettings:
     genome: Optional[str]
     cleanup_bam: bool
     qc_coverage_region: str
+    output_basename: Optional[str]
+    cohort_stage: str
+    interval_shard: Optional[str]
     inputs: InputsSpec
     workflow: WorkflowSpec
     snakemake_parameters: Dict[str, Any] = field(default_factory=dict)
@@ -100,6 +105,9 @@ class RunSettings:
             genome=data.get("genome"),
             cleanup_bam=bool(data.get("cleanup_bam", False)),
             qc_coverage_region=str(data.get("qc_coverage_region", "chr1")),
+            output_basename=data.get("output_basename"),
+            cohort_stage=str(data.get("cohort_stage", "all")),
+            interval_shard=data.get("interval_shard"),
             run_mode=str(data.get("run_mode", "full")),
             inputs=InputsSpec.from_mapping(data.get("inputs", {})),
             workflow=WorkflowSpec.from_mapping(data["workflow"]),
@@ -121,6 +129,9 @@ class RunSettings:
             "genome": self.genome,
             "cleanup_bam": self.cleanup_bam,
             "qc_coverage_region": self.qc_coverage_region,
+            "output_basename": self.output_basename,
+            "cohort_stage": self.cohort_stage,
+            "interval_shard": self.interval_shard,
             "run_mode": self.run_mode,
             "inputs": self.inputs.to_dict(),
             "workflow": self.workflow.to_dict(),
@@ -146,6 +157,8 @@ class ResolvedConfig:
     date: str
     project_dir: str
     output_basename: Optional[str]
+    cohort_stage: str
+    interval_shard: Optional[str]
     hostname: str
     host_threads: int
     host_threads_minus_one: int
@@ -198,6 +211,8 @@ class ResolvedConfig:
             date=str(data.get("date", "")),
             project_dir=str(project_dir),
             output_basename=data.get("output_basename"),
+            cohort_stage=str(data.get("cohort_stage", "all")),
+            interval_shard=data.get("interval_shard"),
             hostname=str(data.get("hostname", "")),
             host_threads=int(data.get("host_threads", 0)),
             host_threads_minus_one=int(data.get("host_threads_minus_one", 0)),
@@ -234,6 +249,8 @@ class ResolvedConfig:
             "date": self.date,
             "project_dir": self.project_dir,
             "output_basename": self.output_basename,
+            "cohort_stage": self.cohort_stage,
+            "interval_shard": self.interval_shard,
             "hostname": self.hostname,
             "host_threads": self.host_threads,
             "host_threads_minus_one": self.host_threads_minus_one,

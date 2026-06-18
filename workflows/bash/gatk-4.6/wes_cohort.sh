@@ -14,6 +14,16 @@ Usage: $0 -m <sample_map.tsv> [-p wes|wgs] [-w <workspace>] [-t <threads>]
   -s  --sample-map   Sample map file for --sample-name-map (required)
   -p  --pipeline    'wes' (default) or 'wgs'
   -w  --workspace   GenomicsDB workspace name/path (relative names are stored under 01_genomicsdb)
+      --cohort-stage all|shard|finalize
+                     all: import, genotype, and filter (default)
+                     shard: import/genotype one shard and stop after raw VCF
+                     finalize: start from a gathered raw VCF and filter globally
+      --output-basename NAME
+                     Basename for cohort VCFs [cohort]
+      --interval-shard CONTIG
+                     Contig to extract from the canonical interval source for shard runs
+      --input-vcf VCF
+                     Gathered raw VCF used with --cohort-stage finalize
   -h  --help        Show this help
 EOF
   exit 1
@@ -23,6 +33,10 @@ EOF
 PIPELINE="wes"
 WORKSPACE=""
 SAMPLE_MAP=""
+COHORT_STAGE="all"
+OUTPUT_BASENAME="cohort"
+INTERVAL_SHARD=""
+INPUT_VCF=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -30,12 +44,53 @@ while [[ $# -gt 0 ]]; do
     -p|--pipeline) PIPELINE="$2"; shift 2;;
     -w|--workspace) WORKSPACE="$2"; shift 2;;
     -t) THREADS="$2"; shift 2;;
+    --cohort-stage) COHORT_STAGE="$2"; shift 2;;
+    --output-basename) OUTPUT_BASENAME="$2"; shift 2;;
+    --interval-shard) INTERVAL_SHARD="$2"; shift 2;;
+    --input-vcf) INPUT_VCF="$2"; shift 2;;
     -h|--help) usage ;;
     *) echo "Unknown arg: $1" >&2; usage ;;
   esac
 done
 
-if [ -z "$SAMPLE_MAP" ]; then
+case "$COHORT_STAGE" in
+  all|shard|finalize) ;;
+  *) echo "Error: cohort_stage must be 'all', 'shard', or 'finalize'." >&2; exit 1;;
+esac
+
+case "$OUTPUT_BASENAME" in
+  ""|.|..) echo "Error: output basename must be a non-empty safe filename stem." >&2; exit 1;;
+  *[!A-Za-z0-9._-]*) echo "Error: output basename may contain only letters, numbers, '.', '_' and '-'." >&2; exit 1;;
+esac
+
+if [ -n "$INTERVAL_SHARD" ]; then
+  case "$INTERVAL_SHARD" in
+    .|..) echo "Error: interval shard must be a safe contig label." >&2; exit 1;;
+    *[!A-Za-z0-9._-]*) echo "Error: interval shard may contain only letters, numbers, '.', '_' and '-'." >&2; exit 1;;
+  esac
+fi
+
+if [ "$COHORT_STAGE" = "shard" ] && [ -z "$INTERVAL_SHARD" ]; then
+  echo "Error: --cohort-stage shard requires --interval-shard." >&2
+  exit 1
+fi
+
+if [ "$COHORT_STAGE" = "finalize" ] && [ -z "$INPUT_VCF" ]; then
+  echo "Error: --cohort-stage finalize requires --input-vcf." >&2
+  exit 1
+fi
+
+if [ "$COHORT_STAGE" = "finalize" ] && [ -n "$INTERVAL_SHARD" ]; then
+  echo "Error: --cohort-stage finalize does not use --interval-shard." >&2
+  exit 1
+fi
+
+if [ "$COHORT_STAGE" = "shard" ] && [ -n "$INPUT_VCF" ]; then
+  echo "Error: --cohort-stage shard does not use --input-vcf." >&2
+  exit 1
+fi
+
+if [ "$COHORT_STAGE" != "finalize" ] && [ -z "$SAMPLE_MAP" ]; then
   echo "Error: sample_map is required." >&2
   usage
 fi
@@ -63,33 +118,93 @@ if [[ "$PIPELINE" != "WES" && "$PIPELINE" != "WGS" ]]; then
 fi
 
 # sample count & workspace default naming
-if [ ! -s "$SAMPLE_MAP" ]; then
-  echo "Error: sample_map '$SAMPLE_MAP' not found or empty." >&2; exit 1
+SAMPLE_COUNT=0
+GENOTYPE_ANNOTATION_EXCLUDE_ARG=""
+WORKSPACE_PATH=""
+if [ "$COHORT_STAGE" != "finalize" ]; then
+  if [ ! -s "$SAMPLE_MAP" ]; then
+    echo "Error: sample_map '$SAMPLE_MAP' not found or empty." >&2; exit 1
+  fi
+  SAMPLE_COUNT=$(awk 'NF {n++} END {print n+0}' "$SAMPLE_MAP")
+  if [ "$SAMPLE_COUNT" -lt 10 ]; then
+    GENOTYPE_ANNOTATION_EXCLUDE_ARG="-AX InbreedingCoeff"
+  fi
+  if [ -z "$WORKSPACE" ]; then
+    WORKSPACE="cohort.genomicsdb.${SAMPLE_COUNT}"
+  fi
+  case "$WORKSPACE" in
+    /*) WORKSPACE_PATH="$WORKSPACE" ;;
+    *) WORKSPACE_PATH="$GENOMICSDBDIR/$WORKSPACE" ;;
+  esac
 fi
-SAMPLE_COUNT=$(awk 'NF {n++} END {print n+0}' "$SAMPLE_MAP")
-if [ "$SAMPLE_COUNT" -lt 10 ]; then
-  GENOTYPE_ANNOTATION_EXCLUDE_ARG="-AX InbreedingCoeff"
-else
-  GENOTYPE_ANNOTATION_EXCLUDE_ARG=""
-fi
-if [ -z "$WORKSPACE" ]; then
-  WORKSPACE="cohort.genomicsdb.${SAMPLE_COUNT}"
-fi
-case "$WORKSPACE" in
-  /*) WORKSPACE_PATH="$WORKSPACE" ;;
-  *) WORKSPACE_PATH="$GENOMICSDBDIR/$WORKSPACE" ;;
-esac
+
+function make_wes_shard_interval_list {
+  local source_list="$1"
+  local shard="$2"
+  local out_list="$3"
+  awk -v shard="$shard" '
+    /^@/ { print; next }
+    $1 == shard { print; n++ }
+    END {
+      if (n == 0) {
+        printf("No intervals found for shard %s in %s\n", shard, FILENAME) > "/dev/stderr"
+        exit 2
+      }
+    }
+  ' "$source_list" > "$out_list"
+}
+
+function make_wgs_shard_interval_list {
+  local ref_dict="$1"
+  local shard="$2"
+  local out_list="$3"
+  awk -v shard="$shard" '
+    /^@/ {
+      print
+      if ($1 == "@SQ") {
+        sn = ""; ln = ""
+        for (i = 1; i <= NF; i++) {
+          if ($i ~ /^SN:/) sn = substr($i, 4)
+          if ($i ~ /^LN:/) ln = substr($i, 4)
+        }
+        if (sn == shard && ln != "") {
+          interval = sn "\t1\t" ln "\t+\t" sn
+          found = 1
+        }
+      }
+      next
+    }
+    END {
+      if (!found) {
+        printf("No reference contig found for shard %s in %s\n", shard, FILENAME) > "/dev/stderr"
+        exit 2
+      }
+      print interval
+    }
+  ' "$ref_dict" > "$out_list"
+}
 
 # Set interval argument for WES vs WGS.
 # GenomicsDBImport requires explicit intervals. WGS derives whole-contig
 # intervals from the reference dictionary inside 01_genomicsdb.
-if [ "$PIPELINE" = "WES" ]; then
+INTERVAL_ARG=""
+MERGE_INTERVALS_ARG=""
+if [ "$COHORT_STAGE" = "finalize" ]; then
+  echo "Finalize stage: using gathered raw VCF $INPUT_VCF" | tee -a "$LOG"
+elif [ "$PIPELINE" = "WES" ]; then
   WES_INTERVAL_LIST="${CBICALL_INTERVAL_LIST:-$INTERVAL_LIST}"
   if [ -z "${WES_INTERVAL_LIST:-}" ] || [ ! -f "$WES_INTERVAL_LIST" ]; then
     echo "Error: WES interval list is not set or not found: ${WES_INTERVAL_LIST:-<unset>}" >&2
     exit 1
   fi
-  INTERVAL_ARG="-L $WES_INTERVAL_LIST"
+  if [ -n "$INTERVAL_SHARD" ]; then
+    WES_SHARD_INTERVAL_LIST="$GENOMICSDBDIR/wes.${INTERVAL_SHARD}.interval_list"
+    make_wes_shard_interval_list "$WES_INTERVAL_LIST" "$INTERVAL_SHARD" "$WES_SHARD_INTERVAL_LIST"
+    INTERVAL_ARG="-L $WES_SHARD_INTERVAL_LIST"
+    echo "WES mode: generated shard interval list $WES_SHARD_INTERVAL_LIST from $WES_INTERVAL_LIST" | tee -a "$LOG"
+  else
+    INTERVAL_ARG="-L $WES_INTERVAL_LIST"
+  fi
   MERGE_INTERVALS_ARG="--merge-input-intervals true"
   if [ -n "${CBICALL_INTERVAL_LIST:-}" ]; then
     echo "WES mode: restricting to $WES_INTERVAL_LIST (CBICALL_INTERVAL_LIST override)" | tee -a "$LOG"
@@ -101,101 +216,131 @@ else
     echo "Error: REF_DICT is not set or not found (mode=WGS)." >&2
     exit 1
   fi
-  WGS_INTERVAL_LIST="$GENOMICSDBDIR/wgs.whole_genome.interval_list"
-  awk '
-    /^@/ {
-      print
-      if ($1 == "@SQ") {
-        sn = ""; ln = ""
-        for (i = 1; i <= NF; i++) {
-          if ($i ~ /^SN:/) sn = substr($i, 4)
-          if ($i ~ /^LN:/) ln = substr($i, 4)
+  if [ -n "$INTERVAL_SHARD" ]; then
+    WGS_INTERVAL_LIST="$GENOMICSDBDIR/wgs.${INTERVAL_SHARD}.interval_list"
+    make_wgs_shard_interval_list "$REF_DICT" "$INTERVAL_SHARD" "$WGS_INTERVAL_LIST"
+    echo "WGS mode: generated shard interval list $WGS_INTERVAL_LIST from $REF_DICT" | tee -a "$LOG"
+  else
+    WGS_INTERVAL_LIST="$GENOMICSDBDIR/wgs.whole_genome.interval_list"
+    awk '
+      /^@/ {
+        print
+        if ($1 == "@SQ") {
+          sn = ""; ln = ""
+          for (i = 1; i <= NF; i++) {
+            if ($i ~ /^SN:/) sn = substr($i, 4)
+            if ($i ~ /^LN:/) ln = substr($i, 4)
+          }
+          if (sn != "" && ln != "") intervals[++n] = sn "\t1\t" ln "\t+\t" sn
         }
-        if (sn != "" && ln != "") intervals[++n] = sn "\t1\t" ln "\t+\t" sn
+        next
       }
-      next
-    }
-    END {
-      for (i = 1; i <= n; i++) print intervals[i]
-    }
-  ' "$REF_DICT" > "$WGS_INTERVAL_LIST"
+      END {
+        for (i = 1; i <= n; i++) print intervals[i]
+      }
+    ' "$REF_DICT" > "$WGS_INTERVAL_LIST"
+    echo "WGS mode: generated whole-genome intervals from $REF_DICT" | tee -a "$LOG"
+  fi
   INTERVAL_ARG="-L $WGS_INTERVAL_LIST"
   MERGE_INTERVALS_ARG=""
-  echo "WGS mode: generated whole-genome intervals from $REF_DICT" | tee -a "$LOG"
 fi
 
 # Derived output names
-COHORT_RAW_VCF="cohort.gv.raw.vcf.gz"
-COHORT_VQSR_SNP="cohort.snp.recal.vcf.gz"
-COHORT_SNP_TRANCHES="cohort.snp.tranches.txt"
-COHORT_VQSR_INDEL="cohort.indel.recal.vcf.gz"
-COHORT_INDEL_TRANCHES="cohort.indel.tranches.txt"
-COHORT_POST_SNP="cohort.post_snp.vcf.gz"
-COHORT_POST_VQSR="cohort.vqsr.vcf.gz"
-COHORT_QC_VCF="cohort.gv.QC.vcf.gz"
+COHORT_RAW_VCF="${OUTPUT_BASENAME}.gv.raw.vcf.gz"
+COHORT_VQSR_SNP="${OUTPUT_BASENAME}.snp.recal.vcf.gz"
+COHORT_SNP_TRANCHES="${OUTPUT_BASENAME}.snp.tranches.txt"
+COHORT_VQSR_INDEL="${OUTPUT_BASENAME}.indel.recal.vcf.gz"
+COHORT_INDEL_TRANCHES="${OUTPUT_BASENAME}.indel.tranches.txt"
+COHORT_POST_SNP="${OUTPUT_BASENAME}.post_snp.vcf.gz"
+COHORT_POST_VQSR="${OUTPUT_BASENAME}.vqsr.vcf.gz"
+COHORT_QC_VCF="${OUTPUT_BASENAME}.gv.QC.vcf.gz"
 
-echo "## Cohort GenomicsDBImport -> Genotype -> VQSR/Hard-filter"
-echo "sample_map: $SAMPLE_MAP"
-echo "pipeline: $PIPELINE"
-echo "sample_count: $SAMPLE_COUNT"
-echo "workspace: $WORKSPACE_PATH"
-echo "out_vcf: $COHORT_RAW_VCF"
-echo "tmpdir: $TMPDIR"
-echo "log: $LOG"
-echo "" | tee -a "$LOG"
+{
+  echo "## Cohort GenomicsDBImport -> Genotype -> VQSR/Hard-filter"
+  echo "cohort_stage: $COHORT_STAGE"
+  echo "sample_map: ${SAMPLE_MAP:-<none>}"
+  echo "pipeline: $PIPELINE"
+  echo "sample_count: $SAMPLE_COUNT"
+  echo "workspace: ${WORKSPACE_PATH:-<none>}"
+  echo "output_basename: $OUTPUT_BASENAME"
+  echo "interval_shard: ${INTERVAL_SHARD:-<none>}"
+  echo "out_vcf: $COHORT_RAW_VCF"
+  echo "tmpdir: $TMPDIR"
+  echo "log: $LOG"
+  echo ""
+} | tee -a "$LOG"
 
 # -----------------------------------------------------------------------------
 # Step 1: GenomicsDBImport
 # -----------------------------------------------------------------------------
-echo ">>> Step 1: GenomicsDBImport" | tee -a "$LOG"
-mkdir -p "$(dirname "$WORKSPACE_PATH")"
-
-set -x
-"$GATK4_BIN" $GATK4_JAVA_OPTS_64G GenomicsDBImport \
-  --sample-name-map "$SAMPLE_MAP" \
-  --genomicsdb-workspace-path "$WORKSPACE_PATH" \
-  $MERGE_INTERVALS_ARG \
-  $INTERVAL_ARG \
-  --tmp-dir "$TMPDIR" \
-  2>> "$LOG"
-set +x
-echo ok > "$GENOMICSDBDIR/genomicsdbimport.done"
-
-# -----------------------------------------------------------------------------
-# Step 2: GenotypeGVCFs
-# -----------------------------------------------------------------------------
-echo ">>> Step 2: GenotypeGVCFs" | tee -a "$LOG"
 if [ -z "${REF:-}" ]; then
   echo "Error: REF not set (expected to be defined in env.sh)." >&2
   exit 1
 fi
 
-cd "$VARCALLDIR"
+if [ "$COHORT_STAGE" != "finalize" ]; then
+  echo ">>> Step 1: GenomicsDBImport" | tee -a "$LOG"
+  mkdir -p "$(dirname "$WORKSPACE_PATH")"
 
-set -x
-"$GATK4_BIN" $GATK4_JAVA_OPTS_64G GenotypeGVCFs \
-  -R "$REF" \
-  -V "gendb://$WORKSPACE_PATH" \
-  -O "$COHORT_RAW_VCF" \
-  --stand-call-conf 10 \
-  $GENOTYPE_ANNOTATION_EXCLUDE_ARG \
-  --tmp-dir "$TMPDIR" \
-  $INTERVAL_ARG \
-  2>> "$LOG"
-set +x
+  set -x
+  "$GATK4_BIN" $GATK4_JAVA_OPTS_64G GenomicsDBImport \
+    --sample-name-map "$SAMPLE_MAP" \
+    --genomicsdb-workspace-path "$WORKSPACE_PATH" \
+    $MERGE_INTERVALS_ARG \
+    $INTERVAL_ARG \
+    --tmp-dir "$TMPDIR" \
+    2>> "$LOG"
+  set +x
+  echo ok > "$GENOMICSDBDIR/genomicsdbimport.done"
 
-if [ $? -ne 0 ]; then
-  echo "ERROR: GenotypeGVCFs failed. See log: $LOG" >&2
-  exit 1
+  # -----------------------------------------------------------------------------
+  # Step 2: GenotypeGVCFs
+  # -----------------------------------------------------------------------------
+  echo ">>> Step 2: GenotypeGVCFs" | tee -a "$LOG"
+  cd "$VARCALLDIR"
+
+  set -x
+  "$GATK4_BIN" $GATK4_JAVA_OPTS_64G GenotypeGVCFs \
+    -R "$REF" \
+    -V "gendb://$WORKSPACE_PATH" \
+    -O "$COHORT_RAW_VCF" \
+    --stand-call-conf 10 \
+    $GENOTYPE_ANNOTATION_EXCLUDE_ARG \
+    --tmp-dir "$TMPDIR" \
+    $INTERVAL_ARG \
+    2>> "$LOG"
+  set +x
+
+  if [ $? -ne 0 ]; then
+    echo "ERROR: GenotypeGVCFs failed. See log: $LOG" >&2
+    exit 1
+  fi
+  echo "Genotyping completed. Raw cohort VCF: $COHORT_RAW_VCF" | tee -a "$LOG"
+
+  if [ "$COHORT_STAGE" = "shard" ]; then
+    echo "Shard stage complete. Raw cohort shard VCF: $COHORT_RAW_VCF" | tee -a "$LOG"
+    exit 0
+  fi
+  RAW_VCF_FOR_FILTERING="$COHORT_RAW_VCF"
+else
+  if [ ! -s "$INPUT_VCF" ]; then
+    echo "Error: input_vcf '$INPUT_VCF' not found or empty." >&2
+    exit 1
+  fi
+  case "$INPUT_VCF" in
+    /*) ;;
+    *) INPUT_VCF="$(cd "$(dirname "$INPUT_VCF")" && pwd)/$(basename "$INPUT_VCF")" ;;
+  esac
+  cd "$VARCALLDIR"
+  RAW_VCF_FOR_FILTERING="$INPUT_VCF"
 fi
-echo "Genotyping completed. Raw cohort VCF: $COHORT_RAW_VCF" | tee -a "$LOG"
 
 # -----------------------------------------------------------------------------
 # Step 3: Count SNPs/INDELs and decide on VQSR
 # -----------------------------------------------------------------------------
 echo ">>> Step 3: Count variants and decide on VQSR" | tee -a "$LOG"
-nSNP=$(zgrep -v '^#' "$COHORT_RAW_VCF" | awk 'length($5)==1' | wc -l)
-nINDEL=$(zgrep -v '^#' "$COHORT_RAW_VCF" | awk 'length($5)!=1' | wc -l)
+nSNP=$(zgrep -v '^#' "$RAW_VCF_FOR_FILTERING" | awk 'length($5)==1' | wc -l)
+nINDEL=$(zgrep -v '^#' "$RAW_VCF_FOR_FILTERING" | awk 'length($5)!=1' | wc -l)
 nSNP=$(echo "$nSNP" | tr -d ' ')
 nINDEL=$(echo "$nINDEL" | tr -d ' ')
 echo "Found SNPs: $nSNP ; INDELs: $nINDEL" | tee -a "$LOG"
@@ -213,7 +358,7 @@ if (( nSNP >= minSNP )); then
   set -x
   "$GATK4_BIN" $GATK4_JAVA_OPTS VariantRecalibrator \
     -R "$REF" \
-    -V "$COHORT_RAW_VCF" \
+    -V "$RAW_VCF_FOR_FILTERING" \
     $SNP_RES \
     -an QD -an MQRankSum -an ReadPosRankSum -an FS -an MQ \
     --mode SNP \
@@ -236,7 +381,7 @@ if (( nINDEL >= minINDEL )); then
   set -x
   "$GATK4_BIN" $GATK4_JAVA_OPTS VariantRecalibrator \
     -R "$REF" \
-    -V "$COHORT_RAW_VCF" \
+    -V "$RAW_VCF_FOR_FILTERING" \
     $INDEL_RES \
     -an QD -an FS -an ReadPosRankSum \
     --mode INDEL \
@@ -255,7 +400,7 @@ fi
 # Step 6: Apply VQSR (if models exist)
 # -----------------------------------------------------------------------------
 echo ">>> Step 6: Apply VQSR (if available)" | tee -a "$LOG"
-tmp_vcf="$COHORT_RAW_VCF"
+tmp_vcf="$RAW_VCF_FOR_FILTERING"
 if [ "$apply_snp" = true ]; then
   echo "Applying SNP recalibration..." | tee -a "$LOG"
   set -x
@@ -317,5 +462,5 @@ fi
 echo "Cohort QC VCF written: $COHORT_QC_VCF" | tee -a "$LOG"
 
 # Final message
-echo "All done. Cohort raw: $COHORT_RAW_VCF ; Cohort QC: $COHORT_QC_VCF" | tee -a "$LOG"
+echo "All done. Cohort raw: $RAW_VCF_FOR_FILTERING ; Cohort QC: $COHORT_QC_VCF" | tee -a "$LOG"
 exit 0

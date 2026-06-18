@@ -1,3 +1,6 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # WES/WGS Cohort Joint-Genotyping Pipeline
 
 A user-oriented guide for multi-sample joint genotyping using GenomicsDB, GenotypeGVCFs, and VQSR.
@@ -43,7 +46,13 @@ the GATK bundle / Broad b37 exome interval list. See the
 
 ---
 
-## Workflow
+## Execution Modes
+
+<Tabs groupId="cohort-execution-mode">
+<TabItem value="standard" label="Standard run" default>
+
+Standard cohort mode runs as one job from GenomicsDB import through final
+filtering.
 
 ### 1. GenomicsDBImport
 
@@ -116,6 +125,92 @@ The best available VCF (VQSR-filtered or raw) is used as input to the next step.
 This QC VCF is the primary cohort workflow output for downstream tools and
 project-level review.
 
+</TabItem>
+<TabItem value="staged" label="Staged run">
+
+Staged execution splits a large native GATK 4.6 cohort run into shard jobs and
+one final filtering job.
+
+For large WES/WGS cohorts, a single GenomicsDB import and joint-genotyping job
+can be slow or memory-heavy. Native GATK 4.6 cohort workflows can split the
+cohort run into two explicit stages:
+
+| Stage | What it does | Main output |
+| --- | --- | --- |
+| `all` | Default behavior: import, genotype, VQSR/hard-filter in one run. | `02_varcall/<basename>.gv.QC.vcf.gz` |
+| `shard` | Import and genotype one interval shard, then stop before VQSR/filtering. | `02_varcall/<basename>.gv.raw.vcf.gz` |
+| `finalize` | Start from a user-gathered raw cohort VCF and run global VQSR/hard-filtering. | `02_varcall/<basename>.gv.QC.vcf.gz` |
+
+This is intentionally a manual checkpoint. Run one `shard` job per contig or
+interval shard, confirm that all shard jobs finished, concatenate the raw VCFs,
+then run `finalize` once on the gathered raw VCF. Final filtering stays global,
+which is easier to reason about than applying VQSR independently to each shard.
+
+:::info[Backend support]
+Staged cohort execution is supported for CBIcall-native GATK 4.6 cohort runs
+with `workflow_backend: bash`, `snakemake`, `nextflow`, or `cromwell`.
+:::
+
+### Shard runs
+
+Each shard run still uses the full `sample_map`; the shard only restricts the
+genomic intervals sent to `GenomicsDBImport` and `GenotypeGVCFs`.
+
+```yaml
+mode:            cohort
+pipeline:        wgs
+workflow_backend: bash
+software_stack:    gatk-4.6
+genome:          hg38
+sample_map:      ./sample_map.tsv
+cohort_stage:    shard
+interval_shard:  chr1
+output_basename: cohort.chr1
+```
+
+For WGS, `interval_shard` must match a contig in the reference dictionary, such
+as `chr1` for hg38. For WES, CBIcall filters the configured WES interval list to
+records whose contig column matches `interval_shard`.
+
+Run one YAML per shard, changing `interval_shard` and `output_basename`:
+
+```bash
+bin/cbicall run -p cohort.chr1.yaml -t 12
+bin/cbicall run -p cohort.chr2.yaml -t 12
+```
+
+After all shard jobs finish, concatenate the raw shard VCFs in genomic order:
+
+```bash
+bcftools concat -Oz -o cohort.gathered.gv.raw.vcf.gz \
+  cohort.chr1.gv.raw.vcf.gz \
+  cohort.chr2.gv.raw.vcf.gz
+bcftools index -t cohort.gathered.gv.raw.vcf.gz
+```
+
+### Finalize run
+
+The finalize run does not need `sample_map`. It starts from the gathered raw VCF
+and produces the same kind of filtered cohort output as the default `all` run.
+
+```yaml
+mode:            cohort
+pipeline:        wgs
+workflow_backend: bash
+software_stack:    gatk-4.6
+genome:          hg38
+cohort_stage:    finalize
+input_vcf:       ./cohort.gathered.gv.raw.vcf.gz
+output_basename: cohort
+```
+
+```bash
+bin/cbicall run -p cohort.finalize.yaml -t 12
+```
+
+</TabItem>
+</Tabs>
+
 ---
 
 ## Output Files
@@ -123,6 +218,9 @@ project-level review.
 In these filenames, `gv` means `GenotypeGVCFs`: the raw VCF is the direct
 joint-genotyped output from that GATK step, and the QC VCF is the filtered
 version used downstream.
+
+The default basename is `cohort`. If `output_basename` is set, replace `cohort`
+below with that value.
 
 | File                                | Description                                        |
 |-------------------------------------|----------------------------------------------------|

@@ -45,6 +45,7 @@ WORKFLOW_BACKEND_VALUES = {"bash", "cromwell", "nextflow", "snakemake"}
 WORKFLOW_PROVIDER_VALUES = {"cbicall", "nf-core"}
 SOFTWARE_STACK_VALUES = {"gatk-3.5", "gatk-4.6"}
 GENOME_VALUES = {"b37", "hg38", "rsrs", "external"}
+COHORT_STAGE_VALUES = {"all", "shard", "finalize"}
 
 
 def _validate_input_dir(input_dir: Path) -> None:
@@ -60,7 +61,10 @@ _DEFAULTS = {
     "mode": "single",
     "input_dir": None,
     "sample_map": None,
+    "input_vcf": None,
     "output_basename": None,
+    "cohort_stage": "all",
+    "interval_shard": None,
     "pipeline": "wes",
     "organism": "Homo sapiens",
     "technology": "Illumina HiSeq",
@@ -246,7 +250,20 @@ def _validate_backend_parameter_settings(cfg: dict) -> None:
             raise ParameterValidationError("snakemake_parameters.target must be a non-empty string when provided.")
         snakemake_parameters["target"] = target.strip()
 
-    reserved_snakemake = sorted(set(snakemake_parameters) & {"genome", "pipeline", "qc_coverage_region", "sample_map", "workspace"})
+    reserved_snakemake = sorted(
+        set(snakemake_parameters)
+        & {
+            "genome",
+            "pipeline",
+            "qc_coverage_region",
+            "sample_map",
+            "workspace",
+            "output_basename",
+            "cohort_stage",
+            "interval_shard",
+            "input_vcf",
+        }
+    )
     if reserved_snakemake:
         raise ParameterValidationError(
             "snakemake_parameters cannot set CBIcall-controlled parameters: " + ", ".join(reserved_snakemake)
@@ -262,6 +279,10 @@ def _validate_backend_parameter_settings(cfg: dict) -> None:
             "qc_coverage_region",
             "sample_map",
             "workspace",
+            "output_basename",
+            "cohort_stage",
+            "interval_shard",
+            "input_vcf",
             "coverage_script",
             "vcf2sex_script",
             "vcf2hash_script",
@@ -284,6 +305,10 @@ def _validate_backend_parameter_settings(cfg: dict) -> None:
             "fastq_pairs_tsv",
             "sample_map",
             "workspace",
+            "output_basename",
+            "cohort_stage",
+            "interval_shard",
+            "input_vcf",
             "datadir",
             "dbdir",
             "ngsutils",
@@ -344,6 +369,71 @@ def _validate_qc_coverage_settings(cfg: dict) -> None:
     if any(char in region for char in ("/", "\\", ":")):
         raise ParameterValidationError("qc_coverage_region must be a contig name, not a path or interval.")
     cfg["qc_coverage_region"] = region
+
+
+def _validate_safe_label(key: str, value: object) -> str:
+    label = str(value).strip()
+    if not label:
+        raise ParameterValidationError(f"{key} must be a non-empty value when provided.")
+    allowed = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-")
+    if any(char not in allowed for char in label):
+        raise ParameterValidationError(
+            f"{key} may contain only letters, numbers, '.', '_' and '-'."
+        )
+    if label in {".", ".."}:
+        raise ParameterValidationError(f"{key} must not be {label!r}.")
+    return label
+
+
+def _validate_cohort_stage_settings(cfg: dict) -> None:
+    stage = cfg.get("cohort_stage")
+    if stage is None:
+        raise ParameterValidationError("cohort_stage cannot be null.")
+    stage = str(stage).strip()
+    _validate_enum("cohort_stage", stage, COHORT_STAGE_VALUES)
+    cfg["cohort_stage"] = stage
+
+    output_basename = cfg.get("output_basename")
+    if output_basename is not None:
+        cfg["output_basename"] = _validate_safe_label("output_basename", output_basename)
+
+    interval_shard = cfg.get("interval_shard")
+    if interval_shard is not None:
+        cfg["interval_shard"] = _validate_safe_label("interval_shard", interval_shard)
+
+    if cfg.get("input_vcf") is not None and not str(cfg["input_vcf"]).strip():
+        raise ParameterValidationError("input_vcf must be a non-empty path when provided.")
+
+    cohort_controls = [
+        name
+        for name in ("cohort_stage", "interval_shard", "input_vcf")
+        if cfg.get(name) not in {None, "all"}
+    ]
+    if cohort_controls and cfg.get("mode") != "cohort":
+        raise ParameterValidationError(
+            ", ".join(cohort_controls) + " are supported only with mode='cohort'."
+        )
+
+    staged = stage != "all" or cfg.get("interval_shard") is not None or cfg.get("input_vcf") is not None
+    if staged:
+        if cfg.get("workflow_provider") != "cbicall" or cfg.get("software_stack") != "gatk-4.6":
+            raise ParameterValidationError(
+                "cohort_stage, interval_shard, and input_vcf are currently supported only for native GATK 4.6 cohort runs."
+            )
+    if stage == "shard":
+        if not cfg.get("interval_shard"):
+            raise ParameterValidationError("cohort_stage='shard' requires interval_shard.")
+        if cfg.get("input_vcf") is not None:
+            raise ParameterValidationError("cohort_stage='shard' does not use input_vcf.")
+    elif stage == "finalize":
+        if not cfg.get("input_vcf"):
+            raise ParameterValidationError("cohort_stage='finalize' requires input_vcf.")
+        if cfg.get("interval_shard") is not None:
+            raise ParameterValidationError("cohort_stage='finalize' does not use interval_shard.")
+    elif cfg.get("interval_shard") is not None:
+        raise ParameterValidationError("interval_shard is supported only with cohort_stage='shard'.")
+    elif cfg.get("input_vcf") is not None:
+        raise ParameterValidationError("input_vcf is supported only with cohort_stage='finalize'.")
 
 
 def _validate_registry_version_settings(cfg: dict) -> None:
@@ -482,6 +572,7 @@ def read_param_file(yaml_file: str) -> dict:
     _validate_backend_parameter_settings(cfg)
     _validate_resource_settings(cfg)
     _validate_nfcore_settings(cfg)
+    _validate_cohort_stage_settings(cfg)
 
     # Apply shared genome rules
     user_provided_genome = "genome" in params
@@ -504,6 +595,13 @@ def read_param_file(yaml_file: str) -> dict:
         if not sm.is_absolute():
             sm = yaml_path.parent / sm
         cfg["sample_map"] = str(sm.resolve())
+
+    # Make input_vcf absolute (resolve relative to YAML location)
+    if cfg.get("input_vcf") is not None:
+        input_vcf = Path(cfg["input_vcf"])
+        if not input_vcf.is_absolute():
+            input_vcf = yaml_path.parent / input_vcf
+        cfg["input_vcf"] = str(input_vcf.resolve())
 
     cfg["nfcore_parameters"] = _resolve_nfcore_param_paths(cfg.get("nfcore_parameters", {}), yaml_path.parent)
     if cfg.get("nfcore_singularity_cache_dir") is not None:
@@ -536,6 +634,7 @@ def _merge_and_validate_param_values(params: dict) -> dict:
     _validate_backend_parameter_settings(cfg_in)
     _validate_resource_settings(cfg_in)
     _validate_nfcore_settings(cfg_in)
+    _validate_cohort_stage_settings(cfg_in)
     if cfg_in.get("input_dir") is not None:
         _validate_input_dir(Path(cfg_in["input_dir"]))
     _apply_genome_rules(cfg_in, user_provided_genome=("genome" in params))
@@ -568,11 +667,12 @@ def _build_runtime_identity(cfg_in: dict) -> dict:
     tmp_str = "_".join(name_parts)
 
     input_dir = cfg_in.get("input_dir")
-    output_basename = None
+    output_basename = cfg_in.get("output_basename")
     if input_dir:
         input_path = Path(input_dir).resolve()
         project_dir = str(input_path / tmp_str)
-        output_basename = input_path.name
+        if output_basename is None:
+            output_basename = input_path.name
     else:
         project_dir = str(Path(tmp_str).resolve())
     return {
@@ -698,12 +798,15 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         inputs=InputsSpec(
             input_dir=cfg_in.get("input_dir"),
             sample_map=cfg_in.get("sample_map"),
+            input_vcf=cfg_in.get("input_vcf"),
         ),
         workflow=workflow,
         run_id="",
         date="",
         project_dir="",
         output_basename=None,
+        cohort_stage=cfg_in["cohort_stage"],
+        interval_shard=cfg_in.get("interval_shard"),
         hostname="",
         host_threads=0,
         host_threads_minus_one=0,
@@ -737,6 +840,8 @@ def build_resolved_config(params: dict) -> ResolvedConfig:
         date=runtime_identity["date"],
         project_dir=runtime_identity["project_dir"],
         output_basename=runtime_identity["output_basename"],
+        cohort_stage=config.cohort_stage,
+        interval_shard=config.interval_shard,
         hostname=host_metadata["hostname"],
         host_threads=host_metadata["host_threads"],
         host_threads_minus_one=host_metadata["host_threads_minus_one"],

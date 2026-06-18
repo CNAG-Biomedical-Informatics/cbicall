@@ -187,6 +187,103 @@ def test_execution_ignores_cleanup_bam_for_bash_cohort(tmp_path, monkeypatch):
     assert recorded["backend"] == "bash"
 
 
+def test_execution_builds_bash_cohort_shard_command(tmp_path, monkeypatch):
+    recorded = {}
+
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "backend": backend})
+
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
+
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    sample_map = tmp_path / "sample_map.tsv"
+    sample_map.write_text("S1\t/s1.g.vcf.gz\n", encoding="utf-8")
+    script = str(tmp_path / "wgs_cohort.sh")
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 6,
+        "run_id": "RIDCHR1",
+        "debug": False,
+        "genome": "hg38",
+        "output_basename": "cohort.chr1",
+        "cohort_stage": "shard",
+        "interval_shard": "chr1",
+        "inputs": {"input_dir": None, "sample_map": str(sample_map)},
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
+        "run_mode": "full",
+        "workflow": {
+            "backend": "bash",
+            "pipeline": "wgs",
+            "mode": "cohort",
+            "software_stack": "gatk-4.6",
+            "registry_version": "v1",
+            "entrypoint": script,
+            "config_file": None,
+            "helpers": {},
+        },
+    }
+
+    assert execution.WorkflowExecutor(settings).run() is True
+    cmd = recorded["cmd"]
+    assert cmd[:5] == [script, "-t", "6", "--pipeline", "wgs"]
+    assert "--sample-map" in cmd and str(sample_map) in cmd
+    assert "--workspace" in cmd and "cohort.genomicsdb.RIDCHR1" in cmd
+    assert "--cohort-stage" in cmd and "shard" in cmd
+    assert "--interval-shard" in cmd and "chr1" in cmd
+    assert "--output-basename" in cmd and "cohort.chr1" in cmd
+
+
+def test_execution_builds_bash_cohort_finalize_command_without_sample_map(tmp_path, monkeypatch):
+    recorded = {}
+
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "backend": backend})
+
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
+
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    input_vcf = tmp_path / "cohort.gathered.gv.raw.vcf.gz"
+    input_vcf.write_text("vcf\n", encoding="utf-8")
+    script = str(tmp_path / "wgs_cohort.sh")
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 8,
+        "run_id": "RIDFINAL",
+        "debug": False,
+        "genome": "hg38",
+        "output_basename": "cohort",
+        "cohort_stage": "finalize",
+        "inputs": {"input_dir": None, "sample_map": None, "input_vcf": str(input_vcf)},
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
+        "run_mode": "full",
+        "workflow": {
+            "backend": "bash",
+            "pipeline": "wgs",
+            "mode": "cohort",
+            "software_stack": "gatk-4.6",
+            "registry_version": "v1",
+            "entrypoint": script,
+            "config_file": None,
+            "helpers": {},
+        },
+    }
+
+    assert execution.WorkflowExecutor(settings).run() is True
+    cmd = recorded["cmd"]
+    assert cmd[:5] == [script, "-t", "8", "--pipeline", "wgs"]
+    assert "--cohort-stage" in cmd and "finalize" in cmd
+    assert "--input-vcf" in cmd and str(input_vcf) in cmd
+    assert "--output-basename" in cmd and "cohort" in cmd
+    assert "--sample-map" not in cmd
+    assert "--workspace" not in cmd
+
+
 def test_execution_builds_bash_command_gatk35_has_no_extra_flags(tmp_path, monkeypatch):
     recorded = {}
 
@@ -314,6 +411,53 @@ def test_execution_ignores_cleanup_bam_for_snakemake_cohort(tmp_path, monkeypatc
     assert "sample_map=" + str(sample_map) in recorded["cmd"]
     assert "cleanup_bam=true" not in recorded["cmd"]
     assert recorded["backend"] == "snakemake"
+
+
+def test_execution_builds_snakemake_cohort_shard_config(tmp_path, monkeypatch):
+    recorded = {}
+
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "backend": backend})
+
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
+
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    sample_map = tmp_path / "sample_map.tsv"
+    sample_map.write_text("S1\t/s1.g.vcf.gz\n", encoding="utf-8")
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 4,
+        "run_id": "RIDSMKSHARD",
+        "debug": False,
+        "genome": "b37",
+        "output_basename": "cohort.chr1",
+        "cohort_stage": "shard",
+        "interval_shard": "chr1",
+        "inputs": {"input_dir": None, "sample_map": str(sample_map)},
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
+        "run_mode": "full",
+        "workflow": {
+            "backend": "snakemake",
+            "pipeline": "wes",
+            "mode": "cohort",
+            "software_stack": "gatk-4.6",
+            "registry_version": "v1",
+            "entrypoint": str(tmp_path / "wes_cohort.smk"),
+            "config_file": str(tmp_path / "config.yaml"),
+            "helpers": {},
+        },
+    }
+
+    assert execution.WorkflowExecutor(settings).run() is True
+    cmd = recorded["cmd"]
+    assert "sample_map=" + str(sample_map) in cmd
+    assert "workspace=cohort.genomicsdb.RIDSMKSHARD" in cmd
+    assert "output_basename=cohort.chr1" in cmd
+    assert "cohort_stage=shard" in cmd
+    assert "interval_shard=chr1" in cmd
 
 
 def test_execution_builds_snakemake_partial_rule_command(tmp_path, monkeypatch):
@@ -456,6 +600,53 @@ def test_execution_builds_nextflow_cohort_command_with_sample_map(tmp_path, monk
     assert "--workspace" in cmd and "cohort.genomicsdb.RIDNFCOHORT" in cmd
     assert "--cleanup_bam" not in cmd
     assert "--vcf2hash_script" in cmd
+
+
+def test_execution_builds_nextflow_cohort_finalize_without_sample_map(tmp_path, monkeypatch):
+    recorded = {}
+
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "backend": backend})
+
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
+
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    input_vcf = tmp_path / "cohort.gathered.gv.raw.vcf.gz"
+    input_vcf.write_text("vcf\n", encoding="utf-8")
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 4,
+        "run_id": "RIDNFFINAL",
+        "debug": False,
+        "genome": "b37",
+        "output_basename": "cohort",
+        "cohort_stage": "finalize",
+        "inputs": {"input_dir": None, "sample_map": None, "input_vcf": str(input_vcf)},
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
+        "run_mode": "full",
+        "cleanup_bam": True,
+        "workflow": {
+            "backend": "nextflow",
+            "pipeline": "wes",
+            "mode": "cohort",
+            "software_stack": "gatk-4.6",
+            "registry_version": "v1",
+            "entrypoint": str(tmp_path / "wes_cohort.nf"),
+            "config_file": str(tmp_path / "config.yaml"),
+            "helpers": {"vcf2hash": str(tmp_path / "vcf2hash.sh")},
+        },
+    }
+
+    assert execution.WorkflowExecutor(settings).run() is True
+    cmd = recorded["cmd"]
+    assert "--cohort_stage" in cmd and "finalize" in cmd
+    assert "--input_vcf" in cmd and str(input_vcf) in cmd
+    assert "--output_basename" in cmd and "cohort" in cmd
+    assert "--sample_map" not in cmd
+    assert "--workspace" not in cmd
 
 
 def test_execution_nextflow_cohort_requires_sample_map(tmp_path):
@@ -900,6 +1091,8 @@ def test_execution_builds_and_promotes_cromwell_wgs_cohort(tmp_path, monkeypatch
     assert inputs["CBIcallCohort.pipeline"] == "wgs"
     assert inputs["CBIcallCohort.sample_map"] == str(sample_map.resolve())
     assert inputs["CBIcallCohort.workspace"] == "cohort.genomicsdb.RIDCOHORT"
+    assert inputs["CBIcallCohort.output_basename"] == "cohort"
+    assert inputs["CBIcallCohort.cohort_stage"] == "all"
     assert inputs["CBIcallCohort.gatk4_cmd"].endswith("-Xmx64G")
     assert inputs["CBIcallCohort.ref_dict"] == "/data/Databases/GATK_bundle/b37/ref.dict"
     assert inputs["CBIcallCohort.min_snp_for_vqsr"] == 10
@@ -908,6 +1101,69 @@ def test_execution_builds_and_promotes_cromwell_wgs_cohort(tmp_path, monkeypatch
     assert (project_dir / "02_varcall" / "cohort.gv.QC.vcf.gz").is_file()
     assert (project_dir / "03_stats" / "cohort.gv.QC.vcf.sha256.txt").is_file()
     assert (project_dir / "logs" / "cohort_joint_genotyping.log").is_file()
+
+
+def test_execution_builds_cromwell_cohort_finalize_inputs_without_sample_map(tmp_path, monkeypatch):
+    recorded = {}
+    project_dir = tmp_path / "cohort" / "cbicall_cromwell_run"
+    project_dir.mkdir(parents=True)
+    input_vcf = tmp_path / "cohort.gathered.gv.raw.vcf.gz"
+    input_vcf.write_text("vcf\n", encoding="utf-8")
+    jar = tmp_path / "cromwell.jar"
+    jar.write_text("jar\n", encoding="utf-8")
+    monkeypatch.setenv("CROMWELL_JAR", str(jar))
+    monkeypatch.setattr(execution.platform, "machine", lambda: "x86_64")
+
+    def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
+        recorded.update({"cmd": cmd, "cwd": cwd, "backend": backend})
+        log_path.write_text("cromwell log\n", encoding="utf-8")
+        (cwd / "cbicall_cromwell.metadata.json").write_text(
+            __import__("json").dumps({"outputs": {}}),
+            encoding="utf-8",
+        )
+
+    monkeypatch.setattr(execution.WorkflowExecutor, "_run_cmd", staticmethod(fake_run_cmd))
+    wdl = tmp_path / "wgs_cohort.wdl"
+    wdl.write_text("version 1.0\n", encoding="utf-8")
+    config = _write_cromwell_config(tmp_path)
+
+    settings = {
+        "project_dir": str(project_dir),
+        "threads": 3,
+        "run_id": "RIDFINAL",
+        "debug": False,
+        "profile": "local",
+        "genome": "b37",
+        "output_basename": "cohort",
+        "cohort_stage": "finalize",
+        "inputs": {"input_dir": None, "sample_map": None, "input_vcf": str(input_vcf)},
+        "snakemake_parameters": {},
+        "nextflow_parameters": {},
+        "cromwell_parameters": {},
+        "run_mode": "full",
+        "cleanup_bam": False,
+        "workflow": {
+            "backend": "cromwell",
+            "pipeline": "wgs",
+            "mode": "cohort",
+            "software_stack": "gatk-4.6",
+            "registry_version": "v1",
+            "entrypoint": str(wdl),
+            "config_file": str(config),
+            "helpers": {
+                "coverage": str(tmp_path / "coverage.sh"),
+                "vcf2sex": str(tmp_path / "vcf2sex.sh"),
+                "vcf2hash": str(tmp_path / "vcf2hash.sh"),
+            },
+        },
+    }
+
+    assert execution.WorkflowExecutor(settings).run() is True
+    inputs = __import__("json").loads((project_dir / "cbicall_cromwell.inputs.json").read_text(encoding="utf-8"))
+    assert inputs["CBIcallCohort.cohort_stage"] == "finalize"
+    assert inputs["CBIcallCohort.input_vcf"] == str(input_vcf.resolve())
+    assert inputs["CBIcallCohort.output_basename"] == "cohort"
+    assert "CBIcallCohort.sample_map" not in inputs
 
 
 def test_execution_cromwell_requires_runtime(tmp_path, monkeypatch):

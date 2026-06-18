@@ -336,6 +336,9 @@ class BaseRunner:
                 "qc_coverage_region": self.settings.qc_coverage_region,
                 "cleanup_bam": bool(self.settings.cleanup_bam),
                 "run_mode": self.settings.run_mode,
+                "output_basename": self.settings.output_basename,
+                "cohort_stage": self.settings.cohort_stage,
+                "interval_shard": self.settings.interval_shard,
             },
             "inputs": self.inputs.to_dict(),
             "command": command_payload,
@@ -417,6 +420,14 @@ class BashRunner(BaseRunner):
             if bool(self.settings.cleanup_bam) and self.mode == "single":
                 cmd.append("--cleanup-bam")
 
+            if self.mode == "cohort" and self.settings.cohort_stage == "finalize":
+                cmd += ["--cohort-stage", "finalize"]
+                if self.settings.output_basename:
+                    cmd += ["--output-basename", str(self.settings.output_basename)]
+                if self.inputs.input_vcf:
+                    cmd += ["--input-vcf", str(self.inputs.input_vcf)]
+                return cmd
+
             sample_map = self.inputs.sample_map
             if sample_map:
                 cmd += [
@@ -425,6 +436,12 @@ class BashRunner(BaseRunner):
                     "--workspace",
                     f"cohort.genomicsdb.{self.settings.run_id}",
                 ]
+                if self.settings.output_basename:
+                    cmd += ["--output-basename", str(self.settings.output_basename)]
+                if self.settings.cohort_stage != "all":
+                    cmd += ["--cohort-stage", str(self.settings.cohort_stage)]
+                if self.settings.interval_shard:
+                    cmd += ["--interval-shard", str(self.settings.interval_shard)]
 
         return cmd
 
@@ -461,12 +478,22 @@ class SnakemakeRunner(BaseRunner):
             if self.mode == "single":
                 snk_config_kvs.append(f"cleanup_bam={_parameter_value_to_string(bool(self.settings.cleanup_bam))}")
 
-            sample_map = self.inputs.sample_map
-            if sample_map:
-                snk_config_kvs.append(f"sample_map={sample_map}")
-                snk_config_kvs.append(
-                    f"workspace=cohort.genomicsdb.{self.settings.run_id}"
-                )
+            if self.mode == "cohort":
+                if self.settings.output_basename:
+                    snk_config_kvs.append(f"output_basename={self.settings.output_basename}")
+                if self.settings.cohort_stage != "all":
+                    snk_config_kvs.append(f"cohort_stage={self.settings.cohort_stage}")
+                if self.settings.interval_shard:
+                    snk_config_kvs.append(f"interval_shard={self.settings.interval_shard}")
+                if self.inputs.input_vcf:
+                    snk_config_kvs.append(f"input_vcf={self.inputs.input_vcf}")
+
+                sample_map = self.inputs.sample_map
+                if sample_map:
+                    snk_config_kvs.append(f"sample_map={sample_map}")
+                    snk_config_kvs.append(
+                        f"workspace=cohort.genomicsdb.{self.settings.run_id}"
+                    )
 
         for key, value in sorted(self.settings.snakemake_parameters.items()):
             if key == "target":
@@ -594,16 +621,26 @@ class NextflowRunner(BaseRunner):
 
         sample_map = self.inputs.sample_map
         if self.mode == "cohort":
-            if not sample_map:
+            if self.settings.output_basename:
+                cmd += ["--output_basename", str(self.settings.output_basename)]
+            if self.settings.cohort_stage != "all":
+                cmd += ["--cohort_stage", str(self.settings.cohort_stage)]
+            if self.settings.interval_shard:
+                cmd += ["--interval_shard", str(self.settings.interval_shard)]
+            if self.inputs.input_vcf:
+                cmd += ["--input_vcf", str(self.inputs.input_vcf)]
+
+            if not sample_map and self.settings.cohort_stage != "finalize":
                 raise WorkflowResolutionError(
                     "sample_map is required for workflow_backend='nextflow' with mode='cohort'."
                 )
-            cmd += [
-                "--sample_map",
-                str(sample_map),
-                "--workspace",
-                f"cohort.genomicsdb.{self.settings.run_id}",
-            ]
+            if sample_map:
+                cmd += [
+                    "--sample_map",
+                    str(sample_map),
+                    "--workspace",
+                    f"cohort.genomicsdb.{self.settings.run_id}",
+                ]
 
         helper_params = {
             "coverage": "coverage_script",
@@ -669,6 +706,16 @@ class CromwellRunner(BaseRunner):
         if not sample_map.is_file():
             raise WorkflowResolutionError(f"sample_map does not exist for Cromwell cohort input: {sample_map}")
         return sample_map.resolve()
+
+    def _input_vcf(self) -> Path:
+        if not self.inputs.input_vcf:
+            raise WorkflowResolutionError(
+                "input_vcf is required for workflow_backend='cromwell' with cohort_stage='finalize'."
+            )
+        input_vcf = Path(self.inputs.input_vcf)
+        if not input_vcf.is_file():
+            raise WorkflowResolutionError(f"input_vcf does not exist for Cromwell cohort finalize input: {input_vcf}")
+        return input_vcf.resolve()
 
     def _write_fastq_pairs(self) -> None:
         input_dir = self._input_dir()
@@ -773,13 +820,22 @@ class CromwellRunner(BaseRunner):
         else:
             payload.update(
                 {
-                    prefix + "sample_map": str(self._sample_map()),
                     prefix + "workspace": f"cohort.genomicsdb.{self.settings.run_id}",
+                    prefix + "output_basename": self.settings.output_basename or "cohort",
+                    prefix + "cohort_stage": self.settings.cohort_stage,
                     prefix + "vcf2hash_script": str(self.workflow.helpers["vcf2hash"]),
                     prefix + "min_snp_for_vqsr": int(expanded.get("min_snp_for_vqsr", 1000)),
                     prefix + "min_indel_for_vqsr": int(expanded.get("min_indel_for_vqsr", 8000)),
                 }
             )
+            if self.inputs.sample_map:
+                payload[prefix + "sample_map"] = str(self._sample_map())
+            elif self.settings.cohort_stage != "finalize":
+                self._sample_map()
+            if self.settings.interval_shard:
+                payload[prefix + "interval_shard"] = str(self.settings.interval_shard)
+            if self.inputs.input_vcf:
+                payload[prefix + "input_vcf"] = str(self._input_vcf())
 
         for key, value in sorted(self.settings.cromwell_parameters.items()):
             payload[key if "." in key else prefix + key] = value

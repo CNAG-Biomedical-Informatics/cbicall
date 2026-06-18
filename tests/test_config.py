@@ -228,6 +228,82 @@ def test_read_param_file_rejects_input_dir_file(tmp_path):
         config_mod.read_param_file(str(p))
 
 
+def test_read_param_file_accepts_bash_cohort_shard_controls(tmp_path):
+    sample_map = tmp_path / "sample_map.tsv"
+    sample_map.write_text("S1\t/s1.g.vcf.gz\n", encoding="utf-8")
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: cohort\n"
+        "pipeline: wes\n"
+        "workflow_backend: bash\n"
+        "software_stack: gatk-4.6\n"
+        "sample_map: sample_map.tsv\n"
+        "cohort_stage: shard\n"
+        "interval_shard: chr1\n"
+        "output_basename: cohort.chr1\n",
+        encoding="utf-8",
+    )
+
+    cfg = config_mod.read_param_file(str(p))
+    assert cfg["cohort_stage"] == "shard"
+    assert cfg["interval_shard"] == "chr1"
+    assert cfg["output_basename"] == "cohort.chr1"
+    assert cfg["sample_map"] == str(sample_map.resolve())
+
+
+def test_read_param_file_accepts_bash_cohort_finalize_controls(tmp_path):
+    input_vcf = tmp_path / "cohort.gv.raw.vcf.gz"
+    input_vcf.write_text("vcf\n", encoding="utf-8")
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: cohort\n"
+        "pipeline: wes\n"
+        "workflow_backend: bash\n"
+        "software_stack: gatk-4.6\n"
+        "cohort_stage: finalize\n"
+        "input_vcf: cohort.gv.raw.vcf.gz\n"
+        "output_basename: cohort\n",
+        encoding="utf-8",
+    )
+
+    cfg = config_mod.read_param_file(str(p))
+    assert cfg["cohort_stage"] == "finalize"
+    assert cfg["input_vcf"] == str(input_vcf.resolve())
+    assert cfg["output_basename"] == "cohort"
+
+
+def test_read_param_file_rejects_interval_shard_without_shard_stage(tmp_path):
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: cohort\n"
+        "pipeline: wes\n"
+        "workflow_backend: bash\n"
+        "software_stack: gatk-4.6\n"
+        "interval_shard: chr1\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ParameterValidationError, match="interval_shard.*cohort_stage='shard'"):
+        config_mod.read_param_file(str(p))
+
+
+def test_read_param_file_accepts_staged_cohort_native_backends(tmp_path):
+    p = tmp_path / "params.yaml"
+    p.write_text(
+        "mode: cohort\n"
+        "pipeline: wes\n"
+        "workflow_backend: snakemake\n"
+        "software_stack: gatk-4.6\n"
+        "cohort_stage: shard\n"
+        "interval_shard: chr1\n",
+        encoding="utf-8",
+    )
+
+    cfg = config_mod.read_param_file(str(p))
+    assert cfg["cohort_stage"] == "shard"
+    assert cfg["interval_shard"] == "chr1"
+
+
 def test_read_param_file_accepts_project_dir(tmp_path):
     p1 = tmp_path / "params_project_dir.yaml"
     p1.write_text(
@@ -1472,7 +1548,7 @@ def test_set_config_values_builds_normalized_workflow_structure(monkeypatch, tmp
     assert cfg["workflow"]["entrypoint"].endswith("workflows/bash/gatk-4.6/wes_single.sh")
     assert cfg["workflow"]["helpers"]["env"].endswith("workflows/bash/gatk-4.6/env.sh")
     assert "profiles" not in cfg["workflow"]
-    assert cfg["inputs"] == {"input_dir": None, "sample_map": None}
+    assert cfg["inputs"] == {"input_dir": None, "sample_map": None, "input_vcf": None}
 
 
 def test_set_config_values_applies_cnag_hpc_profile(monkeypatch, tmp_path):

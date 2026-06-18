@@ -1,0 +1,72 @@
+workdir: examples/input
+workflow_log: bash_gatk-4.6_wes_cohort_b37.log
+notes:
+  - This opt-in test first runs the WES Bash single-sample contract, then runs one staged WES cohort shard over the chr22 interval fixture.
+  - It validates cohort_stage=shard stops after GenotypeGVCFs and produces a raw shard VCF.
+env:
+  CBICALL_INTERVAL_LIST: tests/fixtures/integration/wes-cohort-chr22.interval_list
+setup_runs:
+  - wes-bash
+setup_files_from_runs:
+  - run: wes-bash
+    source: 02_varcall/CNAG99901P.hc.g.vcf.gz
+    source_index: 02_varcall/CNAG99901P.hc.g.vcf.gz.tbi
+    sample_map: cbicall-test-wes-cohort-sharded-sample-map.tsv
+    samples:
+      - CBICALL_COHORT_01
+      - CBICALL_COHORT_02
+      - CBICALL_COHORT_03
+run:
+  parameters:
+    mode: cohort
+    pipeline: wes
+    workflow_backend: bash
+    software_stack: gatk-4.6
+    resource: cbicall-germline-resources-v1
+    sample_map: cbicall-test-wes-cohort-sharded-sample-map.tsv
+    cohort_stage: shard
+    interval_shard: "22"
+    output_basename: cohort.22
+  base_dir: .
+  run_glob: cbicall_bash_gatk-4.6_wes_cohort_b37_*
+required_files:
+  - log.json
+  - run-report.json
+  - run-report.html
+  - bash_gatk-4.6_wes_cohort_b37.log
+  - 01_genomicsdb/genomicsdbimport.done
+  - 01_genomicsdb/wes.22.interval_list
+  - 02_varcall/cohort.22.gv.raw.vcf.gz
+  - 02_varcall/cohort.22.gv.raw.vcf.gz.tbi
+text_expectations:
+  - path: logs/cohort_joint_genotyping.log
+    contains: "cohort_stage: shard"
+  - path: logs/cohort_joint_genotyping.log
+    contains: "WES mode: generated shard interval list"
+  - path: logs/cohort_joint_genotyping.log
+    contains: "Shard stage complete. Raw cohort shard VCF: cohort.22.gv.raw.vcf.gz"
+json_expectations:
+  - path: status
+    equals: success
+  - path: workflow.backend
+    equals: bash
+  - path: workflow.pipeline
+    equals: wes
+  - path: workflow.mode
+    equals: cohort
+  - path: workflow.software_stack
+    equals: gatk-4.6
+  - path: workflow.registry_version
+    equals: v1
+  - path: resources.bundle.key
+    equals: cbicall-germline-resources-v1
+  - path: run.display_genome
+    equals: b37
+  - path: run.cohort_stage
+    equals: shard
+  - path: run.interval_shard
+    equals: "22"
+  - path: run.output_basename
+    equals: cohort.22
+cleanup_paths:
+  - 01_genomicsdb
