@@ -66,7 +66,12 @@ fi
 if [ ! -s "$SAMPLE_MAP" ]; then
   echo "Error: sample_map '$SAMPLE_MAP' not found or empty." >&2; exit 1
 fi
-SAMPLE_COUNT=$(wc -l < "$SAMPLE_MAP" | tr -d ' ')
+SAMPLE_COUNT=$(awk 'NF {n++} END {print n+0}' "$SAMPLE_MAP")
+if [ "$SAMPLE_COUNT" -lt 10 ]; then
+  GENOTYPE_ANNOTATION_EXCLUDE_ARG="-AX InbreedingCoeff"
+else
+  GENOTYPE_ANNOTATION_EXCLUDE_ARG=""
+fi
 if [ -z "$WORKSPACE" ]; then
   WORKSPACE="cohort.genomicsdb.${SAMPLE_COUNT}"
 fi
@@ -173,6 +178,7 @@ set -x
   -V "gendb://$WORKSPACE_PATH" \
   -O "$COHORT_RAW_VCF" \
   --stand-call-conf 10 \
+  $GENOTYPE_ANNOTATION_EXCLUDE_ARG \
   --tmp-dir "$TMPDIR" \
   $INTERVAL_ARG \
   2>> "$LOG"
@@ -290,12 +296,12 @@ set -x
   -R "$REF" \
   -V "$tmp_vcf" \
   --filter-name "LowQUAL" --filter-expression "QUAL < 30.0" \
-  --filter-name "QD2"        --filter-expression "QD < 2.0" \
+  --filter-name "QD2"        --filter-expression "vc.hasAttribute('QD') && QD < 2.0" \
   --filter-name "FS60"       --filter-expression "FS > 60.0" \
   --filter-name "MQ40"       --filter-expression "MQ < 40.0" \
   --filter-name "MQRS-12.5"  --filter-expression "vc.hasAttribute('MQRankSum') && MQRankSum < -12.5" \
   --filter-name "RPRS-8"     --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -8.0" \
-  --filter-name "QD2_indel"  --filter-expression "QD < 2.0" \
+  --filter-name "QD2_indel"  --filter-expression "vc.hasAttribute('QD') && QD < 2.0" \
   --filter-name "FS200"      --filter-expression "FS > 200.0" \
   --filter-name "RPRS-20"    --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -20.0" \
   -O "$COHORT_QC_VCF" \

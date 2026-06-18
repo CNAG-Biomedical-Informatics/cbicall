@@ -377,12 +377,12 @@ rule vqsr_and_qc:
           -R {REF} \
           -V "$tmp_vcf" \
           --filter-name "LowQUAL" --filter-expression "QUAL < 30.0" \
-          --filter-name "QD2"        --filter-expression "QD < 2.0" \
+          --filter-name "QD2"        --filter-expression "vc.hasAttribute('QD') && QD < 2.0" \
           --filter-name "FS60"       --filter-expression "FS > 60.0" \
           --filter-name "MQ40"       --filter-expression "MQ < 40.0" \
           --filter-name "MQRS-12.5"  --filter-expression "vc.hasAttribute('MQRankSum') && MQRankSum < -12.5" \
           --filter-name "RPRS-8"     --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -8.0" \
-          --filter-name "QD2_indel"  --filter-expression "QD < 2.0" \
+          --filter-name "QD2_indel"  --filter-expression "vc.hasAttribute('QD') && QD < 2.0" \
           --filter-name "FS200"      --filter-expression "FS > 200.0" \
           --filter-name "RPRS-20"    --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -20.0" \
           -O {output.qc} \

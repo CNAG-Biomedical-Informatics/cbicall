@@ -90,6 +90,12 @@ task RunCohort {
     LOGDIR="logs"
     mkdir -p "$GENOMICSDBDIR" "$VARCALLDIR" "$STATSDIR" "$LOGDIR"
     LOG="$LOGDIR/cohort_joint_genotyping.log"
+    SAMPLE_COUNT=$(awk 'NF {n++} END {print n+0}' "~{sample_map}")
+    if [ "$SAMPLE_COUNT" -lt 10 ]; then
+      GENOTYPE_ANNOTATION_EXCLUDE_ARG="-AX InbreedingCoeff"
+    else
+      GENOTYPE_ANNOTATION_EXCLUDE_ARG=""
+    fi
     case "~{workspace}" in
       /*) WORKSPACE_PATH="~{workspace}" ;;
       *) WORKSPACE_PATH="$GENOMICSDBDIR/~{workspace}" ;;
@@ -142,6 +148,7 @@ task RunCohort {
       -V "gendb://$WORKSPACE_PATH" \
       -O cohort.gv.raw.vcf.gz \
       --stand-call-conf 10 \
+      $GENOTYPE_ANNOTATION_EXCLUDE_ARG \
       --tmp-dir "~{tmpdir}" \
       $INTERVAL_ARG \
       2>> "../$LOG"
@@ -220,12 +227,12 @@ task RunCohort {
       -R "~{ref}" \
       -V "$tmp_vcf" \
       --filter-name "LowQUAL" --filter-expression "QUAL < 30.0" \
-      --filter-name "QD2"        --filter-expression "QD < 2.0" \
+      --filter-name "QD2"        --filter-expression "vc.hasAttribute('QD') && QD < 2.0" \
       --filter-name "FS60"       --filter-expression "FS > 60.0" \
       --filter-name "MQ40"       --filter-expression "MQ < 40.0" \
       --filter-name "MQRS-12.5"  --filter-expression "vc.hasAttribute('MQRankSum') && MQRankSum < -12.5" \
       --filter-name "RPRS-8"     --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -8.0" \
-      --filter-name "QD2_indel"  --filter-expression "QD < 2.0" \
+      --filter-name "QD2_indel"  --filter-expression "vc.hasAttribute('QD') && QD < 2.0" \
       --filter-name "FS200"      --filter-expression "FS > 200.0" \
       --filter-name "RPRS-20"    --filter-expression "vc.hasAttribute('ReadPosRankSum') && ReadPosRankSum < -20.0" \
       -O cohort.gv.QC.vcf.gz \
