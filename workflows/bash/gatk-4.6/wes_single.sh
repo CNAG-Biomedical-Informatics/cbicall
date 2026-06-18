@@ -120,7 +120,7 @@ for R1 in ../*_R1_*fastq.gz; do
   # ...
 
   # Align without filtering (keep all alignments):
-  $BWA mem -M -t "$THREADS" "$REFGZ" "$R1" "$R2" \
+  $BWA mem -M -t "$THREADS" "$REFGZ" "$R1" "$R2" 2>> "$LOG" \
     | "$GATK4_BIN" $GATK4_JAVA_OPTS AddOrReplaceReadGroups \
         --INPUT /dev/stdin \
         --OUTPUT "$out_bam" \

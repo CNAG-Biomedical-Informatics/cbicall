@@ -77,6 +77,27 @@ def test_gatk46_qd_filters_are_guarded():
         assert '--filter-expression "QD < 2.0"' not in text, relpath
 
 
+def test_gatk46_single_bwa_stderr_is_logged_before_pipe():
+    expected_by_file = {
+        "workflows/bash/gatk-4.6/wes_single.sh": (
+            '$BWA mem -M -t "$THREADS" "$REFGZ" "$R1" "$R2" 2>> "$LOG" \\'
+        ),
+        "workflows/snakemake/gatk-4.6/wes_single.smk": (
+            "{BWA} mem -M -t {threads} {REFGZ} {input.r1} {input.r2} 2>> {log} \\"
+        ),
+        "workflows/nextflow/gatk-4.6/wes_single.nf": (
+            '${BWA} mem -M -t ${task.cpus} ${q(REFGZ)} ${q(r1)} ${q(r2)} '
+            '2>> ${q("${ID}.01_align_rg.${base}.log")} \\\\'
+        ),
+        "workflows/cromwell/gatk-4.6/wes_single.wdl": (
+            '~{bwa} mem -M -t ~{threads} "~{refgz}" "$R1" "$R2" 2>> "$LOG" \\'
+        ),
+    }
+    for relpath, expected in expected_by_file.items():
+        text = (REPO_ROOT / relpath).read_text(encoding="utf-8")
+        assert expected in text, relpath
+
+
 def test_gatk46_small_cohort_excludes_inbreeding_coeff():
     workflow_files = [
         "workflows/bash/gatk-4.6/wes_cohort.sh",

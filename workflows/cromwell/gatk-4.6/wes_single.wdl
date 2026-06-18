@@ -125,7 +125,7 @@ task RunWesSingle {
       RGPU="$sample_name.$base.unit1"
       out_bam="$BAMDIR/$base.rg.bam"
       echo "Aligning $base to $out_bam"
-      ~{bwa} mem -M -t ~{threads} "~{refgz}" "$R1" "$R2" \
+      ~{bwa} mem -M -t ~{threads} "~{refgz}" "$R1" "$R2" 2>> "$LOG" \
         | ~{gatk4_cmd} AddOrReplaceReadGroups \
             --INPUT /dev/stdin \
             --OUTPUT "$out_bam" \
