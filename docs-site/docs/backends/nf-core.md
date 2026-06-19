@@ -1,10 +1,10 @@
 # nf-core Provider
 
 CBIcall can launch registered [nf-core](https://nf-co.re/) pipelines through
-[Nextflow](https://www.nextflow.io/docs/latest/). CBIcall validates the YAML,
-pins the registered nf-core release, writes the Nextflow params/config files,
-and records the run metadata. The nf-core pipeline keeps its own upstream output
-layout and runtime behavior.
+[Nextflow](https://www.nextflow.io/docs/latest/). CBIcall validates the YAML
+contract, pins the registered nf-core release, writes the Nextflow params/config
+files, and records the run metadata. The nf-core pipeline keeps its own upstream
+output layout and runtime behavior.
 
 In CBIcall terms, nf-core is a **workflow provider** and Nextflow is the
 **workflow backend**. Registered nf-core entries are launched through the

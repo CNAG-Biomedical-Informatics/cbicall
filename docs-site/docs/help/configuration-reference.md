@@ -111,6 +111,13 @@ interval_shard:  chr1
 output_basename: cohort.chr1
 ```
 
+:::note[GenomicsDB workspace]
+There is no user-facing `workspace` key in the parameters YAML. CBIcall controls
+GenomicsDB workspace names and creates one workspace per run under
+`01_genomicsdb/cohort.genomicsdb.<run-id>`. Use `output_basename` for shard-specific
+VCF names.
+:::
+
 After all raw shard VCFs have been concatenated and indexed, run final filtering:
 
 ```yaml
@@ -126,7 +133,8 @@ output_basename: cohort
 
 Staged cohort keys are currently supported only with CBIcall-native
 `software_stack: gatk-4.6`, `mode: cohort`, and `workflow_backend` set to
-`bash`, `snakemake`, `nextflow`, or `cromwell`.
+`bash`, `snakemake`, `nextflow`, or `cromwell`. See the WES/WGS cohort page for
+a GNU parallel chromosome-sharding example.
 
 ### mtDNA
 

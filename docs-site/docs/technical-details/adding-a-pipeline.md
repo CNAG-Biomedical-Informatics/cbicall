@@ -40,8 +40,8 @@ For an external workflow, usually do this:
 | Decision | Examples | Why it matters |
 | --- | --- | --- |
 | Integration level | native, external | Determines whether the workflow must follow the CBIcall output contract. |
-| Backend | `bash`, `snakemake`, `nextflow`, `cromwell` | Determines how CBIcall launches the workflow. |
-| Provider | `cbicall`, `nf-core` | Identifies whether the workflow is maintained by CBIcall or an external ecosystem. |
+| Workflow backend | `bash`, `snakemake`, `nextflow`, `cromwell` | Determines how CBIcall launches the workflow. |
+| Workflow provider | `cbicall`, `nf-core` | Identifies whether the workflow is maintained by CBIcall or an external ecosystem. |
 | Software stack | `gatk-3.5`, `gatk-4.6`, `nf-core` | Selects implementation files or an external workflow source. |
 | Pipeline and mode | `wes`/`single`, `wgs`/`cohort` | Defines the user-facing YAML values and registry path. |
 | Inputs | `input_dir`, `sample_map`, backend parameters | Defines how users provide samples and workflow-specific options. |

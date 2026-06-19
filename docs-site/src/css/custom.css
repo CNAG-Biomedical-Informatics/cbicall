@@ -124,6 +124,42 @@
   box-shadow: 0 8px 20px rgba(15, 47, 67, 0.045);
 }
 
+
+.cbicallInfoDetails {
+  margin: 1.25rem 0 1.75rem;
+  border: 1px solid rgba(15, 111, 143, 0.26);
+  border-left: 5px solid var(--ifm-color-primary);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(239, 248, 250, 0.82), rgba(255, 255, 255, 0.96));
+  box-shadow: 0 10px 24px rgba(15, 47, 67, 0.05);
+}
+
+.cbicallInfoDetails summary {
+  padding: 0.8rem 1rem;
+  color: var(--ifm-color-primary-darkest);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.cbicallInfoDetails > :not(summary) {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+
+.cbicallInfoDetails > table {
+  margin-top: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+[data-theme='dark'] .cbicallInfoDetails {
+  background: linear-gradient(180deg, rgba(15, 111, 143, 0.16), rgba(18, 24, 31, 0.96));
+  border-color: rgba(95, 183, 210, 0.36);
+}
+
+[data-theme='dark'] .cbicallInfoDetails summary {
+  color: var(--ifm-color-primary-lightest);
+}
+
 .cbicallCodeDetails summary {
   padding: 0.75rem 1rem;
   color: var(--ifm-color-primary-darkest);

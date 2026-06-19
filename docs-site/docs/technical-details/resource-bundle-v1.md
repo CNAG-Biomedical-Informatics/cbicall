@@ -34,11 +34,11 @@ records this key, the resource version, and a catalog fingerprint, so two runs
 can be checked for the same declared external dependency set.
 :::
 
-## Supported Workflows
+## Compatible Native Workflows
 
-This bundle is compatible with the packaged workflows below.
+This bundle is compatible with the packaged CBIcall-native workflows below.
 
-| Backend | WES | WGS | mtDNA |
+| Workflow backend | WES | WGS | mtDNA |
 | --- | --- | --- | --- |
 | `bash` | `single`, `cohort` with `gatk-3.5` or `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-3.5` |
 | `snakemake` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |

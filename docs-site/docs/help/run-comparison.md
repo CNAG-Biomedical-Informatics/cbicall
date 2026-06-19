@@ -48,7 +48,7 @@ all-to-all matrix. Use aliases when run-directory names are long or opaque.
 ![Screenshot of the Pairwise Audit tab in a four-run CBIcall compare-runs HTML report, showing one NxN matrix per audit layer.](/img/compare-runs-multi-pairwise-audit.png)
 
 </TabItem>
-<TabItem value="multiqc" label="MultiQC summary">
+<TabItem value="multiqc" label="Optional MultiQC">
 
 ```bash
 bin/cbicall compare-runs run_local/ run_cloud/ run_hpc/ \
@@ -58,10 +58,10 @@ bin/cbicall compare-runs run_local/ run_cloud/ run_hpc/ \
 multiqc compare-report_mqc/
 ```
 
-`--multiqc` writes a custom-content directory with numeric per-run statistics,
-pairwise status/similarity categories, aggregate status counts, and an overall
-audit-similarity heatmap. The CBIcall HTML report remains the detailed audit
-view.
+`--multiqc` writes a custom-content directory for projects that already
+aggregate QC with MultiQC. It includes numeric per-run statistics, pairwise
+status/similarity categories, aggregate status counts, and an audit-similarity
+heatmap. The CBIcall text and HTML reports remain the primary audit evidence.
 
 ![Screenshot of a MultiQC report generated from CBIcall compare-runs custom content, showing the General Statistics table and CBIcall sections.](/img/multiqc-cbicall-overview.png)
 
@@ -110,7 +110,8 @@ fingerprints.
 For WES/WGS output reproducibility, read VCF rows in this order:
 
 1. **`<vcf> calls`** - hashes `CHROM`, `POS`, `REF`, `ALT`, `FILTER`, and
-   genotype (`GT`) values for all samples in VCF sample order. This is the
+   genotype (`GT`) values for all samples in VCF sample order. Because
+   `FILTER` is included, PASS and non-PASS records are both audited. This is the
    primary CBIcall check for whether final reported variant calls match.
 2. **`<vcf> strict records`** - hashes complete non-header VCF records after
    sorting. This stricter check also captures `QUAL`, `INFO`, `FORMAT`, `PL`,

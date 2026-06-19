@@ -143,7 +143,7 @@ CBIcall supports two analysis modes:
 
 Workflow backends execute workflow definitions:
 
-| Backend | Role |
+| Workflow backend | Role |
 | --- | --- |
 | `bash` | Direct native shell workflow execution. |
 | `snakemake` | Native Snakemake workflow execution. |
@@ -152,7 +152,7 @@ Workflow backends execute workflow definitions:
 
 Workflow providers identify where the implementation comes from:
 
-| Provider | Meaning |
+| Workflow provider | Meaning |
 | --- | --- |
 | `cbicall` | Pipeline implementation is maintained as part of CBIcall and follows the CBIcall output contract. |
 | `nf-core` | Pipeline implementation comes from nf-core and keeps its upstream output layout. |

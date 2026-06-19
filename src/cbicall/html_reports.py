@@ -2031,9 +2031,13 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
     .pairwise-table thead th {
       background: #f8fafc;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 850;
-      text-transform: uppercase;
+      text-transform: none;
+    }
+    .pairwise-table thead th:first-child {
+      background: #e8f2ff;
+      color: #1e3a8a;
     }
     .pairwise-cell {
       box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.76);

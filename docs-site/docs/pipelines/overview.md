@@ -8,8 +8,8 @@ This page summarizes the analysis pipelines CBIcall can launch and the backend c
 | --- | --- | --- |
 | Pipeline | `pipeline` | The analysis family: `wes`, `wgs`, `mit`, or a registered external pipeline such as `sarek`. |
 | Mode | `mode` | The run shape, usually `single` or `cohort`. |
-| Backend | `workflow_backend` | The execution technology: Bash, Snakemake, Nextflow, or Cromwell. |
-| Provider | `workflow_provider` | Who supplies the implementation: `cbicall` for native CBIcall pipelines, `nf-core` for registered external provider entries. |
+| Workflow backend | `workflow_backend` | The execution technology: Bash, Snakemake, Nextflow, or Cromwell. |
+| Workflow provider | `workflow_provider` | Who supplies the implementation: `cbicall` for native CBIcall pipelines, `nf-core` for registered external provider entries. |
 
 A pipeline implementation is **native** when it produces the CBIcall output contract: standard
 run directory, logs, reports, output inventory, and final-output fingerprints

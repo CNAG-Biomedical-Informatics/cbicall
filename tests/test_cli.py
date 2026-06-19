@@ -2122,6 +2122,9 @@ def test_render_compare_html_all_to_all_matrix_view():
     assert "pairwise-status" in html_text
     assert "pairwise-score" in html_text
     assert "strict status different" in html_text
+    assert ".pairwise-table thead th:first-child" in html_text
+    assert "background: #e8f2ff" in html_text
+    assert "text-transform: none" in html_text
     assert "<h3>Final VCF<span" not in html_text
     assert "<h3>Final VCF calls" in html_text
     assert "<h3>Final VCF strict records" in html_text

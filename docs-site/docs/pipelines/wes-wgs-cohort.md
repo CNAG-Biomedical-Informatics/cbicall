@@ -172,6 +172,13 @@ For WGS, `interval_shard` must match a contig in the reference dictionary, such
 as `chr1` for hg38. For WES, CBIcall filters the configured WES interval list to
 records whose contig column matches `interval_shard`.
 
+:::note[GenomicsDB workspace names]
+Do not set a GenomicsDB workspace in the parameters YAML. CBIcall creates a unique
+workspace for each run under `01_genomicsdb/cohort.genomicsdb.<run-id>`, so
+parallel shard jobs do not collide. Use `output_basename` to control the VCF
+stems users see, for example `cohort.chr1`.
+:::
+
 Run one YAML per shard, changing `interval_shard` and `output_basename`:
 
 ```bash
@@ -179,12 +186,66 @@ bin/cbicall run -p cohort.chr1.yaml -t 12
 bin/cbicall run -p cohort.chr2.yaml -t 12
 ```
 
+#### Run Chromosome Shards With GNU Parallel
+
+On a workstation, GNU parallel is a convenient way to launch a small number of
+chromosome shard jobs concurrently. On HPC, use the same YAML keys but submit
+each chromosome as a scheduler job instead of running GNU parallel on the login
+node.
+
+<details>
+<summary>Workstation GNU parallel example</summary>
+
+This example launches one WES b37 shard per chromosome with two concurrent
+CBIcall runs (`-j 2`). It assumes one sample map per chromosome, named
+`sample_map.chr1.txt` ... `sample_map.chr22.txt`, `sample_map.chrX.txt`, and
+`sample_map.chrY.txt`. Each sample map should contain absolute gVCF paths.
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+export CBICALL=/path/to/cbicall/bin/cbicall
+export ROOT=/path/to/project
+
+parallel --halt soon,fail=1 --joblog cbicall.shards.joblog -j 2 \
+  --env CBICALL --env ROOT '
+  set -euo pipefail
+  chr={1}
+  yaml="cbicall.chr${chr}.yaml"
+
+  printf "%s\n" \
+    "mode: cohort" \
+    "pipeline: wes" \
+    "workflow_backend: bash" \
+    "software_stack: gatk-4.6" \
+    "genome: b37" \
+    "sample_map: ${ROOT}/sample_map.chr${chr}.txt" \
+    "cohort_stage: shard" \
+    "interval_shard: ${chr}" \
+    "output_basename: cohort.chr${chr}" \
+    > "$yaml"
+
+  "$CBICALL" -p "$yaml" -t 4
+' ::: $(seq 22 -1 1) X Y
+```
+
+</details>
+
+For WES b37, `interval_shard` uses bare contig labels (`1`, `2`, ..., `22`,
+`X`, `Y`) because the bundled b37 exome interval list uses bare contig names.
+For WGS hg38, use reference-dictionary labels such as `chr1`.
+
 After all shard jobs finish, concatenate the raw shard VCFs in genomic order:
 
 ```bash
-bcftools concat -Oz -o cohort.gathered.gv.raw.vcf.gz \
-  cohort.chr1.gv.raw.vcf.gz \
-  cohort.chr2.gv.raw.vcf.gz
+set -euo pipefail
+
+for chr in $(seq 1 22) X Y; do
+  ls -1 cbicall_*/02_varcall/cohort.chr${chr}.gv.raw.vcf.gz
+done > raw_vcfs.list
+
+bcftools concat -f raw_vcfs.list -Oz -o cohort.gathered.gv.raw.vcf.gz
 bcftools index -t cohort.gathered.gv.raw.vcf.gz
 ```
 
