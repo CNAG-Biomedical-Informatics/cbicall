@@ -117,24 +117,41 @@ const sidebars: SidebarsConfig = {
           label: 'Overview',
         },
         {
+          type: 'category',
+          label: 'Audit & Reports',
+          items: [
+            {
+              type: 'doc',
+              id: 'help/outputs',
+              label: 'Outputs',
+            },
+            {
+              type: 'doc',
+              id: 'help/run-comparison',
+              label: 'Run Comparison',
+            },
+          ],
+        },
+        {
           type: 'doc',
           id: 'validation/integration-tests',
           label: 'Integration Tests',
         },
         {
-          type: 'doc',
-          id: 'validation/cross-environment',
-          label: 'Cross-Environment',
-        },
-        {
-          type: 'doc',
-          id: 'validation/giab',
-          label: 'GIAB Benchmarking',
-        },
-        {
-          type: 'doc',
-          id: 'validation/run-comparison',
-          label: 'Run Comparison',
+          type: 'category',
+          label: 'Validation Studies',
+          items: [
+            {
+              type: 'doc',
+              id: 'validation/cross-environment',
+              label: 'Cross-Environment',
+            },
+            {
+              type: 'doc',
+              id: 'validation/giab',
+              label: 'GIAB Benchmarking',
+            },
+          ],
         },
         {
           type: 'doc',
@@ -182,11 +199,6 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
           id: 'help/configuration-reference',
           label: 'Configuration',
-        },
-        {
-          type: 'doc',
-          id: 'help/outputs',
-          label: 'Outputs',
         },
         {
           type: 'doc',

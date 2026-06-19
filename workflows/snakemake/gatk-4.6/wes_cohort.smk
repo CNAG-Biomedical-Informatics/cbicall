@@ -51,6 +51,7 @@ MEM          = config.get("mem", "8G")
 MEM_GENOTYPE = config.get("mem_genotype", "64G")
 GATK4_8G  = config["gatk4_cmd"].format(ngsutils=NGSUTILS, mem=MEM)
 GATK4_64G = config["gatk4_cmd"].format(ngsutils=NGSUTILS, mem=MEM_GENOTYPE)
+VCF2HASH = config.get("vcf2hash_script") or str(snakefile_dir / "vcf2hash.sh")
 
 resource_cfg  = config["resources"][GENOME]
 bundle        = resource_cfg["bundle"].format(dbdir=DBDIR)
@@ -77,9 +78,11 @@ if COHORT_STAGE != "finalize" and not SAMPLE_MAP:
 LOGDIR = "logs"
 GENOMICSDBDIR = "01_genomicsdb"
 VARCALLDIR = "02_varcall"
+STATSDIR = "03_stats"
 os.makedirs(LOGDIR, exist_ok=True)
 os.makedirs(GENOMICSDBDIR, exist_ok=True)
 os.makedirs(VARCALLDIR, exist_ok=True)
+os.makedirs(STATSDIR, exist_ok=True)
 
 def write_wes_shard_interval_list(source_list, shard, out_path):
     found = False
@@ -164,12 +167,16 @@ COHORT_VQSR_INDEL     = os.path.join(VARCALLDIR, f"{OUTPUT_BASENAME}.indel.recal
 COHORT_INDEL_TRANCHES = os.path.join(VARCALLDIR, f"{OUTPUT_BASENAME}.indel.tranches.txt")
 COHORT_POST_SNP       = os.path.join(VARCALLDIR, f"{OUTPUT_BASENAME}.post_snp.vcf.gz")
 COHORT_POST_VQSR      = os.path.join(VARCALLDIR, f"{OUTPUT_BASENAME}.vqsr.vcf.gz")
+COHORT_HASH           = os.path.join(STATSDIR, f"{OUTPUT_BASENAME}.gv.QC.vcf.sha256.txt")
 RAW_VCF_FOR_FILTERING = INPUT_VCF if COHORT_STAGE == "finalize" else COHORT_RAW_VCF
 FINAL_TARGET = COHORT_RAW_VCF if COHORT_STAGE == "shard" else COHORT_QC_VCF
+FINAL_TARGETS = [FINAL_TARGET]
+if COHORT_STAGE != "shard":
+    FINAL_TARGETS.append(COHORT_HASH)
 
 rule all:
     input:
-        FINAL_TARGET
+        FINAL_TARGETS
 
 rule genomicsdbimport:
     input:
@@ -335,4 +342,17 @@ rule vqsr_and_qc:
 
         echo "Cohort QC VCF written: {output.qc}" >> {log}
         echo "All done. Cohort raw: {input.raw} ; Cohort QC: {output.qc}" >> {log}
+        """
+
+rule vcf_hash:
+    input:
+        qc=COHORT_QC_VCF
+    output:
+        vcf_hash=COHORT_HASH
+    log:
+        os.path.join(LOGDIR, "04_vcf_hash.log")
+    shell:
+        r"""
+        set -eu
+        bash {VCF2HASH} {input.qc} > {output.vcf_hash} 2>> {log}
         """

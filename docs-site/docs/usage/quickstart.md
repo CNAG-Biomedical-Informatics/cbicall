@@ -102,5 +102,5 @@ For most WES/WGS runs, start with 4 threads and adjust after checking
 | Run nf-core workflows | [nf-core Provider](../backends/nf-core) |
 | Run real WES/WGS data | [End-to-end Example: WES](end-to-end-example-wes) |
 | Run mtDNA analysis | [End-to-end Example: mtDNA](end-to-end-example-mit) |
-| Check reproducibility | [Run Comparison](../validation/run-comparison) |
+| Check reproducibility | [Run Comparison](../help/run-comparison) |
 | Understand generated files | [Outputs](../help/outputs) |

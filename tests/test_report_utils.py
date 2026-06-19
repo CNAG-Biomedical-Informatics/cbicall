@@ -13,7 +13,7 @@ def _report(**overrides):
         "execution_contract": {"generated_files": [{"role": "params", "normalized_sha256": "b" * 64}, {}]},
         "outputs": {
             "file_inventory": {"entries": 1, "total_bytes": 1536, "sha256": "manifest"},
-            "vcf_hash_reports": [{"file": "/tmp/sample.vcf.gz", "normalized_sha256": "c" * 64}, "bad"],
+            "vcf_hash_reports": [{"file": "/tmp/sample.vcf.gz", "normalized_sha256": "c" * 64, "call_sha256": "e" * 64}, "bad"],
         },
         "resources": {"bundle": {"key": "bundle", "version": "v1", "fingerprint": "d" * 64}},
     }
@@ -50,6 +50,7 @@ def test_report_utils_maps_statuses_and_sections():
     assert ru._multi_workflow_file_value("entrypoint", report) == "a" * 64
     assert ru._multi_workflow_file_value("missing", report) is None
     assert ru._multi_vcf_hash_value("missing.vcf.gz", report) is None
+    assert ru._multi_vcf_call_value("sample.vcf.gz", report) == "e" * 64
 
     same_hash_other_path = _report(
         workflow={
@@ -87,3 +88,6 @@ def test_report_utils_maps_statuses_and_sections():
     assert names[0] == "Overall"
     assert "Final VCF" in names
     assert any(row["label"] == "Inventory size" for row in sections[0]["rows"])
+    assert any(row["label"] == "sample.vcf.gz calls" for row in sections[-1]["rows"])
+    labels = [row["label"] for row in sections[-1]["rows"]]
+    assert labels.index("sample.vcf.gz calls") < labels.index("sample.vcf.gz strict records")

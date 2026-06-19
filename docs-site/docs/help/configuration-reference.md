@@ -212,7 +212,7 @@ workflow and records resource key, version, and fingerprint provenance in
 `log.json` and `run-report.json`.
 
 Use [Resource Validation](../usage/resource-validation) for resource checks and
-[Run Comparison](../validation/run-comparison) to compare repeated runs.
+[Run Comparison](run-comparison) to compare repeated runs.
 
 ## Registry Version
 

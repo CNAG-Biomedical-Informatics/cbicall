@@ -1,6 +1,7 @@
 import io
 import gzip
 import json
+import subprocess
 import sys
 import time
 from types import SimpleNamespace
@@ -169,6 +170,7 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
     assert inventory["paths"] == ["03_stats/sample.vcf.sha256.txt", "cbicall-execution-contract.json", "env.sh", "log.json", "wes_single.sh", "workflow.log"]
     assert len(inventory["sha256"]) == 64
     assert data["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] == "normalized"
+    assert data["outputs"]["vcf_hash_reports"][0]["call_sha256"] is None
     assert data["software_versions"]["scope"] == "resource_declared"
     assert data["software_versions"]["entries"]["gatk4"]["version"] == "4.6.2.0"
     assert len(data["software_versions"]["sha256"]) == 64
@@ -381,6 +383,9 @@ def test_write_run_report_hashes_registry_canonical_vcfs(tmp_path, monkeypatch):
     assert vcf_report["name"] == "haplotypecaller_vcf"
     assert vcf_report["normalized_records"] == 1
     assert len(vcf_report["normalized_sha256"]) == 64
+    assert vcf_report["call_fields"] == "CHROM,POS,REF,ALT,FILTER,GT_ALL_SAMPLES"
+    assert vcf_report["call_records"] == 1
+    assert len(vcf_report["call_sha256"]) == 64
     assert data["software_versions"]["status"] == "parsed"
     assert data["software_versions"]["scope"] == "workflow_reported"
     assert data["software_versions"]["entries"]["GATK4_HAPLOTYPECALLER"]["gatk4"] == "4.6.1.0"
@@ -474,7 +479,7 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
         "outputs": {
             "file_inventory": {"entries": 3, "total_bytes": 1536, "sha256": "manifest-a"},
             "vcf_hash_reports": [
-                {"file": "sample.vcf.gz", "normalized_sha256": "vcf"}
+                {"file": "sample.vcf.gz", "normalized_sha256": "vcf", "call_sha256": "call-a"}
             ]
         },
     }
@@ -489,6 +494,7 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     changed["outputs"]["file_inventory"]["total_bytes"] = 2048
     changed["outputs"]["file_inventory"]["sha256"] = "manifest-b"
     changed["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] = "vcf"
+    changed["outputs"]["vcf_hash_reports"][0]["call_sha256"] = "call-b"
 
     (run_a / "run-report.json").write_text(json.dumps(base), encoding="utf-8")
     (run_b / "run-report.json").write_text(json.dumps(changed), encoding="utf-8")
@@ -554,6 +560,8 @@ def test_compare_runs_reports_workflow_and_output_differences(tmp_path, capsys):
     assert "task/RAM traces require a backend execution trace" in html_text
     assert "class=\"pill different\"" in html_text
     assert "class=\"pill same\"" in html_text
+    assert "Call-level VCF fingerprint" in html_text
+    assert "Strict VCF fingerprint" in html_text
 
 
 def test_compare_runs_marks_inventory_size_only_drift_as_note(tmp_path, capsys):
@@ -618,6 +626,75 @@ def test_compare_runs_refreshes_vcf_hashes_from_existing_run_dirs(tmp_path, caps
     assert "vcf-0" in out
     assert "vcf-1" in out
     assert "VCF hashes   => not available" not in out
+
+
+def test_compare_runs_distinguishes_strict_vcf_from_call_level_vcf(tmp_path, capsys):
+    run_a = tmp_path / "run_a"
+    run_b = tmp_path / "run_b"
+    run_a.mkdir()
+    run_b.mkdir()
+
+    base = {
+        "framework": {"version": "1.2.3"},
+        "runtime": {"python": {"version": "3.12.3"}, "backend": {"version": "bash"}},
+        "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "files": []},
+        "resources": {"bundle": {}},
+        "outputs": {
+            "file_inventory": {"entries": 3, "total_bytes": 1536, "sha256": "same-paths"},
+            "vcf_hash_reports": [
+                {
+                    "file": "sample.vcf.gz",
+                    "normalized_sha256": "strict-a",
+                    "call_sha256": "calls-same",
+                }
+            ],
+        },
+    }
+    changed = json.loads(json.dumps(base))
+    changed["outputs"]["vcf_hash_reports"][0]["normalized_sha256"] = "strict-b"
+
+    (run_a / "run-report.json").write_text(json.dumps(base), encoding="utf-8")
+    (run_b / "run-report.json").write_text(json.dumps(changed), encoding="utf-8")
+
+    assert cli_mod._run_compare_runs_command([str(run_a), str(run_b), "--no-color", "--no-html"]) == 0
+
+    out = capsys.readouterr().out
+    assert "sample.vcf.gz strict records" in out
+    assert "different: strict-a != strict-b" in out
+    assert "sample.vcf.gz calls" in out
+    assert "same: calls-same" in out
+    assert out.index("sample.vcf.gz calls") < out.index("sample.vcf.gz strict records")
+
+
+def test_vcf2hash_reports_call_level_hash_for_stable_calls(tmp_path):
+    repo_root = Path(__file__).resolve().parents[1]
+    vcf_a = tmp_path / "a.vcf"
+    vcf_b = tmp_path / "b.vcf"
+    vcf_a.write_text(
+        "##fileformat=VCFv4.2\n"
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS1\tS2\n"
+        "1\t10\t.\tA\tG\t99\tPASS\tDP=10\tGT:AD:PL\t0/1:5,5:99,0,99\t1/1:0,9:99,9,0\n",
+        encoding="utf-8",
+    )
+    vcf_b.write_text(
+        "##fileformat=VCFv4.2\n"
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS1\tS2\n"
+        "1\t10\t.\tA\tG\t98\tPASS\tDP=10\tGT:AD:PL\t0/1:5,5:98,0,99\t1/1:0,9:99,8,0\n",
+        encoding="utf-8",
+    )
+
+    script = repo_root / "workflows" / "bash" / "gatk-4.6" / "vcf2hash.sh"
+    proc_a = subprocess.run([str(script), str(vcf_a)], capture_output=True, text=True, check=True)
+    proc_b = subprocess.run([str(script), str(vcf_b)], capture_output=True, text=True, check=True)
+    (tmp_path / "a.hash").write_text(proc_a.stdout, encoding="utf-8")
+    (tmp_path / "b.hash").write_text(proc_b.stdout, encoding="utf-8")
+    parsed_a = cli_mod._parse_key_value_file(tmp_path / "a.hash")
+    parsed_b = cli_mod._parse_key_value_file(tmp_path / "b.hash")
+
+    assert parsed_a["normalized_sha256"] != parsed_b["normalized_sha256"]
+    assert parsed_a["call_fields"] == "CHROM,POS,REF,ALT,FILTER,GT_ALL_SAMPLES"
+    assert parsed_a["call_records"] == "1"
+    assert parsed_a["call_sha256"] == parsed_b["call_sha256"]
 
 
 def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys):
@@ -894,7 +971,14 @@ SEX=FEMALE
         "outputs": {
             "file_inventory": {"entries": 5, "total_bytes": 1048576},
             "vcf_hash_reports": [
-                {"file": "sample.vcf.gz", "normalized_records": "10", "normalized_sha256": "d" * 64, "raw_sha256": "e" * 64}
+                {
+                    "file": "sample.vcf.gz",
+                    "call_records": "10",
+                    "call_sha256": "f" * 64,
+                    "normalized_records": "10",
+                    "normalized_sha256": "d" * 64,
+                    "raw_sha256": "e" * 64,
+                }
             ],
         },
         "run": {"run_id": "RID", "threads": 4, "display_genome": "b37"},
@@ -924,7 +1008,11 @@ SEX=FEMALE
     assert sample_qc["data"]["sample"]["Mean coverage"] == 12.5
     assert sample_qc["data"]["sample"]["Sex"] == "FEMALE"
     final_outputs = yaml.safe_load((mqc_dir / "cbicall_final_outputs_mqc.yaml").read_text(encoding="utf-8"))
-    assert final_outputs["data"]["sample.vcf.gz"]["Normalized records"] == 10
+    assert final_outputs["data"]["sample.vcf.gz"]["Call records"] == 10
+    assert final_outputs["data"]["sample.vcf.gz"]["Call hash"] == "ffffffffffff...ffffffff"
+    assert final_outputs["data"]["sample.vcf.gz"]["Strict records"] == 10
+    assert final_outputs["data"]["sample.vcf.gz"]["Strict hash"] == "dddddddddddd...dddddddd"
+    assert final_outputs["data"]["sample.vcf.gz"]["Raw hash"] == "eeeeeeeeeeee...eeeeeeee"
 
     with pytest.raises(FileExistsError, match="MultiQC custom-content directory already exists"):
         cli_mod._run_report_command([str(run_dir), "--multiqc", "--no-color"])
@@ -1979,7 +2067,7 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
 
 
 def test_render_compare_html_all_to_all_matrix_view():
-    def report(alias, workflow_hash="workflow", vcf_hash="vcf", files=3):
+    def report(alias, workflow_hash="workflow", vcf_hash="vcf", call_hash="calls", files=3):
         return {
             "_report_alias": alias,
             "framework": {"version": "1.2.3"},
@@ -2002,7 +2090,7 @@ def test_render_compare_html_all_to_all_matrix_view():
             "execution_trace": {"tasks": 2, "max_peak_rss": {"bytes": 1000}, "max_peak_vmem": {"bytes": 2000}},
             "outputs": {
                 "file_inventory": {"entries": files, "total_bytes": 1536, "sha256": f"inventory-{files}"},
-                "vcf_hash_reports": [{"file": "sample.vcf.gz", "normalized_sha256": vcf_hash}],
+                "vcf_hash_reports": [{"file": "sample.vcf.gz", "call_sha256": call_hash, "normalized_sha256": vcf_hash}],
             },
         }
 
@@ -2034,6 +2122,9 @@ def test_render_compare_html_all_to_all_matrix_view():
     assert "pairwise-status" in html_text
     assert "pairwise-score" in html_text
     assert "strict status different" in html_text
+    assert "<h3>Final VCF<span" not in html_text
+    assert "<h3>Final VCF calls" in html_text
+    assert "<h3>Final VCF strict records" in html_text
     assert "Run Matrix" in html_text
     assert "All-to-All Matrix" not in html_text.split("Raw Text", 1)[0]
 

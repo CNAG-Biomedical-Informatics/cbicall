@@ -67,7 +67,7 @@ export default function Home() {
               <h2>Included Analyses</h2>
               <p>Curated WES, WGS, and mtDNA pipelines for single-sample and cohort use.</p>
             </Link>
-            <Link className={styles.card} to="/docs/validation/run-comparison">
+            <Link className={styles.card} to="/docs/help/run-comparison">
               <span>Reproducibility</span>
               <h2>Audit Runs</h2>
               <p>Structured reports, workflow fingerprints, resource hashes, and run comparison.</p>

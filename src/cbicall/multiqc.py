@@ -105,6 +105,18 @@ def _first_vcf_hash(payload: dict):
     return None
 
 
+def _first_vcf_call_hash(payload: dict):
+    for item in _vcf_hash_reports(payload):
+        value = item.get("call_sha256")
+        if value:
+            return value
+    return None
+
+
+def _first_vcf_strict_hash(payload: dict):
+    return _first_vcf_hash(payload)
+
+
 def _first_vcf_records(payload: dict):
     for item in _vcf_hash_reports(payload):
         records = _as_int(item.get("normalized_records"))
@@ -186,7 +198,7 @@ def build_run_general_stats_payload(report_path: Path, payload: dict) -> dict:
         "output_files": {"title": "Files", "description": "Files in the audited output inventory"},
         "output_size_mib": {"title": "Output size", "description": "Audited output inventory size", "suffix": " MiB", "format": "{:.1f}"},
         "vcf_fingerprints": {"title": "VCF hashes", "description": "Recorded VCF fingerprint reports"},
-        "final_vcf_records": {"title": "VCF records", "description": "Normalized records in the first final VCF fingerprint report"},
+        "final_vcf_records": {"title": "VCF records", "description": "Strict-record count in the first final VCF fingerprint report"},
         "canonical_outputs": {"title": "Canonical outputs", "description": "Configured canonical outputs found by CBIcall"},
         "trace_tasks": {"title": "Tasks", "description": "Backend trace task count"},
         "max_rss_gib": {"title": "Max RSS", "description": "Maximum task peak RSS from backend trace", "suffix": " GiB", "format": "{:.2f}"},
@@ -225,7 +237,8 @@ def build_run_identity_payload(report_path: Path, payload: dict) -> dict:
                 "Workflow hash": _short_hash(workflow.get("fingerprint")),
                 "Resource hash": _short_hash(_nested(payload, "resources", "bundle", "fingerprint")),
                 "Contract hash": _short_hash(_nested(payload, "execution_contract", "fingerprint")),
-                "Final VCF hash": _short_hash(_first_vcf_hash(payload)),
+                "Final VCF calls hash": _short_hash(_first_vcf_call_hash(payload)),
+                "Final VCF strict hash": _short_hash(_first_vcf_strict_hash(payload)),
             }
         )
     }
@@ -343,8 +356,10 @@ def build_final_outputs_payload(report_path: Path, payload: dict) -> Optional[di
             {
                 "File": file_name,
                 "Source": item.get("source"),
-                "Normalized records": _as_int(item.get("normalized_records")),
-                "Normalized hash": _short_hash(item.get("normalized_sha256")),
+                "Call records": _as_int(item.get("call_records")),
+                "Call hash": _short_hash(item.get("call_sha256")),
+                "Strict records": _as_int(item.get("normalized_records")),
+                "Strict hash": _short_hash(item.get("normalized_sha256")),
                 "Raw hash": _short_hash(item.get("raw_sha256") or item.get("sha256")),
                 "Report": _comparison_value(item.get("path")),
             }
@@ -441,6 +456,10 @@ def _section_status_for_pairs(reports: list, section: dict) -> str:
     return _aggregate_status(pair_statuses)
 
 
+def _section_with_kinds(section: dict, kinds: set[str]) -> dict:
+    return {**section, "rows": [row for row in section.get("rows", []) if row.get("kind") in kinds]}
+
+
 def build_compare_general_stats_payload(reports: list) -> dict:
     from .report_utils import _run_label
 
@@ -491,6 +510,12 @@ def build_compare_pair_summary_payload(reports: list) -> dict:
                 final_vcf_status = _section_status_for_pair(left, right, by_name["Final VCF"])
                 row["Final VCF category"] = qualitative_similarity_label(final_vcf_status, final_vcf_cell.get("score"))
                 row["Final VCF similarity"] = _rounded_score(final_vcf_cell.get("score"))
+                row["Final VCF calls"] = _section_status_for_pair(
+                    left, right, _section_with_kinds(by_name["Final VCF"], {"vcf_call"})
+                )
+                row["Final VCF strict records"] = _section_status_for_pair(
+                    left, right, _section_with_kinds(by_name["Final VCF"], {"vcf_strict"})
+                )
             for section_name, label in wanted:
                 section = by_name.get(section_name)
                 if section:
@@ -521,10 +546,21 @@ def build_compare_status_counts_payload(reports: list) -> dict:
     for status in STATUS_ORDER:
         row[f"Pairs {status}"] = overall_counts.get(status, 0)
     if "Final VCF" in by_name:
-        vcf_counts = _status_counts_from_pairs(reports, by_name["Final VCF"])
+        final_vcf_section = by_name["Final VCF"]
+        vcf_counts = _status_counts_from_pairs(reports, final_vcf_section)
+        vcf_call_section = _section_with_kinds(final_vcf_section, {"vcf_call"})
+        vcf_strict_section = _section_with_kinds(final_vcf_section, {"vcf_strict"})
         row["Final VCF"] = _section_status_for_pairs(reports, by_name["Final VCF"])
+        row["Final VCF calls"] = _section_status_for_pairs(reports, vcf_call_section)
+        row["Final VCF strict records"] = _section_status_for_pairs(reports, vcf_strict_section)
         for status in ["same", "different", "missing"]:
             row[f"Final VCF {status}"] = vcf_counts.get(status, 0)
+        for status, count in _status_counts_from_pairs(reports, vcf_call_section).items():
+            if status in {"same", "different", "missing"}:
+                row[f"Final VCF calls {status}"] = count
+        for status, count in _status_counts_from_pairs(reports, vcf_strict_section).items():
+            if status in {"same", "different", "missing"}:
+                row[f"Final VCF strict records {status}"] = count
     return _section_payload(
         "cbicall_compare_status_counts",
         "CBIcall comparison status counts",

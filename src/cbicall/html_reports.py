@@ -215,6 +215,9 @@ def _output_rows_html(payload: dict, base_dir: Path) -> str:
         normalized_hash = item.get("normalized_sha256")
         if normalized_hash:
             detail += f'<br><span class="muted">normalized SHA-256: {html.escape(str(normalized_hash))}</span>'
+        call_hash = item.get("call_sha256")
+        if call_hash:
+            detail += f'<br><span class="muted">call-level SHA-256: {html.escape(str(call_hash))}</span>'
         rows.append(_html_row_raw("VCF", detail))
 
     essential_paths = []
@@ -904,6 +907,29 @@ def _html_status_parts(value: str) -> tuple:
     return "neutral", "", stripped
 
 
+def _comparison_field_hint(label: str, kind: Optional[str] = None) -> str:
+    if kind == "vcf_call" or label.endswith(" calls"):
+        return (
+            "Call-level VCF fingerprint: hashes CHROM, POS, REF, ALT, FILTER, "
+            "and GT for all samples in VCF sample order. Differences usually "
+            "mean a variant site, filter, or genotype call changed."
+        )
+    if kind == "vcf_strict" or label.endswith(" strict records"):
+        return (
+            "Strict VCF fingerprint: hashes complete non-header VCF records after "
+            "sorting. Differences can be caused by QUAL, INFO, FORMAT, PL, "
+            "annotations, or call-level changes."
+        )
+    return ""
+
+
+def _field_label_html(label: str, hint: str = "") -> str:
+    escaped_label = html.escape(label)
+    if not hint:
+        return escaped_label
+    return f'<span class="field-hint" title="{html.escape(hint)}">{escaped_label}</span>'
+
+
 
 def _compare_status_for_values(baseline, value) -> tuple:
     status_class, status_label, detail = _status_for_values(baseline, value)
@@ -1017,16 +1043,20 @@ def _compare_matrix_html(reports: Optional[List[dict]]) -> str:
         section_counts = {"same": 0, "different": 0, "missing": 0, "note": 0, "unavailable": 0}
         for row in spec["rows"]:
             label = row["label"]
+            hint = _comparison_field_hint(label, row.get("kind"))
             value_fn = row["value"]
             baseline_value = value_fn(baseline)
             baseline_detail = _comparison_value(
                 _format_optional_bytes(baseline_value) if row.get("kind") == "inventory_size" else baseline_value
             )
             baseline_label = _matrix_display_value(baseline_detail, _matrix_cell_label("baseline"))
+            baseline_title = f"{_matrix_run_label(baseline)}: {baseline_detail}"
+            if hint:
+                baseline_title += f" | Hint: {hint}"
             cells = [
-                f"<th class=\"matrix-field\">{html.escape(label)}</th>",
+                f"<th class=\"matrix-field\">{_field_label_html(label, hint)}</th>",
                 "<td class=\"matrix-cell baseline\" "
-                f"title=\"{html.escape(_matrix_run_label(baseline))}: {html.escape(baseline_detail)}\">"
+                f"title=\"{html.escape(baseline_title)}\">"
                 f"<span>{html.escape(baseline_label)}</span>"
                 "</td>",
             ]
@@ -1036,6 +1066,8 @@ def _compare_matrix_html(reports: Optional[List[dict]]) -> str:
                     detail = detail.split(" != ", 1)[1]
                 section_counts[status_class] = section_counts.get(status_class, 0) + 1
                 title = detail or status_label
+                if hint:
+                    title += f" | Hint: {hint}"
                 cells.append(
                     f"<td class=\"matrix-cell {status_class}\" "
                     f"title=\"{html.escape(_matrix_run_label(report))}: {html.escape(title)}\">"
@@ -1086,6 +1118,43 @@ def _similarity_score_label(score) -> str:
     return f"{score:.2f}"
 
 
+def _pairwise_display_sections(reports: List[dict]) -> List[dict]:
+    sections = []
+    for section in _comparison_sections_with_overall(reports):
+        if section["section"] != "Final VCF":
+            sections.append(section)
+            continue
+        call_rows = [row for row in section["rows"] if row.get("kind") == "vcf_call"]
+        strict_rows = [row for row in section["rows"] if row.get("kind") == "vcf_strict"]
+        if call_rows:
+            sections.append({"section": "Final VCF calls", "rows": call_rows})
+        if strict_rows:
+            sections.append({"section": "Final VCF strict records", "rows": strict_rows})
+    return sections
+
+
+def _similarity_cell_from_counts(status_class: str, counts: dict) -> dict:
+    informative = sum(count for key, count in counts.items() if key != "unavailable")
+    if not informative:
+        return {"score": None, "status": "unavailable", "shared": 0, "union": 0, "different": []}
+    score = counts.get("same", 0) / informative
+    if score == 1:
+        score_status = "same"
+    elif score >= 0.95:
+        score_status = "high"
+    elif score >= 0.80:
+        score_status = "medium"
+    else:
+        score_status = "low"
+    return {
+        "score": score,
+        "status": score_status,
+        "shared": counts.get("same", 0),
+        "union": informative,
+        "different": [],
+    }
+
+
 def _pairwise_audit_html(reports: Optional[List[dict]]) -> str:
     if not reports or len(reports) < 2:
         return ""
@@ -1095,16 +1164,18 @@ def _pairwise_audit_html(reports: Optional[List[dict]]) -> str:
     similarity_by_layer = {layer["name"]: layer for layer in similarity["layers"]}
     headers = "".join(f"<th>{html.escape(label)}</th>" for label in labels)
     cards = []
-    for section in _comparison_sections_with_overall(reports):
+    for section in _pairwise_display_sections(reports):
         layer = similarity_by_layer.get(section["section"])
         rows = []
         section_counts = {"same": 0, "different": 0, "missing": 0, "note": 0, "unavailable": 0}
         for left_index, left_report in enumerate(reports):
             cells = [f"<th>{html.escape(labels[left_index])}</th>"]
             for right_index, right_report in enumerate(reports):
-                sim_cell = layer["rows"][left_index][right_index] if layer else {"score": None, "shared": 0, "union": 0, "different": []}
-                score_label = _similarity_score_label(sim_cell.get("score"))
                 if left_index == right_index:
+                    sim_cell = layer["rows"][left_index][right_index] if layer else _similarity_cell_from_counts(
+                        "same", {"same": len(section["rows"])}
+                    )
+                    score_label = _similarity_score_label(sim_cell.get("score"))
                     cells.append(
                         '<td class="pairwise-cell self" title="Self comparison">'
                         '<span class="pairwise-status">self</span>'
@@ -1114,6 +1185,12 @@ def _pairwise_audit_html(reports: Optional[List[dict]]) -> str:
                     continue
                 status_class, counts, detail = _pairwise_section_status(section, left_report, right_report)
                 section_counts[status_class] = section_counts.get(status_class, 0) + 1
+                sim_cell = (
+                    layer["rows"][left_index][right_index]
+                    if layer
+                    else _similarity_cell_from_counts(status_class, counts)
+                )
+                score_label = _similarity_score_label(sim_cell.get("score"))
                 display_label = qualitative_similarity_label(status_class, sim_cell.get("score"))
                 display_class = "na" if display_label == "n/a" else display_label
                 title = (
@@ -1161,6 +1238,73 @@ def _pairwise_audit_html(reports: Optional[List[dict]]) -> str:
         '</section>'
     )
 
+
+def _output_focus_status(rows: List[dict], left_report: dict, right_report: dict) -> tuple:
+    statuses = []
+    details = []
+    for row in rows:
+        status_class, status_label, detail = _row_pair_status(row, left_report, right_report)
+        statuses.append(status_class)
+        if status_class in {"different", "missing", "note"}:
+            details.append(f"{row['label']}: {status_label}" + (f" ({detail})" if detail else ""))
+    if not statuses:
+        return "unavailable", "not available"
+    status = _aggregate_status(statuses)
+    detail = "; ".join(details[:3])
+    if len(details) > 3:
+        detail += f"; +{len(details) - 3} more"
+    return status, detail or status
+
+
+def _output_focus_summary_html(reports: Optional[List[dict]]) -> str:
+    if not reports or len(reports) < 2:
+        return ""
+
+    baseline = reports[0]
+    output_spec = next((spec for spec in _comparison_specs(reports) if spec["section"] == "Outputs"), None)
+    if not output_spec:
+        return ""
+
+    output_rows = output_spec["rows"]
+    call_rows = [row for row in output_rows if row.get("kind") == "vcf_call"]
+    strict_rows = [row for row in output_rows if row.get("kind") == "vcf_strict"]
+    inventory_rows = [row for row in output_rows if row["label"] == "File inventory"]
+    inventory_size_rows = [row for row in output_rows if row.get("kind") == "inventory_size"]
+
+    status_counts = {"same": 0, "different": 0, "missing": 0, "note": 0, "unavailable": 0}
+    rows_html = []
+    for report in reports[1:]:
+        comparison_label = f"{_matrix_run_label(baseline)} vs {_matrix_run_label(report)}"
+        cells = [f"<th>{html.escape(comparison_label)}</th>"]
+        for label, field_rows in [
+            ("Final VCF calls", call_rows),
+            ("Final VCF strict records", strict_rows),
+            ("File inventory", inventory_rows),
+            ("Inventory size", inventory_size_rows),
+        ]:
+            status_class, detail = _output_focus_status(field_rows, baseline, report)
+            status_counts[status_class] = status_counts.get(status_class, 0) + 1
+            if label == "Inventory size" and status_class == "note":
+                detail = "Inventory size differs, but file inventory hash matches; file list unchanged."
+            cells.append(
+                f'<td class="output-focus-cell {html.escape(status_class)}" title="{html.escape(detail)}">'
+                f'<span>{html.escape(_matrix_cell_label(status_class))}</span>'
+                "</td>"
+            )
+        rows_html.append("<tr>" + "".join(cells) + "</tr>")
+
+    summary = _matrix_group_summary_html(status_counts)
+    return (
+        '<section class="output-focus-section">'
+        f'<h2>Final Output Summary{summary}</h2>'
+        '<div class="matrix-wrap"><table class="output-focus-table">'
+        '<thead><tr><th>Comparison</th><th>Final VCF calls</th><th>Final VCF strict records</th><th>File inventory</th><th>Inventory size</th></tr></thead>'
+        '<tbody>' + "".join(rows_html) + '</tbody>'
+        '</table></div>'
+        '</section>'
+    )
+
+
 def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, comparison_view: str = "baseline") -> str:
     sections = []
     current = None
@@ -1187,6 +1331,7 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
         rows = []
         for label, value in section["rows"]:
             status_class, status_label, detail = _html_status_parts(value)
+            hint = _comparison_field_hint(label)
             if status_class in status_counts:
                 status_counts[status_class] += 1
             if status_class in {"different", "missing", "note"}:
@@ -1201,7 +1346,7 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
                     f"<span class=\"change-section\">{html.escape(section['title'])}</span>"
                     f"<span class=\"pill {status_class}\">{html.escape(status_label)}</span>"
                     "</div>"
-                    f"<strong>{html.escape(label)}</strong>"
+                    f"<strong>{_field_label_html(label, hint)}</strong>"
                     f"{detail_html}"
                     "</div>"
                 )
@@ -1215,7 +1360,7 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
             )
             rows.append(
                 "<tr>"
-                f"<th>{html.escape(label)}</th>"
+                f"<th>{_field_label_html(label, hint)}</th>"
                 f"<td>{value_html}</td>"
                 "</tr>"
             )
@@ -1251,6 +1396,7 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
         else "<p class=\"empty-note\">No differences, missing values, or notes were detected. The full comparison is available in Details.</p>"
     )
     details = "\n          ".join(section_html)
+    output_focus_html = _output_focus_summary_html(reports)
     matrix_html = _compare_matrix_html(reports) if comparison_view in {"baseline", "both"} else ""
     pairwise_html = _pairwise_audit_html(reports)
     raw_report = html.escape(report_text)
@@ -1443,6 +1589,11 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
     .details-panel th {
       color: #475569;
       width: 210px;
+    }
+    .field-hint {
+      cursor: help;
+      text-decoration: underline dotted rgba(71, 85, 105, 0.55);
+      text-underline-offset: 3px;
     }
     .details-panel td {
       background: #ffffff;
@@ -1926,6 +2077,94 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
     .pairwise-cell.sim-medium .pairwise-score { color: #92400e; background: #fff0b8; }
     .pairwise-cell.sim-low .pairwise-score { color: #991b1b; background: #ffd6d6; }
     .pairwise-cell.sim-unavailable .pairwise-score { color: #475569; background: #eef1f5; }
+    .output-focus-section {
+      border-color: #9ec5fe;
+      box-shadow: 0 12px 30px rgba(16, 24, 40, 0.06);
+    }
+    .output-focus-section h2 {
+      background: linear-gradient(90deg, #eef4ff, #f8fbff);
+      color: #1e3a8a;
+    }
+    .output-focus-section .matrix-group-counts {
+      float: right;
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .output-focus-section .matrix-group-counts span {
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid #d7e4fb;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .output-focus-table {
+      min-width: 620px;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .output-focus-table th,
+    .output-focus-table td {
+      width: 128px;
+      padding: 8px 9px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      text-align: center;
+      white-space: nowrap;
+    }
+    .output-focus-table th:first-child {
+      width: 170px;
+      text-align: left;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: #fbfdff;
+      box-shadow: 7px 0 14px rgba(16, 24, 40, 0.04);
+    }
+    .output-focus-table thead th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      text-transform: uppercase;
+    }
+    .output-focus-cell {
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.76);
+    }
+    .output-focus-cell span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      min-width: 58px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.62);
+      padding: 3px 7px;
+    }
+    .output-focus-cell span::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.85;
+    }
+    .output-focus-cell.same { background: #e4f6ec; color: #166534; }
+    .output-focus-cell.different { background: #ffe2a8; color: #92400e; }
+    .output-focus-cell.missing { background: #ffd9d9; color: #991b1b; }
+    .output-focus-cell.note { background: #e0ecff; color: #1d4ed8; }
+    .output-focus-cell.unavailable { background: #eef1f5; color: #475569; }
     .similarity-note {
       padding-top: 0;
     }
@@ -2154,6 +2393,7 @@ def render_compare_html(report_text: str, reports: Optional[List[dict]] = None, 
       </div>
       <div class="tab-panels">
         <div class="tab-panel overview-panel">
+          """ + output_focus_html + """
           <section>
             <h2>Differences, Missing Values, and Notes</h2>
             <p class="section-note">Only changed, missing, or noted fields are listed here. The full comparison is available in Details.</p>

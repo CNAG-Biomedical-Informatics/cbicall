@@ -1,146 +1,68 @@
 # Cross-Environment Reproducibility
 
-Cross-environment reproducibility checks whether CBIcall can run the same
-validated analysis contract on different machines and recover the same
-workflow/resource identity and canonical output fingerprints. It is separate
-from truth-set benchmarking, which is covered in [GIAB Benchmarking](giab).
+Cross-environment reproducibility checks whether the same CBIcall analysis can
+recover the same final variant calls across machines and runtime environments.
+It is separate from truth-set benchmarking, which is covered in
+[GIAB Benchmarking](giab).
 
-The reviewer-facing check uses one real WES sample. The bundled WES test can be
-used first as an optional smoke test, but it should not be presented as the main
-cross-environment reproducibility result.
+This example uses 1000 Genomes WES sample `HG00103` (`SRR1596639`) with the
+native Bash GATK 4.6 WES single-sample workflow on b37 and the
+`cbicall-germline-resources-v1` resource bundle.
 
-| Check | Dataset | Purpose |
+## Compared Runs
+
+| Run label | Environment role | Notes |
 | --- | --- | --- |
-| Optional smoke test | Bundled WES test data | Confirms installation, resource resolution, workflow dispatch, and report generation before running the real sample. |
-| Reproducibility evidence | One public WES sample | Tests whether the same workflow/resource contract and normalized final VCF fingerprint are recovered across environments. |
+| `ws5` | Local x86_64 workstation | Baseline run. |
+| `hpc` | SLURM/CentOS HPC | Production-style HPC environment. |
+| `ws1` | ARM workstation | Heterogeneous CPU architecture. |
+| `gcloud` | Google Cloud VM | Cloud VM run included as an outlier example. |
 
-## Environments
+All runs were compared with `cbicall compare-runs` using the final QC VCF
+fingerprints recorded in each `run-report.json`.
 
-Run the checks in each environment being claimed. For the manuscript response,
-the intended matrix is:
+## Result
 
-| Environment | Runtime style | What to run |
-| --- | --- | --- |
-| Local workstation | Native Bash or Docker-supported local run | One real WES sample |
-| Google Cloud VM | Fresh source install on Docker-capable VM | Same real WES sample |
-| SLURM/CentOS HPC | Native Bash with site runtime profile | Same real WES sample |
+| Comparison target | VCF `calls` fingerprint | VCF `strict records` fingerprint | Interpretation |
+| --- | --- | --- | --- |
+| `ws5` baseline | `727f877de6ec...0a26a976` | `a659e0105d8b...4a5539c0` | Baseline. |
+| `hpc` | `727f877de6ec...0a26a976` | `a659e0105d8b...4a5539c0` | Matches baseline at call and strict-record level. |
+| `ws1` | `727f877de6ec...0a26a976` | `5c03b2a73c25...7407487e` | Call-equivalent to baseline; strict-record-only numeric drift. |
+| `gcloud` | `d962213762e2...46e18fc7` | `53ca560f371e...6a6455c3` | Call-level outlier in this comparison. |
 
-The Google Cloud setup recipe is documented separately in
-[Google Cloud](../installation/google-cloud-docker).
+The `ws5`, `hpc`, and ARM `ws1` runs produced identical final variant calls
+under the CBIcall call-level VCF fingerprint. The ARM run differed only under
+the stricter full-record fingerprint. Manual inspection localized this to a
+minor numeric difference in non-call fields for one record
+(`3:196281208 T>C`, with unchanged filter and genotype), consistent with
+environment-level numerical drift rather than a changed variant call.
 
-## Optional Smoke Test
+The `gcloud` run differed at the call level in this comparison. Treat this as a
+variant-output discrepancy and inspect execution conditions before grouping it
+with the call-equivalent runs.
 
-Use the bundled test only to check that a new environment is ready before
-spending time on real data. This is an integration/smoke test, not the main
-cross-environment reproducibility result.
+![Screenshot of the 1000 Genomes cross-environment CBIcall compare-runs HTML Outputs matrix.](/img/cross-environment-compare-outputs.png)
 
-```bash
-bin/cbicall test --wes-bash -t 1
-```
+![Screenshot of the 1000 Genomes cross-environment MultiQC pairwise summary, restricted to output and final-VCF columns.](/img/cross-environment-multiqc-final-vcf.png)
 
-Keep the generated `cbicall_*` run directory if you want to compare smoke-test
-runs later. If storage is tight, keep at least:
+## Evidence Artifacts
 
-```text
-run-report.json
-log.json
-cbicall-execution-contract.json
-```
+| Artifact | Use |
+| --- | --- |
+| `compare-runs.txt` | Canonical text audit report for archiving and diffing. |
+| `compare-runs.html` | Static browser report; this validation uses the `Outputs` matrix and VCF `calls` / `strict records` rows. |
+| `compare-runs_mqc/` | MultiQC custom-content bundle; this validation uses the output and Final VCF `calls` / `strict records` columns. |
 
-## 1. Run One Real WES Sample
-
-Run one real WES sample with the same parameters and resource bundle in each
-environment. This is the practical check that the reproducibility machinery also
-works on realistic input.
-
-Example parameter file:
-
-```yaml
-mode: single
-pipeline: wes
-workflow_backend: bash
-software_stack: gatk-4.6
-genome: hg38
-input_dir: /path/to/public_wes_sample_fastqs
-cleanup_bam: true
-```
-
-Run it locally or on the cloud VM:
-
-```bash
-bin/cbicall run -p real-wes-single.yaml -t 4
-```
-
-On HPC, use the site runtime profile if that is how production runs are launched:
-
-```bash
-bin/cbicall run -p real-wes-single.yaml -t 4 --runtime-profile cnag-hpc
-```
-
-Use the same FASTQs, same CBIcall version, same workflow backend, and same
-registered resource bundle across environments whenever possible.
-
-## 2. Compare Completed Runs
-
-After the runs finish, collect the run directories or `run-report.json` files in
-one place and compare them.
-
-Real WES comparison:
+The evidence bundle can be regenerated from collected run directories:
 
 ```bash
 bin/cbicall compare-runs \
-  local_wes_run/ cloud_wes_run/ hpc_wes_run/ \
-  --alias local-wes cloud-wes hpc-wes \
-  --output cross-env-real-wes-compare.txt
+  ws5/HG00103/SRR1596639/cbicall_bash_gatk-4.6_wes_single_b37_178178909641565/ \
+  gcloud/HG00103/SRR1596639/cbicall_bash_gatk-4.6_wes_single_b37_178153768026219/ \
+  hpc/HG00103/SRR1596639/cbicall_bash_gatk-4.6_wes_single_b37_178179425143788/ \
+  ws1/HG00103/SRR1596639/cbicall_bash_gatk-4.6_wes_single_b37_178153803413337/ \
+  --alias ws5 gcloud hpc ws1 \
+  --output compare-runs.txt \
+  --html compare-runs.html \
+  --multiqc compare-runs_mqc
 ```
-
-CBIcall also writes an HTML report next to the text report:
-
-```text
-cross-env-real-wes-compare.html
-```
-
-## 3. Interpret The Report
-
-For the reviewer response, focus on the layers that define reproducible CBIcall
-execution and final biological output.
-
-| Report layer | Expected result |
-| --- | --- |
-| CBIcall version | Same for strict reproducibility claims. |
-| Workflow key/version/hash | Same when the same registered workflow was executed. |
-| Resource key/version/hash | Same when the same declared resource bundle was used. |
-| Execution contract | Same after normalization when the same backend-ready plan was launched. |
-| Normalized final VCF fingerprint | Same final-output fingerprint for reproducible variant output. |
-| Output inventory | May differ because logs, timestamps, backend metadata, and scheduler files can be environment-specific. |
-| Hostname, paths, thread count | Runtime context; useful audit evidence but not by itself a failed reproducibility check. |
-
-For the real WES sample, the normalized final VCF fingerprint is the main output
-claim. Differences in logs or auxiliary execution files should be described as
-environment metadata unless they change the canonical variant output.
-
-## Reporting Template
-
-Use a compact table in the manuscript or response letter:
-
-| Check | Environments compared | Workflow/resource result | Final-output result |
-| --- | --- | --- | --- |
-| One public WES sample | local, Google Cloud, SLURM/CentOS | pending | pending |
-
-Replace `pending` with the actual `compare-runs` result labels after the runs
-finish.
-
-<details className="cbicallCodeDetails">
-<summary>Evidence files to keep</summary>
-<div>
-
-| File | Why it matters |
-| --- | --- |
-| `cross-env-real-wes-compare.txt` and `.html` | Cross-environment comparison for the real WES sample. |
-| `run-report.json` | Compact per-run audit report used by `compare-runs`. |
-| `log.json` | Resolved parameters, workflow, resource, and runtime evidence. |
-| `cbicall-execution-contract.json` | Backend-ready launch plan and normalized execution fingerprint. |
-| Workflow log | Backend-specific execution evidence. |
-
-</div>
-</details>

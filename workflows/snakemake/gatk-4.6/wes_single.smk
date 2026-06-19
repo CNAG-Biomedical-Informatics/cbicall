@@ -57,6 +57,7 @@ GATK4 = config["gatk4_cmd"].format(ngsutils=NGSUTILS, mem=MEM)
 
 COV     = str(snakefile_dir / "coverage.sh")
 VCF2SEX = str(snakefile_dir / "vcf2sex.sh")
+VCF2HASH = config.get("vcf2hash_script") or str(snakefile_dir / "vcf2hash.sh")
 
 resource_cfg  = config["resources"][GENOME]
 bundle        = resource_cfg["bundle"].format(dbdir=DBDIR)
@@ -133,6 +134,7 @@ FINAL_INPUTS = [
     os.path.join(VARCALLDIR, f"{ID}.hc.QC.vcf.gz"),
     os.path.join(STATSDIR,   f"{ID}.coverage.txt"),
     os.path.join(STATSDIR,   f"{ID}.sex.txt"),
+    os.path.join(STATSDIR,   f"{ID}.vcf.sha256.txt"),
 ]
 if CLEANUP_BAM:
     FINAL_INPUTS.append(os.path.join(LOGDIR, f"{ID}.cleanup.done"))
@@ -437,6 +439,22 @@ rule sex_determination:
         r"""
         set -eu
         bash {VCF2SEX} {input.qc} > {output.sex} 2>> {log}
+        """
+
+# -----------------------------
+# STEP 10 cont: VCF hash
+# -----------------------------
+rule vcf_hash:
+    input:
+        qc=os.path.join(VARCALLDIR, f"{ID}.hc.QC.vcf.gz")
+    output:
+        vcf_hash=os.path.join(STATSDIR, f"{ID}.vcf.sha256.txt")
+    log:
+        os.path.join(LOGDIR, f"{ID}.10_vcf_hash.log")
+    shell:
+        r"""
+        set -eu
+        bash {VCF2HASH} {input.qc} > {output.vcf_hash} 2>> {log}
         """
 
 # -----------------------------

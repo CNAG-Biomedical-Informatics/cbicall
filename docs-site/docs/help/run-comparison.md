@@ -11,7 +11,8 @@ execution contract, and comparable outputs.
 :::note[Audit, not biological validation]
 `compare-runs` does **not** prove that two biological analyses are equivalent.
 It checks the CBIcall execution and output evidence recorded for completed runs.
-For variant-output reproducibility, start with the normalized VCF fingerprint.
+For variant-output reproducibility, start with the VCF **calls** fingerprint and
+then inspect the stricter full-record fingerprint.
 :::
 
 ## Run It
@@ -71,8 +72,8 @@ view.
 
 ## Keep These Files
 
-For a concise methods or reviewer audit, archive the comparison report plus the
-run reports that were compared.
+For a concise audit, archive the comparison report plus the run reports that
+were compared.
 
 | File | Why it matters |
 | --- | --- |
@@ -82,7 +83,7 @@ run reports that were compared.
 | `log.json` | Full resolved configuration, runtime parameters, and resource details. |
 | `cbicall-execution-contract.json` | Backend-ready command, generated launch files, and normalized execution fingerprint. |
 | Workflow log | Execution log for Bash, Snakemake, Nextflow, or Cromwell. |
-| `03_stats/*.vcf.sha256.txt` | Normalized VCF fingerprint report when produced by the workflow. |
+| `03_stats/*.vcf.sha256.txt` | VCF fingerprint report when produced by the workflow, including strict-record and call-level hashes. |
 
 ## What Is Compared
 
@@ -95,7 +96,7 @@ run reports that were compared.
 | Software | Software-version fingerprint from the resource catalog or workflow-reported version table. |
 | Workflow files | Entrypoint and helper/config file paths plus SHA-256 values. |
 | Resources | Resource key, version, and fingerprint from the selected resource catalog entry. |
-| Outputs | File-inventory fingerprint, inventory size, and normalized VCF fingerprints. |
+| Outputs | File-inventory fingerprint, inventory size, VCF call-level fingerprints, and strict VCF record fingerprints. |
 
 :::note[Runtime context versus reproducibility]
 Single-run reports include runtime context such as hostname and host thread
@@ -106,9 +107,18 @@ fingerprints.
 :::
 
 :::tip[Most important output check]
-For output reproducibility, prioritize the **normalized VCF fingerprint**. It is
-computed from VCF records, not raw compressed bytes, so header timestamps,
-command lines, and compression metadata do not create false differences.
+For WES/WGS output reproducibility, read VCF rows in this order:
+
+1. **`<vcf> calls`** - hashes `CHROM`, `POS`, `REF`, `ALT`, `FILTER`, and
+   genotype (`GT`) values for all samples in VCF sample order. This is the
+   primary CBIcall check for whether final reported variant calls match.
+2. **`<vcf> strict records`** - hashes complete non-header VCF records after
+   sorting. This stricter check also captures `QUAL`, `INFO`, `FORMAT`, `PL`,
+   annotations, and other numeric fields.
+
+Both hashes are computed from VCF records, not raw compressed bytes, so header
+timestamps, command lines, and compression metadata do not create false
+differences.
 :::
 
 ## Read The HTML
@@ -141,19 +151,26 @@ Use this order when reading a comparison:
 2. Check **Execution Contract** to confirm CBIcall launched the same backend-ready plan.
 3. Check **Pipeline** and **Workflow files** to locate changed workflow code or config.
 4. Check **Resources** to confirm the external dependency bundle matches.
-5. Check **Outputs**, especially the normalized VCF fingerprint.
+5. Check **Outputs**, especially the VCF `calls` fingerprint and then the
+   `strict records` fingerprint.
 
-If the workflow fingerprint changed but the normalized VCF fingerprint is the
-same, the compared VCF records match under CBIcall's deterministic comparison
-rules. The workflow change should still be inspected before claiming full
-execution identity.
+If the workflow fingerprint changed but the VCF `calls` fingerprint is the same,
+the compared final VCFs are call-equivalent under CBIcall's deterministic
+comparison rules. The workflow change should still be inspected before claiming
+full execution identity.
+
+:::note[Strict VCF identity versus call-level reproducibility]
+A `strict records` difference with a matching `calls` fingerprint means the
+reported variant sites, filters, and genotypes match, but at least one
+non-call field differs. Inspect strict-only differences before deciding whether
+they are acceptable for the reproducibility claim being made.
+:::
 
 :::info[Advanced view override]
 The default report shape is usually the right one: two runs get a direct
 comparison, and three or more runs get baseline plus all-to-all views. Use
 `--comparison-view baseline`, `--comparison-view all-to-all`, or
-`--comparison-view both` only when you need to force a specific report shape for
-an automated audit or manuscript figure.
+`--comparison-view both` only when you need to force a specific report shape.
 :::
 
 ## Status Vocabulary
@@ -196,7 +213,7 @@ Sarek runs can be audited without hard-coding Sarek paths in `compare-runs`.
 The file-inventory fingerprint is path-based, not content-based. It hashes the
 sorted list of relative file paths in the run directory, excluding generated
 report files and backend work directories. Use it to audit run-directory layout;
-use normalized VCF hashes to audit compared variant records.
+use VCF call-level and strict-record hashes to audit compared variant records.
 
 ## Inspect One Run
 

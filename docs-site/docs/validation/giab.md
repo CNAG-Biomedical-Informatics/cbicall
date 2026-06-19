@@ -539,11 +539,11 @@ trio sites from the denominator.
 
 ## Exact Benchmark Commands
 
-The public protocol above uses portable paths. The exact local paths below are
-kept only to make the manuscript benchmark traceable.
+The protocol above uses portable paths. The example local paths below show one
+completed benchmark layout.
 
 <details className="cbicallCodeDetails">
-<summary>Exact local commands used for the manuscript benchmark</summary>
+<summary>Example local commands used for the benchmark</summary>
 <div>
 
 Local roots:

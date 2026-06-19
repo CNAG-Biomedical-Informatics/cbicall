@@ -81,7 +81,7 @@ Exit code: 0
 :::tip[Where to go next]
 Use this page to run the shipped examples. For parameter-file checks, see
 [Configuration Reference](../help/configuration-reference). For comparing
-repeated runs, see [Run Comparison](run-comparison).
+repeated runs, see [Run Comparison](../help/run-comparison).
 :::
 
 ## Test Matrix
@@ -179,4 +179,4 @@ CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-3.5_mit_single_rsrs_*/
   02_browser/
 ```
 
-Use [Run Comparison](run-comparison) when you want to compare two or more completed runs.
+Use [Run Comparison](../help/run-comparison) when you want to compare two or more completed runs.

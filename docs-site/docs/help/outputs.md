@@ -95,7 +95,7 @@ bin/cbicall compare-runs run_a/ run_b/ run_c/ --alias local cloud hpc --output c
 
 The text report is the audit artifact. CBIcall also writes `compare-report.html`
 by default for browsing, including field-level matrices and combined pairwise audit matrices with
-derived categories plus report-level similarity scores. See [Run Comparison](../validation/run-comparison) for
+derived categories plus report-level similarity scores. See [Run Comparison](run-comparison) for
 details and an example screenshot.
 
 ## External nf-core Workflows
@@ -131,7 +131,7 @@ AMD64.
 For registered external workflows, the workflow registry can declare canonical
 outputs. The Sarek entry declares the HaplotypeCaller VCF pattern under
 `sarek/variant_calling/haplotypecaller/`. When a matching VCF exists, CBIcall
-records it under `outputs.canonical_outputs` and adds a normalized VCF hash to
+records it under `outputs.canonical_outputs` and adds VCF fingerprints to
 `outputs.vcf_hash_reports` for `compare-runs`.
 
 ## WES/WGS Single-Sample
@@ -148,7 +148,7 @@ Applies to `pipeline: wes` or `pipeline: wgs` with `mode: single`.
 | `02_varcall/<id>.hc.g.vcf.gz.tbi` | Tabix index for the gVCF. |
 | `03_stats/<id>.coverage.txt` | Coverage summary with a `region`-first tabular schema. |
 | `03_stats/<id>.sex.txt` | Sex inference result from the final VCF. |
-| `03_stats/<id>.vcf.sha256.txt` | Per-VCF SHA-256 report with raw and normalized VCF fingerprints. |
+| `03_stats/<id>.vcf.sha256.txt` | Per-VCF SHA-256 report with raw, strict-record, and call-level VCF fingerprints. |
 
 Coverage files use one tabular row per sample:
 

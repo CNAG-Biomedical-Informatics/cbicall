@@ -475,6 +475,8 @@ class SnakemakeRunner(BaseRunner):
 
         if self.software_stack != "gatk-3.5":
             snk_config_kvs.append(f"pipeline={self.pipeline}")
+            if self.workflow.helpers.get("vcf2hash"):
+                snk_config_kvs.append(f"vcf2hash_script={self.workflow.helpers['vcf2hash']}")
             if self.mode == "single":
                 snk_config_kvs.append(f"cleanup_bam={_parameter_value_to_string(bool(self.settings.cleanup_bam))}")
 

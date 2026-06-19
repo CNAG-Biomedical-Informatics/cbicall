@@ -138,11 +138,26 @@ def _multi_vcf_hash_value(key: str, report: dict):
     return entry.get("normalized_sha256") or entry.get("sha256")
 
 
+def _multi_vcf_call_value(key: str, report: dict):
+    entry = _vcf_hash_map(report).get(key)
+    if not entry:
+        return None
+    return entry.get("call_sha256")
+
+
 
 def _comparison_specs(reports: list) -> list:
     execution_roles = sorted({role for report in reports for role in _execution_file_map(report)})
     workflow_roles = sorted({role for report in reports for role in _workflow_file_map(report)})
     vcf_keys = sorted({key for report in reports for key in _vcf_hash_map(report)})
+    vcf_call_keys = sorted(
+        {
+            key
+            for report in reports
+            for key, entry in _vcf_hash_map(report).items()
+            if entry.get("call_sha256")
+        }
+    )
 
     def row(label, value_fn, kind="value"):
         return {"label": label, "value": value_fn, "kind": kind}
@@ -212,7 +227,22 @@ def _comparison_specs(reports: list) -> list:
                 row("File count", lambda report: _nested(report, "outputs", "file_inventory", "entries")),
                 row("Inventory size", lambda report: _inventory_total_bytes(report), kind="inventory_size"),
                 row("File inventory", lambda report: _nested(report, "outputs", "file_inventory", "sha256")),
-                *[row(_short_path(key), lambda report, item=key: _multi_vcf_hash_value(item, report), kind="vcf") for key in vcf_keys],
+                *[
+                    row(
+                        f"{_short_path(key)} calls",
+                        lambda report, item=key: _multi_vcf_call_value(item, report),
+                        kind="vcf_call",
+                    )
+                    for key in vcf_call_keys
+                ],
+                *[
+                    row(
+                        f"{_short_path(key)} strict records",
+                        lambda report, item=key: _multi_vcf_hash_value(item, report),
+                        kind="vcf_strict",
+                    )
+                    for key in vcf_keys
+                ],
             ]
             if vcf_keys
             else [
@@ -271,7 +301,12 @@ def _comparison_sections_with_overall(reports: list) -> list:
     specs = _comparison_specs(reports)
     all_rows = [row for spec in specs for row in spec["rows"]]
     sections = [{"section": "Overall", "rows": all_rows}, *specs]
-    vcf_rows = [row for spec in specs for row in spec["rows"] if row.get("kind") == "vcf"]
+    vcf_rows = [
+        row
+        for spec in specs
+        for row in spec["rows"]
+        if row.get("kind") in {"vcf_strict", "vcf_call"}
+    ]
     if vcf_rows:
         sections.append({"section": "Final VCF", "rows": vcf_rows})
     return sections

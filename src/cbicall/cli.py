@@ -48,6 +48,7 @@ from .report_utils import (
     _format_optional_bytes,
     _inventory_manifest_hash,
     _inventory_total_bytes,
+    _multi_vcf_call_value,
     _multi_vcf_hash_value,
     _multi_workflow_file_value,
     _nested,
@@ -545,6 +546,10 @@ def _collect_output_fingerprints(project_dir: Path) -> dict:
                     "normalized_sort": parsed.get("normalized_sort"),
                     "normalized_records": parsed.get("normalized_records"),
                     "normalized_sha256": parsed.get("normalized_sha256"),
+                    "call_fields": parsed.get("call_fields"),
+                    "call_sort": parsed.get("call_sort"),
+                    "call_records": parsed.get("call_records"),
+                    "call_sha256": parsed.get("call_sha256"),
                 }
             )
     return {
@@ -577,6 +582,45 @@ def _normalized_vcf_hash(path: Path) -> dict:
     }
 
 
+def _call_level_vcf_hash(path: Path) -> dict:
+    opener = gzip.open if path.suffix == ".gz" else open
+    call_records = []
+    with opener(path, "rt", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            if line.startswith("#"):
+                continue
+            fields = line.rstrip("\r\n").split("\t")
+            if len(fields) < 8:
+                continue
+            gt_values = "."
+            if len(fields) >= 10:
+                format_keys = fields[8].split(":")
+                gt_index = None
+                for index, key in enumerate(format_keys):
+                    if key == "GT":
+                        gt_index = index
+                        break
+                sample_gts = []
+                for sample in fields[9:]:
+                    sample_values = sample.split(":")
+                    if gt_index is not None and gt_index < len(sample_values):
+                        sample_gts.append(sample_values[gt_index])
+                    else:
+                        sample_gts.append(".")
+                gt_values = ",".join(sample_gts)
+            call_fields = [fields[0], fields[1], fields[3], fields[4], fields[6], gt_values]
+            call_records.append("\t".join(call_fields))
+    digest = hashlib.sha256()
+    for record in sorted(call_records):
+        digest.update((record + "\n").encode("utf-8"))
+    return {
+        "call_fields": "CHROM,POS,REF,ALT,FILTER,GT_ALL_SAMPLES",
+        "call_sort": "LC_ALL=C",
+        "call_records": len(call_records),
+        "call_sha256": digest.hexdigest(),
+    }
+
+
 def _canonical_output_reports(workflow, workflow_output_dir: Path) -> tuple:
     reports = []
     vcf_reports = []
@@ -604,6 +648,7 @@ def _canonical_output_reports(workflow, workflow_output_dir: Path) -> tuple:
                         "name": name,
                         "pattern": pattern,
                         **_normalized_vcf_hash(path),
+                        **_call_level_vcf_hash(path),
                     }
                 )
     return reports, vcf_reports
@@ -1425,8 +1470,14 @@ def _compare_output_hashes(left: dict, right: dict) -> None:
         if not left_item or not right_item:
             _row(_short_path(key), "missing")
             continue
+        if left_item.get("call_sha256") or right_item.get("call_sha256"):
+            _compare_row(
+                f"{_short_path(key)} calls",
+                left_item.get("call_sha256"),
+                right_item.get("call_sha256"),
+            )
         _compare_row(
-            _short_path(key),
+            f"{_short_path(key)} strict records",
             left_item.get("normalized_sha256"),
             right_item.get("normalized_sha256"),
         )
@@ -1591,7 +1642,19 @@ def _print_multi_run_comparison(reports: List[dict]) -> None:
     if not keys:
         _row("VCF hashes", "not available")
     for key in keys:
-        _multi_status(_short_path(key), baseline, reports, lambda report, item=key: _multi_vcf_hash_value(item, report))
+        if any(_multi_vcf_call_value(key, report) is not None for report in reports):
+            _multi_status(
+                f"{_short_path(key)} calls",
+                baseline,
+                reports,
+                lambda report, item=key: _multi_vcf_call_value(item, report),
+            )
+        _multi_status(
+            f"{_short_path(key)} strict records",
+            baseline,
+            reports,
+            lambda report, item=key: _multi_vcf_hash_value(item, report),
+        )
 
 
 
