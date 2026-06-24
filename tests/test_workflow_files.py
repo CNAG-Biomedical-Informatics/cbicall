@@ -115,6 +115,50 @@ def test_gatk46_small_cohort_excludes_inbreeding_coeff():
         assert "GENOTYPE_ANNOTATION_EXCLUDE_ARG" in genotype_command, relpath
 
 
+def test_gatk46_cohort_finalize_header_is_human_readable_across_backends():
+    expected_fragments = {
+        "workflows/bash/gatk-4.6/wes_cohort.sh": [
+            'STAGE_ACTION="finalize run: globally filter a gathered raw cohort VCF"',
+            'echo "stage_action: $STAGE_ACTION"',
+            'SAMPLE_COUNT_DISPLAY="not applicable (finalize stage)"',
+            'SAMPLE_MAP_DISPLAY="not used (finalize stage)"',
+            'WORKSPACE_DISPLAY="not used (finalize stage)"',
+            'echo "input_vcf: $INPUT_VCF"',
+            'echo "final_vcf: $COHORT_QC_VCF"',
+        ],
+        "workflows/snakemake/gatk-4.6/wes_cohort.smk": [
+            '"finalize": "finalize run: globally filter a gathered raw cohort VCF"',
+            'log.write(f"stage_action: {STAGE_ACTION}\\n")',
+            'SAMPLE_COUNT_DISPLAY = "not applicable (finalize stage)"',
+            'SAMPLE_MAP_DISPLAY = "not used (finalize stage)"',
+            'WORKSPACE_DISPLAY = "not used (finalize stage)"',
+            'log.write(f"input_vcf: {INPUT_VCF}\\n")',
+            'log.write(f"final_vcf: {COHORT_QC_VCF}\\n")',
+        ],
+        "workflows/nextflow/gatk-4.6/wes_cohort.nf": [
+            "'finalize': 'finalize run: globally filter a gathered raw cohort VCF'",
+            'println "Stage action: ${STAGE_ACTION}"',
+            'not applicable (finalize stage)',
+            'not used (finalize stage)',
+            'println "Input VCF: ${INPUT_VCF}"',
+            'println "Final VCF: ${COHORT_QC_VCF_NAME}"',
+        ],
+        "workflows/cromwell/gatk-4.6/wes_cohort.wdl": [
+            'STAGE_ACTION="finalize run: globally filter a gathered raw cohort VCF"',
+            'echo "stage_action: $STAGE_ACTION"',
+            'SAMPLE_COUNT_DISPLAY="not applicable (finalize stage)"',
+            'SAMPLE_MAP_DISPLAY="not used (finalize stage)"',
+            'WORKSPACE_DISPLAY="not used (finalize stage)"',
+            'echo "input_vcf: $INPUT_VCF"',
+            'echo "final_vcf: $COHORT_QC_VCF"',
+        ],
+    }
+    for relpath, fragments in expected_fragments.items():
+        text = (REPO_ROOT / relpath).read_text(encoding="utf-8")
+        for fragment in fragments:
+            assert fragment in text, f"{relpath}: {fragment}"
+
+
 def test_gatk46_cohort_supports_staged_shard_finalize_controls():
     workflow_files = [
         "workflows/bash/gatk-4.6/wes_cohort.sh",
@@ -130,5 +174,6 @@ def test_gatk46_cohort_supports_staged_shard_finalize_controls():
         assert "input_vcf" in text or "INPUT_VCF" in text, relpath
         assert "shard" in text, relpath
         assert "finalize" in text, relpath
+        assert "GenomicsDBImport cannot run on ARM/aarch64" in text, relpath
         assert "RAW_VCF_FOR_FILTERING" in text or "rawvcf" in text or "RAW_VCF_FOR_FILTERING" in text, relpath
         assert ".gv.raw.vcf.gz" in text, relpath

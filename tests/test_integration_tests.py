@@ -645,3 +645,15 @@ def test_run_integration_tests_records_failed_summary(tmp_path, monkeypatch, cap
     out = capsys.readouterr().out
     assert "ERROR: contract failed" in out
     assert "WES Bash: failed (contract failed)" in out
+
+
+
+def test_resolve_bcftools_uses_explicit_env_path(tmp_path):
+    bcftools = tmp_path / "bcftools"
+    bcftools.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    assert integration_mod._resolve_bcftools(tmp_path, {"BCFTOOLS": str(bcftools)}) == str(bcftools)
+
+
+def test_resolve_bcftools_reports_missing_path_binary(tmp_path):
+    with pytest.raises(IntegrationTestError, match="BCFTOOLS does not exist"):
+        integration_mod._resolve_bcftools(tmp_path, {"BCFTOOLS": str(tmp_path / "missing-bcftools")})

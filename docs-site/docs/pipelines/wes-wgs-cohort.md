@@ -151,6 +151,13 @@ Staged cohort execution is supported for CBIcall-native GATK 4.6 cohort runs
 with `workflow_backend: bash`, `snakemake`, `nextflow`, or `cromwell`.
 :::
 
+:::warning[GenomicsDB on ARM]
+The bundled GATK 4.6 GenomicsDB native libraries are x86_64-only. On ARM/aarch64
+hosts, CBIcall stops `cohort_stage: all` and `cohort_stage: shard` before
+launching `GenomicsDBImport`. Run those stages on x86_64. The `finalize` stage
+can still run on ARM if the gathered raw cohort VCF was created elsewhere.
+:::
+
 ### Shard runs
 
 Each shard run still uses the full `sample_map`; the shard only restricts the
@@ -236,6 +243,8 @@ For WES b37, `interval_shard` uses bare contig labels (`1`, `2`, ..., `22`,
 `X`, `Y`) because the bundled b37 exome interval list uses bare contig names.
 For WGS hg38, use reference-dictionary labels such as `chr1`.
 
+### Gather raw shard VCFs
+
 After all shard jobs finish, concatenate the raw shard VCFs in genomic order:
 
 ```bash
@@ -248,6 +257,11 @@ done > raw_vcfs.list
 bcftools concat -f raw_vcfs.list -Oz -o cohort.gathered.gv.raw.vcf.gz
 bcftools index -t cohort.gathered.gv.raw.vcf.gz
 ```
+
+The `raw_vcfs.list` file is the handoff between the parallel shard jobs and the
+single finalize job. It should contain exactly one raw VCF per shard, ordered as
+`1` through `22`, then `X` and `Y` for b37 WES, or the equivalent reference
+dictionary order for the selected genome.
 
 ### Finalize run
 

@@ -3,6 +3,7 @@ workflow_log: bash_gatk-4.6_wes_cohort_b37.log
 notes:
   - This opt-in test first runs the WES Bash single-sample contract, then runs one staged WES cohort shard over the chr22 interval fixture.
   - It validates cohort_stage=shard stops after GenotypeGVCFs and produces a raw shard VCF.
+  - It then gathers the raw shard VCF with bcftools concat/index and runs cohort_stage=finalize on the gathered raw VCF.
 env:
   CBICALL_INTERVAL_LIST: tests/fixtures/integration/wes-cohort-chr22.interval_list
 setup_runs:
@@ -42,6 +43,8 @@ text_expectations:
   - path: logs/cohort_joint_genotyping.log
     contains: "cohort_stage: shard"
   - path: logs/cohort_joint_genotyping.log
+    contains: "stage_action: shard run: import and genotype one interval shard"
+  - path: logs/cohort_joint_genotyping.log
     contains: "WES mode: generated shard interval list"
   - path: logs/cohort_joint_genotyping.log
     contains: "Shard stage complete. Raw cohort shard VCF: cohort.22.gv.raw.vcf.gz"
@@ -68,5 +71,63 @@ json_expectations:
     equals: "22"
   - path: run.output_basename
     equals: cohort.22
+staged_finalize:
+  raw_vcfs_list: raw_vcfs.list
+  gathered_vcf: cohort.gathered.gv.raw.vcf.gz
+  shard_vcfs:
+    - 02_varcall/cohort.22.gv.raw.vcf.gz
+  finalize:
+    parameters:
+      mode: cohort
+      pipeline: wes
+      workflow_backend: bash
+      software_stack: gatk-4.6
+      resource: cbicall-germline-resources-v1
+      genome: b37
+      cohort_stage: finalize
+      input_vcf: cohort.gathered.gv.raw.vcf.gz
+      output_basename: cohort
+    base_dir: .
+    run_glob: cbicall_bash_gatk-4.6_wes_cohort_b37_*
+    workflow_log: bash_gatk-4.6_wes_cohort_b37.log
+    required_files:
+      - log.json
+      - run-report.json
+      - run-report.html
+      - bash_gatk-4.6_wes_cohort_b37.log
+      - 02_varcall/cohort.gv.QC.vcf.gz
+      - 02_varcall/cohort.gv.QC.vcf.gz.tbi
+    text_expectations:
+      - path: logs/cohort_joint_genotyping.log
+        contains: "cohort_stage: finalize"
+      - path: logs/cohort_joint_genotyping.log
+        contains: "stage_action: finalize run: globally filter a gathered raw cohort VCF"
+      - path: logs/cohort_joint_genotyping.log
+        contains: "sample_map: not used (finalize stage)"
+      - path: logs/cohort_joint_genotyping.log
+        contains: "sample_count: not applicable (finalize stage)"
+      - path: logs/cohort_joint_genotyping.log
+        contains: "workspace: not used (finalize stage)"
+      - path: logs/cohort_joint_genotyping.log
+        contains: "input_vcf:"
+      - path: logs/cohort_joint_genotyping.log
+        contains: "Cohort QC VCF written: cohort.gv.QC.vcf.gz"
+    json_expectations:
+      - path: status
+        equals: success
+      - path: workflow.backend
+        equals: bash
+      - path: workflow.pipeline
+        equals: wes
+      - path: workflow.mode
+        equals: cohort
+      - path: workflow.software_stack
+        equals: gatk-4.6
+      - path: run.display_genome
+        equals: b37
+      - path: run.cohort_stage
+        equals: finalize
+      - path: run.output_basename
+        equals: cohort
 cleanup_paths:
   - 01_genomicsdb

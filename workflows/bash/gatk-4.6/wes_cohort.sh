@@ -99,6 +99,12 @@ fi
 BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
 
+if [[ "$COHORT_STAGE" != "finalize" && "${ARCH:-$(uname -m)}" =~ ^(aarch64|arm64)$ ]]; then
+  echo "Error: GATK GenomicsDBImport cannot run on ARM/aarch64 with the bundled GATK 4.6 GenomicsDB native libraries." >&2
+  echo "Run cohort_stage=all/shard on x86_64, or run cohort_stage=finalize on ARM using a gathered raw VCF created on x86_64." >&2
+  exit 1
+fi
+
 # Prepare output directories and logging
 dir=$(pwd)
 GENOMICSDBDIR=$dir/01_genomicsdb
@@ -255,16 +261,38 @@ COHORT_POST_SNP="${OUTPUT_BASENAME}.post_snp.vcf.gz"
 COHORT_POST_VQSR="${OUTPUT_BASENAME}.vqsr.vcf.gz"
 COHORT_QC_VCF="${OUTPUT_BASENAME}.gv.QC.vcf.gz"
 
+case "$COHORT_STAGE" in
+  all) STAGE_ACTION="full cohort run: import, genotype, and global filtering" ;;
+  shard) STAGE_ACTION="shard run: import and genotype one interval shard" ;;
+  finalize) STAGE_ACTION="finalize run: globally filter a gathered raw cohort VCF" ;;
+esac
+
+if [ "$COHORT_STAGE" = "finalize" ]; then
+  SAMPLE_COUNT_DISPLAY="not applicable (finalize stage)"
+  SAMPLE_MAP_DISPLAY="not used (finalize stage)"
+  WORKSPACE_DISPLAY="not used (finalize stage)"
+else
+  SAMPLE_COUNT_DISPLAY="$SAMPLE_COUNT"
+  SAMPLE_MAP_DISPLAY="${SAMPLE_MAP:-<none>}"
+  WORKSPACE_DISPLAY="${WORKSPACE_PATH:-<none>}"
+fi
+
 {
   echo "## Cohort GenomicsDBImport -> Genotype -> VQSR/Hard-filter"
   echo "cohort_stage: $COHORT_STAGE"
-  echo "sample_map: ${SAMPLE_MAP:-<none>}"
+  echo "stage_action: $STAGE_ACTION"
+  echo "sample_map: $SAMPLE_MAP_DISPLAY"
   echo "pipeline: $PIPELINE"
-  echo "sample_count: $SAMPLE_COUNT"
-  echo "workspace: ${WORKSPACE_PATH:-<none>}"
+  echo "sample_count: $SAMPLE_COUNT_DISPLAY"
+  echo "workspace: $WORKSPACE_DISPLAY"
   echo "output_basename: $OUTPUT_BASENAME"
   echo "interval_shard: ${INTERVAL_SHARD:-<none>}"
-  echo "out_vcf: $COHORT_RAW_VCF"
+  if [ "$COHORT_STAGE" = "finalize" ]; then
+    echo "input_vcf: $INPUT_VCF"
+    echo "final_vcf: $COHORT_QC_VCF"
+  else
+    echo "out_vcf: $COHORT_RAW_VCF"
+  fi
   echo "tmpdir: $TMPDIR"
   echo "log: $LOG"
   echo ""

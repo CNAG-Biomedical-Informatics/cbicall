@@ -71,6 +71,10 @@ if( COHORT_STAGE == 'finalize' && INTERVAL_SHARD ) {
 if( COHORT_STAGE == 'shard' && INPUT_VCF ) {
     throw new IllegalArgumentException("cohort_stage='shard' does not use input_vcf")
 }
+def HOST_ARCH = System.getProperty('os.arch')
+if( COHORT_STAGE != 'finalize' && ['aarch64','arm64'].contains(HOST_ARCH) ) {
+    throw new IllegalArgumentException("GATK GenomicsDBImport cannot run on ARM/aarch64 with the bundled GATK 4.6 GenomicsDB native libraries. Run cohort_stage=all/shard on x86_64, or run cohort_stage=finalize on ARM using a gathered raw VCF created on x86_64.")
+}
 
 def SAMPLE_MAP = null
 def SAMPLE_COUNT = 0
@@ -247,6 +251,15 @@ if (COHORT_STAGE == 'finalize') {
 def COHORT_RAW_VCF_NAME = "${OUTPUT_BASENAME}.gv.raw.vcf.gz"
 def COHORT_QC_VCF_NAME = "${OUTPUT_BASENAME}.gv.QC.vcf.gz"
 def COHORT_HASH_NAME = "${OUTPUT_BASENAME}.gv.QC.vcf.sha256.txt"
+def STAGE_ACTIONS = [
+    'all': 'full cohort run: import, genotype, and global filtering',
+    'shard': 'shard run: import and genotype one interval shard',
+    'finalize': 'finalize run: globally filter a gathered raw cohort VCF'
+]
+def STAGE_ACTION = STAGE_ACTIONS[COHORT_STAGE]
+def SAMPLE_COUNT_DISPLAY = COHORT_STAGE == 'finalize' ? "not applicable (finalize stage)" : SAMPLE_COUNT.toString()
+def SAMPLE_MAP_DISPLAY = COHORT_STAGE == 'finalize' ? "not used (finalize stage)" : SAMPLE_MAP.toString()
+def WORKSPACE_DISPLAY = COHORT_STAGE == 'finalize' ? "not used (finalize stage)" : WORKSPACE_NAME
 
 def ENV_BLOCK = """
 export TMPDIR=${q(TMPDIR)}
@@ -256,11 +269,19 @@ export GATK_DISABLE_AUTO_S3_UPLOAD=true
 
 println "Pipeline: ${PIPELINE}"
 println "Genome: ${GENOME}"
-println "Sample map: ${SAMPLE_MAP}"
-println "Sample count: ${SAMPLE_COUNT}"
-println "Workspace: ${WORKSPACE_NAME}"
 println "Cohort stage: ${COHORT_STAGE}"
+println "Stage action: ${STAGE_ACTION}"
+println "Sample map: ${SAMPLE_MAP_DISPLAY}"
+println "Sample count: ${SAMPLE_COUNT_DISPLAY}"
+println "Workspace: ${WORKSPACE_DISPLAY}"
 println "Output basename: ${OUTPUT_BASENAME}"
+println "Interval shard: ${INTERVAL_SHARD ?: '<none>'}"
+if (COHORT_STAGE == 'finalize') {
+    println "Input VCF: ${INPUT_VCF}"
+    println "Final VCF: ${COHORT_QC_VCF_NAME}"
+} else {
+    println "Out VCF: ${COHORT_RAW_VCF_NAME}"
+}
 println "GATK4: ${GATK4_8G}"
 println "REF: ${REF}"
 

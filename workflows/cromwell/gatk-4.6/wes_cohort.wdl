@@ -126,6 +126,12 @@ task RunCohort {
       echo "Error: sample_map is required unless cohort_stage=finalize." >&2
       exit 1
     fi
+    ARCH="$(uname -m)"
+    if [[ "$COHORT_STAGE" != "finalize" && "$ARCH" =~ ^(aarch64|arm64)$ ]]; then
+      echo "Error: GATK GenomicsDBImport cannot run on ARM/aarch64 with the bundled GATK 4.6 GenomicsDB native libraries." >&2
+      echo "Run cohort_stage=all/shard on x86_64, or run cohort_stage=finalize on ARM using a gathered raw VCF created on x86_64." >&2
+      exit 1
+    fi
 
     COHORT_RAW_VCF="${OUTPUT_BASENAME}.gv.raw.vcf.gz"
     COHORT_QC_VCF="${OUTPUT_BASENAME}.gv.QC.vcf.gz"
@@ -149,6 +155,21 @@ task RunCohort {
       /*) WORKSPACE_PATH="~{workspace}" ;;
       *) WORKSPACE_PATH="$GENOMICSDBDIR/~{workspace}" ;;
     esac
+
+    case "$COHORT_STAGE" in
+      all) STAGE_ACTION="full cohort run: import, genotype, and global filtering" ;;
+      shard) STAGE_ACTION="shard run: import and genotype one interval shard" ;;
+      finalize) STAGE_ACTION="finalize run: globally filter a gathered raw cohort VCF" ;;
+    esac
+    if [ "$COHORT_STAGE" = "finalize" ]; then
+      SAMPLE_COUNT_DISPLAY="not applicable (finalize stage)"
+      SAMPLE_MAP_DISPLAY="not used (finalize stage)"
+      WORKSPACE_DISPLAY="not used (finalize stage)"
+    else
+      SAMPLE_COUNT_DISPLAY="$SAMPLE_COUNT"
+      SAMPLE_MAP_DISPLAY="${SAMPLE_MAP:-<none>}"
+      WORKSPACE_DISPLAY="${WORKSPACE_PATH:-<none>}"
+    fi
 
     make_wes_shard_interval_list() {
       local source_list="$1"
@@ -222,6 +243,27 @@ task RunCohort {
       fi
       INTERVAL_ARG="-L $WGS_INTERVAL_LIST"
     fi
+
+    {
+      echo "## Cohort GenomicsDBImport -> Genotype -> VQSR/Hard-filter"
+      echo "cohort_stage: $COHORT_STAGE"
+      echo "stage_action: $STAGE_ACTION"
+      echo "sample_map: $SAMPLE_MAP_DISPLAY"
+      echo "pipeline: ~{pipeline}"
+      echo "sample_count: $SAMPLE_COUNT_DISPLAY"
+      echo "workspace: $WORKSPACE_DISPLAY"
+      echo "output_basename: $OUTPUT_BASENAME"
+      echo "interval_shard: ${INTERVAL_SHARD:-<none>}"
+      if [ "$COHORT_STAGE" = "finalize" ]; then
+        echo "input_vcf: $INPUT_VCF"
+        echo "final_vcf: $COHORT_QC_VCF"
+      else
+        echo "out_vcf: $COHORT_RAW_VCF"
+      fi
+      echo "tmpdir: ~{tmpdir}"
+      echo "log: $LOG"
+      echo ""
+    } | tee -a "$LOG"
 
     if [ "$COHORT_STAGE" != "finalize" ]; then
       echo "Step 1: GenomicsDBImport" | tee -a "$LOG"

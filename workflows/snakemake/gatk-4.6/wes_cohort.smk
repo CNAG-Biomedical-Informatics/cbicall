@@ -45,6 +45,12 @@ if COHORT_STAGE == "finalize" and INTERVAL_SHARD:
     raise ValueError("cohort_stage='finalize' does not use interval_shard")
 if COHORT_STAGE == "shard" and INPUT_VCF:
     raise ValueError("cohort_stage='shard' does not use input_vcf")
+if COHORT_STAGE != "finalize" and platform.machine() in {"aarch64", "arm64"}:
+    raise ValueError(
+        "GATK GenomicsDBImport cannot run on ARM/aarch64 with the bundled GATK 4.6 "
+        "GenomicsDB native libraries. Run cohort_stage=all/shard on x86_64, or run "
+        "cohort_stage=finalize on ARM using a gathered raw VCF created on x86_64."
+    )
 
 # Same GATK command style as your wes_single config
 MEM          = config.get("mem", "8G")
@@ -173,6 +179,39 @@ FINAL_TARGET = COHORT_RAW_VCF if COHORT_STAGE == "shard" else COHORT_QC_VCF
 FINAL_TARGETS = [FINAL_TARGET]
 if COHORT_STAGE != "shard":
     FINAL_TARGETS.append(COHORT_HASH)
+
+STAGE_ACTION = {
+    "all": "full cohort run: import, genotype, and global filtering",
+    "shard": "shard run: import and genotype one interval shard",
+    "finalize": "finalize run: globally filter a gathered raw cohort VCF",
+}[COHORT_STAGE]
+if COHORT_STAGE == "finalize":
+    SAMPLE_COUNT_DISPLAY = "not applicable (finalize stage)"
+    SAMPLE_MAP_DISPLAY = "not used (finalize stage)"
+    WORKSPACE_DISPLAY = "not used (finalize stage)"
+else:
+    SAMPLE_COUNT_DISPLAY = str(SAMPLE_COUNT)
+    SAMPLE_MAP_DISPLAY = SAMPLE_MAP or "<none>"
+    WORKSPACE_DISPLAY = WORKSPACE or "<none>"
+
+COHORT_LOG = os.path.join(LOGDIR, "cohort_joint_genotyping.log")
+with open(COHORT_LOG, "w", encoding="utf-8") as log:
+    log.write("## Cohort GenomicsDBImport -> Genotype -> VQSR/Hard-filter\n")
+    log.write(f"cohort_stage: {COHORT_STAGE}\n")
+    log.write(f"stage_action: {STAGE_ACTION}\n")
+    log.write(f"sample_map: {SAMPLE_MAP_DISPLAY}\n")
+    log.write(f"pipeline: {PIPELINE.upper()}\n")
+    log.write(f"sample_count: {SAMPLE_COUNT_DISPLAY}\n")
+    log.write(f"workspace: {WORKSPACE_DISPLAY}\n")
+    log.write(f"output_basename: {OUTPUT_BASENAME}\n")
+    log.write(f"interval_shard: {INTERVAL_SHARD or '<none>'}\n")
+    if COHORT_STAGE == "finalize":
+        log.write(f"input_vcf: {INPUT_VCF}\n")
+        log.write(f"final_vcf: {COHORT_QC_VCF}\n")
+    else:
+        log.write(f"out_vcf: {COHORT_RAW_VCF}\n")
+    log.write(f"tmpdir: {TMPDIR}\n")
+    log.write(f"log: {COHORT_LOG}\n\n")
 
 rule all:
     input:

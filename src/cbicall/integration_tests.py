@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -125,6 +126,36 @@ def _contract_env(project_root: Path, contract: dict) -> Dict[str, str]:
             text = str(project_value)
         env[key] = text
     return env
+
+
+def _resolve_bcftools(project_root: Path, env: Dict[str, str]) -> str:
+    bcftools = env.get("BCFTOOLS")
+    if not bcftools:
+        env_file = project_root / "workflows" / "bash" / "gatk-4.6" / "env.sh"
+        script = f"source {shlex.quote(str(env_file))}; printf '%s\\n' \"${{BCFTOOLS:-bcftools}}\""
+        proc = subprocess.run(
+            ["bash", "-lc", script],
+            cwd=str(project_root),
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=False,
+        )
+        if proc.returncode != 0:
+            raise IntegrationTestError(f"Could not resolve BCFTOOLS from {env_file}: {proc.stdout.strip()}")
+        bcftools = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "bcftools"
+
+    if os.sep in bcftools:
+        if not Path(bcftools).is_file():
+            raise IntegrationTestError(f"BCFTOOLS does not exist: {bcftools}")
+        return bcftools
+    if shutil.which(bcftools, path=env.get("PATH")) is None:
+        raise IntegrationTestError(
+            "bcftools is required for staged cohort gather/finalize integration tests. "
+            "Load bcftools or set BCFTOOLS=/path/to/bcftools before running the test."
+        )
+    return bcftools
 
 
 def list_run_dirs(base_dir: Path, run_glob: str) -> List[Path]:
@@ -513,6 +544,149 @@ def _cleanup(run_dir: Path, contract: dict, keep_external_work: bool) -> None:
             print(f"  removed {rel_path}")
 
 
+def _run_staged_finalize(
+    *,
+    project_root: Path,
+    selection: TestSelection,
+    workdir: Path,
+    shard_run_dir: Path,
+    contract: dict,
+    threads: int,
+    runtime_profile: str,
+    keep_external_work: bool,
+) -> Path:
+    staged = contract.get("staged_finalize") or {}
+    if not isinstance(staged, dict):
+        raise IntegrationTestError("staged_finalize must be a mapping.")
+
+    env = _contract_env(project_root, contract)
+    bcftools = _resolve_bcftools(project_root, env)
+    shard_vcfs = staged.get("shard_vcfs") or []
+    if not shard_vcfs:
+        raise IntegrationTestError("staged_finalize.shard_vcfs must list at least one raw shard VCF.")
+
+    raw_vcfs = [_work_path(shard_run_dir, rel_path) for rel_path in shard_vcfs]
+    for raw_vcf in raw_vcfs:
+        if not raw_vcf.is_file():
+            raise IntegrationTestError(f"Staged shard raw VCF does not exist: {raw_vcf}")
+        if not Path(str(raw_vcf) + ".tbi").is_file():
+            raise IntegrationTestError(f"Staged shard raw VCF index does not exist: {raw_vcf}.tbi")
+
+    raw_vcfs_list = _work_path(workdir, staged.get("raw_vcfs_list", "raw_vcfs.list"))
+    raw_vcfs_list.write_text("".join(f"{path}\n" for path in raw_vcfs), encoding="utf-8")
+    gathered_vcf = _work_path(workdir, staged.get("gathered_vcf", "cohort.gathered.gv.raw.vcf.gz"))
+    gathered_vcf.unlink(missing_ok=True)
+    Path(str(gathered_vcf) + ".tbi").unlink(missing_ok=True)
+
+    print("Gathering staged raw cohort VCFs:")
+    print(f"  BCFTOOLS    : {bcftools}")
+    print(f"  VCF list    : {raw_vcfs_list}")
+    print(f"  Gathered VCF: {gathered_vcf}")
+
+    for cmd in (
+        [bcftools, "concat", "-f", str(raw_vcfs_list), "-Oz", "-o", str(gathered_vcf)],
+        [bcftools, "index", "-t", str(gathered_vcf)],
+    ):
+        proc = subprocess.run(
+            cmd,
+            cwd=str(workdir),
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=False,
+        )
+        if proc.returncode != 0:
+            raise IntegrationTestError(
+                "Staged cohort gather command failed with return code "
+                f"{proc.returncode}: {' '.join(cmd)}\n{proc.stdout}"
+            )
+
+    finalize = staged.get("finalize") or {}
+    if not isinstance(finalize, dict) or "parameters" not in finalize:
+        raise IntegrationTestError("staged_finalize.finalize.parameters is required.")
+    finalize_parameters = dict(finalize["parameters"] or {})
+    finalize_parameters.setdefault("input_vcf", str(gathered_vcf))
+    param_file = _write_inline_parameters(workdir, f"{selection.key}-finalize", finalize_parameters)
+
+    launcher_fd, launcher_name = tempfile.mkstemp(
+        prefix=f"cbicall-test-{selection.key}-finalize.",
+        suffix=".log",
+        dir=workdir,
+        text=True,
+    )
+    os.close(launcher_fd)
+    launcher_log = Path(launcher_name)
+
+    base_dir = _work_path(workdir, finalize.get("base_dir", "."))
+    run_glob = finalize.get("run_glob") or contract.get("run", {}).get("run_glob")
+    if not run_glob:
+        raise IntegrationTestError("staged_finalize.finalize.run_glob is required.")
+    before = list_run_dirs(base_dir, run_glob)
+    cmd = [
+        str(project_root / "bin" / "cbicall"),
+        "run",
+        "-p",
+        str(param_file),
+        "-t",
+        str(threads),
+        "--runtime-profile",
+        str(runtime_profile),
+    ]
+
+    print("========================================")
+    print(f"TEST: {selection.label} Finalize")
+    print("========================================")
+    print("Running staged cohort finalize integration test...")
+    proc = subprocess.run(
+        cmd,
+        cwd=str(workdir),
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    launcher_log.write_text(proc.stdout, encoding="utf-8")
+
+    after = list_run_dirs(base_dir, run_glob)
+    run_dir = _parse_run_dir_from_stdout(proc.stdout)
+    if run_dir is not None and not run_dir.is_absolute():
+        run_dir = workdir / run_dir
+    if run_dir is None or not run_dir.exists():
+        run_dir = _new_run_dir(before, after)
+
+    try:
+        if proc.returncode != 0:
+            tail = "\n".join(proc.stdout.splitlines()[-40:])
+            raise IntegrationTestError(
+                f"{selection.label} finalize cbicall command failed with return code {proc.returncode}.\n"
+                f"Launcher log: {launcher_log}\n{tail}"
+            )
+        if run_dir is None:
+            raise IntegrationTestError(f"{selection.label} finalize finished but no run directory was found.")
+
+        finalize_contract = {
+            "_contract_path": contract["_contract_path"],
+            "workflow_log": finalize.get("workflow_log", contract.get("workflow_log", "workflow.log")),
+            "required_files": finalize.get("required_files", []),
+            "required_globs": finalize.get("required_globs", []),
+            "text_expectations": finalize.get("text_expectations", []),
+            "json_expectations": finalize.get("json_expectations", []),
+            "hashes": finalize.get("hashes", []),
+            "cleanup_paths": finalize.get("cleanup_paths", []),
+        }
+        _print_artifacts(f"{selection.label} Finalize", run_dir, finalize_contract, launcher_log)
+        print("Validating staged finalize contract:")
+        validate_contract(run_dir, finalize_contract)
+        print("  OK finalize required files")
+        print("  OK finalize run-report fields")
+        _cleanup(run_dir, finalize_contract, keep_external_work)
+        return run_dir
+    finally:
+        param_file.unlink(missing_ok=True)
+
+
 def _run_one(
     *,
     project_root: Path,
@@ -621,9 +795,21 @@ def _run_one(
         print("  OK run-report fields")
         if contract.get("hashes"):
             print("  OK output hashes")
+        detail_run_dir = run_dir
+        if contract.get("staged_finalize"):
+            detail_run_dir = _run_staged_finalize(
+                project_root=project_root,
+                selection=selection,
+                workdir=workdir,
+                shard_run_dir=run_dir,
+                contract=contract,
+                threads=threads,
+                runtime_profile=runtime_profile,
+                keep_external_work=keep_external_work,
+            )
         _cleanup(run_dir, contract, keep_external_work)
         print(f"SUCCESS: {selection.label} integration contract passed.")
-        return selection.label, "passed", str(run_dir)
+        return selection.label, "passed", str(detail_run_dir)
     finally:
         if temp_param:
             temp_param.unlink(missing_ok=True)
