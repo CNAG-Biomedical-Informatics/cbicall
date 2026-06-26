@@ -55,8 +55,8 @@ else:
 
 GATK4 = config["gatk4_cmd"].format(ngsutils=NGSUTILS, mem=MEM)
 
-COV     = str(snakefile_dir / "coverage.sh")
-VCF2SEX = str(snakefile_dir / "vcf2sex.sh")
+COV     = config.get("coverage_script") or str(snakefile_dir / "coverage.sh")
+VCF2SEX = config.get("vcf2sex_script") or str(snakefile_dir / "vcf2sex.sh")
 VCF2HASH = config.get("vcf2hash_script") or str(snakefile_dir / "vcf2hash.sh")
 
 resource_cfg  = config["resources"][GENOME]

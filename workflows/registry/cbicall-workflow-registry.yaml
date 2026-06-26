@@ -76,6 +76,9 @@ workflows:
       gatk-4.6:
         helpers:
           config: "config.yaml"
+          coverage: "../../bash/gatk-4.6/coverage.sh"
+          vcf2sex: "../../bash/gatk-4.6/vcf2sex.sh"
+          vcf2hash: "../../bash/gatk-4.6/vcf2hash.sh"
         pipelines:
           wes:
             single:

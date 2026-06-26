@@ -349,7 +349,7 @@ def test_run_release_equivalence_compares_available_native_backend(tmp_path, mon
     assert "WES Snakemake => same final VCF | same-hash | 6 records" in out
     assert "WES Bash      => passed | same-hash | 6 records" in out
     assert "Compared non-Bash backends: 1" in out
-    assert "Status: PASSED" in out
+    assert "Status: [PASS] PASSED" in out
 
 
 def test_run_release_equivalence_fails_without_non_bash_comparator(tmp_path, monkeypatch, capsys):
@@ -568,10 +568,15 @@ def test_backend_availability_and_selected_tests(monkeypatch):
     args.all = True
     args.wes_cohort_bash_sharded = False
     selected_all = integration_mod.selected_tests_from_args(args)
-    assert "wes-cohort-bash" in [item.key for item in selected_all]
-    assert "wes-cohort-bash-sharded" in [item.key for item in selected_all]
-    assert "wes-cromwell" in [item.key for item in selected_all]
-    assert "mit-bash" in [item.key for item in selected_all]
+    assert [item.key for item in selected_all] == [
+        "wes-bash",
+        "mit-bash",
+        "wes-cohort-bash",
+        "wes-cohort-bash-sharded",
+        "wes-snakemake",
+        "wes-nextflow",
+        "wes-cromwell",
+    ]
 
 
 
@@ -644,7 +649,9 @@ def test_run_integration_tests_records_failed_summary(tmp_path, monkeypatch, cap
     assert rc == 1
     out = capsys.readouterr().out
     assert "ERROR: contract failed" in out
-    assert "WES Bash: failed (contract failed)" in out
+    assert "[FAIL]" in out
+    assert "WES Bash" in out
+    assert "contract failed" in out
 
 
 

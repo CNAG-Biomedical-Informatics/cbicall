@@ -1167,7 +1167,7 @@ def test_set_config_values_snakemake_missing_helper_config_raises(monkeypatch, t
     smk_dir.mkdir(parents=True, exist_ok=True)
     (smk_dir / "wgs_cohort.smk").write_text("# dummy\n", encoding="utf-8")
 
-    with pytest.raises(WorkflowResolutionError, match="missing helper key 'config'"):
+    with pytest.raises(WorkflowResolutionError, match="missing helper keys for snakemake"):
         config_mod.set_config_values(
             {"mode": "cohort", "pipeline": "wgs", "workflow_backend": "snakemake", "software_stack": "gatk-4.6"}
         )
@@ -1185,6 +1185,9 @@ def test_set_config_values_snakemake_missing_files_triggers_guard(monkeypatch, t
           "      gatk-4.6:\n"
           "        helpers:\n"
           "          config: \"config.yaml\"\n"
+          "          coverage: \"../../bash/gatk-4.6/coverage.sh\"\n"
+          "          vcf2sex: \"../../bash/gatk-4.6/vcf2sex.sh\"\n"
+          "          vcf2hash: \"../../bash/gatk-4.6/vcf2hash.sh\"\n"
           "        pipelines:\n"
           "          wgs:\n"
           "            cohort:\n"

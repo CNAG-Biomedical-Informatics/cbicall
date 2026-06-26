@@ -152,8 +152,10 @@ def _resolve_bcftools(project_root: Path, env: Dict[str, str]) -> str:
         return bcftools
     if shutil.which(bcftools, path=env.get("PATH")) is None:
         raise IntegrationTestError(
-            "bcftools is required for staged cohort gather/finalize integration tests. "
-            "Load bcftools or set BCFTOOLS=/path/to/bcftools before running the test."
+            "bcftools is required only for the staged cohort gather/finalize integration test. "
+            "CBIcall resolved BCFTOOLS to 'bcftools' from the environment/env.sh, but it is not on PATH. "
+            "Load bcftools, add it to PATH, or set BCFTOOLS=/path/to/bcftools before running "
+            "bin/cbicall test --wes-cohort-bash-sharded or --all."
         )
     return bcftools
 
@@ -384,6 +386,21 @@ def _release_hash_detail(hash_info: Optional[dict]) -> str:
     records = hash_info.get("normalized_records")
     record_text = f" | {records} records" if records is not None else ""
     return f"{_short_hash(hash_info.get('normalized_sha256'))}{record_text}"
+
+
+def _status_marker(status: str) -> str:
+    normalized = status.lower()
+    if normalized in {"passed", "same final vcf"}:
+        return "[PASS]"
+    if normalized == "skipped":
+        return "[SKIP]"
+    if normalized == "failed":
+        return "[FAIL]"
+    return "[INFO]"
+
+
+def _overall_marker(exit_code: int) -> str:
+    return "[PASS]" if exit_code == 0 else "[FAIL]"
 
 
 def validate_contract(run_dir: Path, contract: dict) -> None:
@@ -848,11 +865,14 @@ def run_integration_tests(
     print("========================================")
     print("Integration test summary")
     print("========================================")
+    print(f"{'Result':<8} {'Test':<24} Details")
+    print(f"{'-' * 8} {'-' * 24} {'-' * 40}")
     for label, status, detail in summary:
-        suffix = f" ({detail})" if detail else ""
-        print(f"{label}: {status}{suffix}")
+        details = detail or ""
+        print(f"{_status_marker(status):<8} {label:<24} {details}")
     print("========================================")
     print("All requested tests finished.")
+    print(f"Status: {_overall_marker(overall_status)} {'PASSED' if overall_status == 0 else 'FAILED'}")
     print(f"Exit code: {overall_status}")
     print("========================================")
     return overall_status
@@ -947,10 +967,11 @@ def run_release_equivalence_test(
             continue
         hash_info = comparison_hashes.get(label)
         suffix = f" ({detail})" if detail else ""
+        marker = _status_marker(status)
         if hash_info:
-            print(f"  {label:<13} => {status} | {_release_hash_detail(hash_info)}{suffix}")
+            print(f"  {marker:<8} {label:<13} => {status} | {_release_hash_detail(hash_info)}{suffix}")
         else:
-            print(f"  {label:<13} => {status}{suffix}")
+            print(f"  {marker:<8} {label:<13} => {status}{suffix}")
     print()
     print("Backend equivalence")
     for label, status, detail in results:
@@ -958,13 +979,14 @@ def run_release_equivalence_test(
             continue
         hash_info = comparison_hashes.get(label)
         suffix = f" ({detail})" if detail else ""
+        marker = _status_marker(status)
         if hash_info:
-            print(f"  {label:<13} => {status} | {_release_hash_detail(hash_info)}{suffix}")
+            print(f"  {marker:<8} {label:<13} => {status} | {_release_hash_detail(hash_info)}{suffix}")
         else:
-            print(f"  {label:<13} => {status}{suffix}")
+            print(f"  {marker:<8} {label:<13} => {status}{suffix}")
     print()
     print(f"Compared non-Bash backends: {passed_comparisons}")
-    print(f"Status: {'PASSED' if overall_status == 0 else 'FAILED'}")
+    print(f"Status: {_overall_marker(overall_status)} {'PASSED' if overall_status == 0 else 'FAILED'}")
     print(f"Exit code: {overall_status}")
     print("========================================")
     return overall_status
@@ -974,6 +996,10 @@ def selected_tests_from_args(args: argparse.Namespace) -> List[TestSelection]:
     selected: List[TestSelection] = []
     if args.all or args.wes_bash:
         selected.append(TESTS["wes-bash"])
+    # In --all, run MIT before cohort tests create additional WES setup dirs.
+    # The MIT Bash workflow discovers the upstream WES BAM from the sample tree.
+    if args.all or args.mit_bash:
+        selected.append(TESTS["mit-bash"])
     if args.all or args.wes_cohort_bash:
         selected.append(TESTS["wes-cohort-bash"])
     if args.all or args.wes_cohort_bash_sharded:
@@ -986,8 +1012,6 @@ def selected_tests_from_args(args: argparse.Namespace) -> List[TestSelection]:
         selected.append(TESTS["wes-nextflow"])
     if args.all or args.wes_cromwell:
         selected.append(TESTS["wes-cromwell"])
-    if args.all or args.mit_bash:
-        selected.append(TESTS["mit-bash"])
     if args.nf_core_demo:
         selected.append(TESTS["nf-core-demo"])
     if args.nf_core_sarek:

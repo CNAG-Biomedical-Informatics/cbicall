@@ -475,8 +475,14 @@ class SnakemakeRunner(BaseRunner):
 
         if self.software_stack != "gatk-3.5":
             snk_config_kvs.append(f"pipeline={self.pipeline}")
-            if self.workflow.helpers.get("vcf2hash"):
-                snk_config_kvs.append(f"vcf2hash_script={self.workflow.helpers['vcf2hash']}")
+            helper_config_keys = {
+                "coverage": "coverage_script",
+                "vcf2sex": "vcf2sex_script",
+                "vcf2hash": "vcf2hash_script",
+            }
+            for helper_name, config_key in helper_config_keys.items():
+                if self.workflow.helpers.get(helper_name):
+                    snk_config_kvs.append(f"{config_key}={self.workflow.helpers[helper_name]}")
             if self.mode == "single":
                 snk_config_kvs.append(f"cleanup_bam={_parameter_value_to_string(bool(self.settings.cleanup_bam))}")
 
@@ -804,6 +810,7 @@ class CromwellRunner(BaseRunner):
         tools = payload.pop("_cbicall_tools")
 
         if self.mode == "single":
+            payload.pop(prefix + "ref_dict", None)
             self._write_fastq_pairs()
             payload.update(
                 {

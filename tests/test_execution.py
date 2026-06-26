@@ -490,12 +490,20 @@ def test_execution_builds_snakemake_partial_rule_command(tmp_path, monkeypatch):
             "registry_version": "v1",
             "entrypoint": snakefile,
             "config_file": str(tmp_path / "config.yaml"),
-            "helpers": {},
+            "helpers": {
+                "coverage": str(tmp_path / "coverage.sh"),
+                "vcf2sex": str(tmp_path / "vcf2sex.sh"),
+                "vcf2hash": str(tmp_path / "vcf2hash.sh"),
+            },
         },
     }
 
     assert execution.WorkflowExecutor(settings).run() is True
-    assert recorded["cmd"][:3] == ["snakemake", "--forceall", "call_variants"]
+    cmd = recorded["cmd"]
+    assert cmd[:3] == ["snakemake", "--forceall", "call_variants"]
+    assert f"coverage_script={tmp_path / 'coverage.sh'}" in cmd
+    assert f"vcf2sex_script={tmp_path / 'vcf2sex.sh'}" in cmd
+    assert f"vcf2hash_script={tmp_path / 'vcf2hash.sh'}" in cmd
 
 
 def test_execution_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
@@ -1000,7 +1008,6 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
     assert inputs["CBIcallWesSingle.id"] == "CNAG99901P"
     assert inputs["CBIcallWesSingle.bwa"] == "/data/NGSutils/bwa/bwa"
     assert inputs["CBIcallWesSingle.ref"] == "/data/Databases/GATK_bundle/b37/ref.fasta"
-    assert inputs["CBIcallWesSingle.ref_dict"] == "/data/Databases/GATK_bundle/b37/ref.dict"
     assert inputs["CBIcallWesSingle.qc_coverage_region"] == "chr22"
     assert inputs["CBIcallWesSingle.extra_label"] == "audit"
     assert (project_dir / "cbicall_cromwell.fastq_pairs.tsv").read_text(encoding="utf-8").count("\n") == 1

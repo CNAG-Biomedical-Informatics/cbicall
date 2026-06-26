@@ -262,6 +262,9 @@ def _validate_backend_parameter_settings(cfg: dict) -> None:
             "cohort_stage",
             "interval_shard",
             "input_vcf",
+            "coverage_script",
+            "vcf2sex_script",
+            "vcf2hash_script",
         }
     )
     if reserved_snakemake:
