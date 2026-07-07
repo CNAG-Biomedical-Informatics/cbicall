@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -17,6 +18,18 @@ CBICALL_PARENT = {
     "parent_description": "CBIcall audit and QC summaries generated from run-report.json.",
 }
 STATUS_ORDER = ["same", "different", "missing", "note", "unavailable"]
+STATUS_COLORS = {
+    "same": "#16a34a",
+    "different": "#f59e0b",
+    "missing": "#64748b",
+    "note": "#2563eb",
+    "unavailable": "#94a3b8",
+    "identical": "#16a34a",
+    "near-identical": "#22c55e",
+    "mostly-similar": "#84cc16",
+    "partly-similar": "#f59e0b",
+    "different-or-missing": "#dc2626",
+}
 
 
 def _short_hash(value):
@@ -150,6 +163,134 @@ def _compact_dict(data: dict) -> dict:
     return {key: value for key, value in data.items() if value is not None}
 
 
+def _html_escape(value) -> str:
+    return html.escape("" if value is None else str(value))
+
+
+def _format_metric(value, fallback: str = "not recorded") -> str:
+    if value is None:
+        return fallback
+    if isinstance(value, float):
+        return f"{value:.2f}".rstrip("0").rstrip(".")
+    return str(value)
+
+
+def _dashboard_html(section_id: str, section_name: str, description: str, body: str) -> str:
+    return f"""<!--
+id: {section_id}
+parent_id: cbicall
+parent_name: CBIcall
+parent_description: CBIcall audit and QC summaries generated from run-report.json.
+section_name: {section_name}
+description: {description}
+plot_type: html
+-->
+<style>
+.cbicall-dashboard {{
+  display: grid;
+  grid-template-columns: minmax(260px, 1.1fr) minmax(440px, 2fr);
+  gap: 18px;
+  margin: 8px 0 20px;
+}}
+.cbicall-status-card,
+.cbicall-metrics,
+.cbicall-note-card {{
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}}
+.cbicall-status-card {{
+  padding: 22px 24px;
+  border-left: 8px solid #2563eb;
+}}
+.cbicall-status-success .cbicall-status-card,
+.cbicall-status-same .cbicall-status-card {{
+  border-left-color: #16a34a;
+}}
+.cbicall-status-warning .cbicall-status-card,
+.cbicall-status-mixed .cbicall-status-card {{
+  border-left-color: #f59e0b;
+}}
+.cbicall-status-failed .cbicall-status-card,
+.cbicall-status-different .cbicall-status-card {{
+  border-left-color: #dc2626;
+}}
+.cbicall-label {{
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}}
+.cbicall-status-card strong {{
+  display: block;
+  margin-top: 5px;
+  color: #0f172a;
+  font-size: 32px;
+  line-height: 1.1;
+}}
+.cbicall-status-card p {{
+  margin: 12px 0 0;
+  color: #475569;
+  font-size: 15px;
+}}
+.cbicall-metrics {{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+}}
+.cbicall-metrics div {{
+  padding: 22px 18px;
+  border-left: 1px solid #e2e8f0;
+}}
+.cbicall-metrics div:first-child {{
+  border-left: 0;
+}}
+.cbicall-metrics span {{
+  display: block;
+  color: #0f172a;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}}
+.cbicall-metrics small {{
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}}
+.cbicall-note-card {{
+  grid-column: 1 / -1;
+  padding: 14px 18px;
+  color: #334155;
+  font-size: 14px;
+}}
+@media (max-width: 900px) {{
+  .cbicall-dashboard {{
+    grid-template-columns: 1fr;
+  }}
+  .cbicall-metrics {{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }}
+}}
+</style>
+{body}
+"""
+
+
+def _metric_card(value, label: str) -> str:
+    return f"<div><span>{_html_escape(_format_metric(value))}</span><small>{_html_escape(label)}</small></div>"
+
+
+def _write_text(output_dir: Path, filename: str, content: str) -> Path:
+    output = output_dir / filename
+    output.write_text(content, encoding="utf-8")
+    return output
+
+
 def _write_yaml(output_dir: Path, filename: str, payload: dict) -> Path:
     output = output_dir / filename
     output.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
@@ -188,6 +329,40 @@ def _run_general_stats_row(payload: dict) -> dict:
         "max_vmem_gib": _bytes_to_gib(_nested(trace, "max_peak_vmem", "bytes")),
     }
     return _compact_dict(row)
+
+
+def build_run_overview_html(report_path: Path, payload: dict) -> str:
+    status = str(payload.get("status") or "unknown").lower()
+    status_class = "success" if status in {"success", "completed", "finished"} else "failed" if status in {"failed", "error"} else "warning"
+    workflow = payload.get("workflow") or {}
+    run_label = _run_label(payload, report_path)
+    inventory = _nested(payload, "outputs", "file_inventory") or {}
+    row = _run_general_stats_row(payload)
+    final_vcf = _first_vcf_records(payload)
+    body = f"""
+<div class="cbicall-dashboard cbicall-status-{status_class}">
+  <div class="cbicall-status-card">
+    <span class="cbicall-label">Run status</span>
+    <strong>{_html_escape(status or "unknown")}</strong>
+    <p>{_html_escape(run_label)} | {_html_escape(workflow.get("backend"))} / {_html_escape(workflow.get("pipeline"))} / {_html_escape(workflow.get("mode"))}</p>
+  </div>
+  <div class="cbicall-metrics">
+    {_metric_card(row.get("elapsed_min"), "Elapsed min")}
+    {_metric_card(inventory.get("entries"), "Output files")}
+    {_metric_card(row.get("output_size_mib"), "Output MiB")}
+    {_metric_card(final_vcf, "Final VCF records")}
+  </div>
+  <div class="cbicall-note-card">
+    <strong>Audit focus:</strong> CBIcall keeps the full evidence in run-report.json and uses this MultiQC view as a compact companion for run identity, output fingerprints, and native sample QC.
+  </div>
+</div>
+"""
+    return _dashboard_html(
+        "cbicall_00_run_overview",
+        "CBIcall run overview",
+        "At-a-glance CBIcall run status, output inventory, and final-output fingerprint summary.",
+        body,
+    )
 
 
 def build_run_general_stats_payload(report_path: Path, payload: dict) -> dict:
@@ -249,6 +424,20 @@ def build_run_identity_payload(report_path: Path, payload: dict) -> dict:
         "table",
         data,
         pconfig={"id": "cbicall_run_identity_table", "title": "CBIcall run identity"},
+        headers={
+            "Status": {
+                "title": "Status",
+                "description": "CBIcall run status",
+                "bgcols": {"success": "#16a34a", "failed": "#dc2626", "error": "#dc2626"},
+            },
+            "Backend": {"title": "Backend", "description": "Workflow backend used for execution", "scale": False},
+            "Provider": {"title": "Provider", "description": "Workflow provider", "scale": False},
+            "Workflow hash": {"title": "Workflow hash", "description": "Short workflow fingerprint", "scale": False},
+            "Resource hash": {"title": "Resource hash", "description": "Short resource fingerprint", "scale": False},
+            "Contract hash": {"title": "Contract hash", "description": "Short execution contract fingerprint", "scale": False},
+            "Final VCF calls hash": {"title": "Final VCF calls", "description": "Call-level VCF fingerprint", "scale": False},
+            "Final VCF strict hash": {"title": "Final VCF strict", "description": "Strict-record VCF fingerprint", "scale": False},
+        },
     )
 
 
@@ -344,6 +533,22 @@ def build_native_sample_qc_payload(report_path: Path) -> Optional[dict]:
         "table",
         data,
         pconfig={"id": "cbicall_native_sample_qc_table", "title": "CBIcall native sample QC"},
+        headers={
+            "Region": {"title": "Region", "description": "Coverage summary region", "scale": False},
+            "Mode": {"title": "Mode", "description": "Coverage mode", "scale": False},
+            "Total reads": {"title": "Reads", "description": "Reads inspected by the coverage helper", "scale": "Blues"},
+            "Mean coverage": {"title": "Mean cov", "description": "Mean coverage in the selected region", "scale": "Greens"},
+            "10 pct coverage": {"title": "10 pct cov", "description": "Percentage of positions above 10x", "scale": "Greens"},
+            "Non-duplicate pct": {"title": "Nondup pct", "description": "Non-duplicate read percentage", "scale": "Greens"},
+            "Insert size": {"title": "Insert size", "description": "Estimated insert size", "scale": "Purples"},
+            "In-target pct": {"title": "In-target pct", "description": "Reads in target", "scale": "Greens"},
+            "Out-target pct": {"title": "Out-target pct", "description": "Reads outside target", "scale": "Oranges"},
+            "Sex": {
+                "title": "Sex",
+                "description": "Sex inferred for QC from VCF-derived depth ratios",
+                "bgcols": {"FEMALE": "#ec4899", "MALE": "#2563eb", "UNKNOWN": "#94a3b8"},
+            },
+        },
     )
 
 
@@ -390,6 +595,21 @@ def build_final_outputs_payload(report_path: Path, payload: dict) -> Optional[di
         "table",
         rows,
         pconfig={"id": "cbicall_final_outputs_table", "title": "CBIcall final outputs"},
+        headers={
+            "File": {"title": "File", "description": "Final output file name", "scale": False},
+            "Source": {"title": "Source", "description": "Output source", "scale": False},
+            "Call records": {"title": "Call records", "description": "Call-level VCF records", "scale": "Blues"},
+            "Call hash": {"title": "Call hash", "description": "Short call-level VCF fingerprint", "scale": False},
+            "Strict records": {"title": "Strict records", "description": "Strict-record VCF records", "scale": "Purples"},
+            "Strict hash": {"title": "Strict hash", "description": "Short strict-record VCF fingerprint", "scale": False},
+            "Raw hash": {"title": "Raw hash", "description": "Short raw file fingerprint", "scale": False},
+            "Type": {"title": "Type", "description": "Canonical output type", "scale": False},
+            "Status": {
+                "title": "Status",
+                "description": "Canonical output status",
+                "bgcols": {"found": "#16a34a", "missing": "#64748b", "expected": "#2563eb"},
+            },
+        },
     )
 
 
@@ -398,9 +618,10 @@ def build_final_outputs_payload(report_path: Path, payload: dict) -> Optional[di
 def _clear_existing_bundle(output_dir: Path) -> None:
     if not output_dir.is_dir():
         return
-    for path in output_dir.glob("*_mqc.yaml"):
-        if path.is_file():
-            path.unlink()
+    for pattern in ("*_mqc.yaml", "*_mqc.html"):
+        for path in output_dir.glob(pattern):
+            if path.is_file():
+                path.unlink()
 
 def _multiqc_output_dir(default_dir: Path, output_path: Optional[Path] = None) -> Path:
     output = output_path or default_dir
@@ -416,6 +637,7 @@ def write_multiqc_report(report_path: Path, payload: dict, output_path: Optional
     output_dir = _multiqc_output_dir(report_path.parent / "cbicall_mqc", output_path)
     output_dir.mkdir(parents=True, exist_ok=True)
     _clear_existing_bundle(output_dir)
+    _write_text(output_dir, "cbicall_00_run_overview_mqc.html", build_run_overview_html(report_path, payload))
     sections = [
         ("cbicall_run_general_stats_mqc.yaml", build_run_general_stats_payload(report_path, payload)),
         ("cbicall_run_identity_mqc.yaml", build_run_identity_payload(report_path, payload)),
@@ -475,6 +697,70 @@ def build_compare_general_stats_payload(reports: list) -> dict:
     )
 
 
+def build_compare_overview_html(reports: list) -> str:
+    from .report_utils import _comparison_sections_with_overall
+
+    sections = _comparison_sections_with_overall(reports)
+    by_name = {section["section"]: section for section in sections}
+    overall = by_name.get("Overall")
+    final_vcf = by_name.get("Final VCF")
+    pairs = (len(reports) * (len(reports) - 1)) // 2
+    overall_status = _section_status_for_pairs(reports, overall) if overall else "unavailable"
+    final_status = _section_status_for_pairs(reports, final_vcf) if final_vcf else "unavailable"
+    if final_vcf:
+        calls_status = _section_status_for_pairs(reports, _section_with_kinds(final_vcf, {"vcf_call"}))
+        strict_status = _section_status_for_pairs(reports, _section_with_kinds(final_vcf, {"vcf_strict"}))
+    else:
+        calls_status = "unavailable"
+        strict_status = "unavailable"
+    layer = _similarity_layer(reports, "Overall")
+    pair_scores = []
+    if layer:
+        rows = layer["layer"]["rows"]
+        for left_index in range(len(rows)):
+            for right_index in range(left_index + 1, len(rows)):
+                score = rows[left_index][right_index].get("score")
+                if score is not None:
+                    pair_scores.append(float(score))
+    mean_similarity = round(sum(pair_scores) / len(pair_scores), 3) if pair_scores else None
+    if calls_status == "same" and strict_status == "same":
+        headline = "Final VCF same"
+        status_class = "same"
+    elif calls_status == "same":
+        headline = "Calls same"
+        status_class = "mixed"
+    elif "different" in {calls_status, strict_status, final_status}:
+        headline = "VCF differs"
+        status_class = "different"
+    else:
+        headline = str(final_status)
+        status_class = "mixed"
+    body = f"""
+<div class="cbicall-dashboard cbicall-status-{status_class}">
+  <div class="cbicall-status-card">
+    <span class="cbicall-label">Final-output status</span>
+    <strong>{_html_escape(headline)}</strong>
+    <p>{_html_escape(len(reports))} runs | {_html_escape(pairs)} pairwise comparisons | overall audit: {_html_escape(overall_status)}</p>
+  </div>
+  <div class="cbicall-metrics">
+    {_metric_card(len(reports), "Runs")}
+    {_metric_card(pairs, "Pairs")}
+    {_metric_card(mean_similarity, "Mean similarity")}
+    {_metric_card(calls_status, "VCF calls")}
+  </div>
+  <div class="cbicall-note-card">
+    <strong>Strict records:</strong> {_html_escape(strict_status)}. Call-level VCF hashes compare CHROM, POS, REF, ALT, FILTER, and sample genotypes; strict-record hashes also capture QUAL, INFO, FORMAT, annotations, and numeric fields.
+  </div>
+</div>
+"""
+    return _dashboard_html(
+        "cbicall_00_compare_overview",
+        "CBIcall comparison overview",
+        "At-a-glance summary of CBIcall pairwise audit similarity and final-output equivalence.",
+        body,
+    )
+
+
 def build_compare_pair_summary_payload(reports: list) -> dict:
     from .report_utils import _comparison_sections_with_overall, _run_label
 
@@ -528,6 +814,17 @@ def build_compare_pair_summary_payload(reports: list) -> dict:
         "table",
         rows,
         pconfig={"id": "cbicall_compare_pair_summary_table", "title": "CBIcall pairwise comparison summary"},
+        headers={
+            "Run A": {"title": "Run A", "description": "First compared run", "scale": False},
+            "Run B": {"title": "Run B", "description": "Second compared run", "scale": False},
+            "Overall category": {"title": "Overall category", "description": "Qualitative report-level similarity", "bgcols": STATUS_COLORS},
+            "Overall similarity": {"title": "Overall similarity", "description": "Report-level Jaccard similarity", "scale": "YlGnBu"},
+            "Final VCF category": {"title": "Final VCF category", "description": "Qualitative final VCF similarity", "bgcols": STATUS_COLORS},
+            "Final VCF similarity": {"title": "Final VCF similarity", "description": "Final VCF Jaccard similarity", "scale": "YlGnBu"},
+            "Final VCF calls": {"title": "VCF calls", "description": "Call-level final VCF status", "bgcols": STATUS_COLORS},
+            "Final VCF strict records": {"title": "VCF strict", "description": "Strict-record final VCF status", "bgcols": STATUS_COLORS},
+            **{label: {"title": label, "description": f"{label} audit-layer status", "bgcols": STATUS_COLORS} for _, label in wanted},
+        },
     )
 
 
@@ -568,6 +865,15 @@ def build_compare_status_counts_payload(reports: list) -> dict:
         "table",
         {"comparison": row},
         pconfig={"id": "cbicall_compare_status_counts_table", "title": "CBIcall comparison status counts"},
+        headers={
+            "Overall": {"title": "Overall", "description": "Aggregate overall status", "bgcols": STATUS_COLORS},
+            "Final VCF": {"title": "Final VCF", "description": "Aggregate final VCF status", "bgcols": STATUS_COLORS},
+            "Final VCF calls": {"title": "VCF calls", "description": "Aggregate call-level VCF status", "bgcols": STATUS_COLORS},
+            "Final VCF strict records": {"title": "VCF strict", "description": "Aggregate strict-record VCF status", "bgcols": STATUS_COLORS},
+            "Runs": {"title": "Runs", "description": "Compared runs", "scale": "Blues"},
+            "Pairs": {"title": "Pairs", "description": "Pairwise comparisons", "scale": "Blues"},
+            **{f"Pairs {status}": {"title": f"Pairs {status}", "description": f"Pair count with {status} overall status", "scale": False} for status in STATUS_ORDER},
+        },
     )
 
 
@@ -608,6 +914,7 @@ def write_compare_multiqc_report(reports: list, output_path: Path) -> Path:
     output_dir = _multiqc_output_dir(output_path)
     output_dir.mkdir(parents=True, exist_ok=True)
     _clear_existing_bundle(output_dir)
+    _write_text(output_dir, "cbicall_00_compare_overview_mqc.html", build_compare_overview_html(reports))
     sections = [
         ("cbicall_compare_general_stats_mqc.yaml", build_compare_general_stats_payload(reports)),
         ("cbicall_compare_pair_summary_mqc.yaml", build_compare_pair_summary_payload(reports)),

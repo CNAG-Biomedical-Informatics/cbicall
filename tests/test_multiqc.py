@@ -95,6 +95,11 @@ def test_multiqc_final_outputs_and_bundle_rewrite(tmp_path):
     assert written == outdir
     assert not stale.exists()
     assert keep.exists()
+    overview = outdir / "cbicall_00_run_overview_mqc.html"
+    assert overview.is_file()
+    overview_text = overview.read_text(encoding="utf-8")
+    assert "CBIcall run overview" in overview_text
+    assert "cbicall-dashboard" in overview_text
     assert (outdir / "cbicall_run_general_stats_mqc.yaml").is_file()
     data = yaml.safe_load((outdir / "cbicall_run_general_stats_mqc.yaml").read_text(encoding="utf-8"))
     assert data["data"]["bash_wes_RID"]["threads"] == 2
@@ -110,6 +115,11 @@ def test_multiqc_final_outputs_and_bundle_rewrite(tmp_path):
     assert heatmap["plot_type"] == "heatmap"
     assert heatmap["pconfig"]["ycats_samples"] == ["local", "cloud"]
     assert heatmap["data"][0][1] == 1.0
+    compare_outdir = tmp_path / "compare_mqc"
+    multiqc.write_compare_multiqc_report(compare_payloads, compare_outdir)
+    compare_overview = compare_outdir / "cbicall_00_compare_overview_mqc.html"
+    assert compare_overview.is_file()
+    assert "CBIcall comparison overview" in compare_overview.read_text(encoding="utf-8")
 
     with pytest.raises(ValueError, match="directory bundle"):
         multiqc.write_compare_multiqc_report([run_payload, run_payload], tmp_path / "old.yaml")
