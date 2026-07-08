@@ -21,6 +21,14 @@ def _report(**overrides):
     return base
 
 
+def _report_with_inventory(total_bytes=None, sha256="manifest"):
+    report = _report()
+    report["outputs"]["file_inventory"] = {"sha256": sha256}
+    if total_bytes is not None:
+        report["outputs"]["file_inventory"]["total_bytes"] = total_bytes
+    return report
+
+
 def test_report_utils_scalar_helpers():
     assert ru._nested({"a": 1}, "a", "b") is None
     assert ru._nested("bad", "a") is None
@@ -66,10 +74,10 @@ def test_report_utils_maps_statuses_and_sections():
     assert ru._status_for_values("x", "x") == ("same", "same", "x")
     assert ru._status_for_values("x", "y")[0] == "different"
 
-    same_size = _report(outputs={"file_inventory": {"total_bytes": 1536, "sha256": "manifest"}})
-    note_size = _report(outputs={"file_inventory": {"total_bytes": 2048, "sha256": "manifest"}})
-    diff_size = _report(outputs={"file_inventory": {"total_bytes": 2048, "sha256": "other"}})
-    missing_size = _report(outputs={"file_inventory": {"sha256": "manifest"}})
+    same_size = _report_with_inventory(total_bytes=1536)
+    note_size = _report_with_inventory(total_bytes=2048)
+    diff_size = _report_with_inventory(total_bytes=2048, sha256="other")
+    missing_size = _report_with_inventory()
     assert ru._inventory_size_status(report, same_size)[0] == "same"
     assert ru._inventory_size_status(report, note_size)[0] == "note"
     assert ru._inventory_size_status(report, diff_size)[0] == "different"
