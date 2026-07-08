@@ -43,6 +43,10 @@ def _touch_snakemake_files(root: Path, software_stack: str, snakefile_name: str)
     smk_dir.mkdir(parents=True, exist_ok=True)
     (smk_dir / snakefile_name).write_text("# dummy\n", encoding="utf-8")
     (smk_dir / "config.yaml").write_text("dummy: 1\n", encoding="utf-8")
+    for name in ["coverage.sh", "vcf2sex.sh", "vcf2hash.sh"]:
+        p = smk_dir / name
+        p.write_text("#!/bin/sh\n", encoding="utf-8")
+        make_executable(p)
     return smk_dir
 
 

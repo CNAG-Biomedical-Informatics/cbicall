@@ -1729,12 +1729,12 @@ def test_run_test_command_all_selects_native_backends_and_skips_missing(monkeypa
     assert cli_mod._run_test_command(["--all", "-t", "2", "--runtime-profile", "cnag-hpc"]) == 0
     assert [item.key for item in seen["selected"]] == [
         "wes-bash",
+        "mit-bash",
         "wes-cohort-bash",
         "wes-cohort-bash-sharded",
         "wes-snakemake",
         "wes-nextflow",
         "wes-cromwell",
-        "mit-bash",
     ]
     assert seen["project_root"] == tmp_path
     assert seen["threads"] == 2

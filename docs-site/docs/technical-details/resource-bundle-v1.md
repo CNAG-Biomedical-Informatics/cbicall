@@ -63,7 +63,7 @@ The production bundle is distributed as a small identifier JSON, split archive p
 | `data.tar.gz.part-04` | Split archive part. |
 | `data.tar.gz.part-05` | Split archive part. |
 
-The setup utility verifies the files covered by `data.tar.gz.md5`, reassembles the parts into an archive, and verifies the downloaded CBIcall-provided bundle payload before extraction.
+The setup utility verifies the files covered by `data.tar.gz.md5`. For the current bundle, this means the split archive parts are checked before they are reassembled and extracted.
 
 An optional small remote identifier file can also be used:
 

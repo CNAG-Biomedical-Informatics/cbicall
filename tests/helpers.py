@@ -197,6 +197,9 @@ def write_registry(
             f"      {software_stack}:",
             "        helpers:",
             "          config: \"config.yaml\"",
+            "          coverage: \"coverage.sh\"",
+            "          vcf2sex: \"vcf2sex.sh\"",
+            "          vcf2hash: \"vcf2hash.sh\"",
         ]
         if snakemake_profiles:
             lines.append("        profiles:")

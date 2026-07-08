@@ -267,7 +267,7 @@ def test_run_integration_tests_skips_missing_optional_backend_under_all(tmp_path
     )
 
     assert rc == 0
-    assert "skipped" in capsys.readouterr().out
+    assert "SKIP: WES Snakemake requires backend executable snakemake on PATH." in capsys.readouterr().out
 
 
 def test_run_integration_tests_fails_missing_explicit_backend(tmp_path, monkeypatch, capsys):
