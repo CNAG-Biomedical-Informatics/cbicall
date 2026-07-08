@@ -317,6 +317,31 @@ def test_run_integration_tests_fails_missing_explicit_backend(tmp_path, monkeypa
     assert "requires backend executable snakemake" in capsys.readouterr().out
 
 
+def test_run_one_skips_or_fails_missing_cromwell_before_loading_contract(tmp_path, monkeypatch, capsys):
+    monkeypatch.delenv("CROMWELL_JAR", raising=False)
+    monkeypatch.setattr(integration_mod.shutil, "which", lambda name: None)
+
+    assert integration_mod._run_one(
+        project_root=tmp_path,
+        selection=TESTS["wes-cromwell"],
+        threads=1,
+        runtime_profile="local",
+        skip_missing_optional=True,
+        keep_external_work=False,
+    ) == ("WES Cromwell", "skipped", "CROMWELL_JAR or cromwell executable not found")
+    assert "SKIP: WES Cromwell requires CROMWELL_JAR" in capsys.readouterr().out
+
+    with pytest.raises(IntegrationTestError, match="WES Cromwell requires CROMWELL_JAR"):
+        integration_mod._run_one(
+            project_root=tmp_path,
+            selection=TESTS["wes-cromwell"],
+            threads=1,
+            runtime_profile="local",
+            skip_missing_optional=False,
+            keep_external_work=False,
+        )
+
+
 def _write_release_report(run_dir: Path, *, backend="bash", vcf_hash="same-hash", records="6") -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "run-report.json").write_text(
@@ -482,6 +507,12 @@ def test_validate_contract_suffix_contains_and_hash_error_paths(tmp_path):
 
     with pytest.raises(IntegrationTestError, match="Missing JSON path"):
         validate_contract(tmp_path, {"json_expectations": [{"path": "links.missing", "equals": "x"}]})
+    with pytest.raises(IntegrationTestError, match="expected suffix"):
+        validate_contract(tmp_path, {"json_expectations": [{"path": "links.report", "endswith": "missing.html"}]})
+    with pytest.raises(IntegrationTestError, match="expected to contain"):
+        validate_contract(tmp_path, {"json_expectations": [{"path": "links.message", "contains": "absent"}]})
+    with pytest.raises(IntegrationTestError, match="missing file: missing.txt"):
+        validate_contract(tmp_path, {"required_files": ["missing.txt"]})
     with pytest.raises(IntegrationTestError, match="missing file: run-report.json"):
         validate_contract(tmp_path / "no-report", {"json_expectations": [{"path": "status", "equals": "success"}]})
     with pytest.raises(IntegrationTestError, match="Hash target does not exist"):
@@ -564,9 +595,15 @@ def test_backend_availability_and_selected_tests(monkeypatch):
     available, detail = integration_mod._backend_is_available(integration_mod.TESTS["wes-cromwell"])
     assert available is False
     assert "CROMWELL_JAR" in detail
+    available, detail = integration_mod._backend_is_available(integration_mod.TESTS["wes-snakemake"])
+    assert available is False
+    assert "snakemake" in detail
 
     monkeypatch.setenv("CROMWELL_JAR", "/opt/cromwell.jar")
     assert integration_mod._backend_is_available(integration_mod.TESTS["wes-cromwell"])[0] is True
+    monkeypatch.setattr(integration_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
+    assert integration_mod._backend_is_available(integration_mod.TESTS["wes-bash"]) == (True, "")
+    assert integration_mod._backend_is_available(integration_mod.TESTS["wes-nextflow"]) == (True, "")
 
     args = SimpleNamespace(
         all=False,
@@ -696,3 +733,418 @@ def test_resolve_bcftools_uses_explicit_env_path(tmp_path):
 def test_resolve_bcftools_reports_missing_path_binary(tmp_path):
     with pytest.raises(IntegrationTestError, match="BCFTOOLS does not exist"):
         integration_mod._resolve_bcftools(tmp_path, {"BCFTOOLS": str(tmp_path / "missing-bcftools")})
+
+
+def test_integration_helper_branches(tmp_path, monkeypatch):
+    with pytest.raises(IntegrationTestError, match="env must be a mapping"):
+        integration_mod._contract_env(tmp_path, {"env": ["not", "mapping"]})
+    with pytest.raises(IntegrationTestError, match="env keys"):
+        integration_mod._contract_env(tmp_path, {"env": {"": "value"}})
+
+    existing = tmp_path / "relative-resource.txt"
+    existing.write_text("ok\n", encoding="utf-8")
+    monkeypatch.setenv("DROP_FROM_CONTRACT", "present")
+    env = integration_mod._contract_env(
+        tmp_path,
+        {"env": {"DROP_FROM_CONTRACT": None, "RELATIVE_RESOURCE": "relative-resource.txt"}},
+    )
+    assert "DROP_FROM_CONTRACT" not in env
+    assert env["RELATIVE_RESOURCE"] == str(existing)
+
+    assert integration_mod._parse_run_dir_from_stdout(f"  Report   => {tmp_path / 'run' / 'run-report.json'}\n") == tmp_path / "run"
+    assert integration_mod._parse_run_dir_from_stdout(f"  Log      => {tmp_path / 'run' / 'workflow.log'}\n") == tmp_path / "run"
+    assert integration_mod._architecture_skip_reason(integration_mod.TESTS["wes-bash"], arch="x86_64") is None
+    assert integration_mod._architecture_skip_reason(integration_mod.TESTS["wes-bash"], arch="arm64") is None
+    assert integration_mod._short_hash(None) == "(undef)"
+    assert integration_mod._short_hash("abc") == "abc"
+    assert integration_mod._release_hash_detail(None) == "(hash not available)"
+    assert integration_mod._release_hash_detail({"normalized_sha256": "a" * 64}) == "aaaaaaaaaaaa...aaaaaaaa"
+    assert integration_mod._status_marker("skipped") == "[SKIP]"
+    assert integration_mod._status_marker("failed") == "[FAIL]"
+    assert integration_mod._status_marker("running") == "[INFO]"
+    assert integration_mod._overall_marker(2) == "[FAIL]"
+
+    with pytest.raises(IntegrationTestError, match="Missing run report"):
+        integration_mod._load_report(tmp_path / "missing-run")
+    assert integration_mod._vcf_hash_from_report({"outputs": {"vcf_hash_reports": "not-a-list"}}) is None
+    assert integration_mod._vcf_hash_from_report({"outputs": {"vcf_hash_reports": [{"file": "x"}]}}) is None
+    assert integration_mod._vcf_hash_from_contract(tmp_path, {"hashes": [{"type": "canonical_json", "path": "x.json"}]}) is None
+    assert integration_mod._vcf_hash_from_contract(tmp_path, {"hashes": [{"type": "normalized_vcf", "path": "missing.vcf"}]}) is None
+    assert integration_mod._report_value({"a": None}, "a.b") is None
+    with pytest.raises(IntegrationTestError, match="parameter_file or parameters"):
+        integration_mod._parameter_file(tmp_path, tmp_path, "demo", {"run": {}})
+
+    direct_child = tmp_path / "child.txt"
+    direct_child.write_text("remove\n", encoding="utf-8")
+    integration_mod._cleanup_setup_files([direct_child], tmp_path)
+    assert not direct_child.exists()
+
+
+def test_resolve_bcftools_from_env_file_and_error_paths(tmp_path, monkeypatch):
+    env_dir = tmp_path / "workflows" / "bash" / "gatk-4.6"
+    env_dir.mkdir(parents=True)
+    bcftools = tmp_path / "tools" / "bcftools"
+    bcftools.parent.mkdir()
+    bcftools.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    (env_dir / "env.sh").write_text(f"BCFTOOLS={bcftools}\n", encoding="utf-8")
+    assert integration_mod._resolve_bcftools(tmp_path, {}) == str(bcftools)
+
+    (env_dir / "env.sh").write_text("exit 7\n", encoding="utf-8")
+    with pytest.raises(IntegrationTestError, match="Could not resolve BCFTOOLS"):
+        integration_mod._resolve_bcftools(tmp_path, {})
+
+    monkeypatch.setattr(integration_mod.shutil, "which", lambda name, path=None: None)
+    with pytest.raises(IntegrationTestError, match="bcftools is required only"):
+        integration_mod._resolve_bcftools(tmp_path, {"BCFTOOLS": "bcftools"})
+
+    monkeypatch.setattr(integration_mod.shutil, "which", lambda name, path=None: f"/usr/bin/{name}")
+    assert integration_mod._resolve_bcftools(tmp_path, {"BCFTOOLS": "bcftools"}) == "bcftools"
+
+
+def test_setup_run_and_setup_file_error_branches(tmp_path, monkeypatch):
+    workdir = tmp_path / "work"
+    workdir.mkdir()
+    contract = {
+        "setup_files_from_runs": [
+            {
+                "run": "wes-bash",
+                "source": "02_varcall/sample.g.vcf.gz",
+                "source_index": "02_varcall/sample.g.vcf.gz.tbi",
+                "sample_map": "maps/cohort.tsv",
+                "samples": ["S1"],
+            }
+        ]
+    }
+    with pytest.raises(IntegrationTestError, match="Setup run was not executed"):
+        integration_mod._write_setup_files_from_runs(workdir, contract, {})
+
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    with pytest.raises(IntegrationTestError, match="Setup source does not exist"):
+        integration_mod._write_setup_files_from_runs(workdir, contract, {"wes-bash": run_dir})
+
+    source = run_dir / "02_varcall" / "sample.g.vcf.gz"
+    source.parent.mkdir(parents=True)
+    source.write_text("vcf\n", encoding="utf-8")
+    with pytest.raises(IntegrationTestError, match="Setup source index does not exist"):
+        integration_mod._write_setup_files_from_runs(workdir, contract, {"wes-bash": run_dir})
+
+    (source.parent / "sample.g.vcf.gz.tbi").write_text("index\n", encoding="utf-8")
+    empty_samples = {
+        "setup_files_from_runs": [
+            {
+                "run": "wes-bash",
+                "source": "02_varcall/sample.g.vcf.gz",
+                "sample_map": "maps/cohort.tsv",
+                "samples": [],
+            }
+        ]
+    }
+    with pytest.raises(IntegrationTestError, match="requires at least one sample"):
+        integration_mod._write_setup_files_from_runs(workdir, empty_samples, {"wes-bash": run_dir})
+
+    cleanup_target = workdir / "maps" / "cohort.tsv"
+    cleanup_target.parent.mkdir(exist_ok=True)
+    cleanup_target.write_text("S1\tfile\n", encoding="utf-8")
+    (cleanup_target.parent / "keep.txt").write_text("keep parent non-empty\n", encoding="utf-8")
+    integration_mod._cleanup_setup_files([cleanup_target], workdir)
+    assert not cleanup_target.exists()
+    assert cleanup_target.parent.exists()
+
+    with pytest.raises(IntegrationTestError, match="Recursive integration setup dependency"):
+        integration_mod._run_setup_runs(
+            project_root=tmp_path,
+            contract={"setup_runs": ["wes-bash"]},
+            threads=1,
+            runtime_profile="local",
+            keep_external_work=False,
+            stack=["wes-bash"],
+        )
+    with pytest.raises(IntegrationTestError, match="Unknown integration setup dependency"):
+        integration_mod._run_setup_runs(
+            project_root=tmp_path,
+            contract={"setup_runs": ["unknown"]},
+            threads=1,
+            runtime_profile="local",
+            keep_external_work=False,
+            stack=[],
+        )
+
+    def fake_failed_run(**kwargs):
+        return kwargs["selection"].label, "failed", "boom"
+
+    monkeypatch.setattr(integration_mod, "_run_one", fake_failed_run)
+    with pytest.raises(IntegrationTestError, match="Setup run did not pass"):
+        integration_mod._run_setup_runs(
+            project_root=tmp_path,
+            contract={"setup_runs": ["wes-bash"]},
+            threads=1,
+            runtime_profile="local",
+            keep_external_work=False,
+            stack=[],
+        )
+
+    def fake_passed_run(**kwargs):
+        return kwargs["selection"].label, "passed", str(run_dir)
+
+    monkeypatch.setattr(integration_mod, "_run_one", fake_passed_run)
+    assert integration_mod._run_setup_runs(
+        project_root=tmp_path,
+        contract={"setup_runs": ["wes-bash"]},
+        threads=1,
+        runtime_profile="local",
+        keep_external_work=True,
+        stack=[],
+    ) == {"wes-bash": run_dir}
+
+
+def _minimal_staged_contract() -> dict:
+    return {
+        "_contract_path": "/tmp/native-wes-cohort-bash-sharded.yaml",
+        "workflow_log": "shard.log",
+        "run": {"run_glob": "cbicall_shard_*"},
+        "staged_finalize": {
+            "shard_vcfs": ["02_varcall/cohort.chr22.gv.raw.vcf.gz"],
+            "raw_vcfs_list": "raw_vcfs.list",
+            "gathered_vcf": "cohort.gathered.gv.raw.vcf.gz",
+            "finalize": {
+                "parameters": {"mode": "cohort", "cohort_stage": "finalize"},
+                "run_glob": "cbicall_finalize_*",
+                "workflow_log": "finalize.log",
+                "required_files": ["run-report.json", "finalize.log"],
+                "json_expectations": [{"path": "status", "equals": "success"}],
+                "cleanup_paths": ["heavy-work"],
+            },
+        },
+    }
+
+
+def test_run_staged_finalize_gathers_runs_validates_and_cleans(tmp_path, monkeypatch, capsys):
+    project_root = tmp_path / "project"
+    workdir = project_root / "examples" / "input"
+    shard_run_dir = workdir / "cbicall_shard_001"
+    raw_vcf = shard_run_dir / "02_varcall" / "cohort.chr22.gv.raw.vcf.gz"
+    raw_vcf.parent.mkdir(parents=True)
+    raw_vcf.write_text("vcf\n", encoding="utf-8")
+    Path(str(raw_vcf) + ".tbi").write_text("index\n", encoding="utf-8")
+    (project_root / "bin").mkdir(parents=True)
+    (project_root / "bin" / "cbicall").write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    monkeypatch.setattr(integration_mod, "_resolve_bcftools", lambda project_root, env: "bcftools")
+
+    calls = []
+
+    def fake_run(cmd, cwd, env, stdout, stderr, text, check):
+        calls.append(cmd)
+        if cmd[:2] == ["bcftools", "concat"]:
+            out_path = Path(cmd[cmd.index("-o") + 1])
+            out_path.write_text("gathered\n", encoding="utf-8")
+            return SimpleNamespace(returncode=0, stdout="concat ok\n")
+        if cmd[:2] == ["bcftools", "index"]:
+            Path(str(cmd[-1]) + ".tbi").write_text("index\n", encoding="utf-8")
+            return SimpleNamespace(returncode=0, stdout="index ok\n")
+        run_dir = workdir / "cbicall_finalize_001"
+        run_dir.mkdir()
+        (run_dir / "run-report.json").write_text(json.dumps({"status": "success"}), encoding="utf-8")
+        (run_dir / "finalize.log").write_text("ok\n", encoding="utf-8")
+        (run_dir / "heavy-work").mkdir()
+        param_file = Path(cmd[cmd.index("-p") + 1])
+        params = yaml.safe_load(param_file.read_text(encoding="utf-8"))
+        assert params["input_vcf"] == str(workdir / "cohort.gathered.gv.raw.vcf.gz")
+        return SimpleNamespace(returncode=0, stdout=f"Working directory: {run_dir}\n")
+
+    monkeypatch.setattr(integration_mod.subprocess, "run", fake_run)
+    run_dir = integration_mod._run_staged_finalize(
+        project_root=project_root,
+        selection=integration_mod.TESTS["wes-cohort-bash-sharded"],
+        workdir=workdir,
+        shard_run_dir=shard_run_dir,
+        contract=_minimal_staged_contract(),
+        threads=4,
+        runtime_profile="local",
+        keep_external_work=False,
+    )
+
+    assert run_dir == workdir / "cbicall_finalize_001"
+    assert (workdir / "raw_vcfs.list").read_text(encoding="utf-8") == f"{raw_vcf}\n"
+    assert not (run_dir / "heavy-work").exists()
+    assert not list(workdir.glob("cbicall-wes-cohort-bash-sharded-finalize.*.yaml"))
+    assert calls[0][:2] == ["bcftools", "concat"]
+    assert calls[1][:2] == ["bcftools", "index"]
+    out = capsys.readouterr().out
+    assert "Gathering staged raw cohort VCFs" in out
+    assert "Validating staged finalize contract" in out
+
+
+def test_run_staged_finalize_reports_contract_and_command_errors(tmp_path, monkeypatch):
+    project_root = tmp_path / "project"
+    workdir = project_root / "examples" / "input"
+    shard_run_dir = workdir / "cbicall_shard_001"
+    raw_vcf = shard_run_dir / "02_varcall" / "cohort.chr22.gv.raw.vcf.gz"
+    raw_vcf.parent.mkdir(parents=True)
+    workdir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(integration_mod, "_resolve_bcftools", lambda project_root, env: "bcftools")
+
+    base_kwargs = {
+        "project_root": project_root,
+        "selection": integration_mod.TESTS["wes-cohort-bash-sharded"],
+        "workdir": workdir,
+        "shard_run_dir": shard_run_dir,
+        "threads": 1,
+        "runtime_profile": "local",
+        "keep_external_work": False,
+    }
+    with pytest.raises(IntegrationTestError, match="staged_finalize must be a mapping"):
+        integration_mod._run_staged_finalize(contract={"staged_finalize": ["not-a-mapping"]}, **base_kwargs)
+    with pytest.raises(IntegrationTestError, match="must list at least one"):
+        integration_mod._run_staged_finalize(contract={"staged_finalize": {"shard_vcfs": []}}, **base_kwargs)
+    with pytest.raises(IntegrationTestError, match="raw VCF does not exist"):
+        integration_mod._run_staged_finalize(contract=_minimal_staged_contract(), **base_kwargs)
+
+    raw_vcf.write_text("vcf\n", encoding="utf-8")
+    with pytest.raises(IntegrationTestError, match="raw VCF index does not exist"):
+        integration_mod._run_staged_finalize(contract=_minimal_staged_contract(), **base_kwargs)
+    Path(str(raw_vcf) + ".tbi").write_text("index\n", encoding="utf-8")
+
+    def fail_concat(cmd, cwd, env, stdout, stderr, text, check):
+        return SimpleNamespace(returncode=2, stdout="concat failed\n")
+
+    monkeypatch.setattr(integration_mod.subprocess, "run", fail_concat)
+    with pytest.raises(IntegrationTestError, match="gather command failed"):
+        integration_mod._run_staged_finalize(contract=_minimal_staged_contract(), **base_kwargs)
+
+    contract = _minimal_staged_contract()
+    contract["staged_finalize"]["finalize"] = {}
+
+    def ok_gather(cmd, cwd, env, stdout, stderr, text, check):
+        if cmd[:2] == ["bcftools", "concat"]:
+            Path(cmd[cmd.index("-o") + 1]).write_text("gathered\n", encoding="utf-8")
+        elif cmd[:2] == ["bcftools", "index"]:
+            Path(str(cmd[-1]) + ".tbi").write_text("index\n", encoding="utf-8")
+        return SimpleNamespace(returncode=0, stdout="ok\n")
+
+    monkeypatch.setattr(integration_mod.subprocess, "run", ok_gather)
+    with pytest.raises(IntegrationTestError, match="finalize.parameters is required"):
+        integration_mod._run_staged_finalize(contract=contract, **base_kwargs)
+
+    contract = _minimal_staged_contract()
+    contract["run"] = {}
+    contract["staged_finalize"]["finalize"].pop("run_glob")
+    with pytest.raises(IntegrationTestError, match="finalize.run_glob is required"):
+        integration_mod._run_staged_finalize(contract=contract, **base_kwargs)
+
+
+def test_run_staged_finalize_reports_finalize_failures(tmp_path, monkeypatch):
+    project_root = tmp_path / "project"
+    workdir = project_root / "examples" / "input"
+    shard_run_dir = workdir / "cbicall_shard_001"
+    raw_vcf = shard_run_dir / "02_varcall" / "cohort.chr22.gv.raw.vcf.gz"
+    raw_vcf.parent.mkdir(parents=True)
+    raw_vcf.write_text("vcf\n", encoding="utf-8")
+    Path(str(raw_vcf) + ".tbi").write_text("index\n", encoding="utf-8")
+    (project_root / "bin").mkdir(parents=True)
+    (project_root / "bin" / "cbicall").write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    monkeypatch.setattr(integration_mod, "_resolve_bcftools", lambda project_root, env: "bcftools")
+
+    def fail_finalize(cmd, cwd, env, stdout, stderr, text, check):
+        if cmd[:2] == ["bcftools", "concat"]:
+            Path(cmd[cmd.index("-o") + 1]).write_text("gathered\n", encoding="utf-8")
+            return SimpleNamespace(returncode=0, stdout="concat ok\n")
+        if cmd[:2] == ["bcftools", "index"]:
+            Path(str(cmd[-1]) + ".tbi").write_text("index\n", encoding="utf-8")
+            return SimpleNamespace(returncode=0, stdout="index ok\n")
+        return SimpleNamespace(returncode=3, stdout="finalize failed\n")
+
+    monkeypatch.setattr(integration_mod.subprocess, "run", fail_finalize)
+    with pytest.raises(IntegrationTestError, match="finalize cbicall command failed"):
+        integration_mod._run_staged_finalize(
+            project_root=project_root,
+            selection=integration_mod.TESTS["wes-cohort-bash-sharded"],
+            workdir=workdir,
+            shard_run_dir=shard_run_dir,
+            contract=_minimal_staged_contract(),
+            threads=1,
+            runtime_profile="local",
+            keep_external_work=True,
+        )
+    assert not list(workdir.glob("cbicall-wes-cohort-bash-sharded-finalize.*.yaml"))
+
+    def no_run_dir(cmd, cwd, env, stdout, stderr, text, check):
+        if cmd[:2] == ["bcftools", "concat"]:
+            Path(cmd[cmd.index("-o") + 1]).write_text("gathered\n", encoding="utf-8")
+        elif cmd[:2] == ["bcftools", "index"]:
+            Path(str(cmd[-1]) + ".tbi").write_text("index\n", encoding="utf-8")
+        return SimpleNamespace(returncode=0, stdout="ok\n")
+
+    monkeypatch.setattr(integration_mod.subprocess, "run", no_run_dir)
+    with pytest.raises(IntegrationTestError, match="finished but no run directory"):
+        integration_mod._run_staged_finalize(
+            project_root=project_root,
+            selection=integration_mod.TESTS["wes-cohort-bash-sharded"],
+            workdir=workdir,
+            shard_run_dir=shard_run_dir,
+            contract=_minimal_staged_contract(),
+            threads=1,
+            runtime_profile="local",
+            keep_external_work=True,
+        )
+
+
+def test_run_one_returns_finalize_run_dir_for_staged_contract(tmp_path, monkeypatch):
+    workdir = tmp_path / "examples" / "input"
+    workdir.mkdir(parents=True)
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "cbicall").write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    _write_fixture(
+        tmp_path,
+        "staged.yaml",
+        {
+            "workdir": "examples/input",
+            "workflow_log": "shard.log",
+            "run": {"parameters": {"mode": "cohort"}, "base_dir": ".", "run_glob": "cbicall_shard_*"},
+            "required_files": ["run-report.json", "shard.log"],
+            "staged_finalize": {"enabled": True},
+        },
+    )
+    selection = integration_mod.TestSelection("staged", "Staged", "staged.yaml")
+
+    def fake_run(cmd, cwd, env, stdout, stderr, text, check):
+        run_dir = workdir / "cbicall_shard_001"
+        run_dir.mkdir()
+        (run_dir / "run-report.json").write_text(json.dumps({"status": "success"}), encoding="utf-8")
+        (run_dir / "shard.log").write_text("ok\n", encoding="utf-8")
+        return SimpleNamespace(returncode=0, stdout=f"Working directory: {run_dir}\n")
+
+    finalize_dir = workdir / "cbicall_finalize_001"
+
+    def fake_finalize(**kwargs):
+        assert kwargs["shard_run_dir"] == workdir / "cbicall_shard_001"
+        return finalize_dir
+
+    monkeypatch.setattr(integration_mod.subprocess, "run", fake_run)
+    monkeypatch.setattr(integration_mod, "_run_staged_finalize", fake_finalize)
+    label, status, detail = integration_mod._run_one(
+        project_root=tmp_path,
+        selection=selection,
+        threads=2,
+        runtime_profile="local",
+        skip_missing_optional=False,
+        keep_external_work=False,
+    )
+    assert (label, status, detail) == ("Staged", "passed", str(finalize_dir))
+
+
+def test_selected_tests_includes_explicit_gatk35():
+    args = SimpleNamespace(
+        all=False,
+        wes_bash=False,
+        mit_bash=False,
+        wes_cohort_bash=False,
+        wes_cohort_bash_sharded=False,
+        wes_bash_gatk35=True,
+        wes_snakemake=False,
+        wes_nextflow=False,
+        wes_cromwell=False,
+        nf_core_demo=False,
+        nf_core_sarek=False,
+    )
+    assert [item.key for item in integration_mod.selected_tests_from_args(args)] == ["wes-bash-gatk35"]
