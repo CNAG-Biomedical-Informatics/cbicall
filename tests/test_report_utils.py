@@ -88,6 +88,7 @@ def test_report_utils_maps_statuses_and_sections():
     assert names[0] == "Overall"
     assert "Final VCF" in names
     assert any(row["label"] == "Inventory size" for row in sections[0]["rows"])
-    assert any(row["label"] == "sample.vcf.gz calls" for row in sections[-1]["rows"])
-    labels = [row["label"] for row in sections[-1]["rows"]]
+    final_vcf = next(section for section in sections if section["section"] == "Final VCF")
+    assert any(row["label"] == "sample.vcf.gz calls" for row in final_vcf["rows"])
+    labels = [row["label"] for row in final_vcf["rows"]]
     assert labels.index("sample.vcf.gz calls") < labels.index("sample.vcf.gz strict records")

@@ -3,6 +3,7 @@ import gzip
 import hashlib
 import json
 import os
+import platform
 import re
 import shlex
 import shutil
@@ -374,6 +375,17 @@ def _backend_is_available(selection: TestSelection) -> Tuple[bool, str]:
     return True, ""
 
 
+def _architecture_skip_reason(selection: TestSelection, arch: Optional[str] = None) -> Optional[str]:
+    current_arch = arch or platform.machine()
+    if current_arch not in {"aarch64", "arm64"}:
+        return None
+    if selection.key == "mit-bash":
+        return "MIT Bash requires bundled MToolBox components that are not available for ARM/aarch64"
+    if selection.key in {"wes-cohort-bash", "wes-cohort-bash-sharded"}:
+        return "GATK GenomicsDBImport cannot run on ARM/aarch64 with the bundled GATK 4.6 native libraries"
+    return None
+
+
 def _short_hash(value: Optional[str]) -> str:
     if not value:
         return "(undef)"
@@ -715,6 +727,13 @@ def _run_one(
     stack: Optional[List[str]] = None,
 ) -> Tuple[str, str, str]:
     stack = stack or [selection.key]
+    architecture_skip = _architecture_skip_reason(selection)
+    if architecture_skip:
+        if skip_missing_optional:
+            print(f"SKIP: {selection.label} is not supported on this architecture: {architecture_skip}.")
+            return selection.label, "skipped", architecture_skip
+        raise IntegrationTestError(f"{selection.label} is not supported on this architecture: {architecture_skip}.")
+
     if selection.key == "wes-cromwell" and not (os.environ.get("CROMWELL_JAR") or shutil.which("cromwell")):
         detail = "CROMWELL_JAR or cromwell executable not found"
         if skip_missing_optional and selection.optional_in_all:

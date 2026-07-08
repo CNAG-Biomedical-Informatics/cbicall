@@ -270,6 +270,38 @@ def test_run_integration_tests_skips_missing_optional_backend_under_all(tmp_path
     assert "SKIP: WES Snakemake requires backend executable snakemake on PATH." in capsys.readouterr().out
 
 
+def test_run_integration_tests_skips_architecture_limited_tests_under_all(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(integration_mod.platform, "machine", lambda: "aarch64")
+
+    rc = integration_mod.run_integration_tests(
+        project_root=tmp_path,
+        selected=[TESTS["mit-bash"], TESTS["wes-cohort-bash"]],
+        threads=1,
+        runtime_profile="local",
+        skip_missing_optional=True,
+    )
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "SKIP: MIT Bash is not supported on this architecture" in out
+    assert "SKIP: WES Cohort Bash is not supported on this architecture" in out
+
+
+def test_run_integration_tests_fails_architecture_limited_explicit_test(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(integration_mod.platform, "machine", lambda: "arm64")
+
+    rc = integration_mod.run_integration_tests(
+        project_root=tmp_path,
+        selected=[TESTS["wes-cohort-bash-sharded"]],
+        threads=1,
+        runtime_profile="local",
+        skip_missing_optional=False,
+    )
+
+    assert rc == 1
+    assert "WES Cohort Bash Sharded is not supported on this architecture" in capsys.readouterr().out
+
+
 def test_run_integration_tests_fails_missing_explicit_backend(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(integration_mod.shutil, "which", lambda name: None)
 

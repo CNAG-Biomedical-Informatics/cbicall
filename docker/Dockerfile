@@ -17,6 +17,7 @@ ENV WOMTOOL_JAR=/opt/cromwell/womtool-${CROMWELL_VERSION}.jar
 RUN apt-get update && \
     apt-get install -y \
       gcc make git vim sudo \
+      bcftools \
       libncurses5 libtinfo5 \
       python3-pip openjdk-17-jre-headless ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*
@@ -46,7 +47,7 @@ RUN mkdir -p "${CROMWELL_DIR}" && \
 
 # Download CBICall
 WORKDIR /usr/share/
-RUN git clone https://github.com/mrueda/cbicall.git
+RUN git clone https://github.com/CNAG-Biomedical-Informatics/cbicall.git
 
 # Remove Git metadata and CI configs to shrink image and avoid shipping them
 RUN rm -rf cbicall/.git cbicall/.github cbicall/.gitattributes cbicall/.gitignore
