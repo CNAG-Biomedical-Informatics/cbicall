@@ -550,6 +550,9 @@ def _collect_output_fingerprints(project_dir: Path) -> dict:
                     "call_sort": parsed.get("call_sort"),
                     "call_records": parsed.get("call_records"),
                     "call_sha256": parsed.get("call_sha256"),
+                    "sample_order_fields": parsed.get("sample_order_fields"),
+                    "sample_count": parsed.get("sample_count"),
+                    "sample_order_sha256": parsed.get("sample_order_sha256"),
                 }
             )
     return {
@@ -585,8 +588,12 @@ def _normalized_vcf_hash(path: Path) -> dict:
 def _call_level_vcf_hash(path: Path) -> dict:
     opener = gzip.open if path.suffix == ".gz" else open
     call_records = []
+    sample_names = []
     with opener(path, "rt", encoding="utf-8", errors="replace") as handle:
         for line in handle:
+            if line.startswith("#CHROM\t"):
+                sample_names = line.rstrip("\r\n").split("\t")[9:]
+                continue
             if line.startswith("#"):
                 continue
             fields = line.rstrip("\r\n").split("\t")
@@ -613,11 +620,15 @@ def _call_level_vcf_hash(path: Path) -> dict:
     digest = hashlib.sha256()
     for record in sorted(call_records):
         digest.update((record + "\n").encode("utf-8"))
+    sample_payload = ("\t".join(sample_names) + "\n").encode("utf-8") if sample_names else b""
     return {
         "call_fields": "CHROM,POS,REF,ALT,FILTER,GT_ALL_SAMPLES",
         "call_sort": "LC_ALL=C",
         "call_records": len(call_records),
         "call_sha256": digest.hexdigest(),
+        "sample_order_fields": "#CHROM_COLUMNS_10_PLUS",
+        "sample_count": len(sample_names),
+        "sample_order_sha256": hashlib.sha256(sample_payload).hexdigest(),
     }
 
 
@@ -912,6 +923,8 @@ def write_run_report(
     *,
     elapsed_seconds: float,
     workflow_log: Path,
+    status: str = "success",
+    error: Optional[dict] = None,
 ) -> Path:
     """Write a compact execution report next to log.json."""
     project_dir = Path(resolved_config.project_dir)
@@ -927,7 +940,7 @@ def write_run_report(
     execution_trace = _collect_execution_trace_summary(output_fingerprints)
     execution_contract = _collect_execution_contract(project_dir)
     payload = {
-        "status": "success",
+        "status": status,
         "elapsed_seconds": round(elapsed_seconds, 3),
         "workflow_log": str(workflow_log),
         "command_trace": "Detailed workflow stdout/stderr is recorded in the workflow log.",
@@ -968,6 +981,8 @@ def write_run_report(
             "nfcore_singularity_cache_dir": resolved_config.nfcore_singularity_cache_dir,
         },
     }
+    if error:
+        payload["error"] = dict(error)
     if software_versions:
         payload["software_versions"] = software_versions
     if execution_trace:
@@ -2096,16 +2111,52 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
     )
 
     workflow = resolved_config.workflow
+    genome = resolved_config.display_genome or resolved_config.genome or "b37"
+    if workflow.metadata.get("provider") == "nf-core":
+        log_name = f"nf-core_{workflow.pipeline}_{workflow.mode}.log"
+    else:
+        log_name = f"{workflow.backend}_{workflow.software_stack}_{workflow.pipeline}_{workflow.mode}_{genome}.log"
+    workflow_log = Path(resolved_config.project_dir) / log_name
     _row("Workflow", f"{workflow.backend} -> {workflow.pipeline} -> {workflow.mode}")
     print("  This workflow may take a while depending on input size and pipeline.")
 
     wes = WorkflowExecutor(settings)
 
     # Run with spinner
-    run_with_spinner(
-        wes.run,
-        no_spinner=no_spinner,
-    )
+    try:
+        run_with_spinner(
+            wes.run,
+            no_spinner=no_spinner,
+        )
+    except Exception as exc:
+        elapsed = time.time() - start_time
+        try:
+            report_path = write_run_report(
+                resolved_config,
+                arg,
+                params,
+                elapsed_seconds=elapsed,
+                workflow_log=workflow_log,
+                status="failed",
+                error={"type": type(exc).__name__, "message": str(exc)},
+            )
+            html_report_path = write_run_report_html(
+                report_path,
+                json.loads(report_path.read_text(encoding="utf-8")),
+            )
+            print()
+            _section("Failed", RED)
+            _row("Status", "Workflow execution failed")
+            _row("Elapsed", _format_duration(elapsed))
+            _row("Log", workflow_log)
+            _row("Report", report_path)
+            _row("HTML", html_report_path)
+        except Exception as report_exc:
+            print(
+                f"WARNING: Could not write failed-run audit report: {report_exc}",
+                file=sys.stderr,
+            )
+        raise
 
     # END CBICALL
     print()
@@ -2113,12 +2164,6 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
     _row("Status", "Finished successfully")
     elapsed = time.time() - start_time
     _row("Elapsed", _format_duration(elapsed))
-    genome = resolved_config.display_genome or resolved_config.genome or "b37"
-    if workflow.metadata.get("provider") == "nf-core":
-        log_name = f"nf-core_{workflow.pipeline}_{workflow.mode}.log"
-    else:
-        log_name = f"{workflow.backend}_{workflow.software_stack}_{workflow.pipeline}_{workflow.mode}_{genome}.log"
-    workflow_log = Path(resolved_config.project_dir) / log_name
     report_path = write_run_report(
         resolved_config,
         arg,

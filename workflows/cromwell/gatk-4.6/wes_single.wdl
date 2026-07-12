@@ -98,6 +98,7 @@ task RunWesSingle {
   command <<<
     #!/usr/bin/env bash
     set -eu
+    set -o pipefail
     export TMPDIR="~{tmpdir}"
     export LC_ALL=C
     export GATK_DISABLE_AUTO_S3_UPLOAD=true

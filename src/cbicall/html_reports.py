@@ -218,6 +218,13 @@ def _output_rows_html(payload: dict, base_dir: Path) -> str:
         call_hash = item.get("call_sha256")
         if call_hash:
             detail += f'<br><span class="muted">call-level SHA-256: {html.escape(str(call_hash))}</span>'
+        sample_order_hash = item.get("sample_order_sha256")
+        if sample_order_hash:
+            sample_count = item.get("sample_count", "(undef)")
+            detail += (
+                f'<br><span class="muted">sample order SHA-256: '
+                f'{html.escape(str(sample_order_hash))} ({html.escape(str(sample_count))} samples)</span>'
+            )
         rows.append(_html_row_raw("VCF", detail))
 
     essential_paths = []
@@ -486,6 +493,17 @@ def _run_report_html(payload: dict) -> str:
             _output_rows_html(payload, base_dir),
         ),
     ]
+    if payload.get("error"):
+        sections.insert(
+            1,
+            _html_section(
+                "Failure",
+                [
+                    ("Type", _nested(payload, "error", "type")),
+                    ("Message", _nested(payload, "error", "message")),
+                ],
+            ),
+        )
     if run_file_rows:
         sections.insert(-1, _html_section_raw("Run Files", run_file_rows))
     if external_report_rows:
@@ -1126,6 +1144,9 @@ def _pairwise_display_sections(reports: List[dict]) -> List[dict]:
             continue
         call_rows = [row for row in section["rows"] if row.get("kind") == "vcf_call"]
         strict_rows = [row for row in section["rows"] if row.get("kind") == "vcf_strict"]
+        sample_rows = [row for row in section["rows"] if row.get("kind") == "vcf_samples"]
+        if sample_rows:
+            sections.append({"section": "Final VCF samples", "rows": sample_rows})
         if call_rows:
             sections.append({"section": "Final VCF calls", "rows": call_rows})
         if strict_rows:
@@ -1266,6 +1287,7 @@ def _output_focus_summary_html(reports: Optional[List[dict]]) -> str:
         return ""
 
     output_rows = output_spec["rows"]
+    sample_rows = [row for row in output_rows if row.get("kind") == "vcf_samples"]
     call_rows = [row for row in output_rows if row.get("kind") == "vcf_call"]
     strict_rows = [row for row in output_rows if row.get("kind") == "vcf_strict"]
     inventory_rows = [row for row in output_rows if row["label"] == "File inventory"]
@@ -1277,6 +1299,7 @@ def _output_focus_summary_html(reports: Optional[List[dict]]) -> str:
         comparison_label = f"{_matrix_run_label(baseline)} vs {_matrix_run_label(report)}"
         cells = [f"<th>{html.escape(comparison_label)}</th>"]
         for label, field_rows in [
+            ("Final VCF samples", sample_rows),
             ("Final VCF calls", call_rows),
             ("Final VCF strict records", strict_rows),
             ("File inventory", inventory_rows),
@@ -1298,7 +1321,7 @@ def _output_focus_summary_html(reports: Optional[List[dict]]) -> str:
         '<section class="output-focus-section">'
         f'<h2>Final Output Summary{summary}</h2>'
         '<div class="matrix-wrap"><table class="output-focus-table">'
-        '<thead><tr><th>Comparison</th><th>Final VCF calls</th><th>Final VCF strict records</th><th>File inventory</th><th>Inventory size</th></tr></thead>'
+        '<thead><tr><th>Comparison</th><th>Final VCF samples</th><th>Final VCF calls</th><th>Final VCF strict records</th><th>File inventory</th><th>Inventory size</th></tr></thead>'
         '<tbody>' + "".join(rows_html) + '</tbody>'
         '</table></div>'
         '</section>'

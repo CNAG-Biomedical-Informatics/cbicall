@@ -236,12 +236,11 @@ process ALIGN_RG {
     script:
     """
     set -eu
+    set -o pipefail
     ${ENV_BLOCK}
 
-    SAMPLE=\$(echo ${q(base)} | cut -d'_' -f1-2)
-    LANE=\$(echo ${q(base)}   | cut -d'_' -f3)
-    RGID="\${SAMPLE}.\${LANE}.\$(date +%s)"
-    RGPU="\${SAMPLE}.\${LANE}.unit1"
+    RGID="${ID}.${base}"
+    RGPU="${ID}.${base}.unit1"
 
     ${BWA} mem -M -t ${task.cpus} ${q(REFGZ)} ${q(r1)} ${q(r2)} 2>> ${q("${ID}.01_align_rg.${base}.log")} \\
       | ${GATK4} AddOrReplaceReadGroups \\
@@ -250,7 +249,7 @@ process ALIGN_RG {
           --TMP_DIR ${q(TMPDIR)} \\
           --RGPL ILLUMINA \\
           --RGLB sureselect \\
-          --RGSM "\$SAMPLE" \\
+          --RGSM ${q(ID)} \\
           --RGID "\$RGID" \\
           --RGPU "\$RGPU" \\
       2>> ${q("${ID}.01_align_rg.${base}.log")}

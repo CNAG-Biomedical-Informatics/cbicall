@@ -98,6 +98,32 @@ def test_gatk46_single_bwa_stderr_is_logged_before_pipe():
         assert expected in text, relpath
 
 
+def test_native_single_alignment_pipelines_enable_pipefail():
+    workflow_files = [
+        "workflows/bash/gatk-3.5/wes_single.sh",
+        "workflows/bash/gatk-4.6/wes_single.sh",
+        "workflows/snakemake/gatk-4.6/wes_single.smk",
+        "workflows/nextflow/gatk-4.6/wes_single.nf",
+        "workflows/cromwell/gatk-4.6/wes_single.wdl",
+    ]
+    for relpath in workflow_files:
+        text = (REPO_ROOT / relpath).read_text(encoding="utf-8")
+        alignment = text.split("mem -M", 1)[0]
+        assert "set -o pipefail" in alignment, relpath
+
+
+def test_nextflow_single_uses_canonical_sample_id_for_read_groups():
+    relpath = "workflows/nextflow/gatk-4.6/wes_single.nf"
+    text = (REPO_ROOT / relpath).read_text(encoding="utf-8")
+    alignment = text.split("process ALIGN_RG", 1)[1].split("process MERGE_BAMS", 1)[0]
+
+    assert 'RGID="${ID}.${base}"' in alignment
+    assert 'RGPU="${ID}.${base}.unit1"' in alignment
+    assert '--RGSM ${q(ID)}' in alignment
+    assert "cut -d'_'" not in alignment
+    assert '--RGSM "\\$SAMPLE"' not in alignment
+
+
 def test_gatk46_small_cohort_excludes_inbreeding_coeff():
     workflow_files = [
         "workflows/bash/gatk-4.6/wes_cohort.sh",

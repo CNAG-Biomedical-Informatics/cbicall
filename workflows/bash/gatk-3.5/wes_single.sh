@@ -12,6 +12,7 @@
 #   Copyright (C) 2025-2026 Manuel Rueda - CNAG (manuel.rueda@cnag.eu)
 
 set -eu
+set -o pipefail
 
 function usage {
 

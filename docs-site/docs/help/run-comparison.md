@@ -96,7 +96,7 @@ were compared.
 | Software | Software-version fingerprint from the resource catalog or workflow-reported version table. |
 | Workflow files | Entrypoint and helper/config file paths plus SHA-256 values. |
 | Resources | Resource key, version, and fingerprint from the selected resource catalog entry. |
-| Outputs | File-inventory fingerprint, inventory size, VCF call-level fingerprints, and strict VCF record fingerprints. |
+| Outputs | File-inventory fingerprint, inventory size, VCF sample-order fingerprints, call-level fingerprints, and strict VCF record fingerprints. |
 
 :::note[Runtime context versus reproducibility]
 Single-run reports include runtime context such as hostname and host thread
@@ -109,15 +109,18 @@ fingerprints.
 :::tip[Most important output check]
 For WES/WGS output reproducibility, read VCF rows in this order:
 
-1. **`<vcf> calls`** - hashes `CHROM`, `POS`, `REF`, `ALT`, `FILTER`, and
+1. **`<vcf> sample order`** - hashes the ordered sample names from columns 10
+   onward in the VCF `#CHROM` header. It detects renamed, missing, added, or
+   reordered samples without making unstable VCF metadata part of the call hash.
+2. **`<vcf> calls`** - hashes `CHROM`, `POS`, `REF`, `ALT`, `FILTER`, and
    genotype (`GT`) values for all samples in VCF sample order. Because
    `FILTER` is included, PASS and non-PASS records are both audited. This is the
    primary CBIcall check for whether final reported variant calls match.
-2. **`<vcf> strict records`** - hashes complete non-header VCF records after
+3. **`<vcf> strict records`** - hashes complete non-header VCF records after
    sorting. This stricter check also captures `QUAL`, `INFO`, `FORMAT`, `PL`,
    annotations, and other numeric fields.
 
-Both hashes are computed from VCF records, not raw compressed bytes, so header
+The call and strict hashes are computed from VCF records, not raw compressed bytes, so header
 timestamps, command lines, and compression metadata do not create false
 differences.
 :::

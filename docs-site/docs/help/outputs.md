@@ -28,11 +28,14 @@ point anywhere, CBIcall creates the run directory in the directory where
 | --- | --- |
 | `log.json` | Structured record of CLI arguments, resolved configuration, selected runtime profile, compact `resources.bundle` provenance, and runtime parameters. |
 | `cbicall-execution-contract.json` | Backend-ready execution plan created after CBIcall validates and resolves the parameters YAML. It records the command, CBIcall-controlled environment overrides, backend/provider identity, and generated backend launch files. |
-| `run-report.json` | Compact audit report with CBIcall version, hostname, host thread count, Python version, Java version, workflow backend version, status, elapsed time, workflow file fingerprints, execution-contract fingerprint, resource key/version/fingerprint, output file inventory fingerprint, output fingerprints when available, and workflow log path. |
-| `run-report.html` | Human-readable tabbed rendering of `run-report.json` for browsing a completed run without reading JSON directly. It separates overview, evidence, outputs, and raw JSON views; links the main run evidence; and shows software-version evidence when available. Generate it from an existing run with `bin/cbicall report RUN_DIR --html`. |
+| `run-report.json` | Compact audit report with CBIcall version, hostname, host thread count, Python version, Java version, workflow backend version, status, elapsed time, workflow file fingerprints, execution-contract fingerprint, resource key/version/fingerprint, output file inventory fingerprint, output fingerprints when available, and workflow log path. Runs that fail after execution starts retain the same report with `status: failed`, error details, and any partial output evidence. |
+| `run-report.html` | Human-readable tabbed rendering of `run-report.json` for browsing a successful or failed run without reading JSON directly. It separates overview, evidence, outputs, and raw JSON views; links the main run evidence; and shows software-version evidence when available. Generate it from an existing run with `bin/cbicall report RUN_DIR --html`. |
 | `cbicall_mqc/` | Optional MultiQC custom-content directory generated with `bin/cbicall run --multiqc`, `bin/cbicall report RUN_DIR --multiqc`, or `bin/cbicall compare-runs ... --multiqc`. It lets standard MultiQC reports include compact CBIcall run/QC summaries, pairwise comparison tables, and audit-similarity heatmaps without installing a CBIcall MultiQC plugin. |
 | `<backend>_<software-stack>_<pipeline>_<mode>_<genome>.log` | Main workflow log for the selected backend. |
 | `logs/*.log` | Per-rule or per-step logs for Snakemake/GATK 4.6 workflows. |
+
+Preflight errors that occur before CBIcall creates a run directory, such as an
+invalid YAML key or an unavailable resource bundle, do not produce a run report.
 
 Use `config.resources.bundle.fingerprint` inside `log.json` to check whether two runs used the same declared external dependency set.
 

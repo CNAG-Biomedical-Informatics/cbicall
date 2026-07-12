@@ -158,6 +158,7 @@ rule align_rg:
     shell:
         r"""
         set -eu
+        set -o pipefail
         RGID="{SAMPLE_NAME}.{wildcards.base}"
         RGPU="{SAMPLE_NAME}.{wildcards.base}.unit1"
 

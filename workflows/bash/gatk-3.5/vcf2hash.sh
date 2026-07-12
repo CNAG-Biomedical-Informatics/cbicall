@@ -81,6 +81,22 @@ call_sha256=$(stream_vcf | awk -v pattern="$pattern" '
     print $1 "\t" $2 "\t" $4 "\t" $5 "\t" $7 "\t" gt_values
   }
 ' | sort | sha256sum | awk '{print $1}')
+sample_count=$(stream_vcf | awk -F '\t' '
+  $1 == "#CHROM" && !found {
+    print (NF > 9 ? NF - 9 : 0)
+    found = 1
+  }
+  END { if (!found) print 0 }
+')
+sample_order_sha256=$(stream_vcf | awk -F '\t' '
+  $1 == "#CHROM" && !found {
+    for (i = 10; i <= NF; i++) {
+      printf "%s%s", (i == 10 ? "" : "\t"), $i
+    }
+    if (NF >= 10) printf "\n"
+    found = 1
+  }
+' | sha256sum | awk '{print $1}')
 
 cat <<EOF
 FILE=$vcf
@@ -94,4 +110,7 @@ CALL_FIELDS=CHROM,POS,REF,ALT,FILTER,GT_ALL_SAMPLES
 CALL_SORT=LC_ALL=C
 CALL_RECORDS=$call_records
 CALL_SHA256=$call_sha256
+SAMPLE_ORDER_FIELDS=#CHROM_COLUMNS_10_PLUS
+SAMPLE_COUNT=$sample_count
+SAMPLE_ORDER_SHA256=$sample_order_sha256
 EOF

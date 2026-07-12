@@ -126,6 +126,14 @@ def _first_vcf_call_hash(payload: dict):
     return None
 
 
+def _first_vcf_sample_order_hash(payload: dict):
+    for item in _vcf_hash_reports(payload):
+        value = item.get("sample_order_sha256")
+        if value:
+            return value
+    return None
+
+
 def _first_vcf_strict_hash(payload: dict):
     return _first_vcf_hash(payload)
 
@@ -412,6 +420,7 @@ def build_run_identity_payload(report_path: Path, payload: dict) -> dict:
                 "Workflow hash": _short_hash(workflow.get("fingerprint")),
                 "Resource hash": _short_hash(_nested(payload, "resources", "bundle", "fingerprint")),
                 "Contract hash": _short_hash(_nested(payload, "execution_contract", "fingerprint")),
+                "Final VCF sample order hash": _short_hash(_first_vcf_sample_order_hash(payload)),
                 "Final VCF calls hash": _short_hash(_first_vcf_call_hash(payload)),
                 "Final VCF strict hash": _short_hash(_first_vcf_strict_hash(payload)),
             }
@@ -435,6 +444,7 @@ def build_run_identity_payload(report_path: Path, payload: dict) -> dict:
             "Workflow hash": {"title": "Workflow hash", "description": "Short workflow fingerprint", "scale": False},
             "Resource hash": {"title": "Resource hash", "description": "Short resource fingerprint", "scale": False},
             "Contract hash": {"title": "Contract hash", "description": "Short execution contract fingerprint", "scale": False},
+            "Final VCF sample order hash": {"title": "VCF samples", "description": "Ordered VCF sample-name fingerprint", "scale": False},
             "Final VCF calls hash": {"title": "Final VCF calls", "description": "Call-level VCF fingerprint", "scale": False},
             "Final VCF strict hash": {"title": "Final VCF strict", "description": "Strict-record VCF fingerprint", "scale": False},
         },
@@ -561,6 +571,8 @@ def build_final_outputs_payload(report_path: Path, payload: dict) -> Optional[di
             {
                 "File": file_name,
                 "Source": item.get("source"),
+                "Samples": _as_int(item.get("sample_count")),
+                "Sample order hash": _short_hash(item.get("sample_order_sha256")),
                 "Call records": _as_int(item.get("call_records")),
                 "Call hash": _short_hash(item.get("call_sha256")),
                 "Strict records": _as_int(item.get("normalized_records")),
@@ -708,9 +720,11 @@ def build_compare_overview_html(reports: list) -> str:
     overall_status = _section_status_for_pairs(reports, overall) if overall else "unavailable"
     final_status = _section_status_for_pairs(reports, final_vcf) if final_vcf else "unavailable"
     if final_vcf:
+        samples_status = _section_status_for_pairs(reports, _section_with_kinds(final_vcf, {"vcf_samples"}))
         calls_status = _section_status_for_pairs(reports, _section_with_kinds(final_vcf, {"vcf_call"}))
         strict_status = _section_status_for_pairs(reports, _section_with_kinds(final_vcf, {"vcf_strict"}))
     else:
+        samples_status = "unavailable"
         calls_status = "unavailable"
         strict_status = "unavailable"
     layer = _similarity_layer(reports, "Overall")
@@ -723,13 +737,13 @@ def build_compare_overview_html(reports: list) -> str:
                 if score is not None:
                     pair_scores.append(float(score))
     mean_similarity = round(sum(pair_scores) / len(pair_scores), 3) if pair_scores else None
-    if calls_status == "same" and strict_status == "same":
+    if samples_status in {"same", "unavailable"} and calls_status == "same" and strict_status == "same":
         headline = "Final VCF same"
         status_class = "same"
     elif calls_status == "same":
         headline = "Calls same"
         status_class = "mixed"
-    elif "different" in {calls_status, strict_status, final_status}:
+    elif "different" in {samples_status, calls_status, strict_status, final_status}:
         headline = "VCF differs"
         status_class = "different"
     else:
@@ -746,10 +760,11 @@ def build_compare_overview_html(reports: list) -> str:
     {_metric_card(len(reports), "Runs")}
     {_metric_card(pairs, "Pairs")}
     {_metric_card(mean_similarity, "Mean similarity")}
+    {_metric_card(samples_status, "VCF samples")}
     {_metric_card(calls_status, "VCF calls")}
   </div>
   <div class="cbicall-note-card">
-    <strong>Strict records:</strong> {_html_escape(strict_status)}. Call-level VCF hashes compare CHROM, POS, REF, ALT, FILTER, and sample genotypes; strict-record hashes also capture QUAL, INFO, FORMAT, annotations, and numeric fields.
+    <strong>Strict records:</strong> {_html_escape(strict_status)}. Sample-order hashes identify the ordered VCF samples; call-level hashes compare CHROM, POS, REF, ALT, FILTER, and sample genotypes; strict-record hashes also capture QUAL, INFO, FORMAT, annotations, and numeric fields.
   </div>
 </div>
 """
@@ -796,6 +811,9 @@ def build_compare_pair_summary_payload(reports: list) -> dict:
                 final_vcf_status = _section_status_for_pair(left, right, by_name["Final VCF"])
                 row["Final VCF category"] = qualitative_similarity_label(final_vcf_status, final_vcf_cell.get("score"))
                 row["Final VCF similarity"] = _rounded_score(final_vcf_cell.get("score"))
+                row["Final VCF samples"] = _section_status_for_pair(
+                    left, right, _section_with_kinds(by_name["Final VCF"], {"vcf_samples"})
+                )
                 row["Final VCF calls"] = _section_status_for_pair(
                     left, right, _section_with_kinds(by_name["Final VCF"], {"vcf_call"})
                 )
@@ -821,6 +839,7 @@ def build_compare_pair_summary_payload(reports: list) -> dict:
             "Overall similarity": {"title": "Overall similarity", "description": "Report-level Jaccard similarity", "scale": "YlGnBu"},
             "Final VCF category": {"title": "Final VCF category", "description": "Qualitative final VCF similarity", "bgcols": STATUS_COLORS},
             "Final VCF similarity": {"title": "Final VCF similarity", "description": "Final VCF Jaccard similarity", "scale": "YlGnBu"},
+            "Final VCF samples": {"title": "VCF samples", "description": "Ordered sample-name status", "bgcols": STATUS_COLORS},
             "Final VCF calls": {"title": "VCF calls", "description": "Call-level final VCF status", "bgcols": STATUS_COLORS},
             "Final VCF strict records": {"title": "VCF strict", "description": "Strict-record final VCF status", "bgcols": STATUS_COLORS},
             **{label: {"title": label, "description": f"{label} audit-layer status", "bgcols": STATUS_COLORS} for _, label in wanted},
@@ -845,9 +864,11 @@ def build_compare_status_counts_payload(reports: list) -> dict:
     if "Final VCF" in by_name:
         final_vcf_section = by_name["Final VCF"]
         vcf_counts = _status_counts_from_pairs(reports, final_vcf_section)
+        vcf_sample_section = _section_with_kinds(final_vcf_section, {"vcf_samples"})
         vcf_call_section = _section_with_kinds(final_vcf_section, {"vcf_call"})
         vcf_strict_section = _section_with_kinds(final_vcf_section, {"vcf_strict"})
         row["Final VCF"] = _section_status_for_pairs(reports, by_name["Final VCF"])
+        row["Final VCF samples"] = _section_status_for_pairs(reports, vcf_sample_section)
         row["Final VCF calls"] = _section_status_for_pairs(reports, vcf_call_section)
         row["Final VCF strict records"] = _section_status_for_pairs(reports, vcf_strict_section)
         for status in ["same", "different", "missing"]:
@@ -868,6 +889,7 @@ def build_compare_status_counts_payload(reports: list) -> dict:
         headers={
             "Overall": {"title": "Overall", "description": "Aggregate overall status", "bgcols": STATUS_COLORS},
             "Final VCF": {"title": "Final VCF", "description": "Aggregate final VCF status", "bgcols": STATUS_COLORS},
+            "Final VCF samples": {"title": "VCF samples", "description": "Aggregate ordered sample-name status", "bgcols": STATUS_COLORS},
             "Final VCF calls": {"title": "VCF calls", "description": "Aggregate call-level VCF status", "bgcols": STATUS_COLORS},
             "Final VCF strict records": {"title": "VCF strict", "description": "Aggregate strict-record VCF status", "bgcols": STATUS_COLORS},
             "Runs": {"title": "Runs", "description": "Compared runs", "scale": "Blues"},

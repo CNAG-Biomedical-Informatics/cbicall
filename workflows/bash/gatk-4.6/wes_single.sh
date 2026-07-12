@@ -21,6 +21,7 @@
 #    10) Coverage stats, sex determination & VCF hash
 
 set -eu
+set -o pipefail
 
 CLEANUP_BAM=false
 

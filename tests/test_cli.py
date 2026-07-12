@@ -682,19 +682,127 @@ def test_vcf2hash_reports_call_level_hash_for_stable_calls(tmp_path):
         "1\t10\t.\tA\tG\t98\tPASS\tDP=10\tGT:AD:PL\t0/1:5,5:98,0,99\t1/1:0,9:99,8,0\n",
         encoding="utf-8",
     )
+    vcf_c = tmp_path / "c.vcf"
+    vcf_c.write_text(
+        "##fileformat=VCFv4.2\n"
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tRENAMED1\tRENAMED2\n"
+        "1\t10\t.\tA\tG\t99\tPASS\tDP=10\tGT:AD:PL\t0/1:5,5:99,0,99\t1/1:0,9:99,9,0\n",
+        encoding="utf-8",
+    )
 
     script = repo_root / "workflows" / "bash" / "gatk-4.6" / "vcf2hash.sh"
     proc_a = subprocess.run([str(script), str(vcf_a)], capture_output=True, text=True, check=True)
     proc_b = subprocess.run([str(script), str(vcf_b)], capture_output=True, text=True, check=True)
+    proc_c = subprocess.run([str(script), str(vcf_c)], capture_output=True, text=True, check=True)
     (tmp_path / "a.hash").write_text(proc_a.stdout, encoding="utf-8")
     (tmp_path / "b.hash").write_text(proc_b.stdout, encoding="utf-8")
+    (tmp_path / "c.hash").write_text(proc_c.stdout, encoding="utf-8")
     parsed_a = cli_mod._parse_key_value_file(tmp_path / "a.hash")
     parsed_b = cli_mod._parse_key_value_file(tmp_path / "b.hash")
+    parsed_c = cli_mod._parse_key_value_file(tmp_path / "c.hash")
 
     assert parsed_a["normalized_sha256"] != parsed_b["normalized_sha256"]
     assert parsed_a["call_fields"] == "CHROM,POS,REF,ALT,FILTER,GT_ALL_SAMPLES"
     assert parsed_a["call_records"] == "1"
     assert parsed_a["call_sha256"] == parsed_b["call_sha256"]
+    assert parsed_a["sample_count"] == "2"
+    assert parsed_a["sample_order_fields"] == "#CHROM_COLUMNS_10_PLUS"
+    assert parsed_a["sample_order_sha256"] == parsed_b["sample_order_sha256"]
+    assert parsed_a["normalized_sha256"] == parsed_c["normalized_sha256"]
+    assert parsed_a["call_sha256"] == parsed_c["call_sha256"]
+    assert parsed_a["sample_order_sha256"] != parsed_c["sample_order_sha256"]
+
+
+def test_run_analysis_writes_failed_run_report(monkeypatch, tmp_path, capsys):
+    param_file = tmp_path / "params.yaml"
+    param_file.write_text("pipeline: wes\n", encoding="utf-8")
+    entrypoint = tmp_path / "wes_single.sh"
+    entrypoint.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+    project_dir = tmp_path / "failed_run"
+
+    params = {
+        "pipeline": "wes",
+        "mode": "single",
+        "workflow_backend": "bash",
+        "software_stack": "gatk-4.6",
+        "cleanup_bam": False,
+    }
+    monkeypatch.setattr(cli_mod.config_mod, "read_param_file", lambda _: dict(params))
+    monkeypatch.setattr(
+        cli_mod.config_mod,
+        "set_config_values",
+        lambda _: {
+            "project_dir": str(project_dir),
+            "run_id": "RIDFAILED",
+            "workflow_backend": "bash",
+            "profile": "local",
+            "genome": "b37",
+            "pipeline": "wes",
+            "mode": "single",
+            "software_stack": "gatk-4.6",
+            "registry_version": "v1",
+            "inputs": {"input_dir": None, "sample_map": None, "input_vcf": None},
+            "workflow": {
+                "backend": "bash",
+                "pipeline": "wes",
+                "mode": "single",
+                "software_stack": "gatk-4.6",
+                "registry_version": "v1",
+                "entrypoint": str(entrypoint),
+                "config_file": None,
+                "helpers": {},
+            },
+            "resources": {"bundle": {"type": "external"}},
+        },
+    )
+
+    class FailingWorkflowExecutor:
+        def __init__(self, settings):
+            self.settings = settings
+
+        def run(self):
+            raise RuntimeError("backend exploded")
+
+    monkeypatch.setattr(cli_mod, "WorkflowExecutor", FailingWorkflowExecutor)
+
+    with pytest.raises(RuntimeError, match="backend exploded"):
+        cli_mod._run_analysis(
+            {
+                "threads": 1,
+                "paramfile": str(param_file),
+                "debug": 0,
+                "verbose": False,
+                "nocolor": True,
+            },
+            start_time=time.time(),
+            cbicall_path=tmp_path / "bin" / "cbicall",
+        )
+
+    report_path = project_dir / "run-report.json"
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["status"] == "failed"
+    assert report["error"] == {"type": "RuntimeError", "message": "backend exploded"}
+    assert report["run"]["run_id"] == "RIDFAILED"
+    assert (project_dir / "run-report.html").is_file()
+    assert "backend exploded" in (project_dir / "run-report.html").read_text(encoding="utf-8")
+
+    def fail_report(*args, **kwargs):
+        raise OSError("audit storage unavailable")
+
+    monkeypatch.setattr(cli_mod, "write_run_report", fail_report)
+    with pytest.raises(RuntimeError, match="backend exploded"):
+        cli_mod._run_analysis(
+            {
+                "threads": 1,
+                "paramfile": str(param_file),
+                "debug": 0,
+                "verbose": False,
+                "nocolor": True,
+            },
+            start_time=time.time(),
+            cbicall_path=tmp_path / "bin" / "cbicall",
+        )
+    assert "Could not write failed-run audit report: audit storage unavailable" in capsys.readouterr().err
 
 
 def test_compare_runs_accepts_multiple_runs_as_baseline_matrix(tmp_path, capsys):
@@ -2126,6 +2234,7 @@ def test_render_compare_html_all_to_all_matrix_view():
     assert "background: #e8f2ff" in html_text
     assert "text-transform: none" in html_text
     assert "<h3>Final VCF<span" not in html_text
+    assert "Final VCF samples" in html_text
     assert "<h3>Final VCF calls" in html_text
     assert "<h3>Final VCF strict records" in html_text
     assert "Run Matrix" in html_text

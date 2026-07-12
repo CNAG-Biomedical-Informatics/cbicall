@@ -13,7 +13,7 @@ def _report(**overrides):
         "execution_contract": {"generated_files": [{"role": "params", "normalized_sha256": "b" * 64}, {}]},
         "outputs": {
             "file_inventory": {"entries": 1, "total_bytes": 1536, "sha256": "manifest"},
-            "vcf_hash_reports": [{"file": "/tmp/sample.vcf.gz", "normalized_sha256": "c" * 64, "call_sha256": "e" * 64}, "bad"],
+            "vcf_hash_reports": [{"file": "/tmp/sample.vcf.gz", "normalized_sha256": "c" * 64, "call_sha256": "e" * 64, "sample_order_sha256": "f" * 64}, "bad"],
         },
         "resources": {"bundle": {"key": "bundle", "version": "v1", "fingerprint": "d" * 64}},
     }
@@ -59,6 +59,8 @@ def test_report_utils_maps_statuses_and_sections():
     assert ru._multi_workflow_file_value("missing", report) is None
     assert ru._multi_vcf_hash_value("missing.vcf.gz", report) is None
     assert ru._multi_vcf_call_value("sample.vcf.gz", report) == "e" * 64
+    assert ru._multi_vcf_sample_order_value("sample.vcf.gz", report) == "f" * 64
+    assert ru._multi_vcf_sample_order_value("missing.vcf.gz", report) is None
 
     same_hash_other_path = _report(
         workflow={
@@ -100,8 +102,11 @@ def test_report_utils_maps_statuses_and_sections():
     kinds = [row["kind"] for row in final_vcf["rows"]]
     assert "vcf_call" in kinds
     assert "vcf_strict" in kinds
-    assert kinds.index("vcf_call") < kinds.index("vcf_strict")
+    assert "vcf_samples" in kinds
+    assert kinds.index("vcf_samples") < kinds.index("vcf_call") < kinds.index("vcf_strict")
+    sample_row = next(row for row in final_vcf["rows"] if row["kind"] == "vcf_samples")
     call_row = next(row for row in final_vcf["rows"] if row["kind"] == "vcf_call")
     strict_row = next(row for row in final_vcf["rows"] if row["kind"] == "vcf_strict")
     assert call_row["value"](report) == "e" * 64
     assert strict_row["value"](report) == "c" * 64
+    assert sample_row["value"](report) == "f" * 64

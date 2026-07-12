@@ -145,6 +145,13 @@ def _multi_vcf_call_value(key: str, report: dict):
     return entry.get("call_sha256")
 
 
+def _multi_vcf_sample_order_value(key: str, report: dict):
+    entry = _vcf_hash_map(report).get(key)
+    if not entry:
+        return None
+    return entry.get("sample_order_sha256")
+
+
 
 def _comparison_specs(reports: list) -> list:
     execution_roles = sorted({role for report in reports for role in _execution_file_map(report)})
@@ -156,6 +163,14 @@ def _comparison_specs(reports: list) -> list:
             for report in reports
             for key, entry in _vcf_hash_map(report).items()
             if entry.get("call_sha256")
+        }
+    )
+    vcf_sample_keys = sorted(
+        {
+            key
+            for report in reports
+            for key, entry in _vcf_hash_map(report).items()
+            if entry.get("sample_order_sha256")
         }
     )
 
@@ -176,6 +191,8 @@ def _comparison_specs(reports: list) -> list:
         {
             "section": "Execution",
             "rows": [
+                row("Run status", lambda report: report.get("status")),
+                row("Error type", lambda report: _nested(report, "error", "type")),
                 row("Task count (trace)", lambda report: _nested(report, "execution_trace", "tasks")),
                 row("Max peak RSS (trace)", lambda report: _nested(report, "execution_trace", "max_peak_rss", "bytes")),
                 row("Max peak VMEM (trace)", lambda report: _nested(report, "execution_trace", "max_peak_vmem", "bytes")),
@@ -227,6 +244,14 @@ def _comparison_specs(reports: list) -> list:
                 row("File count", lambda report: _nested(report, "outputs", "file_inventory", "entries")),
                 row("Inventory size", lambda report: _inventory_total_bytes(report), kind="inventory_size"),
                 row("File inventory", lambda report: _nested(report, "outputs", "file_inventory", "sha256")),
+                *[
+                    row(
+                        f"{_short_path(key)} sample order",
+                        lambda report, item=key: _multi_vcf_sample_order_value(item, report),
+                        kind="vcf_samples",
+                    )
+                    for key in vcf_sample_keys
+                ],
                 *[
                     row(
                         f"{_short_path(key)} calls",
@@ -305,7 +330,7 @@ def _comparison_sections_with_overall(reports: list) -> list:
         row
         for spec in specs
         for row in spec["rows"]
-        if row.get("kind") in {"vcf_strict", "vcf_call"}
+        if row.get("kind") in {"vcf_strict", "vcf_call", "vcf_samples"}
     ]
     if vcf_rows:
         sections.append({"section": "Final VCF", "rows": vcf_rows})
