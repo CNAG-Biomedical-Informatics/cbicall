@@ -1,46 +1,42 @@
-.hero {
-  padding: clamp(4rem, 8vw, 6.5rem) 1.5rem clamp(3rem, 6vw, 4.5rem);
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.055),
-      rgba(255, 255, 255, 0.055) 1px,
-      transparent 1px,
-      transparent 68px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      rgba(255, 255, 255, 0.045),
-      rgba(255, 255, 255, 0.045) 1px,
-      transparent 1px,
-      transparent 68px
-    ),
-    linear-gradient(135deg, #092f43 0%, #0f6f8f 58%, #2f7d73 100%);
-  color: #fff;
+.page {
+  --home-bg: #f7fafb;
+  --home-surface: #ffffff;
+  --home-ink: #172b36;
+  --home-muted: #596b75;
+  --home-line: #d5e0e4;
+  min-height: calc(100vh - var(--ifm-navbar-height));
+  color: var(--home-ink);
+  background: var(--home-bg);
 }
 
-.heroGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
-  gap: clamp(2rem, 6vw, 4rem);
-  align-items: center;
-  max-width: 1140px;
+.hero {
+  padding: 4rem 1.5rem 3rem;
+  background: var(--home-surface);
+}
+
+.heroInner,
+.workflowInner,
+.sections {
+  width: min(1160px, 100%);
   margin: 0 auto;
 }
 
-.heroCopy {
-  max-width: 720px;
+.heroInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  gap: 3rem;
+  align-items: center;
 }
 
-.heroLogo {
+.copy {
+  max-width: 650px;
+}
+
+.logo {
   display: block;
-  width: min(250px, 72vw);
+  width: 154px;
   height: auto;
-  padding: 0.65rem;
-  margin: 0 0 1.75rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 16px 34px rgba(3, 25, 36, 0.22);
+  margin-bottom: 1.1rem;
 }
 
 .srOnly {
@@ -55,11 +51,20 @@
   border: 0;
 }
 
-.heroSubtitle {
-  font-size: 1.25rem;
-  line-height: 1.6;
-  margin-bottom: 2rem;
-  color: rgba(255, 255, 255, 0.86);
+.kicker {
+  margin: 0;
+  color: #0f6f8f;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.lede {
+  max-width: 620px;
+  margin: 1rem 0 1.7rem;
+  color: var(--home-muted);
+  font-size: 1.13rem;
+  line-height: 1.65;
 }
 
 .actions {
@@ -68,139 +73,243 @@
   flex-wrap: wrap;
 }
 
-.workflowPanel {
-  display: grid;
-  gap: 0.8rem;
-  padding: 1.15rem;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+.contractPreview {
+  overflow: hidden;
+  border: 1px solid rgba(15, 111, 143, 0.28);
   border-radius: 8px;
-  background: rgba(6, 38, 54, 0.58);
-  box-shadow: 0 22px 52px rgba(3, 25, 36, 0.28);
+  background: var(--home-surface);
+  box-shadow: 0 24px 58px rgba(20, 50, 63, 0.13);
 }
 
-.workflowStep,
-.workflowStepPrimary {
-  padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.11);
-}
-
-.workflowStepPrimary {
-  background: rgba(255, 255, 255, 0.9);
-}
-
-.workflowStep span,
-.workflowStepPrimary span,
-.card span {
-  display: block;
-  color: #9fe4f0;
-  font-size: 0.74rem;
+.previewTitle {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #cbd9de;
+  background: #174e62;
+  color: #ffffff;
+  font-size: 0.86rem;
   font-weight: 800;
-  letter-spacing: 0.09em;
+}
+
+.contractPreview pre {
+  margin: 0;
+  padding: 1.25rem 1.35rem;
+  border: 0;
+  border-radius: 0;
+  background: #f7fafb;
+  color: #314c57;
+  font-size: 0.9rem;
+  line-height: 1.72;
+}
+
+.contractPreview pre span {
+  color: #0f6f8f;
+  font-weight: 750;
+}
+
+.resolution {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--home-line);
+}
+
+.resolution div {
+  min-width: 0;
+  padding: 0.8rem 0.75rem;
+  text-align: center;
+}
+
+.resolution div + div {
+  border-left: 1px solid var(--home-line);
+}
+
+.resolution span,
+.resolution strong {
+  display: block;
+}
+
+.resolution span {
+  color: var(--home-muted);
+  font-size: 0.7rem;
   text-transform: uppercase;
 }
 
-.workflowStepPrimary span {
-  color: #0f6f8f;
+.resolution strong {
+  margin-top: 0.15rem;
+  color: #276749;
+  font-size: 0.82rem;
 }
 
-.workflowStep strong,
-.workflowStepPrimary strong {
-  display: block;
-  margin-top: 0.25rem;
-  color: #fff;
-  font-size: 1.04rem;
+.workflow {
+  padding: 0 1.5rem 3rem;
+  background: var(--home-surface);
 }
 
-.workflowStepPrimary strong {
-  color: #173244;
-}
-
-.workflowArrow {
+.workflowInner {
   display: grid;
-  place-items: center;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 1.2rem;
-  line-height: 1;
+  gap: 0.75rem;
 }
 
-.tokens {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
+.workflowImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--home-line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 44px rgba(20, 50, 63, 0.1);
 }
 
-.tokens span {
-  padding: 0.28rem 0.52rem;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  color: rgba(255, 255, 255, 0.84);
-  font-family: var(--ifm-font-family-monospace);
-  font-size: 0.72rem;
+.workflowInner > p {
+  margin: 0;
+  color: var(--home-muted);
+  font-size: 0.92rem;
+}
+
+.mobileFlow {
+  display: none;
 }
 
 .sections {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 3rem 1.5rem;
+  padding: 0 1.5rem 4rem;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
 }
 
 .card {
   display: grid;
   align-content: start;
-  gap: 0.35rem;
-  min-height: 160px;
-  border: 1px solid var(--ifm-color-emphasis-200);
+  gap: 0.4rem;
+  min-height: 174px;
+  padding: 1.2rem;
+  border: 1px solid var(--home-line);
   border-radius: 8px;
-  padding: 1.25rem;
-  background: var(--ifm-card-background-color);
-  color: inherit;
+  background: var(--home-surface);
+  color: var(--home-ink);
   text-decoration: none;
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 
 .card:hover {
-  border-color: var(--ifm-color-primary);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-  color: inherit;
+  border-color: #4a8698;
+  box-shadow: 0 10px 24px rgba(20, 50, 63, 0.09);
+  color: var(--home-ink);
   text-decoration: none;
   transform: translateY(-2px);
 }
 
+.card > span {
+  color: #0f6f8f;
+  font-size: 0.73rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
 .card h2 {
-  font-size: 1.1rem;
   margin: 0;
+  color: var(--home-ink);
+  font-size: 1.18rem;
 }
 
 .card p {
   margin: 0;
-  color: var(--ifm-color-emphasis-700);
+  color: var(--home-muted);
   line-height: 1.55;
 }
 
-.card span {
-  color: var(--ifm-color-primary);
+:global([data-theme='dark']) .page {
+  --home-bg: #131a1e;
+  --home-surface: #192226;
+  --home-ink: #edf3f5;
+  --home-muted: #b4c1c7;
+  --home-line: #34434a;
+}
+
+:global([data-theme='dark']) .kicker,
+:global([data-theme='dark']) .card > span {
+  color: #77bdd2;
+}
+
+:global([data-theme='dark']) .contractPreview pre {
+  background: #141d21;
+  color: #cbd8dd;
+}
+
+:global([data-theme='dark']) .contractPreview pre span {
+  color: #77bdd2;
+}
+
+:global([data-theme='dark']) .resolution strong {
+  color: #86cf9f;
 }
 
 @media (max-width: 900px) {
-  .heroGrid {
+  .heroInner {
     grid-template-columns: 1fr;
   }
 
-  .workflowPanel {
-    max-width: 560px;
+  .contractPreview {
+    max-width: 620px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
   .hero {
-    padding-top: 3rem;
+    padding: 3rem 1rem 2.5rem;
+  }
+
+  .heroInner,
+  .workflowInner,
+  .sections {
+    width: 100%;
+  }
+
+  .logo {
+    width: 132px;
+  }
+
+  .lede {
+    font-size: 1.03rem;
+  }
+
+  .workflow {
+    padding: 0 1rem 2.5rem;
+  }
+
+  .workflowImage {
+    display: none;
+  }
+
+  .mobileFlow {
+    display: grid;
+    border-top: 1px solid var(--home-line);
+  }
+
+  .mobileFlow div {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 0.75rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--home-line);
+  }
+
+  .mobileFlow span {
+    color: #0f6f8f;
+    font-weight: 850;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sections {
+    padding: 0 1rem 3.5rem;
   }
 }

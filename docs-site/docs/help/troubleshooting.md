@@ -13,6 +13,15 @@ Before debugging, confirm whether the run is native CBIcall or external nf-core.
 For all runs, check `log.json` to confirm the resolved `input_dir`, `sample_map`, `genome`, workflow, resource, and run directory.
 :::
 
+:::note[Audit files after a failure]
+If validation fails before workflow launch, CBIcall stops without creating a
+run directory. If the backend fails after launch, CBIcall retains the run
+directory and writes `log.json`, `cbicall-execution-contract.json`,
+`run-report.json`, and `run-report.html`. The run report records
+`status: failed`, the error type and message, elapsed time, and any output
+evidence available at failure time.
+:::
+
 ## Installation and External Data
 
 <details>

@@ -179,4 +179,4 @@ CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-3.5_mit_single_rsrs_*/
   02_browser/
 ```
 
-Use [Run Comparison](../help/run-comparison) when you want to compare two or more completed runs.
+Use [Run Comparison](../help/run-comparison) when you want to compare two or more available run reports.

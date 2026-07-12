@@ -3,14 +3,14 @@ import TabItem from '@theme/TabItem';
 
 # Run Comparison
 
-`cbicall compare-runs` compares completed CBIcall run directories or
-`run-report.json` files. Use it to audit whether repeated local, HPC,
+`cbicall compare-runs` compares CBIcall run directories or `run-report.json`
+files from successful or failed executions. Use it to audit whether repeated local, HPC,
 container, cloud, or backend runs used the same framework, workflow, resources,
 execution contract, and comparable outputs.
 
 :::note[Audit, not biological validation]
 `compare-runs` does **not** prove that two biological analyses are equivalent.
-It checks the CBIcall execution and output evidence recorded for completed runs.
+It checks the CBIcall execution and output evidence recorded in available run reports.
 For variant-output reproducibility, start with the VCF **calls** fingerprint and
 then inspect the stricter full-record fingerprint.
 :::
@@ -83,7 +83,7 @@ were compared.
 | `log.json` | Full resolved configuration, runtime parameters, and resource details. |
 | `cbicall-execution-contract.json` | Backend-ready command, generated launch files, and normalized execution fingerprint. |
 | Workflow log | Execution log for Bash, Snakemake, Nextflow, or Cromwell. |
-| `03_stats/*.vcf.sha256.txt` | VCF fingerprint report when produced by the workflow, including strict-record and call-level hashes. |
+| `03_stats/*.vcf.sha256.txt` | VCF fingerprint report when produced by the workflow, including sample count/order, call-level, and strict-record hashes. |
 
 ## What Is Compared
 
@@ -221,7 +221,7 @@ use VCF call-level and strict-record hashes to audit compared variant records.
 
 ## Inspect One Run
 
-To inspect one completed run without rerunning the workflow:
+To inspect an existing successful or failed run without rerunning the workflow:
 
 ```bash
 bin/cbicall report completed_run/

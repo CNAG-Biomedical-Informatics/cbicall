@@ -44,7 +44,7 @@
 
 .markdown img[alt='CBIcall'] {
   display: block;
-  width: min(300px, 72vw);
+  width: min(190px, 52vw);
   margin: 0 auto 0.75rem;
 }
 

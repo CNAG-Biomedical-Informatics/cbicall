@@ -29,7 +29,7 @@ pipelines.
 
 ## Architecture diagram
 
-![CBIcall architecture diagram](/img/architecture-diagram.png)
+![CBIcall execution contract diagram](/img/cbicall-execution-landscape.svg)
 
 _CBIcall validates the user parameters YAML, resolves it against the workflow registry and resource catalog, launches the selected backend, and records audit outputs._
 
@@ -186,7 +186,9 @@ environment file are recorded in `log.json` for real runs.
 
 ## Run outputs and audit files
 
-Every run records three complementary metadata files:
+Each run directory created for workflow launch records three complementary
+metadata files. Validation failures detected before launch do not create a run
+directory; execution failures after launch retain these audit artifacts.
 
 | File | Purpose |
 | --- | --- |

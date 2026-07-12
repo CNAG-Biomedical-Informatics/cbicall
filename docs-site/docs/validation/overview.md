@@ -7,7 +7,7 @@ used to audit CBIcall executions.
 | Question | Page |
 | --- | --- |
 | What files and fingerprints does a run produce? | [Outputs](../help/outputs) |
-| How do I compare completed run reports? | [Run Comparison](../help/run-comparison) |
+| How do I compare successful or failed executions with run reports? | [Run Comparison](../help/run-comparison) |
 | Can this installation run the shipped example workflows? | [Integration Tests](integration-tests) |
 | Do repeated runs match across machines or environments? | [Cross-Environment Reproducibility](cross-environment) |
 | Are installed resource bundles compatible with selected workflows? | [Resource Validation](../usage/resource-validation) |
@@ -29,9 +29,10 @@ CBIcall records reproducibility evidence at several layers:
 - `cbicall-execution-contract.json` records the backend-ready launch plan.
 - `run-report.json` records workflow fingerprints, resource fingerprints,
   output inventories, final-output hashes, software/runtime evidence, and status.
-- `cbicall compare-runs` compares completed reports across independent runs.
+- `cbicall compare-runs` compares available reports across independent runs.
 
-For WES/WGS output reproducibility, prioritize the final VCF `calls`
-fingerprint, then inspect the stricter full-record VCF fingerprint. File
+For WES/WGS output reproducibility, first verify the VCF sample identity and
+order, then inspect the final VCF `calls` fingerprint and the stricter
+full-record VCF fingerprint. File
 inventories and logs are useful audit evidence, but they can differ between
 environments even when final variant calls match.

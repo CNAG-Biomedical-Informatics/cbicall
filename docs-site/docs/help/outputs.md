@@ -66,7 +66,7 @@ Use `software_versions.sha256` to audit the tool-version table when available. N
 
 ## MultiQC Custom Content
 
-CBIcall can write a MultiQC custom-content directory for a completed run:
+CBIcall can write a MultiQC custom-content directory from an existing run report:
 
 ```bash
 bin/cbicall report completed_run/ --multiqc
@@ -152,7 +152,7 @@ Applies to `pipeline: wes` or `pipeline: wgs` with `mode: single`.
 | `02_varcall/<id>.hc.g.vcf.gz.tbi` | Tabix index for the gVCF. |
 | `03_stats/<id>.coverage.txt` | Coverage summary with a `region`-first tabular schema. |
 | `03_stats/<id>.sex.txt` | Sex inference result from the final VCF. |
-| `03_stats/<id>.vcf.sha256.txt` | Per-VCF SHA-256 report with raw, strict-record, and call-level VCF fingerprints. |
+| `03_stats/<id>.vcf.sha256.txt` | Per-VCF SHA-256 report with raw-file, sample count/order, call-level, and strict-record VCF fingerprints. |
 
 Coverage files use one tabular row per sample:
 

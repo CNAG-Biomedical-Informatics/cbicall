@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 328" role="img" aria-labelledby="title description">
+  <title id="title">CBIcall execution contract</title>
+  <desc id="description">User parameters, the workflow registry, and the resource catalog are validated and resolved before execution through Bash, Snakemake, Nextflow, or Cromwell. Each run produces structured audit evidence.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#78909b"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="328" fill="#ffffff"/>
+  <text x="24" y="24" fill="#49616c" font-family="Arial, sans-serif" font-size="13" font-weight="700">EXECUTION CONTRACT</text>
+  <text x="350" y="24" fill="#49616c" font-family="Arial, sans-serif" font-size="13" font-weight="700">CBICALL CONTROL LAYER</text>
+  <text x="680" y="24" fill="#49616c" font-family="Arial, sans-serif" font-size="13" font-weight="700">WORKFLOW EXECUTION</text>
+  <text x="965" y="24" fill="#49616c" font-family="Arial, sans-serif" font-size="13" font-weight="700">AUDIT EVIDENCE</text>
+
+  <g font-family="Arial, sans-serif">
+    <rect x="24" y="42" width="248" height="68" rx="6" fill="#f3faf5" stroke="#6aa57e" stroke-width="2"/>
+    <rect x="24" y="130" width="248" height="68" rx="6" fill="#f2f7fb" stroke="#5e91b5" stroke-width="2"/>
+    <rect x="24" y="218" width="248" height="68" rx="6" fill="#faf5fc" stroke="#9670ad" stroke-width="2"/>
+    <text x="44" y="69" fill="#276749" font-size="15" font-weight="700">User parameters YAML</text>
+    <text x="44" y="91" fill="#536871" font-size="13">Analysis intent and inputs</text>
+    <text x="44" y="157" fill="#315f82" font-size="15" font-weight="700">Workflow registry YAML</text>
+    <text x="44" y="179" fill="#536871" font-size="13">Approved implementations</text>
+    <text x="44" y="245" fill="#6b3f8c" font-size="15" font-weight="700">Resource catalog JSON</text>
+    <text x="44" y="267" fill="#536871" font-size="13">Identity and compatibility</text>
+
+    <path d="M272 76 H318 M272 164 H318 M272 252 H318" fill="none" stroke="#78909b" stroke-width="2"/>
+    <path d="M318 76 V252" fill="none" stroke="#78909b" stroke-width="2"/>
+    <path d="M318 164 H346" fill="none" stroke="#78909b" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <rect x="350" y="42" width="256" height="244" rx="6" fill="#f4f8fa" stroke="#2e7289" stroke-width="2"/>
+    <text x="374" y="76" fill="#174e62" font-size="18" font-weight="700">Validate and resolve</text>
+    <line x1="374" y1="93" x2="582" y2="93" stroke="#b8cbd2"/>
+    <circle cx="386" cy="122" r="12" fill="#276749"/>
+    <text x="382" y="127" fill="#ffffff" font-size="13" font-weight="700">1</text>
+    <text x="410" y="127" fill="#314c57" font-size="14">Validate parameters</text>
+    <circle cx="386" cy="166" r="12" fill="#315f82"/>
+    <text x="382" y="171" fill="#ffffff" font-size="13" font-weight="700">2</text>
+    <text x="410" y="171" fill="#314c57" font-size="14">Resolve implementation</text>
+    <circle cx="386" cy="210" r="12" fill="#6b3f8c"/>
+    <text x="382" y="215" fill="#ffffff" font-size="13" font-weight="700">3</text>
+    <text x="410" y="215" fill="#314c57" font-size="14">Verify resources</text>
+    <circle cx="386" cy="254" r="12" fill="#b85c1e"/>
+    <text x="382" y="259" fill="#ffffff" font-size="13" font-weight="700">4</text>
+    <text x="410" y="259" fill="#314c57" font-size="14">Create run contract</text>
+
+    <path d="M606 164 H650" fill="none" stroke="#78909b" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M654 70 V258" fill="none" stroke="#78909b" stroke-width="2"/>
+
+    <g fill="#ffffff" stroke="#9db2bb" stroke-width="1.5">
+      <rect x="680" y="42" width="220" height="52" rx="6"/>
+      <rect x="680" y="106" width="220" height="52" rx="6"/>
+      <rect x="680" y="170" width="220" height="52" rx="6"/>
+      <rect x="680" y="234" width="220" height="52" rx="6"/>
+    </g>
+    <path d="M654 68 H680 M654 132 H680 M654 196 H680 M654 260 H680" fill="none" stroke="#78909b" stroke-width="2"/>
+    <rect x="680" y="42" width="7" height="52" rx="3" fill="#276749"/>
+    <rect x="680" y="106" width="7" height="52" rx="3" fill="#315f82"/>
+    <rect x="680" y="170" width="7" height="52" rx="3" fill="#0f8192"/>
+    <rect x="680" y="234" width="7" height="52" rx="3" fill="#6b3f8c"/>
+    <text x="706" y="73" fill="#263f49" font-size="15" font-weight="700">Bash</text>
+    <text x="706" y="137" fill="#263f49" font-size="15" font-weight="700">Snakemake</text>
+    <text x="706" y="197" fill="#263f49" font-size="15" font-weight="700">Nextflow</text>
+    <text x="791" y="197" fill="#667b84" font-size="12">native + nf-core</text>
+    <text x="706" y="265" fill="#263f49" font-size="15" font-weight="700">Cromwell</text>
+
+    <path d="M900 68 H930 M900 132 H930 M900 196 H930 M900 260 H930" fill="none" stroke="#78909b" stroke-width="2"/>
+    <path d="M930 68 V260" fill="none" stroke="#78909b" stroke-width="2"/>
+    <path d="M930 164 H958" fill="none" stroke="#78909b" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <rect x="965" y="42" width="211" height="244" rx="6" fill="#fff9f4" stroke="#c47a45" stroke-width="2"/>
+    <text x="989" y="76" fill="#8c4518" font-size="18" font-weight="700">Run evidence</text>
+    <line x1="989" y1="93" x2="1152" y2="93" stroke="#e2c5ae"/>
+    <text x="989" y="126" fill="#314c57" font-size="14" font-weight="700">Structured provenance</text>
+    <text x="989" y="148" fill="#60747d" font-size="13">log.json · run-report.json</text>
+    <text x="989" y="184" fill="#314c57" font-size="14" font-weight="700">Output fingerprints</text>
+    <text x="989" y="206" fill="#60747d" font-size="13">sample order · calls · strict</text>
+    <text x="989" y="242" fill="#314c57" font-size="14" font-weight="700">Run comparison</text>
+    <text x="989" y="264" fill="#60747d" font-size="13">text · HTML · MultiQC</text>
+  </g>
+</svg>

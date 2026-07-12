@@ -57,18 +57,18 @@ _Final VCF `calls` NxN heatmap from `compare-runs.html`; all 23,562 call-level r
 <details className="cbicallInfoDetails">
 <summary>Call-level versus strict VCF hashes</summary>
 
-CBIcall records two VCF fingerprints because different questions need different
-levels of sensitivity.
+CBIcall records three complementary VCF checks because different questions need
+different levels of sensitivity.
 
 | Fingerprint | Fields hashed | Example of change detected | Typical interpretation |
 | --- | --- | --- | --- |
+| `sample order` | Ordered sample names from columns 10 onward in the VCF `#CHROM` header. | A sample is renamed, added, removed, or reordered. | The compared VCFs do not describe the same ordered sample set. Check this before interpreting call-level agreement. |
 | `calls` | `CHROM`, `POS`, `REF`, `ALT`, `FILTER`, and each sample `GT` in VCF sample order, across all final VCF records. | A variant becomes filtered instead of `PASS`, a genotype changes from `0/1` to `0/0`, or a site appears/disappears. | Final reported calls changed. This is the primary reproducibility check for WES/WGS outputs. Because `FILTER` is hashed, PASS and non-PASS records are both audited. |
 | `strict records` | Complete sorted non-header VCF records, including `QUAL`, `INFO`, all `FORMAT` fields, `PL`, annotations, and other numeric fields. | Same `PASS` and `GT`, but `QUAL` shifts from `2267.64` to `2266.64`, or `PL` shifts from `2275,0,3196` to `2274,0,3196`. | The full VCF record changed. This can detect small numerical drift even when the final call is unchanged. |
 
-Current CBIcall reports also record a separate sample-order fingerprint from the
-ordered sample names in the VCF `#CHROM` header. This additional check does not
-change either hash reported above, so the cross-environment results remain
-directly comparable.
+The sample-order check was added without changing the call-level or strict-record
+hash definitions. The cross-environment hashes reported above therefore remain
+directly comparable with the original analysis.
 
 In this validation, `ws1` and `ws5` had the same `FILTER=PASS` and `GT=0/1` for
 `3:196281208 T>C`, so the **calls hash matched**. The strict hash changed because

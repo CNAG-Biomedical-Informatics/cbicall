@@ -10,10 +10,10 @@ const config: Config = {
   baseUrl: '/cbicall/',
   organizationName: 'CNAG-Biomedical-Informatics',
   projectName: 'cbicall',
-  onBrokenLinks: 'warn',
+  onBrokenLinks: 'throw',
   markdown: {
     hooks: {
-      onBrokenMarkdownLinks: 'warn',
+      onBrokenMarkdownLinks: 'throw',
     },
   },
   i18n: {

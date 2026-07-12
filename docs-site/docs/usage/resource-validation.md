@@ -61,7 +61,8 @@ installation checks.
 
 ## Runtime Provenance
 
-Completed runs record resource provenance in `log.json` and `run-report.json`.
+Runs that reach workflow launch record resource provenance in `log.json` and
+`run-report.json`, including failed executions.
 Compare repeated runs with:
 
 ```bash
