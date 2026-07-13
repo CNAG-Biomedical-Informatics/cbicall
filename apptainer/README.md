@@ -153,7 +153,7 @@ cd "$CBICALL_DATA"
 Download the data preparation script and execute it:
 
 ```bash
-wget https://raw.githubusercontent.com/mrueda/cbicall/refs/heads/main/scripts/download_cbicall_bundle.py
+wget https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/refs/heads/main/scripts/download_cbicall_bundle.py
 python3 ./download_cbicall_bundle.py --outdir "$CBICALL_DATA"
 ```
 

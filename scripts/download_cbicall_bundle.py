@@ -29,7 +29,7 @@ from typing import Iterable, List, Optional, Tuple
 DEFAULT_BUNDLE_KEY = "cbicall-germline-resources-v1"
 CATALOG_NAME = "resources/cbicall-resource-catalog.json"
 DEFAULT_CATALOG_URL = (
-    "https://raw.githubusercontent.com/mrueda/cbicall/refs/heads/main/"
+    "https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/refs/heads/main/"
     "resources/cbicall-resource-catalog.json"
 )
 MANIFEST_NAME = "cbicall-resource-installation.json"

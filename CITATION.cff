@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: "If you use CBIcall, please cite the software and the associated manuscript."
+title: "CBIcall: a configuration-driven framework for variant calling in large sequencing cohorts"
+type: software
+authors:
+  - family-names: Rueda
+    given-names: Manuel
+    email: manuel.rueda@cnag.eu
+    affiliation: "Centro Nacional de Analisis Genomico (CNAG)"
+  - family-names: Fernandez-Orth
+    given-names: Dietmar
+    affiliation: "Centro Nacional de Analisis Genomico (CNAG)"
+  - family-names: Gut
+    given-names: "Ivo G."
+    affiliation: "Centro Nacional de Analisis Genomico (CNAG)"
+repository-code: "https://github.com/CNAG-Biomedical-Informatics/cbicall"
+url: "https://cnag-biomedical-informatics.github.io/cbicall/"
+license: GPL-3.0-only
+abstract: >-
+  CBIcall is a configuration-driven framework that validates, executes, and
+  audits variant-calling workflows across heterogeneous computing environments.
+keywords:
+  - variant calling
+  - workflow reproducibility
+  - provenance
+  - whole-exome sequencing
+  - whole-genome sequencing
+  - mitochondrial DNA
+preferred-citation:
+  type: article
+  title: "CBIcall: a configuration-driven framework for variant calling in large sequencing cohorts"
+  authors:
+    - family-names: Rueda
+      given-names: Manuel
+    - family-names: Fernandez-Orth
+      given-names: Dietmar
+    - family-names: Gut
+      given-names: "Ivo G."
+  year: 2026
+  doi: 10.64898/2026.03.23.713646

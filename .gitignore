@@ -15,4 +15,11 @@ docs-site/node_modules/
 
 # Generated integration-test artifacts
 examples/input/cbicall-test-*.log
+examples/input/cbicall-*.yaml
+examples/input/cbicall_*/
 examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_*/
+
+# Generated report examples and local agent handoff notes
+/compare-matrix-demo-runs/
+/multiqc_data/
+/SESSION*.md

@@ -1,6 +1,6 @@
 Revision history for cbicall:
 
-1.1.0  2026-0X-XX
+1.1.0  Unreleased
 
     - Fix single-sample workflows to keep one sample name across FASTQs with different prefixes.
     - Fix mtDNA extraction from hg38 BAMs by selecting chrM instead of MT.
@@ -14,7 +14,11 @@ Revision history for cbicall:
     - Add validate-parameters, validate-registry, validate-resources, test, compare-runs, and backend-equivalence checks.
     - Add run-report.json audit summaries with CBIcall version, workflow file hashes, software-version evidence, resource provenance, output file inventory hashes, output sizes, execution trace summaries, and output fingerprints.
     - Add text and HTML run comparison reports for two or more runs.
+    - Extend run comparison with all-to-all matrices, VCF fingerprints, aliases, and MultiQC exports.
     - Add execution-contract audit files and generalize the workflow execution layer.
+    - Add failed-run auditing and staged cohort execution for WES/WGS analyses.
+    - Replace the legacy mtDNA report with an interactive variant browser.
+    - Build Docker images from the checked-out source revision with provenance labels.
     - Rename workflow_engine/workflow_version YAML terminology to workflow_backend/workflow_provider.
     - Rename gatk_version YAML/report terminology to software_stack.
 

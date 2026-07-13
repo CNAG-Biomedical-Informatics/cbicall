@@ -15,15 +15,23 @@ docker pull manuelrueda/cbicall:latest
 docker image tag manuelrueda/cbicall:latest cnag/cbicall:latest
 ```
 
-### Method 2: Installing from Dockerfile (slow)
+### Method 2: Building from the source checkout (slow)
 
-Download the `Dockerfile` from [GitHub](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/Dockerfile):
+Clone CBIcall so Docker can build the exact checked-out revision:
 
 ```bash
-wget https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/main/docker/Dockerfile
+git clone https://github.com/CNAG-Biomedical-Informatics/cbicall.git
+cd cbicall
 ```
 
-Then build the container:
+For a released version, check out its tag before building. For example:
+
+```bash
+git checkout 1.1.0
+```
+
+Then build the container from the repository root. The source revision and
+CBIcall version are recorded in the image metadata:
 
 The Dockerfile installs the CBIcall Python dependencies, including Snakemake,
 plus pinned Nextflow, Cromwell, and WOMtool launchers. Bash workflows do not
@@ -33,14 +41,33 @@ Cromwell WES/WGS workflows without extra engine installation.
 - **For Docker version 19.03 and above (supports buildx):**
 
   ```bash
-  docker buildx build --no-cache -t cnag/cbicall:latest .
+  docker buildx build --load \
+    -f docker/Dockerfile \
+    --build-arg CBICALL_VERSION="$(cat VERSION)" \
+    --build-arg VCS_REF="$(git rev-parse HEAD)" \
+    -t cnag/cbicall:latest .
   ```
 
 - **For Docker versions older than 19.03 (no buildx support):**
 
   ```bash
-  docker build --no-cache -t cnag/cbicall:latest .
+  docker build \
+    -f docker/Dockerfile \
+    --build-arg CBICALL_VERSION="$(cat VERSION)" \
+    --build-arg VCS_REF="$(git rev-parse HEAD)" \
+    -t cnag/cbicall:latest .
   ```
+
+Inspect the revision packaged in an image with:
+
+```bash
+docker inspect cnag/cbicall:latest \
+  --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}'
+```
+
+The Docker Hub multi-architecture image is built in the same way: GitHub
+Actions checks out one repository commit and passes that checkout as the Docker
+build context.
 
 ## Choose a Workflow Path
 
@@ -73,7 +100,7 @@ Finally, navigate to a directory where you want the databases stored and execute
 
 ```bash
 mkdir -p /absolute/path/to/cbicall-data
-wget https://raw.githubusercontent.com/mrueda/cbicall/refs/heads/main/scripts/download_cbicall_bundle.py
+wget https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/refs/heads/main/scripts/download_cbicall_bundle.py
 python3 ./download_cbicall_bundle.py --outdir /absolute/path/to/cbicall-data
 ```
 

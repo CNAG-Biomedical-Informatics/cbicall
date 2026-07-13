@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://github.com/mrueda/cbicall">
+  <a href="https://github.com/CNAG-Biomedical-Informatics/cbicall">
     <img src="https://raw.githubusercontent.com/CNAG-Biomedical-Informatics/cbicall/main/docs-site/static/img/cbicall-logo.png"
          width="300" alt="CBIcall">
   </a>
@@ -86,7 +86,7 @@ The full technical reference lives in the documentation site and repository docs
 - General usage and parameter reference: [docs-site/docs/usage/usage.md](docs-site/docs/usage/usage.md)
 - Quick start: [docs-site/docs/usage/quickstart.md](docs-site/docs/usage/quickstart.md)
 - End-to-end examples: [WES/WGS](docs-site/docs/usage/end-to-end-example-wes.md), [mtDNA](docs-site/docs/usage/end-to-end-example-mit.md)
-- Run comparison and audit reports: [docs-site/docs/usage/run-comparison.md](docs-site/docs/usage/run-comparison.md)
+- Run comparison and audit reports: [docs-site/docs/help/run-comparison.md](docs-site/docs/help/run-comparison.md)
 - Technical details: [docs-site/docs/technical-details/architecture.md](docs-site/docs/technical-details/architecture.md)
 
 # Citation
@@ -100,4 +100,3 @@ Written by Manuel Rueda (mrueda). GitHub repository: [https://github.com/CNAG-Bi
 # Copyright and license
 
 Please see the included LICENSE file for distribution and usage terms.
-

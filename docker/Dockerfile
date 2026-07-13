@@ -1,7 +1,12 @@
 FROM ubuntu:22.04
 
-# File Author / Maintainer
-LABEL org.opencontainers.image.authors="Manuel Rueda <manuel.rueda@cnag.eu>"
+ARG CBICALL_VERSION=development
+ARG VCS_REF=unknown
+
+LABEL org.opencontainers.image.authors="Manuel Rueda <manuel.rueda@cnag.eu>" \
+      org.opencontainers.image.source="https://github.com/CNAG-Biomedical-Informatics/cbicall" \
+      org.opencontainers.image.version="${CBICALL_VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}"
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -45,18 +50,15 @@ RUN mkdir -p "${CROMWELL_DIR}" && \
     cromwell --version && \
     test -s "${WOMTOOL_JAR}"
 
-# Download CBICall
-WORKDIR /usr/share/
-RUN git clone https://github.com/CNAG-Biomedical-Informatics/cbicall.git
+# Install Python packages before copying the remaining source so dependency
+# installation can be reused when only CBIcall code changes.
+WORKDIR /usr/share/cbicall
+COPY requirements.txt ./requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Remove Git metadata and CI configs to shrink image and avoid shipping them
-RUN rm -rf cbicall/.git cbicall/.github cbicall/.gitattributes cbicall/.gitignore
-
-# Remove documentation sources from the runtime image
-RUN rm -rf cbicall/docs-site/
-
-# Install Python packages, including Snakemake.
-RUN pip3 install -r /usr/share/cbicall/requirements.txt
+# The repository checkout is the Docker build context. In CI this is the exact
+# commit selected by actions/checkout; local builds use the caller's checkout.
+COPY . .
 
 # Add user "dockeruser"
 ARG UID=1000
