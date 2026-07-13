@@ -89,8 +89,9 @@ Please see:
 ```
 
 The CBIcall mtDNA variation browser is a standalone HTML report. It embeds the
-browser payload at generation time, so `02_browser/<run-id>.html` can be opened
-directly without a local web server or external static assets.
+filtered browser payload and its Tabulator table assets at generation time.
+Therefore, `02_browser/<run-id>.html` opens directly without a local web server,
+internet connection, or external static assets.
 
 > **See snapshot**
     ![browser](/img/browser.png)
@@ -102,12 +103,13 @@ The report provides direct buttons for:
 * **Report:** `01_mtoolbox/mit_prioritized_variants.txt`, including annotations plus appended `GT`, `DP`, and heteroplasmy values.
 * **Haplogroup:** `01_mtoolbox/mt_classification_best_results.csv`, including the predicted [haplogroup](https://en.wikipedia.org/wiki/Human_mitochondrial_DNA_haplogroup) for each sample.
 * **VCF:** `01_mtoolbox/VCF_file.vcf`, containing the mtDNA variants in VCF format.
-* **Raw JSON:** `01_mtoolbox/mit.raw.json`, containing the unfiltered parsed MToolBox output.
+* **Filtered JSON:** `01_mtoolbox/mit.filtered.json`, containing the records retained by the browser's HF and population-frequency filters.
 
-The browser also supports searching by gene, variant, disease term, or rsID;
-filtering by locus; filtering by minimum disease score; showing only variants
-with external evidence; toggling advanced annotation columns; and exporting the
-current table view as CSV.
+The browser provides review queues for all variants, external evidence, high
+disease scores, and heteroplasmic calls. Users can search across annotations,
+filter by sample or locus, choose visible columns, sort and paginate records,
+inspect a variant in a detail drawer, print the table, or export the current
+view as CSV.
 
 ### HTML table:
 
@@ -125,7 +127,7 @@ The CBIcall mtDNA variation browser displays a browsable table consisting of the
 * **Other**: For other fields please consult [MToolBox's manual](https://github.com/mitoNGS/MToolBox/wiki/Output-files).
 
 > **Filtered variants**
-    The table shows **pre-filtered variants**. Variants were excluded if:
+    The table shows variants retained by the report filters. Variants were excluded if:
 
     - **HF ≤ 0.30** (maximum HF observed in **any** sample)
     - **1000 Genomes frequency ≥ 0.01**
@@ -212,10 +214,10 @@ Please see:
 ```
 
 The CBIcall mtDNA variation browser is a standalone HTML report. It embeds the
-browser payload at generation time, so `02_browser/<run-id>.html` can be opened
-directly without a local web server or external static assets. The cohort report
-follows the same standalone HTML format as the single-sample report, with
-sample-level fields where applicable.
+filtered browser payload and its Tabulator table assets at generation time, so
+`02_browser/<run-id>.html` opens directly without a local web server, internet
+connection, or external static assets. The cohort report follows the same
+format as the single-sample report, with sample-level filtering and fields.
 
 ### Browser actions
 
@@ -224,12 +226,13 @@ The report provides direct buttons for:
 * **Report:** `01_mtoolbox/mit_prioritized_variants.txt`, including annotations plus appended per-sample `GT`, `DP`, and heteroplasmy values.
 * **Haplogroup:** `01_mtoolbox/mt_classification_best_results.csv`, including the predicted [haplogroup](https://en.wikipedia.org/wiki/Human_mitochondrial_DNA_haplogroup) for each sample.
 * **VCF:** `01_mtoolbox/VCF_file.vcf`, containing the mtDNA variants in VCF format.
-* **Raw JSON:** `01_mtoolbox/mit.raw.json`, containing the unfiltered parsed MToolBox output.
+* **Filtered JSON:** `01_mtoolbox/mit.filtered.json`, containing the records retained by the browser's HF and population-frequency filters.
 
-The browser also supports searching by gene, variant, disease term, or rsID;
-filtering by locus; filtering by minimum disease score; showing only variants
-with external evidence; toggling advanced annotation columns; and exporting the
-current table view as CSV.
+The browser provides review queues for all variants, external evidence, high
+disease scores, and heteroplasmic calls. Users can search across annotations,
+filter by sample or locus, choose visible columns, sort and paginate records,
+inspect a variant in a detail drawer, print the table, or export the current
+view as CSV.
 
 ### HTML table:
 
@@ -247,7 +250,7 @@ The CBIcall mtDNA variation browser displays a browsable table consisting of the
 * **Other**: For other fields please consult [MToolBox's manual](https://github.com/mitoNGS/MToolBox/wiki/Output-files).
 
 > **Filtered variants**
-    The table shows **pre-filtered variants**. Variants were excluded if:
+    The table shows variants retained by the report filters. Variants were excluded if:
 
     - **HF ≤ 0.30** (maximum HF observed in **any** sample)
     - **1000 Genomes frequency ≥ 0.01**

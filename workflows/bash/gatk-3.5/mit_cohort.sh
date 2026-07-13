@@ -278,20 +278,18 @@ rm "$out_file"
 
 echo "Creating Browser HTML..."
 mit_json="mit.json"
-mit_raw_json="mit.raw.json"
+mit_filtered_json="mit.filtered.json"
 
-"$PYBINDIR/mtb2json.py" -i "$final_file" -f json > "$mit_raw_json"
+"$PYBINDIR/mtb2json.py" -i "$final_file" -f json > "$mit_filtered_json"
 "$PYBINDIR/mtb2json.py" -i "$final_file" -f json4html > "$BROWSERDIR/$mit_json"
 "$PYBINDIR/mtb2html.py" --id "$cohort" --json "$mit_json" --out "$BROWSERDIR/$job_id.html" --job-id "$job_id"
 
 cat <<EOF > "$BROWSERDIR/README.txt"
-# To visualize <$job_id.html>:
-
-# Option 1: Open <$job_id.html> directly in a web browser
+# Open the standalone mtDNA report directly in a web browser:
 xdg-open $job_id.html
 
-# Option 2: Use an HTTP server. Example using Python 3:
-python3 -m http.server
+# The report embeds its table data and JavaScript dependencies.
+# Keep 01_mtoolbox and 02_browser together so its download links remain valid.
 EOF
 
 echo "All done!!!"
