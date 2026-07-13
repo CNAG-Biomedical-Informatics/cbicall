@@ -56,7 +56,7 @@ See [Configuration Reference](../help/configuration-reference) for all YAML keys
 ## 3. Run CBIcall
 
 ```bash
-bin/cbicall run -p mit_single.yaml -t 4
+cbicall run -p mit_single.yaml -t 4
 ```
 
 - `-p` selects the YAML parameters file  
@@ -96,6 +96,9 @@ internet connection, or external static assets.
 > **See snapshot**
     ![browser](/img/browser.png)
 
+> **Variant details**
+    ![mtDNA variant detail drawer](/img/browser-variant-detail.png)
+
 ### Browser actions
 
 The report provides direct buttons for:
@@ -105,11 +108,13 @@ The report provides direct buttons for:
 * **VCF:** `01_mtoolbox/VCF_file.vcf`, containing the mtDNA variants in VCF format.
 * **Filtered JSON:** `01_mtoolbox/mit.filtered.json`, containing the records retained by the browser's HF and population-frequency filters.
 
-The browser provides review queues for all variants, external evidence, high
-disease scores, and heteroplasmic calls. Users can search across annotations,
-filter by sample or locus, choose visible columns, sort and paginate records,
-inspect a variant in a detail drawer, print the table, or export the current
-view as CSV.
+Quick-filter tabs isolate all variants, external evidence, high disease scores,
+or heteroplasmic calls. Users can also search across annotations, filter by
+sample or locus, choose visible columns, sort and paginate records, move
+horizontally through wide tables, inspect a variant in a detail drawer, print
+the table, or export the current view as CSV. Disease, evidence, and
+heteroplasmy indicators retain the same color coding in the table and detail
+drawer.
 
 ### HTML table:
 
@@ -181,7 +186,7 @@ See [Configuration Reference](../help/configuration-reference) for all YAML keys
 ## 3. Run CBIcall
 
 ```bash
-bin/cbicall run -p mit_cohort.yaml -t 4
+cbicall run -p mit_cohort.yaml -t 4
 ```
 
 - `-p` selects the YAML parameters file  
@@ -228,11 +233,13 @@ The report provides direct buttons for:
 * **VCF:** `01_mtoolbox/VCF_file.vcf`, containing the mtDNA variants in VCF format.
 * **Filtered JSON:** `01_mtoolbox/mit.filtered.json`, containing the records retained by the browser's HF and population-frequency filters.
 
-The browser provides review queues for all variants, external evidence, high
-disease scores, and heteroplasmic calls. Users can search across annotations,
-filter by sample or locus, choose visible columns, sort and paginate records,
-inspect a variant in a detail drawer, print the table, or export the current
-view as CSV.
+Quick-filter tabs isolate all variants, external evidence, high disease scores,
+or heteroplasmic calls. Users can also search across annotations, filter by
+sample or locus, choose visible columns, sort and paginate records, move
+horizontally through wide tables, inspect a variant in a detail drawer, print
+the table, or export the current view as CSV. Disease, evidence, and
+heteroplasmy indicators retain the same color coding in the table and detail
+drawer.
 
 ### HTML table:
 

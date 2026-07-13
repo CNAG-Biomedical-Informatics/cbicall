@@ -91,18 +91,7 @@
         gap: 24px;
       }
 
-      .brand { display: flex; align-items: center; gap: 12px; }
-      .brand-mark {
-        display: grid;
-        width: 46px;
-        height: 46px;
-        place-items: center;
-        border: 1px solid var(--line);
-        border-radius: 7px;
-        background: #fff;
-        color: var(--brand);
-      }
-      .brand-mark .icon { width: 27px; height: 27px; }
+      .brand { display: flex; align-items: center; }
       .brand-name { font-size: 20px; font-weight: 780; }
       .brand-context { color: var(--muted); font-size: 13px; }
       .topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
@@ -348,6 +337,69 @@
       .tabulator .tabulator-footer .tabulator-page.active { border-color: var(--brand); background: var(--brand); color: #fff; }
       .tabulator .tabulator-placeholder { border: 0; }
 
+      .pagination-bar {
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 7px 14px;
+        overflow-x: auto;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface-soft);
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .page-count { flex: 0 0 auto; }
+      .table-navigation { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; }
+      .column-scroll-controls { display: flex; align-items: center; gap: 4px; padding-right: 10px; border-right: 1px solid var(--line); }
+      .column-scroll-label { margin-right: 3px; color: var(--ink-soft); font-weight: 700; }
+      .column-scroll-controls button { width: 32px; min-height: 32px; padding: 0; }
+      .table-paginator { display: flex; flex: 0 0 auto; align-items: center; gap: 5px; }
+      .table-paginator label { margin-right: 2px; color: var(--ink-soft); font-weight: 700; }
+      .table-paginator .tabulator-page-size {
+        min-height: 32px;
+        margin-right: 7px;
+        padding: 3px 26px 3px 8px;
+        border: 1px solid var(--line-strong);
+        border-radius: 4px;
+        background: #fff;
+        color: var(--ink);
+      }
+      .table-paginator .tabulator-pages { display: inline-flex; gap: 4px; }
+      .table-paginator .tabulator-page {
+        min-width: 32px;
+        min-height: 32px;
+        padding: 3px 7px;
+        border: 1px solid var(--line-strong);
+        border-radius: 4px;
+        background: #fff;
+        color: var(--ink-soft);
+      }
+      .table-paginator .tabulator-page:hover:not(:disabled) { border-color: var(--brand); background: var(--brand-soft); color: var(--brand-dark); }
+      .table-paginator .tabulator-page.active { border-color: var(--brand); background: var(--brand); color: #fff; }
+      .table-paginator .tabulator-page:disabled { opacity: 0.45; }
+      .table-horizontal-scroll {
+        height: 17px;
+        overflow-x: scroll;
+        overflow-y: hidden;
+        border-bottom: 1px solid var(--line);
+        background: #edf2f1;
+        scrollbar-color: #718b87 #e2e9e7;
+        scrollbar-width: auto;
+      }
+      .table-horizontal-scroll[hidden] { display: none; }
+      .table-horizontal-scroll::-webkit-scrollbar { height: 14px; }
+      .table-horizontal-scroll::-webkit-scrollbar-track { background: #e2e9e7; }
+      .table-horizontal-scroll::-webkit-scrollbar-thumb {
+        min-width: 48px;
+        border: 3px solid #e2e9e7;
+        border-radius: 7px;
+        background: #718b87;
+      }
+      .table-horizontal-scroll::-webkit-scrollbar-thumb:hover { background: var(--brand); }
+      .table-horizontal-scroll-content { height: 1px; }
+
       .locus-cell, .variant-cell { min-width: 0; }
       .cell-primary { display: block; overflow: hidden; color: var(--ink); font-weight: 760; text-overflow: ellipsis; }
       .cell-primary a { color: var(--brand-dark); text-decoration: none; }
@@ -407,7 +459,6 @@
       .detail-close { border-color: rgba(255, 255, 255, 0.28); background: transparent; color: #fff; }
       .detail-close:hover:not(:disabled) { border-color: #fff; background: rgba(255, 255, 255, 0.1); color: #fff; }
       .detail-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 15px; }
-      .detail-badges .badge { background: rgba(255, 255, 255, 0.13); color: #fff; }
       .detail-body { padding: 4px 22px 30px; }
       .detail-section { padding: 21px 0; border-bottom: 1px solid var(--line); }
       .detail-section:last-child { border-bottom: 0; }
@@ -428,7 +479,7 @@
       .empty-inline { color: var(--muted); font-size: 14px; }
 
       @media print {
-        .topbar, .workspace-actions, .panel-tabs, .filters, .footer-note, .detail-overlay, .detail-panel { display: none !important; }
+        .topbar, .workspace-actions, .panel-tabs, .filters, .pagination-bar, .footer-note, .detail-overlay, .detail-panel { display: none !important; }
         body, html { background: #fff; }
         main { width: 100%; padding: 0; }
         .summary { margin: 0 0 12px; }
@@ -464,6 +515,8 @@
         .toggles { width: 100%; }
         .toggle { flex: 1; }
         .filter-reset { width: 100%; }
+        .pagination-bar { align-items: flex-start; flex-direction: column; }
+        .table-navigation { min-width: max-content; }
         .column-menu { left: 0; right: auto; width: min(300px, calc(100vw - 42px)); }
         .tabulator { font-size: 15px; }
         .tabulator-row { min-height: 58px; }
@@ -482,6 +535,7 @@
       <symbol id="icon-columns" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"></rect><path d="M9 4v16M15 4v16"></path></symbol>
       <symbol id="icon-print" viewBox="0 0 24 24"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></symbol>
       <symbol id="icon-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></symbol>
+      <symbol id="icon-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></symbol>
       <symbol id="icon-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></symbol>
       <symbol id="icon-external" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></symbol>
       <symbol id="icon-filter" viewBox="0 0 24 24"><path d="M4 5h16M7 12h10M10 19h4"></path></symbol>
@@ -491,13 +545,11 @@
       <symbol id="icon-samples" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></symbol>
       <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></symbol>
       <symbol id="icon-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"></path><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"></path></symbol>
-      <symbol id="icon-dna" viewBox="0 0 24 24"><path d="M2 15c6-6 14-6 20-12"></path><path d="M2 9c6 6 14 6 20 12"></path><path d="M7 6h10M7 18h10M4.5 12h15"></path></symbol>
     </svg>
 
     <header class="topbar">
       <div class="topbar-inner">
         <div class="brand">
-          <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#icon-dna"></use></svg></span>
           <div><div class="brand-name">CBIcall mtDNA</div><div class="brand-context">Variant review browser</div></div>
         </div>
         <div class="topbar-actions">__DOWNLOAD_BUTTONS__</div>
@@ -525,7 +577,7 @@
         <div class="workspace-head">
           <div class="workspace-title">
             <span class="workspace-title-icon"><svg class="icon" aria-hidden="true"><use href="#icon-table"></use></svg></span>
-            <div><p class="section-kicker">Review queue</p><h2>Prioritized mtDNA variants</h2><p class="workspace-subtitle" id="table-count">0 variants</p></div>
+            <div><p class="section-kicker">Variant table</p><h2>Prioritized mtDNA variants</h2><p class="workspace-subtitle" id="table-count">0 variants</p></div>
           </div>
           <div class="workspace-actions">
             <div class="column-control">
@@ -541,7 +593,7 @@
           </div>
         </div>
 
-        <div id="queue-tabs" class="panel-tabs" role="tablist" aria-label="Variant review queues"></div>
+        <div id="view-tabs" class="panel-tabs" role="tablist" aria-label="Variant views"></div>
 
         <div class="filters">
           <label>Search variants
@@ -549,10 +601,24 @@
           </label>
           <label>Sample<select id="sample"><option value="">All samples</option></select></label>
           <label>Locus<select id="locus"><option value="">All loci</option></select></label>
-          <label class="panel-select">Review queue<select id="queue"></select></label>
+          <label class="panel-select">Variant view<select id="view"></select></label>
           <button id="clear" class="filter-reset" type="button" title="Reset filters and sorting"><svg class="icon" aria-hidden="true"><use href="#icon-reset"></use></svg>Reset</button>
         </div>
 
+        <div class="pagination-bar" aria-label="Table pagination">
+          <div id="page-count" class="page-count"></div>
+          <div class="table-navigation">
+            <div class="column-scroll-controls" role="group" aria-label="Horizontal table navigation">
+              <span class="column-scroll-label">Columns</span>
+              <button id="table-scroll-left" class="icon-button" type="button" title="Scroll columns left" aria-label="Scroll columns left"><svg class="icon" aria-hidden="true"><use href="#icon-chevron-left"></use></svg></button>
+              <button id="table-scroll-right" class="icon-button" type="button" title="Scroll columns right" aria-label="Scroll columns right"><svg class="icon" aria-hidden="true"><use href="#icon-chevron-right"></use></svg></button>
+            </div>
+            <div id="table-pagination" class="table-paginator"></div>
+          </div>
+        </div>
+        <div id="table-horizontal-scroll" class="table-horizontal-scroll" aria-label="Horizontal table scrollbar">
+          <div id="table-horizontal-scroll-content" class="table-horizontal-scroll-content"></div>
+        </div>
         <div class="table-wrap"><div id="variant-table"></div></div>
       </section>
       <p class="footer-note">Prioritized MToolBox variants retained by the configured heteroplasmy and 1000 Genomes frequency filters. Research use only.</p>
@@ -628,7 +694,7 @@
           search: document.getElementById("search"),
           sample: document.getElementById("sample"),
           locus: document.getElementById("locus"),
-          queue: document.getElementById("queue")
+          view: document.getElementById("view")
         };
 
         function icon(id) {
@@ -664,35 +730,35 @@
         report.samples.forEach(function (sample) { appendOption(controls.sample, sample, sample); });
         report.loci.forEach(function (locus) { appendOption(controls.locus, locus, locus); });
 
-        var queues = [
+        var views = [
           {key: "", label: "All variants", count: report.summary.variants},
           {key: "evidence", label: "External evidence", count: report.summary.evidence},
           {key: "disease", label: "Disease score >= " + Number(report.diseaseThreshold).toFixed(2), count: report.summary.highDisease},
           {key: "heteroplasmy", label: "Heteroplasmic", count: report.summary.heteroplasmic}
         ];
-        var queueTabs = document.getElementById("queue-tabs");
-        function appendQueueTab(queue) {
+        var viewTabs = document.getElementById("view-tabs");
+        function appendViewTab(view) {
           var button = document.createElement("button");
           button.type = "button";
           button.className = "panel-tab";
           button.setAttribute("role", "tab");
-          button.dataset.queue = queue.key;
+          button.dataset.view = view.key;
           var name = document.createElement("span");
           name.className = "panel-tab-name";
-          name.textContent = queue.label;
+          name.textContent = view.label;
           var meta = document.createElement("span");
           meta.className = "panel-tab-meta";
-          meta.textContent = Number(queue.count).toLocaleString() + " variant" + (queue.count === 1 ? "" : "s");
+          meta.textContent = Number(view.count).toLocaleString() + " variant" + (view.count === 1 ? "" : "s");
           button.append(name, meta);
           button.addEventListener("click", function () {
-            controls.queue.value = queue.key;
+            controls.view.value = view.key;
             applyFilters();
           });
-          queueTabs.appendChild(button);
+          viewTabs.appendChild(button);
         }
-        queues.forEach(function (queue) {
-          appendOption(controls.queue, queue.key, queue.label + " (" + queue.count + ")");
-          appendQueueTab(queue);
+        views.forEach(function (view) {
+          appendOption(controls.view, view.key, view.label + " (" + view.count + ")");
+          appendViewTab(view);
         });
 
         function externalLink(field, value, row) {
@@ -884,28 +950,33 @@
           var query = controls.search.value.trim().toLowerCase();
           if (controls.sample.value && (!Array.isArray(row._samples) || row._samples.indexOf(controls.sample.value) === -1)) return false;
           if (controls.locus.value && row.locus !== controls.locus.value) return false;
-          if (controls.queue.value === "evidence" && !row._hasEvidence) return false;
-          if (controls.queue.value === "disease" && !row._highDisease) return false;
-          if (controls.queue.value === "heteroplasmy" && !row._heteroplasmic) return false;
+          if (controls.view.value === "evidence" && !row._hasEvidence) return false;
+          if (controls.view.value === "disease" && !row._highDisease) return false;
+          if (controls.view.value === "heteroplasmy" && !row._heteroplasmic) return false;
           if (!query) return true;
           return report.columns.some(function (column) {
             return String(row[column.key] || "").toLowerCase().indexOf(query) !== -1;
           });
         }
 
+        function availableTableHeight() {
+          var tableTop = document.getElementById("variant-table").getBoundingClientRect().top;
+          return Math.max(360, Math.floor(window.innerHeight - tableTop - 24));
+        }
+
         var table = new Tabulator("#variant-table", {
           data: report.rows,
           columns: columns,
           index: "id",
-          height: "calc(100vh - 420px)",
-          minHeight: 420,
+          height: availableTableHeight(),
+          minHeight: 360,
           layout: "fitDataStretch",
           renderVertical: "virtual",
           pagination: true,
-          paginationSize: 50,
-          paginationSizeSelector: [25, 50, 100, 250],
+          paginationSize: 25,
+          paginationSizeSelector: [10, 25, 50, 100, 250],
           paginationButtonCount: 5,
-          paginationCounter: "rows",
+          paginationElement: document.getElementById("table-pagination"),
           selectableRows: 1,
           movableColumns: true,
           placeholder: "No variants match the active filters.",
@@ -920,6 +991,98 @@
             else if (data._heteroplasmic) row.getElement().classList.add("row-heteroplasmic");
           }
         });
+        var resizeTimer;
+        window.addEventListener("resize", function () {
+          window.clearTimeout(resizeTimer);
+          resizeTimer = window.setTimeout(function () {
+            table.setHeight(availableTableHeight());
+            refreshHorizontalNavigation();
+          }, 100);
+        });
+
+        var tableHolder = null;
+        var tableScrollLeft = document.getElementById("table-scroll-left");
+        var tableScrollRight = document.getElementById("table-scroll-right");
+        var horizontalRail = document.getElementById("table-horizontal-scroll");
+        var horizontalRailContent = document.getElementById("table-horizontal-scroll-content");
+        var syncingHorizontalScroll = false;
+        function resolveTableHolder() {
+          var holder = document.querySelector("#variant-table .tabulator-tableholder");
+          if (holder && holder !== tableHolder) {
+            tableHolder = holder;
+            tableHolder.addEventListener("scroll", handleTableHorizontalScroll, {passive: true});
+          }
+          return tableHolder;
+        }
+        function syncHorizontalRailFromTable() {
+          var holder = resolveTableHolder();
+          if (!holder || syncingHorizontalScroll) return;
+          syncingHorizontalScroll = true;
+          horizontalRail.scrollLeft = holder.scrollLeft;
+          syncingHorizontalScroll = false;
+        }
+        function updateHorizontalRailDimensions() {
+          var holder = resolveTableHolder();
+          if (!holder) return;
+          var hasOverflow = holder.scrollWidth > holder.clientWidth + 1;
+          horizontalRail.hidden = !hasOverflow;
+          horizontalRailContent.style.width = holder.scrollWidth + "px";
+          syncHorizontalRailFromTable();
+        }
+        function updateHorizontalControls() {
+          var holder = resolveTableHolder();
+          if (!holder) return;
+          var maximum = Math.max(0, holder.scrollWidth - holder.clientWidth);
+          tableScrollLeft.disabled = holder.scrollLeft <= 1;
+          tableScrollRight.disabled = holder.scrollLeft >= maximum - 1;
+        }
+        function scrollTableColumns(direction) {
+          var holder = resolveTableHolder();
+          if (!holder) return;
+          var distance = Math.max(240, Math.floor(holder.clientWidth * 0.72));
+          var maximum = Math.max(0, holder.scrollWidth - holder.clientWidth);
+          holder.scrollLeft = Math.max(0, Math.min(maximum, holder.scrollLeft + (direction * distance)));
+          updateHorizontalControls();
+          syncHorizontalRailFromTable();
+        }
+        function handleTableHorizontalScroll() {
+          updateHorizontalControls();
+          syncHorizontalRailFromTable();
+        }
+        function refreshHorizontalNavigation() {
+          updateHorizontalRailDimensions();
+          updateHorizontalControls();
+        }
+        horizontalRail.addEventListener("scroll", function () {
+          var holder = resolveTableHolder();
+          if (!holder || syncingHorizontalScroll) return;
+          syncingHorizontalScroll = true;
+          holder.scrollLeft = horizontalRail.scrollLeft;
+          syncingHorizontalScroll = false;
+          updateHorizontalControls();
+        }, {passive: true});
+        tableScrollLeft.addEventListener("click", function () { scrollTableColumns(-1); });
+        tableScrollRight.addEventListener("click", function () { scrollTableColumns(1); });
+        table.on("tableBuilt", refreshHorizontalNavigation);
+        table.on("columnMoved", refreshHorizontalNavigation);
+        table.on("columnResized", refreshHorizontalNavigation);
+        table.on("columnVisibilityChanged", refreshHorizontalNavigation);
+        window.requestAnimationFrame(function () {
+          refreshHorizontalNavigation();
+        });
+
+        var pageCount = document.getElementById("page-count");
+        function updatePageCount() {
+          var total = table.getDataCount("active");
+          var page = Number(table.getPage()) || 1;
+          var pageSize = Number(table.getPageSize()) || total || 1;
+          var first = total ? ((page - 1) * pageSize) + 1 : 0;
+          var last = Math.min(page * pageSize, total);
+          pageCount.textContent = first.toLocaleString() + "-" + last.toLocaleString()
+            + " of " + total.toLocaleString() + " variant" + (total === 1 ? "" : "s");
+        }
+        table.on("tableBuilt", updatePageCount);
+        table.on("pageLoaded", updatePageCount);
 
         var clearButton = document.getElementById("clear");
         function activeFilterLabels() {
@@ -927,12 +1090,12 @@
           if (controls.search.value.trim()) labels.push("search");
           if (controls.sample.value) labels.push(controls.sample.value);
           if (controls.locus.value) labels.push(controls.locus.value);
-          if (controls.queue.value) labels.push(controls.queue.value);
+          if (controls.view.value) labels.push(controls.view.value);
           return labels;
         }
         function updateControls() {
-          queueTabs.querySelectorAll(".panel-tab").forEach(function (tab) {
-            var active = tab.dataset.queue === controls.queue.value;
+          viewTabs.querySelectorAll(".panel-tab").forEach(function (tab) {
+            var active = tab.dataset.view === controls.view.value;
             tab.classList.toggle("active", active);
             tab.setAttribute("aria-selected", String(active));
             tab.tabIndex = active ? 0 : -1;
@@ -945,13 +1108,14 @@
         }
         table.on("dataFiltered", function (filters, rows) {
           document.getElementById("table-count").textContent = rows.length.toLocaleString() + " of " + report.rows.length.toLocaleString() + " variant" + (report.rows.length === 1 ? "" : "s");
+          updatePageCount();
         });
         table.on("dataSorted", updateControls);
         table.on("rowClick", function (event, row) {
           if (event.target.closest("a, button, input, select")) return;
           openDetail(row, event.currentTarget);
         });
-        [controls.sample, controls.locus, controls.queue].forEach(function (control) {
+        [controls.sample, controls.locus, controls.view].forEach(function (control) {
           control.addEventListener("change", applyFilters);
         });
         controls.search.addEventListener("input", applyFilters);
@@ -1000,7 +1164,7 @@
           controls.search.value = "";
           controls.sample.value = "";
           controls.locus.value = "";
-          controls.queue.value = "";
+          controls.view.value = "";
           table.clearSort();
           table.deselectRow();
           applyFilters();

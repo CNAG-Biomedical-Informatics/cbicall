@@ -115,6 +115,14 @@ def test_parser_preserves_existing_filtering_and_json_shape(tmp_path, capsys):
     assert browser.json_main(["-i", str(report), "-f", "json4html"]) == 0
     browser_payload = json.loads(capsys.readouterr().out)
     assert browser_payload["data"][0]["locus"] == "MT-ND1"
+    assert browser_payload["data"][0]["_samples"] == ["A", "B"]
+    report_payload = browser.build_report_payload(
+        browser_payload,
+        project_id="project",
+        job_id="job",
+        source_name=report.name,
+    )
+    assert report_payload["samples"] == ["A", "B"]
 
     assert browser.json_main(["-i", str(report), "-f", "tsv"]) == 0
     assert capsys.readouterr().out.startswith("Variant_Allele\tSample\tLocus")
@@ -242,10 +250,35 @@ def test_report_embeds_tabulator_data_and_escapes_script_end(tmp_path):
     assert "mit &quot;x&quot;.json" in rendered
     assert "CBIcall mtDNA" in rendered
     assert 'id="detail-panel"' in rendered
-    assert 'id="queue-tabs"' in rendered
+    assert 'id="view-tabs"' in rendered
+    assert 'id="queue-tabs"' not in rendered
+    assert 'id="view"' in rendered
+    assert "All variants" in rendered
+    assert "External evidence" in rendered
+    assert "Heteroplasmic" in rendered
+    assert "Review queue" not in rendered
     assert 'id="report-data"' in rendered
     assert "new Tabulator" in rendered
-    assert "paginationSizeSelector: [25, 50, 100, 250]" in rendered
+    assert "pagination: true" in rendered
+    assert "paginationSize: 25" in rendered
+    assert "paginationSizeSelector: [10, 25, 50, 100, 250]" in rendered
+    assert 'id="table-pagination"' in rendered
+    assert 'id="table-scroll-left"' in rendered
+    assert 'id="table-scroll-right"' in rendered
+    assert 'id="table-horizontal-scroll"' in rendered
+    assert 'id="table-horizontal-scroll-content"' in rendered
+    assert 'class="column-scroll-label">Columns</span>' in rendered
+    assert "scrollTableColumns" in rendered
+    assert "holder.scrollLeft = Math.max" in rendered
+    assert "horizontalRail.scrollLeft = holder.scrollLeft" in rendered
+    assert "holder.scrollLeft = horizontalRail.scrollLeft" in rendered
+    assert 'addEventListener("scroll", handleTableHorizontalScroll' in rendered
+    assert 'paginationElement: document.getElementById("table-pagination")' in rendered
+    assert 'table.on("pageLoaded", updatePageCount)' in rendered
+    assert "row._samples.indexOf(controls.sample.value)" in rendered
+    assert "height: availableTableHeight()" in rendered
+    assert "table.setHeight(availableTableHeight())" in rendered
+    assert 'class="brand-mark"' not in rendered
     assert "<\\/script><script>alert(1)<\\/script>" in rendered
     assert "Filtered JSON" in rendered
     assert "mit.filtered.json" in rendered
