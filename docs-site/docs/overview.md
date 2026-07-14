@@ -58,10 +58,10 @@ Use [Included Pipelines](pipelines/overview) for the shipped analyses and [Nativ
 
 | Use case | Method |
 | --- | --- |
-| Local workstation or server | [Docker](installation/docker) or [From Source](installation/non-containerized) |
+| Local workstation or server | [Docker](installation/docker) or [non-containerized](installation/non-containerized) |
 | HPC cluster | [Apptainer / Singularity](installation/apptainer) or site modules |
 | Cloud reproducibility check | [Google Cloud source install](installation/google-cloud-docker) |
-| Development or debugging | [From Source](installation/non-containerized) |
+| Development or debugging | [Non-containerized source install](installation/non-containerized) |
 
 ## Where to Go Next
 

@@ -69,7 +69,7 @@ Notes:
 ## 3. Run CBIcall
 
 ```bash
-bin/cbicall run -p wes_single.yaml -t 4
+cbicall run -p wes_single.yaml -t 4
 ```
 
 - `-p` selects the YAML parameters file  
@@ -80,7 +80,7 @@ You should see something like this on the screen:
 
 ```bash
 CBIcall 1.0.0
-  Executable   => .../cbicall/bin/cbicall
+  Executable   => .../.local/bin/cbicall
   Workflow     => bash -> wes -> single
   Genome       => b37
   Threads      => 4
@@ -200,7 +200,7 @@ sample_map:      ./sample_map.tsv
 ## 3. Run CBIcall
 
 ```bash
-bin/cbicall run -p wes_cohort.yaml -t 4
+cbicall run -p wes_cohort.yaml -t 4
 ```
 
 - `-p` selects the YAML parameters file  

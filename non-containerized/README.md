@@ -1,176 +1,141 @@
 # Non-containerized installation
 
-Feel free to work with your preferred virtual environment. For this document, we'll move directly to the setup steps.
+CBIcall and its external bioinformatics resource bundle are installed
+separately. The Python package contains the driver, workflow definitions,
+schemas, catalogs, report assets, and integration-test fixtures. Reference
+genomes and third-party bioinformatics tools remain in the external bundle.
 
-### Method 1: Download from GitHub
+## Install CBIcall
 
-Use `git clone` to get the latest (stable) version:
+### Method 1: PyPI
+
+Install the core command:
+
+```bash
+python3 -m pip install cbicall
+cbicall --version
+```
+
+Install the optional Snakemake and MultiQC Python dependencies when needed:
+
+```bash
+python3 -m pip install "cbicall[all]"
+```
+
+Nextflow and Cromwell are external executables and are not installed as Python
+dependencies. Bash workflows need neither engine.
+
+### Method 2: Source checkout
+
+Use an editable install for development:
 
 ```bash
 git clone https://github.com/CNAG-Biomedical-Informatics/cbicall.git
 cd cbicall
-```
-
-If you only need to update to the latest version do:
-
-```bash
-git pull
-```
-
-Install dependencies for Python 3:
-
-```
-python3 -m pip install --upgrade -r requirements.txt
-```
-
-> **Note:** If you are installing `cbicall` in an HPC environment for shared use, we recommend installing the required Python 3 modules in a central location. This allows users to simply do:
-
-```bash
-# Load Python + modules
-module load Python/3.10.8-GCCcore-12.2.0
-export PYTHONPATH="/software/biomed/cbi_py3/lib/python3.10/site-packages:${PYTHONPATH}"
-``` 
-
-Testing the deployment:
-
-```bash
+python3 -m pip install -e ".[all,test]"
 pytest
 ```
 
-### Choose a workflow path
+After either installation method, use `cbicall` directly. The repository
+launcher `bin/cbicall` remains available for source-checkout compatibility.
 
-CBIcall can now be installed and used before downloading the large CBIcall
-germline resource bundle.
+## Choose a workflow path
 
-| Workflow path | Resource bundle required? | Extra runtime |
+| Workflow path | CBIcall bundle required? | Additional runtime |
 | --- | --- | --- |
-| `workflow_provider: nf-core` | No | Nextflow plus the selected nf-core runtime profile, such as Docker or Singularity/Apptainer. |
-| Native CBIcall Bash/Snakemake/Nextflow WES/WGS/mtDNA | Yes | The CBIcall resource bundle installed as `DATADIR`. |
+| External nf-core provider | No | Nextflow and the selected nf-core profile, such as Docker or Apptainer. |
+| Native Bash, Snakemake, Nextflow, or Cromwell WES/WGS | Yes | The selected workflow backend and the CBIcall resource bundle. |
+| Native Bash mtDNA | Yes | x86_64 host and the CBIcall resource bundle. |
 
-For a quick nf-core test from a source checkout:
+The nf-core demo can be validated and launched without the native bundle:
 
 ```bash
-cd examples/input
-../../bin/cbicall validate-parameters -p nf-core-demo.yaml --no-color
-../../bin/cbicall run -p nf-core-demo.yaml -t 4 --no-color
+cbicall validate-parameters -p examples/input/nf-core-demo.yaml --no-color
+cbicall run -p examples/input/nf-core-demo.yaml -t 4 --no-color
 ```
 
-This uses nf-core's own test data and does not require the CBIcall-provided
-bundle. Install or load Nextflow and the selected container/runtime profile
-before running it.
+## Install resources for native workflows
 
-### Download the Resource Bundle for Native Workflows
-
-> Note: this process can be lengthy.
-
-This section is required for the native CBIcall WES/WGS/mtDNA workflows. It is
-not required for nf-core provider workflows where resources are managed by
-Nextflow/nf-core.
-
-Choose a directory where the databases and bundled external tools should be installed. This directory will become your `DATADIR`.
+Choose a persistent directory for the external bundle:
 
 ```bash
-mkdir -p /absolute/path/to/cbicall-data
-python3 $path_to_cbicall/scripts/download_cbicall_bundle.py --outdir /absolute/path/to/cbicall-data
+export CBICALL_DATA=/absolute/path/to/cbicall-data
+mkdir -p "$CBICALL_DATA"
+cbicall install-resources --outdir "$CBICALL_DATA"
 ```
 
-Replace `$path_to_cbicall` with your CBIcall installation path.
-
-To verify only the catalog-to-Google-Drive bundle identity before starting the large archive download:
+To verify only the small catalog-pinned resource identifier before downloading
+the large archive:
 
 ```bash
-python3 $path_to_cbicall/scripts/download_cbicall_bundle.py \
-  --outdir /absolute/path/to/cbicall-data \
+cbicall install-resources \
+  --outdir "$CBICALL_DATA" \
   --verify-resource-id-only
 ```
 
-Google Drive can be restrictive with large files. If the Python download stalls or fails, print the manual download list:
+Google Drive may restrict large automated downloads. Print the manual download
+list when necessary:
 
 ```bash
-python3 $path_to_cbicall/scripts/download_cbicall_bundle.py \
-  --outdir /absolute/path/to/cbicall-data \
+cbicall install-resources \
+  --outdir "$CBICALL_DATA" \
   --print-manual-download
 ```
 
-Download every listed file into `/absolute/path/to/cbicall-data`, then let the script continue from those files. **This step can take time because it assembles, verifies, and extracts the full resource bundle.** On a typical VM or workstation disk, expect roughly 20-50 minutes after all parts are present; faster disks may be shorter.
+Place every listed file in `$CBICALL_DATA`, then resume assembly, checksum
+verification, extraction, and manifest creation:
 
 ```bash
-python3 $path_to_cbicall/scripts/download_cbicall_bundle.py \
-  --outdir /absolute/path/to/cbicall-data \
+cbicall install-resources \
+  --outdir "$CBICALL_DATA" \
   --skip-download
 ```
 
-The script will:
+The installer:
 
-- download missing split files when possible
-- reassemble `data.tar.gz`
-- verify the split parts or assembled archive with `data.tar.gz.md5`
-- load the CBIcall resource catalog, locally or from the catalog URL
-- optionally verify a small GDrive resource identifier file such as `cbicall-resource-id.json`
-- rename the verified archive using the bundle identity, for example `cbicall-germline-resources-v1.tar.gz`
-- extract the archive into `DATADIR`
-- write `cbicall-resource-installation.json` with the installed bundle provenance
+- downloads missing split files when possible;
+- reassembles the archive;
+- verifies the catalog-declared checksums;
+- validates the optional SHA-256-pinned resource identifier;
+- extracts `Databases/` and `NGSutils/`;
+- writes `cbicall-resource-installation.json` with installation provenance.
 
-If disk space is tight and the checksum has passed, add `--remove-parts` to remove `data.tar.gz.part-*` after assembly.
+Add `--remove-parts` after successful verification when disk space is limited.
 
-CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.json`. The GDrive bundle only needs a small identifier file, for example `cbicall-resource-id.json` containing `{"resource_key": "cbicall-germline-resources-v1"}`. When that identifier file is available, the registry can store its Google Drive file ID and SHA-256 so the downloader can verify that the remote bundle matches the local CBIcall catalog entry.
+## Configure the resource location
 
-### Point Native Workflows to your resource directory
-
-Native CBIcall workflows read resource paths from Bash `env.sh` files and from
-Snakemake/Nextflow/Cromwell `config.yaml` files. In a non-containerized installation,
-point those files
-to the host directory where you installed the CBIcall-provided resource bundle:
+Set `CBICALL_DATA` in every shell or scheduler environment used to launch
+native workflows:
 
 ```bash
-export CBICALL_DATA="/absolute/path/to/cbicall-data"
-
-sed -i "s|^DATADIR=.*|DATADIR=${CBICALL_DATA}|" workflows/bash/gatk-3.5/env.sh
-sed -i "s|^datadir:.*|datadir: \"${CBICALL_DATA}\"|" workflows/snakemake/gatk-4.6/config.yaml
+export CBICALL_DATA=/absolute/path/to/cbicall-data
+cbicall validate-resources
+cbicall validate-parameters -p examples/input/param.yaml
 ```
 
-The GATK 4.6 Bash `env.sh` is a symlink to the GATK 3.5 Bash `env.sh`, so one Bash edit is enough. The native Nextflow and Cromwell configs are symlinks to this shared GATK 4.6 backend config, so one config edit updates Snakemake, native Nextflow, and Cromwell workflows.
+The same variable is passed consistently to native Bash, Snakemake, Nextflow,
+and Cromwell workflows and is recorded in the execution contract. Checked-in
+backend paths remain fallbacks for existing source and institutional profiles.
 
-Confirm that CBIcall sees the configured resources:
+## Run integration tests
 
 ```bash
-bin/cbicall validate-resources
-bin/cbicall validate-parameters -p examples/input/param.yaml
+cbicall test --wes-bash -t 1
+cbicall test --mit-bash -t 1
 ```
 
-Install Java 17 and the compatibility libraries required by the bundled native tools:
-
-```bash
-sudo apt install openjdk-17-jdk libncurses5 libtinfo5
-```
-
-GATK 4.6 requires Java 17. The bundled legacy `samtools-0.1.19` links against `libncurses.so.5`.
-
-## Performing integration tests
-
-Once you are in the root directory of the repo:
-
-**WES**:
-
-```bash
-bin/cbicall test --wes-bash -t 1
-```
-
-**mtDNA**:
-
-```bash
-bin/cbicall test --mit-bash -t 1
-```
+Source-checkout tests write under `examples/input`. Installed-package tests
+stage the packaged fixtures in a temporary directory and print that directory
+so generated reports can be inspected.
 
 ## System requirements
 
-- OS/ARCH supported: **linux/amd64** and **linux/arm64**.
-- Ideally a Debian-based distribution (Ubuntu or Mint), but any other (e.g., CentOS, OpenSUSE) should do as well (untested).
-- Python >= 3.8
-- Java 17 for current GATK 4.6 workflows
-- 16GB of RAM
-- \>= 1 core (ideally i7 or Xeon).
-- At least 100GB HDD.
+- Linux on amd64 or arm64; macOS can be used with a Linux VM.
+- Python 3.8 or newer.
+- Java 17 for current GATK 4.6 workflows.
+- `libncurses.so.5` and `libtinfo.so.5` compatibility libraries for bundled
+  legacy tools.
+- At least 16 GB RAM and 100 GB disk for the native resource bundle and test
+  workflows.
 
-## Platform Compatibility
-This distribution is written in Python 3 and is intended to run on any platform supported by Python 3. It has been tested on Debian Linux and macOS. Please report any issues.
+The mtDNA workflow uses MToolBox and is supported on x86_64 only.

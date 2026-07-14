@@ -49,8 +49,18 @@ _CBIcall validates the user parameters YAML, resolves it against the workflow re
 | **Resource catalog** | Declares external dependency sets, resource identifiers, compatible workflow keys, availability rules, and checksum metadata for downloadable CBIcall bundles. | `resources/cbicall-resource-catalog.json`, `src/cbicall/resources.py` |
 | **Workflow runners** | Execute the resolved implementation. Bash runs local scripts directly; Snakemake, native Nextflow, and Cromwell run bundled workflow files; external nf-core entries are launched through Nextflow. | `src/cbicall/execution.py` |
 | **Workflow implementations** | Contain native CBIcall workflows and registered external workflow entries. Native workflows follow the CBIcall output contract; external workflows keep their upstream output layout. | `workflows/bash/`, `workflows/snakemake/`, `workflows/nextflow/`, `workflows/cromwell/` |
-| **Run audit layer** | Writes `log.json`, `cbicall-execution-contract.json`, `run-report.json`, workflow fingerprints, resource identity, output inventories, normalized VCF fingerprints, HTML reports, and comparison reports. | `src/cbicall/cli.py`, `src/cbicall/html_reports.py`, `bin/cbicall compare-runs` |
+| **Run audit layer** | Writes `log.json`, `cbicall-execution-contract.json`, `run-report.json`, workflow fingerprints, resource identity, output inventories, normalized VCF fingerprints, HTML reports, and comparison reports. | `src/cbicall/cli.py`, `src/cbicall/html_reports.py`, `cbicall compare-runs` |
 | **Contract tests** | Run small examples and validate expected output contracts without keeping full `ref_*` run directories in the repository. | `src/cbicall/integration_tests.py`, `tests/fixtures/integration/` |
+
+:::note[Source and installed layouts]
+Source checkouts keep workflows and catalogs in the repository directories
+shown above. PyPI wheels package the same files under CBIcall's private runtime
+directory. `src/cbicall/paths.py` resolves either layout, so user YAML and
+workflow identities do not change with the installation method.
+
+`CBICALL_ROOT` is an advanced developer/test override for selecting another
+complete runtime tree. Normal installations do not need it.
+:::
 
 ---
 
@@ -175,7 +185,7 @@ workflow registry. The default profile is `local`; an operator can select anothe
 profile from the CLI:
 
 ```bash
-bin/cbicall run -p parameters.yaml --runtime-profile cnag-hpc
+cbicall run -p parameters.yaml --runtime-profile cnag-hpc
 ```
 
 Profiles are intentionally not part of the user YAML. They are deployment
@@ -196,7 +206,7 @@ directory; execution failures after launch retain these audit artifacts.
 | **`cbicall-execution-contract.json`** | Backend-ready execution plan created after validation and registry/resource resolution, including the command, generated backend files, and controlled environment overrides. |
 | **`run-report.json`** | Compact audit report for comparing runs, including execution-contract, workflow, resource, software, output inventory, and canonical output fingerprints, status, and elapsed time. |
 
-Use `bin/cbicall compare-runs` to compare two `run-report.json` files and, by
+Use `cbicall compare-runs` to compare two `run-report.json` files and, by
 default, generate both terminal and HTML summaries.
 
 ---
@@ -211,9 +221,9 @@ default, generate both terminal and HTML summaries.
 
 | Command | Checks |
 | --- | --- |
-| **`bin/cbicall validate-registry`** | Workflow registry structure, schema, referenced files, and compatible resource keys. |
-| **`bin/cbicall validate-parameters -p parameters.yaml`** | One concrete run setup, including parameter compatibility, selected implementation, runtime profile, and installed resource identity when applicable. |
-| **`bin/cbicall test --wes-bash`**, `--backend-equivalence`, and related flags | Contract integration examples that run selected pipeline implementations; backend-equivalence mode compares normalized WES VCF output across native backends. |
+| **`cbicall validate-registry`** | Workflow registry structure, schema, referenced files, and compatible resource keys. |
+| **`cbicall validate-parameters -p parameters.yaml`** | One concrete run setup, including parameter compatibility, selected implementation, runtime profile, and installed resource identity when applicable. |
+| **`cbicall test --wes-bash`**, `--backend-equivalence`, and related flags | Contract integration examples that run selected pipeline implementations; backend-equivalence mode compares normalized WES VCF output across native backends. |
 
 ---
 

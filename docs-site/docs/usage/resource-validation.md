@@ -27,7 +27,7 @@ For the current CBIcall-provided bundle, see [Bundle v1](../technical-details/re
 Validate the default catalog:
 
 ```bash
-bin/cbicall validate-resources
+cbicall validate-resources
 ```
 
 This checks the **catalog shape** and confirms that declared workflow
@@ -38,10 +38,10 @@ compatibility keys exist.
 
 | Case | Command |
 | --- | --- |
-| Native bundle | `bin/cbicall validate-resources --resource cbicall-germline-resources-v1` |
-| nf-core/demo | `bin/cbicall validate-resources --resource nf-core-demo-managed-resources-v1` |
-| nf-core/Sarek | `bin/cbicall validate-resources --resource nf-core-sarek-managed-resources-v1` |
-| Custom catalog | `bin/cbicall validate-resources --catalog /path/to/cbicall-resource-catalog.json --resource my-center-germline-v1` |
+| Native bundle | `cbicall validate-resources --resource cbicall-germline-resources-v1` |
+| nf-core/demo | `cbicall validate-resources --resource nf-core-demo-managed-resources-v1` |
+| nf-core/Sarek | `cbicall validate-resources --resource nf-core-sarek-managed-resources-v1` |
+| Custom catalog | `cbicall validate-resources --catalog /path/to/cbicall-resource-catalog.json --resource my-center-germline-v1` |
 
 </details>
 
@@ -50,7 +50,7 @@ compatibility keys exist.
 Use `validate-parameters` with the parameters YAML that will be launched:
 
 ```bash
-bin/cbicall validate-parameters -p my-center-wes.yaml
+cbicall validate-parameters -p my-center-wes.yaml
 ```
 
 This checks the **selected resource** against the resolved workflow and
@@ -66,7 +66,7 @@ Runs that reach workflow launch record resource provenance in `log.json` and
 Compare repeated runs with:
 
 ```bash
-bin/cbicall compare-runs run_a/ run_b/ --output compare-report.txt
+cbicall compare-runs run_a/ run_b/ --output compare-report.txt
 ```
 
 For adding a new resource entry, see [Adding Resources](../technical-details/adding-resources).

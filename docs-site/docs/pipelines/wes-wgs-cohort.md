@@ -189,8 +189,8 @@ stems users see, for example `cohort.chr1`.
 Run one YAML per shard, changing `interval_shard` and `output_basename`:
 
 ```bash
-bin/cbicall run -p cohort.chr1.yaml -t 12
-bin/cbicall run -p cohort.chr2.yaml -t 12
+cbicall run -p cohort.chr1.yaml -t 12
+cbicall run -p cohort.chr2.yaml -t 12
 ```
 
 #### Run Chromosome Shards With GNU Parallel
@@ -212,7 +212,7 @@ CBIcall runs (`-j 2`). It assumes one sample map per chromosome, named
 #!/usr/bin/env bash
 set -euo pipefail
 
-export CBICALL=/path/to/cbicall/bin/cbicall
+export CBICALL="$(command -v cbicall)"
 export ROOT=/path/to/project
 
 parallel --halt soon,fail=1 --joblog cbicall.shards.joblog -j 2 \
@@ -280,7 +280,7 @@ output_basename: cohort
 ```
 
 ```bash
-bin/cbicall run -p cohort.finalize.yaml -t 12
+cbicall run -p cohort.finalize.yaml -t 12
 ```
 
 </TabItem>

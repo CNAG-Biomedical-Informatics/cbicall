@@ -273,6 +273,19 @@ class BaseRunner:
     def _coverage_env(self) -> Dict[str, str]:
         return {"CBICALL_COVERAGE_REGION": self.qc_coverage_region}
 
+    @property
+    def data_dir(self) -> Optional[str]:
+        value = os.environ.get("CBICALL_DATA")
+        if not value:
+            return None
+        return str(Path(value).expanduser().resolve())
+
+    def _native_env(self) -> Dict[str, str]:
+        env = self._coverage_env()
+        if self.data_dir:
+            env["CBICALL_DATA"] = self.data_dir
+        return env
+
     def env_overrides(self) -> Optional[Dict[str, str]]:
         return None
 
@@ -397,7 +410,7 @@ class BashRunner(BaseRunner):
         # GENOME selects the env.sh reference block; CBICALL_COVERAGE_REGION controls
         # the lightweight QC helper; CBICALL_ENV_FILE carries Bash runtime profiles.
         # Non-Bash backends use their own config/params mechanisms instead.
-        env_updates = self._coverage_env()
+        env_updates = self._native_env()
         env_updates["GENOME"] = self.genome
         env_file = self.workflow.helpers.get("env")
         if env_file:
@@ -448,7 +461,7 @@ class BashRunner(BaseRunner):
 
 class SnakemakeRunner(BaseRunner):
     def env_overrides(self) -> Optional[Dict[str, str]]:
-        return self._coverage_env()
+        return self._native_env()
 
     def build_command(self) -> List[str]:
         script = self.workflow.entrypoint
@@ -472,6 +485,8 @@ class SnakemakeRunner(BaseRunner):
             cmd += ["--configfile", str(smk_config)]
 
         snk_config_kvs: List[str] = [f"genome={self.genome}", f"qc_coverage_region={self.qc_coverage_region}"]
+        if self.data_dir:
+            snk_config_kvs.append(f"datadir={self.data_dir}")
 
         if self.software_stack != "gatk-3.5":
             snk_config_kvs.append(f"pipeline={self.pipeline}")
@@ -516,7 +531,7 @@ class NextflowRunner(BaseRunner):
     def env_overrides(self) -> Optional[Dict[str, str]]:
         if self._is_nfcore_workflow():
             return None
-        return self._coverage_env()
+        return self._native_env()
 
     def _is_nfcore_workflow(self) -> bool:
         return self.workflow.metadata.get("provider") == "nf-core"
@@ -624,6 +639,8 @@ class NextflowRunner(BaseRunner):
             "--qc_coverage_region",
             self.qc_coverage_region,
         ]
+        if self.data_dir:
+            cmd += ["--datadir", self.data_dir]
         if self.mode == "single":
             cmd += ["--cleanup_bam", "true" if bool(self.settings.cleanup_bam) else "false"]
 
@@ -674,7 +691,7 @@ class NextflowRunner(BaseRunner):
 
 class CromwellRunner(BaseRunner):
     def env_overrides(self) -> Optional[Dict[str, str]]:
-        return self._coverage_env()
+        return self._native_env()
 
     @property
     def workflow_name(self) -> str:
@@ -756,10 +773,16 @@ class CromwellRunner(BaseRunner):
         for rel in output_dirs:
             (self.workdir / rel).mkdir(parents=True, exist_ok=True)
 
-    def _expanded_native_config(self) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    def _raw_native_config(self) -> Dict[str, Any]:
         if not self.workflow.config_file:
             raise WorkflowResolutionError(f"Missing Cromwell config file for pipeline/mode '{self.suffix}'")
         config = yaml.safe_load(Path(self.workflow.config_file).read_text(encoding="utf-8")) or {}
+        if self.data_dir:
+            config["datadir"] = self.data_dir
+        return config
+
+    def _expanded_native_config(self) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+        config = self._raw_native_config()
         expanded = _expand_native_config(config, genome=self.genome)
         resources = expanded["resources"][self.genome]
         tools = expanded["selected_tools"]
@@ -768,7 +791,7 @@ class CromwellRunner(BaseRunner):
     def _gatk4_cmd_for_mode(self, config: Dict[str, Any]) -> str:
         if self.mode != "cohort" or not self.workflow.config_file:
             return str(config["gatk4_cmd"])
-        raw_config = yaml.safe_load(Path(self.workflow.config_file).read_text(encoding="utf-8")) or {}
+        raw_config = self._raw_native_config()
         if "mem_genotype" not in raw_config:
             return str(config["gatk4_cmd"])
         genotype_config = dict(raw_config)

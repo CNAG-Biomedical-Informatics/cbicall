@@ -1,5 +1,5 @@
 # Paths
-DATADIR=/software/biomed/cbicall-data
+DATADIR="${CBICALL_DATA:-/software/biomed/cbicall-data}"
 DBDIR=$DATADIR/Databases
 NGSUTILS=$DATADIR/NGSutils
 

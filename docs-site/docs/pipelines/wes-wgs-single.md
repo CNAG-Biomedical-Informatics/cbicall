@@ -25,7 +25,8 @@ A user-focused guide to processing whole-exome (WES) and whole-genome (WGS) data
 
 **Source:** [View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/cromwell/gatk-4.6/wes_single.wdl)
 
-The same WDL entrypoint is used for WES and WGS single-sample runs; WGS is registered through `wgs_single.wdl`, a symlink to this implementation.
+The WES and WGS WDL entrypoints currently share the same implementation logic,
+with pipeline-specific behavior selected by the validated `pipeline` value.
 
 </TabItem>
 </Tabs>

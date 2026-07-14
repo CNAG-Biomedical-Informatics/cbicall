@@ -153,6 +153,26 @@ def _write_fixture(project_root: Path, name: str, payload: dict) -> None:
     (fixture_dir / name).write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
 
+def test_prepare_integration_root_stages_installed_assets(tmp_path):
+    source = tmp_path / "runtime"
+    (source / "examples" / "input").mkdir(parents=True)
+    (source / "examples" / "input" / "param.yaml").write_text("mode: single\n", encoding="utf-8")
+
+    staged, temporary = integration_mod.prepare_integration_root(source)
+    assert temporary == staged
+    assert staged != source
+    assert (staged / "examples" / "input" / "param.yaml").is_file()
+    assert integration_mod._cbicall_command(staged) == [integration_mod.sys.executable, "-m", "cbicall"]
+
+    (source / "bin").mkdir()
+    launcher = source / "bin" / "cbicall"
+    launcher.write_text("#!/bin/sh\n", encoding="utf-8")
+    direct, temporary = integration_mod.prepare_integration_root(source)
+    assert direct == source.resolve()
+    assert temporary is None
+    assert integration_mod._cbicall_command(direct) == [str(launcher)]
+
+
 def test_run_integration_tests_executes_and_cleans_contract_run(tmp_path, monkeypatch, capsys):
     workdir = tmp_path / "examples" / "input"
     workdir.mkdir(parents=True)

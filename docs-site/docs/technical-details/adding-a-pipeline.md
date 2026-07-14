@@ -24,7 +24,7 @@ For a new CBIcall-native workflow, usually do this:
    `03_stats/`, `logs/`, and any expected final files.
 3. Register it in `workflows/registry/cbicall-workflow-registry.yaml`.
 4. Add or update resource-catalog compatibility if it needs a resource bundle.
-5. Run `bin/cbicall validate-registry` and a small test run.
+5. Run `cbicall validate-registry` and a small test run.
 
 For an external workflow, usually do this:
 
@@ -94,7 +94,7 @@ The main implementation files are:
 After editing the registry, run:
 
 ```bash
-bin/cbicall validate-registry
+cbicall validate-registry
 ```
 
 ## 1. Add the Workflow Entrypoint
@@ -204,7 +204,7 @@ workflows/cromwell/gatk-4.6/
   wgs_cohort.wdl -> wes_cohort.wdl
 ```
 
-If `WOMTOOL_JAR` is set, `bin/cbicall validate-registry` validates registered
+If `WOMTOOL_JAR` is set, `cbicall validate-registry` validates registered
 Cromwell WDL syntax before any run is launched.
 
 CBIcall writes `cbicall_cromwell.inputs.json`,
@@ -401,7 +401,7 @@ genome:          b37
 Run it:
 
 ```bash
-bin/cbicall run -p mypipe.yaml -t 4
+cbicall run -p mypipe.yaml -t 4
 ```
 
 CBIcall should create a run directory similar to:
@@ -424,10 +424,10 @@ Check the pipeline at three levels.
 Good first checks:
 
 ```bash
-bin/cbicall validate-registry
-bin/cbicall validate-resources
-bin/cbicall validate-parameters -p mypipe.yaml
-bin/cbicall run -p mypipe.yaml -t 2
+cbicall validate-registry
+cbicall validate-resources
+cbicall validate-parameters -p mypipe.yaml
+cbicall run -p mypipe.yaml -t 2
 ```
 
 Then inspect:

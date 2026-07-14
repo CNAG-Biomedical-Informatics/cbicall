@@ -17,6 +17,7 @@ from typing import List, Optional
 
 import yaml
 
+from . import __version__
 from . import config as config_mod
 from .cli_output import (
     _format_duration,
@@ -31,7 +32,12 @@ from .cli_output import (
 from .execution import WorkflowExecutor, EXECUTION_CONTRACT_FILE
 from .errors import ParameterValidationError
 from .helpmod import usage, parse_args as _parse_args, parse_run_args as _parse_run_args
-from .integration_tests import run_integration_tests, run_release_equivalence_test, selected_tests_from_args
+from .integration_tests import (
+    prepare_integration_root,
+    run_integration_tests,
+    run_release_equivalence_test,
+    selected_tests_from_args,
+)
 from .models import ResolvedConfig, RunSettings
 from .resources import validate_resource_catalog
 from .workflow_registry import load_workflow_registry
@@ -58,8 +64,10 @@ from .report_utils import (
     _vcf_hash_map,
     _workflow_file_map,
 )
+from .paths import runtime_root
+from .resource_install import run_resource_installer
 
-VERSION = "1.0.1-beta.1"
+VERSION = __version__
 PROMPT = "Info:"
 SPACER = "*" * 41
 ARROW = "=>"
@@ -104,7 +112,7 @@ def parse_args(argv):
 
 
 def _project_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    return runtime_root(__file__)
 
 
 def _section(title: str, color: str = WHITE) -> None:
@@ -1973,7 +1981,9 @@ def _run_test_command(argv: List[str]) -> int:
     if args.backend_equivalence and any(selectors):
         parser.error("--backend-equivalence cannot be combined with individual test selectors or --all")
 
-    root = _project_root()
+    root, staged_root = prepare_integration_root(_project_root())
+    if staged_root is not None:
+        print(f"Installed test workspace: {staged_root}")
     if args.backend_equivalence:
         return run_release_equivalence_test(
             project_root=root,
@@ -2207,6 +2217,8 @@ def main() -> int:
         return _run_validate_registry_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "validate-resources":
         return _run_validate_resources_command(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "install-resources":
+        return run_resource_installer(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "compare-runs":
         return _run_compare_runs_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "report":

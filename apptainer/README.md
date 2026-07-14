@@ -208,6 +208,7 @@ apptainer shell \
   --pwd /usr/share/cbicall \
   --bind "$CBICALL_WRITABLE":/usr/share/cbicall \
   --bind "$CBICALL_DATA":/cbicall-data \
+  --env CBICALL_DATA=/cbicall-data \
   "$SIF_IMAGE"
 ```
 
@@ -222,29 +223,17 @@ apptainer shell \
   "$SIF_IMAGE"
 ```
 
-### Point Native Workflows to `/cbicall-data`
+### Validate the mounted resources
 
-Run these commands **inside the container** after `apptainer shell`. Native
-CBIcall workflows read resource paths from Bash `env.sh` files and from
-Snakemake/Nextflow/Cromwell `config.yaml` files stored in the writable CBIcall
-checkout. Because the host resource directory was mounted as `/cbicall-data`,
-point the workflow configuration files to that container path:
-
-```bash
-sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-4.6/env.sh
-sed -i 's|^DATADIR=.*|DATADIR=/cbicall-data|' workflows/bash/gatk-3.5/env.sh
-sed -i 's|^datadir:.*|datadir: "/cbicall-data"|' workflows/snakemake/gatk-4.6/config.yaml
-```
-
-The native Nextflow and Cromwell configs are symlinks to this shared GATK 4.6
-backend config, so one edit updates Snakemake, native Nextflow, and Cromwell
-native workflows.
+The shell command sets `CBICALL_DATA=/cbicall-data` inside the container. All
+native backends therefore receive the same mounted resource location without
+editing packaged workflow files.
 
 Confirm that CBIcall sees the mounted resources:
 
 ```bash
-bin/cbicall validate-resources
-bin/cbicall validate-parameters -p examples/input/param.yaml
+cbicall validate-resources
+cbicall validate-parameters -p examples/input/param.yaml
 ```
 
 ---
@@ -256,13 +245,13 @@ Inside the container, from the CBIcall repository root:
 ### WES
 
 ```bash
-bin/cbicall test --wes-bash -t 1
+cbicall test --wes-bash -t 1
 ```
 
 ### mtDNA
 
 ```bash
-bin/cbicall test --mit-bash -t 1
+cbicall test --mit-bash -t 1
 ```
 
 ---

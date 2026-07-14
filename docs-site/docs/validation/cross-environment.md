@@ -88,7 +88,7 @@ only non-call numeric fields shifted.
 The evidence bundle can be regenerated from collected run directories:
 
 ```bash
-bin/cbicall compare-runs \
+cbicall compare-runs \
   ws5/HG00103/SRR1596639/cbicall_bash_gatk-4.6_wes_single_b37_178178909641565/ \
   hpc/HG00103/SRR1596639/cbicall_bash_gatk-4.6_wes_single_b37_178179425143788/ \
   gcloud/HG00103/SRR1596639/cbicall_bash_gatk-4.6_wes_single_b37_178185765566264/ \

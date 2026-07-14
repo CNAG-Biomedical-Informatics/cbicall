@@ -12,24 +12,36 @@ const sidebars: SidebarsConfig = {
       label: 'Install',
       items: [
         {
-          type: 'doc',
-          id: 'installation/docker',
-          label: 'Docker',
+          type: 'category',
+          label: 'Non-containerized',
+          items: [
+            {
+              type: 'doc',
+              id: 'installation/non-containerized',
+              label: 'Python package / source',
+            },
+            {
+              type: 'doc',
+              id: 'installation/google-cloud-docker',
+              label: 'Google Cloud',
+            },
+          ],
         },
         {
-          type: 'doc',
-          id: 'installation/apptainer',
-          label: 'Apptainer / Singularity',
-        },
-        {
-          type: 'doc',
-          id: 'installation/google-cloud-docker',
-          label: 'Google Cloud',
-        },
-        {
-          type: 'doc',
-          id: 'installation/non-containerized',
-          label: 'From Source',
+          type: 'category',
+          label: 'Containerized',
+          items: [
+            {
+              type: 'doc',
+              id: 'installation/docker',
+              label: 'Docker',
+            },
+            {
+              type: 'doc',
+              id: 'installation/apptainer',
+              label: 'Apptainer / Singularity',
+            },
+          ],
         },
       ],
     },

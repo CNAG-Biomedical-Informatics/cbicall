@@ -77,8 +77,8 @@ nfcore_profile: test,singularity
 Run it from the directory containing `nf-core-demo.yaml`:
 
 ```bash
-../../bin/cbicall validate-parameters -p nf-core-demo.yaml --no-color
-../../bin/cbicall run -p nf-core-demo.yaml -t 4 --no-color
+cbicall validate-parameters -p nf-core-demo.yaml --no-color
+cbicall run -p nf-core-demo.yaml -t 4 --no-color
 ```
 
 <details>
@@ -202,7 +202,7 @@ export NXF_SINGULARITY_LIBRARYDIR=/path/to/singularity/library
 ```
 
 When running from a source checkout, make sure the SLURM script loads the Python
-runtime needed by CBIcall before calling `bin/cbicall`. For example:
+runtime needed by CBIcall before calling `cbicall`. For example:
 
 ```bash
 module load Python/3.10.8-GCCcore-12.2.0

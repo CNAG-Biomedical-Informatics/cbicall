@@ -1435,10 +1435,15 @@ def test_validate_registry_command_uses_womtool_when_configured(monkeypatch, tmp
     assert rc == 0
     out = capsys.readouterr().out
     assert "WDL syntax" in out
-    assert "ok (2 files)" in out
+    assert "ok (4 files)" in out
     assert calls
     assert all(cmd[:4] == ["java", "-jar", str(womtool), "validate"] for cmd in calls)
-    assert sorted(Path(cmd[-1]).name for cmd in calls) == ["wes_cohort.wdl", "wes_single.wdl"]
+    assert sorted(Path(cmd[-1]).name for cmd in calls) == [
+        "wes_cohort.wdl",
+        "wes_single.wdl",
+        "wgs_cohort.wdl",
+        "wgs_single.wdl",
+    ]
 
 
 def test_validate_resources_command_uses_default_catalog(capsys):
@@ -1826,6 +1831,8 @@ def test_main_partial_run_warning_and_metadata(monkeypatch, tmp_path, capsys):
 
 def test_run_test_command_all_selects_native_backends_and_skips_missing(monkeypatch, tmp_path):
     seen = {}
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "cbicall").write_text("#!/bin/sh\n", encoding="utf-8")
 
     def fake_run_integration_tests(**kwargs):
         seen.update(kwargs)
@@ -1914,6 +1921,8 @@ def test_run_test_command_external_nf_core_flags(monkeypatch, tmp_path):
 
 def test_run_test_command_release_uses_release_equivalence_runner(monkeypatch, tmp_path):
     seen = {}
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "cbicall").write_text("#!/bin/sh\n", encoding="utf-8")
 
     def fake_run_release_equivalence_test(**kwargs):
         seen.update(kwargs)

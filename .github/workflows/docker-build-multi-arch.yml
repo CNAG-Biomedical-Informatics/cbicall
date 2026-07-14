@@ -16,7 +16,8 @@ jobs:
       - name: Read build metadata
         id: build_metadata
         run: |
-          echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+          version=$(PYTHONPATH=src python3 -c 'from cbicall import __version__; print(__version__)')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU

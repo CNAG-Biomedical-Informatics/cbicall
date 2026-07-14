@@ -50,15 +50,11 @@ RUN mkdir -p "${CROMWELL_DIR}" && \
     cromwell --version && \
     test -s "${WOMTOOL_JAR}"
 
-# Install Python packages before copying the remaining source so dependency
-# installation can be reused when only CBIcall code changes.
 WORKDIR /usr/share/cbicall
-COPY requirements.txt ./requirements.txt
-RUN pip3 install --no-cache-dir -r requirements.txt
-
 # The repository checkout is the Docker build context. In CI this is the exact
 # commit selected by actions/checkout; local builds use the caller's checkout.
 COPY . .
+RUN pip3 install --no-cache-dir ".[all]" && cbicall --version
 
 # Add user "dockeruser"
 ARG UID=1000

@@ -249,7 +249,7 @@ def print_manual_download_instructions(outdir: Path, metadata: dict, identifier_
         print(f"Folder view: {folder}")
     print()
     print("After all files are present, run:")
-    print(f"  python3 {Path(__file__).resolve()} --outdir {outdir.resolve()} --skip-download")
+    print(f"  cbicall install-resources --outdir {outdir.resolve()} --skip-download")
 
 
 def download_if_missing(filename: str, file_id: str, outdir: Path, force: bool = False) -> None:
@@ -585,6 +585,7 @@ def write_manifest(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
+        prog="cbicall install-resources",
         description=(
             "Download, assemble, verify, and extract CBIcall-provided resource "
             "bundles declared in the resource catalog."
@@ -734,7 +735,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     print()
     print("Resource setup complete.")
-    print(f"Set DATADIR to: {outdir.resolve()}")
+    print(f"Set CBICALL_DATA to: {outdir.resolve()}")
     return 0
 
 

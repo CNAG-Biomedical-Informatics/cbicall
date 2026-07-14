@@ -21,7 +21,7 @@ then inspect the stricter full-record fingerprint.
 <TabItem value="two-runs" label="Two runs" default>
 
 ```bash
-bin/cbicall compare-runs run_a/ run_b/ --output compare-report.txt
+cbicall compare-runs run_a/ run_b/ --output compare-report.txt
 ```
 
 This prints a direct pairwise comparison and writes `compare-report.html` by
@@ -33,7 +33,7 @@ default.
 <TabItem value="multiple-runs" label="Three or more runs">
 
 ```bash
-bin/cbicall compare-runs baseline_run/ repeat_1/ repeat_2/ repeat_3/ \
+cbicall compare-runs baseline_run/ repeat_1/ repeat_2/ repeat_3/ \
   --alias baseline local-repeat cloud-repeat hpc-repeat \
   --output compare-report.txt
 ```
@@ -51,7 +51,7 @@ all-to-all matrix. Use aliases when run-directory names are long or opaque.
 <TabItem value="multiqc" label="Optional MultiQC">
 
 ```bash
-bin/cbicall compare-runs run_local/ run_cloud/ run_hpc/ \
+cbicall compare-runs run_local/ run_cloud/ run_hpc/ \
   --alias local cloud hpc \
   --output compare-report.txt \
   --multiqc
@@ -224,16 +224,16 @@ use VCF call-level and strict-record hashes to audit compared variant records.
 To inspect an existing successful or failed run without rerunning the workflow:
 
 ```bash
-bin/cbicall report completed_run/
+cbicall report completed_run/
 ```
 
 This is read-only by default. Add explicit flags when you want artifacts to be
 generated or refreshed:
 
 ```bash
-bin/cbicall report completed_run/ --html
-bin/cbicall report completed_run/ --refresh -O
-bin/cbicall report completed_run/ --refresh --html -O
+cbicall report completed_run/ --html
+cbicall report completed_run/ --refresh -O
+cbicall report completed_run/ --refresh --html -O
 ```
 
 `--html` writes `run-report.html`; `--refresh` updates output-derived metadata

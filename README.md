@@ -8,7 +8,7 @@
 
 
 [![Build](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/build-and-test.yml)
-![version](https://img.shields.io/badge/version-1.0.1--beta.1-28a745)
+![version](https://img.shields.io/badge/version-1.1.0b1-28a745)
 [![Coverage Status](https://coveralls.io/repos/github/CNAG-Biomedical-Informatics/cbicall/badge.svg?branch=main)](https://coveralls.io/github/CNAG-Biomedical-Informatics/cbicall?branch=main)
 [![Docker Build](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/docker-build-multi-arch.yml/badge.svg?branch=main)](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/docker-build-multi-arch.yml)
 [![Docker Image Size](https://img.shields.io/docker/image-size/manuelrueda/cbicall/latest?logo=docker&label=image%20size)](https://hub.docker.com/r/manuelrueda/cbicall/)
@@ -23,22 +23,7 @@
 It validates analysis intent, resolves approved workflow backends and resource definitions,
 and records **structured run reports** for auditable production runs and run-to-run comparison.
 
-**📘 Documentation:** <a href="https://cnag-biomedical-informatics.github.io/cbicall" target="_blank">https://cnag-biomedical-informatics.github.io/cbicall</a>
-
-**🐳 Docker Hub Image:** <a href="https://hub.docker.com/r/manuelrueda/cbicall/tags" target="_blank">https://hub.docker.com/r/manuelrueda/cbicall/tags</a>
-
-
-# Table of contents
-- [Installation](#installation)
-  - [Non-Containerized](non-containerized/README.md)
-  - Containerized
-    - [Docker](docker/README.md)
-    - [Apptainer](apptainer/README.md)
-- [Quick Start](#quick-start)
-- [Documentation](#documentation)
-- [Citation](#citation)
-  - [Author](#author)
-- [License](#copyright-and-license)
+**Documentation:** <https://cnag-biomedical-informatics.github.io/cbicall/>
 
 
 CBIcall orchestrates germline variant calling workflows for Illumina sequencing data.
@@ -73,21 +58,30 @@ Workflow sources:
 | Native CBIcall workflows | Packaged WES/WGS/mtDNA pipelines with CBIcall validation, logging, and output structure. |
 | External nf-core workflows | Selected registry-backed Nextflow workflows executed with CBIcall validation and provenance. |
 
+# Installation
+
+Install the core command from PyPI:
+
+```bash
+python3 -m pip install cbicall
+```
+
+For development or all optional Python integrations:
+
+```bash
+python3 -m pip install -e ".[all,test]"  # source checkout
+python3 -m pip install "cbicall[all]"    # released package
+```
+
+Native workflows also require the separately distributed resource bundle. See
+the documentation for Python, Docker, Apptainer, cloud, and HPC installation
+instructions.
+
 # Quick Start
 
-    bin/cbicall run -p params.yaml -t 8
+    cbicall run -p params.yaml -t 8
 
 Runnable examples and sample inputs are available under `examples/`.
-
-# Documentation
-
-The full technical reference lives in the documentation site and repository docs:
-
-- General usage and parameter reference: [docs-site/docs/usage/usage.md](docs-site/docs/usage/usage.md)
-- Quick start: [docs-site/docs/usage/quickstart.md](docs-site/docs/usage/quickstart.md)
-- End-to-end examples: [WES/WGS](docs-site/docs/usage/end-to-end-example-wes.md), [mtDNA](docs-site/docs/usage/end-to-end-example-mit.md)
-- Run comparison and audit reports: [docs-site/docs/help/run-comparison.md](docs-site/docs/help/run-comparison.md)
-- Technical details: [docs-site/docs/technical-details/architecture.md](docs-site/docs/technical-details/architecture.md)
 
 # Citation
 
@@ -99,4 +93,4 @@ Written by Manuel Rueda (mrueda). GitHub repository: [https://github.com/CNAG-Bi
 
 # Copyright and license
 
-Please see the included LICENSE file for distribution and usage terms.
+Please see the [GPLv3 license](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/LICENSE) for distribution and usage terms.

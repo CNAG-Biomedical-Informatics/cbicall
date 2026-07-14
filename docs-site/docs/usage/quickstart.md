@@ -16,8 +16,8 @@ stops before launching the workflow.
 ## 1. Confirm the CLI
 
 ```bash
-bin/cbicall --help
-bin/cbicall --version
+cbicall --help
+cbicall --version
 ```
 
 You should see the command help and the installed CBIcall version.
@@ -40,8 +40,8 @@ From `examples/input`, run the lightweight nf-core demo example:
 
 ```bash
 cd examples/input
-../../bin/cbicall validate-parameters -p nf-core-demo.yaml --no-color
-../../bin/cbicall run -p nf-core-demo.yaml -t 4 --no-color
+cbicall validate-parameters -p nf-core-demo.yaml --no-color
+cbicall run -p nf-core-demo.yaml -t 4 --no-color
 ```
 
 This does not require the CBIcall germline resource bundle or `DATADIR`. It does
@@ -53,7 +53,7 @@ example `test,singularity` on HPC or `test,docker` on a Docker workstation.
 From the repository root:
 
 ```bash
-bin/cbicall test --wes-bash -t 1
+cbicall test --wes-bash -t 1
 ```
 
 This runs the bundled Bash WES workflow and validates the generated VCF against
@@ -72,7 +72,7 @@ the selected resource entry.
 Run this after the WES test works:
 
 ```bash
-bin/cbicall test --mit-bash -t 1
+cbicall test --mit-bash -t 1
 ```
 
 :::info[Architecture]
@@ -84,7 +84,7 @@ The mtDNA workflow uses MToolBox and is x86_64-only. If you are on ARM / aarch64
 Once the integration tests work, use the normal invocation:
 
 ```bash
-bin/cbicall run -p parameters.yaml -t 4
+cbicall run -p parameters.yaml -t 4
 ```
 
 | Option | Meaning |

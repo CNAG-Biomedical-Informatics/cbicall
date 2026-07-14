@@ -9,6 +9,7 @@ from jsonschema import Draft202012Validator
 
 from .errors import ParameterValidationError
 from .models import WorkflowSpec
+from .paths import resource_catalog_schema_path
 
 
 RESOURCE_INSTALL_MANIFEST = "cbicall-resource-installation.json"
@@ -82,7 +83,7 @@ def _catalog_resources(catalog: dict) -> dict:
 
 
 def _resource_catalog_schema_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "resources" / _RESOURCE_CATALOG_SCHEMA
+    return resource_catalog_schema_path()
 
 
 def _load_resource_catalog_schema() -> dict:
@@ -265,6 +266,10 @@ def _clean_path_value(value) -> str:
     text = _strip_shell_comment(text).strip()
     if len(text) >= 2 and text[0] == text[-1] and text[0] in {"'", '"'}:
         text = text[1:-1]
+    default_expansion = re.fullmatch(r"\$\{([A-Za-z_][A-Za-z0-9_]*):-([^}]*)\}", text)
+    if default_expansion:
+        name, fallback = default_expansion.groups()
+        text = os.environ.get(name) or fallback
     return os.path.expandvars(os.path.expanduser(text))
 
 
@@ -291,6 +296,14 @@ def _datadir_from_snakemake_config(config_file: str) -> str:
 
 
 def _resolve_workflow_datadir(workflow: WorkflowSpec) -> dict:
+    configured = os.environ.get("CBICALL_DATA")
+    if configured:
+        return {
+            "source": "CBICALL_DATA",
+            "source_key": "environment.CBICALL_DATA",
+            "datadir": _clean_path_value(configured),
+        }
+
     if workflow.backend == "bash":
         source = workflow.helpers.get("env")
         datadir = _datadir_from_bash_env(source) if source else None

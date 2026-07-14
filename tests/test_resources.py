@@ -265,6 +265,24 @@ def test_datadir_parsing_handles_quotes_comments_and_missing_files(tmp_path, mon
     assert resources_mod._datadir_from_bash_env(str(no_datadir)) is None
 
 
+def test_datadir_shell_default_and_cbicall_data_override(tmp_path, monkeypatch):
+    env = tmp_path / "env.sh"
+    env.write_text('DATADIR="${CBICALL_DATA:-/fallback/cbicall-data}"\n', encoding="utf-8")
+
+    monkeypatch.delenv("CBICALL_DATA", raising=False)
+    assert resources_mod._datadir_from_bash_env(str(env)) == "/fallback/cbicall-data"
+
+    configured = tmp_path / "configured-data"
+    monkeypatch.setenv("CBICALL_DATA", str(configured))
+    assert resources_mod._datadir_from_bash_env(str(env)) == str(configured)
+    resolved = resources_mod._resolve_workflow_datadir(_workflow(env_file=env))
+    assert resolved == {
+        "source": "CBICALL_DATA",
+        "source_key": "environment.CBICALL_DATA",
+        "datadir": str(configured),
+    }
+
+
 def test_snakemake_datadir_parsing_and_unresolved_runtime_check(tmp_path):
     config = tmp_path / "config.yaml"
     config.write_text("datadir: '~/cbicall-data'\n", encoding="utf-8")

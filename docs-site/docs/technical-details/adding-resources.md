@@ -202,19 +202,19 @@ logs record the concrete executable and reference paths used during execution.
 Validate the whole catalog:
 
 ```bash
-bin/cbicall validate-resources
+cbicall validate-resources
 ```
 
 Validate one non-default resource entry:
 
 ```bash
-bin/cbicall validate-resources --resource my-center-germline-v1
+cbicall validate-resources --resource my-center-germline-v1
 ```
 
 Validate a resource from a custom catalog file:
 
 ```bash
-bin/cbicall validate-resources \
+cbicall validate-resources \
   --catalog /path/to/cbicall-resource-catalog.json \
   --resource my-center-germline-v1
 ```
@@ -241,7 +241,7 @@ input_dir: SAMPLE01
 Then run:
 
 ```bash
-bin/cbicall validate-parameters -p my-center-wes.yaml
+cbicall validate-parameters -p my-center-wes.yaml
 ```
 
 `validate-parameters` resolves the workflow implementation, checks that the selected
@@ -256,5 +256,5 @@ and verifies installed bundle metadata when `cbicall-resource-id.json` or
 - [ ] Declare compatible workflow implementation keys.
 - [ ] Add archive and identifier checksums for CBIcall-provided downloads.
 - [ ] Keep backend-specific paths in `env.sh` or Snakemake/Nextflow `config.yaml`.
-- [ ] Run `bin/cbicall validate-resources --resource <resource-key>`.
-- [ ] Run `bin/cbicall validate-parameters -p <parameters.yaml>` with that resource selected.
+- [ ] Run `cbicall validate-resources --resource <resource-key>`.
+- [ ] Run `cbicall validate-parameters -p <parameters.yaml>` with that resource selected.

@@ -192,7 +192,7 @@ input_dir: /path/to/AshkenazimTrio_fastq/HG002_NA24385_son/
 <div>
 
 ```bash
-bin/cbicall run -p HG002_wgs_single_hg38.yaml -t 12
+cbicall run -p HG002_wgs_single_hg38.yaml -t 12
 ```
 
 </div>
@@ -237,7 +237,7 @@ sample_map: /path/to/giab_trio_sample_map.tsv
 <div>
 
 ```bash
-bin/cbicall run -p giab_trio_wgs_hg38.yaml -t 4
+cbicall run -p giab_trio_wgs_hg38.yaml -t 4
 ```
 
 </div>

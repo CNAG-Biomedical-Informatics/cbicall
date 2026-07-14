@@ -3,13 +3,13 @@
 CBIcall is normally run with a YAML parameters file and a thread count:
 
 ```bash
-bin/cbicall run -p parameters.yaml -t 4
+cbicall run -p parameters.yaml -t 4
 ```
 
 Use this page for command syntax and common execution patterns. For YAML keys and supported combinations, see [Configuration Reference](../help/configuration-reference).
 
 :::tip[Typical workflow]
-Choose or edit a YAML file, run `bin/cbicall run -p ... -t ...`, then inspect the generated run directory and `log.json`.
+Choose or edit a YAML file, run `cbicall run -p ... -t ...`, then inspect the generated run directory and `log.json`.
 :::
 
 ## Input Model
@@ -59,7 +59,7 @@ their dedicated pages.
 For most runs, keep the command simple:
 
 ```bash
-bin/cbicall run -p wes_single.yaml -t 4
+cbicall run -p wes_single.yaml -t 4
 ```
 
 Use `-verbose` only when you need more startup detail. When output is redirected
@@ -69,7 +69,7 @@ to a file, CBIcall disables ANSI colors automatically.
 <summary>Background shell example</summary>
 
 ```bash
-nohup bin/cbicall run -p parameters.yaml -t 4 > run.log 2>&1 &
+nohup cbicall run -p parameters.yaml -t 4 > run.log 2>&1 &
 ```
 
 Use this only for simple workstation runs. On HPC, prefer the scheduler script.

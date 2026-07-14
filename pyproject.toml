@@ -1,0 +1,111 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cbicall"
+dynamic = ["version"]
+description = "Configuration-driven framework for reproducible variant calling"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Manuel Rueda", email = "manuel.rueda@cnag.eu" },
+  { name = "Dietmar Fernandez-Orth" },
+  { name = "Ivo G. Gut" },
+]
+keywords = [
+  "bioinformatics",
+  "genomics",
+  "variant-calling",
+  "workflow",
+  "reproducibility",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+  "gdown>=5.0",
+  "jsonschema>=4.18",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+snakemake = [
+  "pulp==2.6.0",
+  "snakemake",
+]
+multiqc = ["multiqc"]
+all = [
+  "multiqc",
+  "pulp==2.6.0",
+  "snakemake",
+]
+test = [
+  "pytest>=7",
+  "pytest-cov>=4",
+]
+build = [
+  "build>=1.2",
+  "twine>=5",
+]
+
+[project.scripts]
+cbicall = "cbicall.__main__:console_main"
+
+[project.urls]
+Homepage = "https://cnag-biomedical-informatics.github.io/cbicall/"
+Documentation = "https://cnag-biomedical-informatics.github.io/cbicall/"
+Repository = "https://github.com/CNAG-Biomedical-Informatics/cbicall"
+Issues = "https://github.com/CNAG-Biomedical-Informatics/cbicall/issues"
+Changelog = "https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/Changes"
+
+[tool.hatch.version]
+path = "src/cbicall/__about__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cbicall"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"browser/README" = "cbicall/_runtime/browser/README"
+"browser/mtb2html.py" = "cbicall/_runtime/browser/mtb2html.py"
+"browser/mtb2json.py" = "cbicall/_runtime/browser/mtb2json.py"
+"mtdna/MToolBox_config.sh" = "cbicall/_runtime/mtdna/MToolBox_config.sh"
+"workflows" = "cbicall/_runtime/workflows"
+"resources" = "cbicall/_runtime/resources"
+"tests/fixtures/integration" = "cbicall/_runtime/tests/fixtures/integration"
+"examples/input" = "cbicall/_runtime/examples/input"
+"scripts/download_cbicall_bundle.py" = "cbicall/_runtime/scripts/download_cbicall_bundle.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/bin/cbicall",
+  "/browser/README",
+  "/browser/mtb2html.py",
+  "/browser/mtb2json.py",
+  "/examples/input",
+  "/LICENSE",
+  "/mtdna/MToolBox_config.sh",
+  "/pyproject.toml",
+  "/README.md",
+  "/resources",
+  "/scripts/download_cbicall_bundle.py",
+  "/src/cbicall",
+  "/tests/fixtures/integration",
+  "/workflows",
+]

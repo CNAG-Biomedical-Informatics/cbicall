@@ -1,8 +1,1 @@
-PyYAML
-gdown
-pulp==2.6.0
-snakemake
-pytest
-pytest-cov
-jsonschema>=4.18
-multiqc
+-e .[all,test]

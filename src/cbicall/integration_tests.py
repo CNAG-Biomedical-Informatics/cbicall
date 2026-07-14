@@ -8,6 +8,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -78,6 +79,27 @@ TESTS: Dict[str, TestSelection] = {
 }
 
 
+def prepare_integration_root(project_root: Path) -> Tuple[Path, Optional[Path]]:
+    """Return a writable runtime root for integration tests.
+
+    Source checkouts already provide a writable examples tree and launcher.
+    Installed distributions stage their packaged runtime assets in a temporary
+    directory so tests never write into ``site-packages``.
+    """
+    source = Path(project_root).resolve()
+    if (source / "bin" / "cbicall").is_file():
+        return source, None
+
+    destination = Path(tempfile.mkdtemp(prefix="cbicall-integration-"))
+    for child in source.iterdir():
+        target = destination / child.name
+        if child.is_dir():
+            shutil.copytree(child, target)
+        else:
+            shutil.copy2(child, target)
+    return destination, destination
+
+
 def fixture_dir(project_root: Path) -> Path:
     return project_root / "tests" / "fixtures" / "integration"
 
@@ -113,6 +135,7 @@ def _contract_env(project_root: Path, contract: dict) -> Dict[str, str]:
         raise IntegrationTestError("Integration contract env must be a mapping.")
 
     env = os.environ.copy()
+    env["CBICALL_ROOT"] = str(project_root.resolve())
     for key, value in values.items():
         if not isinstance(key, str) or not key:
             raise IntegrationTestError("Integration contract env keys must be non-empty strings.")
@@ -127,6 +150,13 @@ def _contract_env(project_root: Path, contract: dict) -> Dict[str, str]:
             text = str(project_value)
         env[key] = text
     return env
+
+
+def _cbicall_command(project_root: Path) -> List[str]:
+    launcher = project_root / "bin" / "cbicall"
+    if launcher.is_file():
+        return [str(launcher)]
+    return [sys.executable, "-m", "cbicall"]
 
 
 def _resolve_bcftools(project_root: Path, env: Dict[str, str]) -> str:
@@ -653,7 +683,7 @@ def _run_staged_finalize(
         raise IntegrationTestError("staged_finalize.finalize.run_glob is required.")
     before = list_run_dirs(base_dir, run_glob)
     cmd = [
-        str(project_root / "bin" / "cbicall"),
+        *_cbicall_command(project_root),
         "run",
         "-p",
         str(param_file),
@@ -778,7 +808,7 @@ def _run_one(
 
     before = list_run_dirs(base_dir, run_glob)
     cmd = [
-        str(project_root / "bin" / "cbicall"),
+        *_cbicall_command(project_root),
         "run",
         "-p",
         str(param_file),

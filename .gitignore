@@ -5,6 +5,9 @@
 __pycache__/
 .coverage
 .pytest_cache/
+build/
+dist/
+*.egg-info/
 bck/
 old/
 /do_readme.sh

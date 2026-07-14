@@ -153,7 +153,10 @@ This local manifest records the installed resource key, archive checksum result,
 
 ## Runtime Check
 
-Before launching a workflow, CBIcall resolves `DATADIR` from the selected Bash `env.sh` or Snakemake/Nextflow/Cromwell `config.yaml`.
+Before launching a native workflow, CBIcall resolves the bundle directory from
+`CBICALL_DATA`. If the variable is unset, the selected institutional profile or
+backend configuration provides the fallback. CBIcall passes the resolved value
+to Bash, Snakemake, Nextflow, or Cromwell without modifying packaged files.
 
 If bundle metadata exists beside `DATADIR`, CBIcall validates it:
 

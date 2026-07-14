@@ -29,8 +29,8 @@ point anywhere, CBIcall creates the run directory in the directory where
 | `log.json` | Structured record of CLI arguments, resolved configuration, selected runtime profile, compact `resources.bundle` provenance, and runtime parameters. |
 | `cbicall-execution-contract.json` | Backend-ready execution plan created after CBIcall validates and resolves the parameters YAML. It records the command, CBIcall-controlled environment overrides, backend/provider identity, and generated backend launch files. |
 | `run-report.json` | Compact audit report with CBIcall version, hostname, host thread count, Python version, Java version, workflow backend version, status, elapsed time, workflow file fingerprints, execution-contract fingerprint, resource key/version/fingerprint, output file inventory fingerprint, output fingerprints when available, and workflow log path. Runs that fail after execution starts retain the same report with `status: failed`, error details, and any partial output evidence. |
-| `run-report.html` | Human-readable tabbed rendering of `run-report.json` for browsing a successful or failed run without reading JSON directly. It separates overview, evidence, outputs, and raw JSON views; links the main run evidence; and shows software-version evidence when available. Generate it from an existing run with `bin/cbicall report RUN_DIR --html`. |
-| `cbicall_mqc/` | Optional MultiQC custom-content directory generated with `bin/cbicall run --multiqc`, `bin/cbicall report RUN_DIR --multiqc`, or `bin/cbicall compare-runs ... --multiqc`. It lets standard MultiQC reports include compact CBIcall run/QC summaries, pairwise comparison tables, and audit-similarity heatmaps without installing a CBIcall MultiQC plugin. |
+| `run-report.html` | Human-readable tabbed rendering of `run-report.json` for browsing a successful or failed run without reading JSON directly. It separates overview, evidence, outputs, and raw JSON views; links the main run evidence; and shows software-version evidence when available. Generate it from an existing run with `cbicall report RUN_DIR --html`. |
+| `cbicall_mqc/` | Optional MultiQC custom-content directory generated with `cbicall run --multiqc`, `cbicall report RUN_DIR --multiqc`, or `cbicall compare-runs ... --multiqc`. It lets standard MultiQC reports include compact CBIcall run/QC summaries, pairwise comparison tables, and audit-similarity heatmaps without installing a CBIcall MultiQC plugin. |
 | `<backend>_<software-stack>_<pipeline>_<mode>_<genome>.log` | Main workflow log for the selected backend. |
 | `logs/*.log` | Per-rule or per-step logs for Snakemake/GATK 4.6 workflows. |
 
@@ -69,7 +69,7 @@ Use `software_versions.sha256` to audit the tool-version table when available. N
 CBIcall can write a MultiQC custom-content directory from an existing run report:
 
 ```bash
-bin/cbicall report completed_run/ --multiqc
+cbicall report completed_run/ --multiqc
 multiqc completed_run/
 ```
 
@@ -85,7 +85,7 @@ from `requirements.txt` so users can render the report directly.
 During a new run, use:
 
 ```bash
-bin/cbicall run -p parameters.yaml -t 4 --multiqc
+cbicall run -p parameters.yaml -t 4 --multiqc
 ```
 
 Use `outputs.file_inventory.sha256` to check whether two run directories contain the same relative file layout. This is a manifest hash of file paths, not a content hash. `outputs.file_inventory.total_bytes` records the total size of files included in that inventory; the HTML report renders this in human-readable units and shows the largest files separately so large runs remain readable. WES/WGS single-sample runs also include parsed VCF hash reports under `outputs.vcf_hash_reports` when `03_stats/*.vcf.sha256.txt` is present.
@@ -93,7 +93,7 @@ Use `outputs.file_inventory.sha256` to check whether two run directories contain
 Two runs can be compared directly:
 
 ```bash
-bin/cbicall compare-runs run_a/ run_b/ run_c/ --alias local cloud hpc --output compare-report.txt
+cbicall compare-runs run_a/ run_b/ run_c/ --alias local cloud hpc --output compare-report.txt
 ```
 
 The text report is the canonical audit artifact. CBIcall also writes

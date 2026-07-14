@@ -8,6 +8,8 @@ from cbicall.errors import WorkflowExecutionError, WorkflowResolutionError
 
 def test_execution_builds_bash_command_with_flags(tmp_path, monkeypatch):
     recorded = {}
+    data_dir = tmp_path / "cbicall-data"
+    monkeypatch.setenv("CBICALL_DATA", str(data_dir))
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update(
@@ -54,12 +56,17 @@ def test_execution_builds_bash_command_with_flags(tmp_path, monkeypatch):
     assert "--sample-map" in recorded["cmd"]
     assert recorded["env"]["GENOME"] == "b37"
     assert recorded["env"]["CBICALL_COVERAGE_REGION"] == "chr22"
+    assert recorded["env"]["CBICALL_DATA"] == str(data_dir)
     assert recorded["cwd"] == project_dir
     assert recorded["backend"] == "bash"
     contract = json.loads((project_dir / "cbicall-execution-contract.json").read_text(encoding="utf-8"))
     assert contract["kind"] == "cbicall_execution_contract"
     assert contract["workflow"]["key"] == "bash/wes/single/gatk-4.6/v1"
-    assert contract["environment_overrides"] == {"CBICALL_COVERAGE_REGION": "chr22", "GENOME": "b37"}
+    assert contract["environment_overrides"] == {
+        "CBICALL_COVERAGE_REGION": "chr22",
+        "CBICALL_DATA": str(data_dir),
+        "GENOME": "b37",
+    }
     assert contract["run"]["qc_coverage_region"] == "chr22"
     assert contract["command"]["argv"] == recorded["cmd"]
     assert "PATH" not in contract["environment_overrides"]
@@ -462,6 +469,8 @@ def test_execution_builds_snakemake_cohort_shard_config(tmp_path, monkeypatch):
 
 def test_execution_builds_snakemake_partial_rule_command(tmp_path, monkeypatch):
     recorded = {}
+    data_dir = tmp_path / "cbicall-data"
+    monkeypatch.setenv("CBICALL_DATA", str(data_dir))
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"cmd": cmd, "backend": backend})
@@ -504,10 +513,13 @@ def test_execution_builds_snakemake_partial_rule_command(tmp_path, monkeypatch):
     assert f"coverage_script={tmp_path / 'coverage.sh'}" in cmd
     assert f"vcf2sex_script={tmp_path / 'vcf2sex.sh'}" in cmd
     assert f"vcf2hash_script={tmp_path / 'vcf2hash.sh'}" in cmd
+    assert f"datadir={data_dir}" in cmd
 
 
 def test_execution_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
     recorded = {}
+    data_dir = tmp_path / "cbicall-data"
+    monkeypatch.setenv("CBICALL_DATA", str(data_dir))
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
         recorded.update({"cmd": cmd, "backend": backend})
@@ -556,6 +568,7 @@ def test_execution_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
     assert "--genome" in cmd and "hg38" in cmd
     assert "--cleanup_bam" in cmd and "true" in cmd
     assert "--qc_coverage_region" in cmd and "chr22" in cmd
+    assert "--datadir" in cmd and str(data_dir) in cmd
     assert "--vcf2hash_script" in cmd
     assert "--emit_report" in cmd
     assert "--scatter_count" in cmd and "2" in cmd
@@ -931,6 +944,8 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
     jar.write_text("jar\n", encoding="utf-8")
     monkeypatch.setenv("CROMWELL_JAR", str(jar))
     monkeypatch.setenv("JAVA_CMD", "/usr/bin/java")
+    data_dir = tmp_path / "cbicall-data"
+    monkeypatch.setenv("CBICALL_DATA", str(data_dir))
     monkeypatch.setattr(execution.platform, "machine", lambda: "x86_64")
 
     def fake_run_cmd(cmd, cwd, log_path, env=None, backend=None):
@@ -1006,8 +1021,8 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
     assert recorded["backend"] == "cromwell"
     inputs = __import__("json").loads((project_dir / "cbicall_cromwell.inputs.json").read_text(encoding="utf-8"))
     assert inputs["CBIcallWesSingle.id"] == "CNAG99901P"
-    assert inputs["CBIcallWesSingle.bwa"] == "/data/NGSutils/bwa/bwa"
-    assert inputs["CBIcallWesSingle.ref"] == "/data/Databases/GATK_bundle/b37/ref.fasta"
+    assert inputs["CBIcallWesSingle.bwa"] == f"{data_dir}/NGSutils/bwa/bwa"
+    assert inputs["CBIcallWesSingle.ref"] == f"{data_dir}/Databases/GATK_bundle/b37/ref.fasta"
     assert inputs["CBIcallWesSingle.qc_coverage_region"] == "chr22"
     assert inputs["CBIcallWesSingle.extra_label"] == "audit"
     assert (project_dir / "cbicall_cromwell.fastq_pairs.tsv").read_text(encoding="utf-8").count("\n") == 1

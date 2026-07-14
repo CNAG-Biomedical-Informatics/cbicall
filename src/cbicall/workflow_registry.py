@@ -8,6 +8,7 @@ from jsonschema import Draft202012Validator
 
 from .errors import ParameterValidationError, WorkflowResolutionError
 from .models import WorkflowSpec
+from .paths import runtime_root
 
 
 def load_workflow_registry(registry_yaml: Path, schema_json: Path) -> dict:
@@ -19,8 +20,7 @@ def load_workflow_registry(registry_yaml: Path, schema_json: Path) -> dict:
 
 
 def get_project_root(module_file: str) -> Path:
-    here = Path(module_file).resolve()
-    return here.parents[2]
+    return runtime_root(module_file)
 
 
 def resolve_registry_context(project_root: Path) -> dict:

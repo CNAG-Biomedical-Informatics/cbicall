@@ -20,13 +20,13 @@ whether a custom resource catalog or installed resource directory is valid, use
 From the repository root:
 
 ```bash
-bin/cbicall test --wes-bash -t 1
+cbicall test --wes-bash -t 1
 ```
 
 On HPC, pass the same runtime profile you use for normal Bash runs:
 
 ```bash
-bin/cbicall test --wes-bash -t 1 --runtime-profile cnag-hpc
+cbicall test --wes-bash -t 1 --runtime-profile cnag-hpc
 ```
 
 :::note[Bash-specific profile]
@@ -44,13 +44,13 @@ backends use their own configuration/profile mechanisms.
 Use backend-equivalence mode before tagging or publishing an image:
 
 ```bash
-bin/cbicall test --backend-equivalence -t 1 --runtime-profile local
+cbicall test --backend-equivalence -t 1 --runtime-profile local
 ```
 
 On HPC, use the same Bash runtime profile as normal runs:
 
 ```bash
-bin/cbicall test --backend-equivalence -t 1 --runtime-profile cnag-hpc
+cbicall test --backend-equivalence -t 1 --runtime-profile cnag-hpc
 ```
 
 `--backend-equivalence` uses Bash as the required native baseline and compares
@@ -95,17 +95,17 @@ examples.
 
 | Command | Workflow path | Needs CBIcall bundle? | Extra requirement | Contract check |
 | --- | --- | --- | --- | --- |
-| `bin/cbicall test --wes-bash -t 1` | **Native WES**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | <span className="cbicallTestBadge cbicallTestBadgeNeutral">none</span> | Run report fields, expected files, **normalized VCF hash** |
-| `bin/cbicall test --wes-cohort-bash -t 1` | **Native WES cohort**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Runs WES Bash first, then reuses its real gVCF with fake cohort sample names | Run report fields, expected files, **GenomicsDB marker**, raw/QC cohort VCFs |
-| `bin/cbicall test --wes-cohort-bash-sharded -t 1` | **Native WES cohort shard**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Runs WES Bash first, then reuses its real gVCF with fake cohort sample names | Run report fields, expected files, **GenomicsDB marker**, staged raw shard VCF |
-| `bin/cbicall test --wes-snakemake -t 1` | **Native WES**, Snakemake | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `snakemake` on `PATH` | Run report fields, expected files, **normalized VCF hash** |
-| `bin/cbicall test --wes-nextflow -t 1` | **Native WES**, Nextflow | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `nextflow` on `PATH` | Run report fields, expected files, **normalized VCF hash** |
-| `bin/cbicall test --wes-cromwell -t 1` | **Native WES**, Cromwell | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `CROMWELL_JAR` or `cromwell` on `PATH` | Generated inputs/options/metadata, run report fields, expected files, **normalized VCF hash** |
-| `bin/cbicall test --mit-bash -t 1` | **Native mtDNA**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | x86_64 host | Run report fields, expected files, **prioritized variants hash**, **raw JSON hash** |
-| `bin/cbicall test --nf-core-demo -t 4` | **nf-core/demo** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile | Generated params/config, run reports, **pipeline info**, **MultiQC anchors** |
-| `bin/cbicall test --nf-core-sarek -t 4` | **nf-core/Sarek** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile and Sarek inputs/resources | Generated params/config, run reports, **pipeline info**, **MultiQC anchors**, declared canonical outputs when produced |
-| `bin/cbicall test --backend-equivalence -t 1` | **Native WES backend equivalence** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | At least one non-Bash native backend available | Bash baseline plus available native WES backends; **same normalized final VCF** required |
-| `bin/cbicall test --all -t 1` | **Native tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Optional backends skipped if missing | Runs WES Bash, WES cohort Bash, WES cohort Bash sharded, WES Snakemake, WES Nextflow, WES Cromwell, and mtDNA contracts |
+| `cbicall test --wes-bash -t 1` | **Native WES**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | <span className="cbicallTestBadge cbicallTestBadgeNeutral">none</span> | Run report fields, expected files, **normalized VCF hash** |
+| `cbicall test --wes-cohort-bash -t 1` | **Native WES cohort**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Runs WES Bash first, then reuses its real gVCF with fake cohort sample names | Run report fields, expected files, **GenomicsDB marker**, raw/QC cohort VCFs |
+| `cbicall test --wes-cohort-bash-sharded -t 1` | **Native WES cohort shard**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Runs WES Bash first, then reuses its real gVCF with fake cohort sample names | Run report fields, expected files, **GenomicsDB marker**, staged raw shard VCF |
+| `cbicall test --wes-snakemake -t 1` | **Native WES**, Snakemake | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `snakemake` on `PATH` | Run report fields, expected files, **normalized VCF hash** |
+| `cbicall test --wes-nextflow -t 1` | **Native WES**, Nextflow | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `nextflow` on `PATH` | Run report fields, expected files, **normalized VCF hash** |
+| `cbicall test --wes-cromwell -t 1` | **Native WES**, Cromwell | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `CROMWELL_JAR` or `cromwell` on `PATH` | Generated inputs/options/metadata, run report fields, expected files, **normalized VCF hash** |
+| `cbicall test --mit-bash -t 1` | **Native mtDNA**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | x86_64 host | Run report fields, expected files, **prioritized variants hash**, **raw JSON hash** |
+| `cbicall test --nf-core-demo -t 4` | **nf-core/demo** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile | Generated params/config, run reports, **pipeline info**, **MultiQC anchors** |
+| `cbicall test --nf-core-sarek -t 4` | **nf-core/Sarek** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile and Sarek inputs/resources | Generated params/config, run reports, **pipeline info**, **MultiQC anchors**, declared canonical outputs when produced |
+| `cbicall test --backend-equivalence -t 1` | **Native WES backend equivalence** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | At least one non-Bash native backend available | Bash baseline plus available native WES backends; **same normalized final VCF** required |
+| `cbicall test --all -t 1` | **Native tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Optional backends skipped if missing | Runs WES Bash, WES cohort Bash, WES cohort Bash sharded, WES Snakemake, WES Nextflow, WES Cromwell, and mtDNA contracts |
 
 </details>
 

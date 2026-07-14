@@ -5,7 +5,7 @@ import WorkflowCompatibilityMatrix from '@site/src/components/WorkflowCompatibil
 CBIcall runs from a YAML parameters file plus CLI runtime settings.
 
 ```bash
-bin/cbicall run -p parameters.yaml -t 4
+cbicall run -p parameters.yaml -t 4
 ```
 
 Unknown YAML keys are rejected, so misspellings fail early instead of being ignored.
@@ -198,7 +198,7 @@ CBIcall does not interpret Sarek-specific parameters. Values under
 samplesheet format and parameter names expected by the selected Sarek release.
 
 For nf-core/Sarek, the CLI thread value is written to the generated params file
-as `max_cpus`. For example, `bin/cbicall run -p nf-core-sarek.yaml -t 6` passes
+as `max_cpus`. For example, `cbicall run -p nf-core-sarek.yaml -t 6` passes
 `max_cpus: 6` to Sarek and writes a small Nextflow config with
 `process.resourceLimits` so individual processes do not request more than six
 CPUs. Memory caps stay in `nfcore_parameters`, for example `max_memory: 30.GB`;
@@ -248,13 +248,13 @@ or nf-core profiles.
 Select a non-default CBIcall profile on the CLI:
 
 ```bash
-bin/cbicall run -p parameters.yaml -t 4 --runtime-profile cnag-hpc
+cbicall run -p parameters.yaml -t 4 --runtime-profile cnag-hpc
 ```
 
 Validate the parameters YAML and resolved setup without starting the workflow:
 
 ```bash
-bin/cbicall validate-parameters -p parameters.yaml --runtime-profile cnag-hpc
+cbicall validate-parameters -p parameters.yaml --runtime-profile cnag-hpc
 ```
 
 The `profile` key is not accepted in the parameters YAML. During a real run, the
@@ -268,12 +268,12 @@ Most users need only these commands:
 
 | Command | Use |
 | --- | --- |
-| `bin/cbicall run -p parameters.yaml -t 4` | Execute one analysis. |
-| `bin/cbicall validate-parameters -p parameters.yaml` | Check one parameters YAML before launch. |
-| `bin/cbicall validate-resources` | Check the configured resource catalog and installed bundle. |
-| `bin/cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare runs containing `run-report.json`. Three or more runs automatically include all-to-all evidence. |
-| `bin/cbicall report RUN_DIR` | Summarize an existing successful or failed run report. |
-| `bin/cbicall test --wes-bash -t 1` | Run the minimal shipped WES contract test. |
+| `cbicall run -p parameters.yaml -t 4` | Execute one analysis. |
+| `cbicall validate-parameters -p parameters.yaml` | Check one parameters YAML before launch. |
+| `cbicall validate-resources` | Check the configured resource catalog and installed bundle. |
+| `cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare runs containing `run-report.json`. Three or more runs automatically include all-to-all evidence. |
+| `cbicall report RUN_DIR` | Summarize an existing successful or failed run report. |
+| `cbicall test --wes-bash -t 1` | Run the minimal shipped WES contract test. |
 
 <details>
 <summary>Advanced flags</summary>

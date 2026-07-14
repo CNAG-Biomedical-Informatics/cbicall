@@ -11,6 +11,9 @@ docs-site
 .pytest_cache
 .coverage
 coverage.xml
+build
+dist
+*.egg-info
 
 examples/input/**/cbicall_*
 examples/input/cbicall_*

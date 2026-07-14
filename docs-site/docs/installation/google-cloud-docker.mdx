@@ -26,9 +26,9 @@ The recipe runs:
 
 ```bash
 # vm$
-bin/cbicall validate-resources
-bin/cbicall validate-parameters -p examples/input/param.yaml
-bin/cbicall test --wes-bash -t 1
+cbicall validate-resources
+cbicall validate-parameters -p examples/input/param.yaml
+cbicall test --wes-bash -t 1
 ```
 
 Expected evidence:
@@ -126,7 +126,7 @@ Install the Python dependencies for the source checkout. The `--upgrade` flag is
 
 ```bash
 # vm$
-python3 -m pip install --user --upgrade -r requirements.txt
+python3 -m pip install --user --upgrade -e ".[all,test]"
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
@@ -185,7 +185,7 @@ Extracting cbicall-germline-resources-v1.tar.gz into /home/mrueda/cbicall-data..
 Wrote installation manifest: /home/mrueda/cbicall-data/cbicall-resource-installation.json
 
 Resource setup complete.
-Set DATADIR to: /home/mrueda/cbicall-data
+Set CBICALL_DATA to: /home/mrueda/cbicall-data
 ```
 
 ### Google Drive Quota Recovery
@@ -258,18 +258,15 @@ For future runs, the downloader can remove split parts automatically after
 checksum verification with `--remove-parts`, but it intentionally keeps the
 assembled archive unless you delete it yourself.
 
-Point native workflows to the VM resource path:
+Expose the VM resource path to every native backend:
 
 ```bash
 # vm$
-sed -i "s|^DATADIR=.*|DATADIR=${CBICALL_DATA}|" workflows/bash/gatk-3.5/env.sh
-sed -i "s|^datadir:.*|datadir: \"${CBICALL_DATA}\"|" workflows/snakemake/gatk-4.6/config.yaml
+export CBICALL_DATA
 ```
 
-The GATK 4.6 Bash `env.sh` is a symlink to the GATK 3.5 Bash `env.sh`,
-so one Bash edit is enough. The native Nextflow and Cromwell configs are
-symlinks to this shared GATK 4.6 backend config, so one config edit updates
-Snakemake, native Nextflow, and Cromwell workflows.
+CBIcall passes this location to Bash, Snakemake, native Nextflow, and Cromwell
+without modifying workflow files.
 
 Run the checks and keep STDOUT as evidence:
 
@@ -280,9 +277,9 @@ mkdir -p cloud-evidence
 {
   date -u
   git rev-parse HEAD
-  bin/cbicall validate-resources
-  bin/cbicall validate-parameters -p examples/input/param.yaml
-  bin/cbicall test --wes-bash -t 1
+  cbicall validate-resources
+  cbicall validate-parameters -p examples/input/param.yaml
+  cbicall test --wes-bash -t 1
 } 2>&1 | tee cloud-evidence/cbicall-google-cloud-wes-stdout.txt
 ```
 
@@ -359,7 +356,7 @@ Validate the YAML contract first:
 
 ```bash
 # vm$
-bin/cbicall validate-parameters -p cloud-wes-real.yaml
+cbicall validate-parameters -p cloud-wes-real.yaml
 ```
 
 Run the real-data WES job in the background so it keeps running if the SSH
@@ -373,8 +370,8 @@ mkdir -p cloud-evidence
 nohup bash -lc '
 date -u
 git rev-parse HEAD
-bin/cbicall validate-parameters -p cloud-wes-real.yaml
-bin/cbicall -p cloud-wes-real.yaml -t 4
+cbicall validate-parameters -p cloud-wes-real.yaml
+cbicall -p cloud-wes-real.yaml -t 4
 ' > cloud-evidence/cbicall-google-cloud-public-wes-stdout.txt 2>&1 &
 ```
 
@@ -412,9 +409,9 @@ mkdir -p cloud-evidence
 {
   date -u
   git rev-parse HEAD
-  bin/cbicall validate-resources
-  bin/cbicall validate-parameters -p examples/input/param.yaml
-  bin/cbicall test --wes-bash -t 1
+  cbicall validate-resources
+  cbicall validate-parameters -p examples/input/param.yaml
+  cbicall test --wes-bash -t 1
 } 2>&1 | tee cloud-evidence/cbicall-google-cloud-wes-stdout.txt
 ```
 
