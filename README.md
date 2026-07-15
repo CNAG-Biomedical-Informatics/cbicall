@@ -77,9 +77,28 @@ Native workflows also require the separately distributed resource bundle. See
 the documentation for Python, Docker, Apptainer, cloud, and HPC installation
 instructions.
 
+Point all native backends to an installed bundle with:
+
+```bash
+export CBICALL_DATA=/absolute/path/to/cbicall-data
+cbicall validate-resources
+```
+
 # Quick Start
 
-    cbicall run -p params.yaml -t 8
+Generate a self-contained tour of the WES audit report and interactive mtDNA
+browser without installing the external resource bundle:
+
+```bash
+cbicall demo
+```
+
+This uses precomputed outputs from the packaged integration fixture. It does
+not execute BWA, GATK, or MToolBox. For a real analysis, use a parameters YAML:
+
+```bash
+cbicall run -p params.yaml -t 8
+```
 
 Runnable examples and sample inputs are available under `examples/`.
 

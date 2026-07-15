@@ -530,6 +530,16 @@ def _run_report_html(payload: dict) -> str:
     evidence_html = "\n          ".join(evidence_sections) or '<p class="empty-note">No additional evidence sections were recorded.</p>'
     outputs_html = "\n          ".join(output_sections) or '<p class="empty-note">No output sections were recorded.</p>'
     raw_json = html.escape(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    demo_metadata = payload.get("demo")
+    demo_banner = ""
+    if isinstance(demo_metadata, dict) and demo_metadata.get("precomputed") is True:
+        description = demo_metadata.get("description") or "This report was generated from packaged example outputs."
+        demo_banner = (
+            '<aside class="demo-banner" aria-label="Precomputed demo notice">'
+            '<strong>Precomputed demonstration</strong>'
+            f'<span>{html.escape(str(description))}</span>'
+            "</aside>"
+        )
 
     return """<!doctype html>
 <html lang="en">
@@ -567,6 +577,22 @@ def _run_report_html(payload: dict) -> str:
     main {
       width: min(1180px, calc(100% - 32px));
       margin: 28px auto 40px;
+    }
+    .demo-banner {
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+      margin: 18px 0;
+      padding: 12px 16px;
+      border: 1px solid #e7c66d;
+      border-left: 4px solid #b7791f;
+      border-radius: 6px;
+      background: #fff9e8;
+      color: #5f4716;
+    }
+    .demo-banner strong {
+      flex: 0 0 auto;
+      color: #81520a;
     }
     header {
       margin-bottom: 20px;
@@ -858,6 +884,7 @@ def _run_report_html(payload: dict) -> str:
       <h1>CBIcall Run Report</h1>
       <p>Human-readable summary generated from <code>run-report.json</code>.</p>
     </header>
+    """ + demo_banner + """
     <div class="summary" aria-label="Run summary">
       <div class="metric"><span>Status</span><strong><span class="pill">""" + html.escape(str(payload.get("status", "unknown"))) + """</span></strong></div>
       <div class="metric"><span>Pipeline</span><strong>""" + html.escape(str(_nested(payload, "workflow", "pipeline") or "(undef)")) + """</strong></div>

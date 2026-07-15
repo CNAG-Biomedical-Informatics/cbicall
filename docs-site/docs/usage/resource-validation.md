@@ -22,6 +22,19 @@ example workflows and compare output VCFs.
 For the resource model and JSON examples, see [Adding Resources](../technical-details/adding-resources).
 For the current CBIcall-provided bundle, see [Bundle v1](../technical-details/resource-bundle-v1).
 
+## Set the Installed Bundle Location
+
+Native workflows read the external bundle location from `CBICALL_DATA`:
+
+```bash
+export CBICALL_DATA=/absolute/path/to/cbicall-data
+```
+
+The directory should contain `Databases/`, `NGSutils/`, and the installation
+metadata created by `cbicall install-resources`. The Python driver applies this
+single value to all native backends; users should not edit packaged `env.sh` or
+`config.yaml` files inside `site-packages`.
+
 ## Validate the Catalog
 
 Validate the default catalog:

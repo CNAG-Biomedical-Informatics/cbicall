@@ -12,8 +12,6 @@ license = "GPL-3.0-only"
 license-files = ["LICENSE"]
 authors = [
   { name = "Manuel Rueda", email = "manuel.rueda@cnag.eu" },
-  { name = "Dietmar Fernandez-Orth" },
-  { name = "Ivo G. Gut" },
 ]
 keywords = [
   "bioinformatics",
@@ -89,7 +87,18 @@ packages = ["src/cbicall"]
 "workflows" = "cbicall/_runtime/workflows"
 "resources" = "cbicall/_runtime/resources"
 "tests/fixtures/integration" = "cbicall/_runtime/tests/fixtures/integration"
-"examples/input" = "cbicall/_runtime/examples/input"
+"examples/input/mit_cohort.yaml" = "cbicall/_runtime/examples/input/mit_cohort.yaml"
+"examples/input/mit_single.yaml" = "cbicall/_runtime/examples/input/mit_single.yaml"
+"examples/input/nf-core-demo.yaml" = "cbicall/_runtime/examples/input/nf-core-demo.yaml"
+"examples/input/nf-core-sarek.yaml" = "cbicall/_runtime/examples/input/nf-core-sarek.yaml"
+"examples/input/param.yaml" = "cbicall/_runtime/examples/input/param.yaml"
+"examples/input/sample_map.tsv" = "cbicall/_runtime/examples/input/sample_map.tsv"
+"examples/input/sarek_samplesheet.csv" = "cbicall/_runtime/examples/input/sarek_samplesheet.csv"
+"examples/input/wes_cohort.yaml" = "cbicall/_runtime/examples/input/wes_cohort.yaml"
+"examples/input/wes_cromwell.yaml" = "cbicall/_runtime/examples/input/wes_cromwell.yaml"
+"examples/input/wes_single.yaml" = "cbicall/_runtime/examples/input/wes_single.yaml"
+"examples/input/CNAG999_exome/CNAG99901P_ex/CNAG99901P_ex_S2_L001_R1_001.fastq.gz" = "cbicall/_runtime/examples/input/CNAG999_exome/CNAG99901P_ex/CNAG99901P_ex_S2_L001_R1_001.fastq.gz"
+"examples/input/CNAG999_exome/CNAG99901P_ex/CNAG99901P_ex_S2_L001_R2_001.fastq.gz" = "cbicall/_runtime/examples/input/CNAG999_exome/CNAG99901P_ex/CNAG99901P_ex_S2_L001_R2_001.fastq.gz"
 "scripts/download_cbicall_bundle.py" = "cbicall/_runtime/scripts/download_cbicall_bundle.py"
 
 [tool.hatch.build.targets.sdist]
@@ -98,7 +107,10 @@ include = [
   "/browser/README",
   "/browser/mtb2html.py",
   "/browser/mtb2json.py",
-  "/examples/input",
+  "/examples/input/*.csv",
+  "/examples/input/*.tsv",
+  "/examples/input/*.yaml",
+  "/examples/input/CNAG999_exome/CNAG99901P_ex/*.fastq.gz",
   "/LICENSE",
   "/mtdna/MToolBox_config.sh",
   "/pyproject.toml",

@@ -1,5 +1,5 @@
 # Paths
-DATADIR="${CBICALL_DATA:-/media/mrueda/2TBS}"
+DATADIR="${CBICALL_DATA:-/cbicall-data}"
 #DATADIR=/cbicall-data  # From inside the container
 DBDIR=$DATADIR/Databases
 NGSUTILS=$DATADIR/NGSutils

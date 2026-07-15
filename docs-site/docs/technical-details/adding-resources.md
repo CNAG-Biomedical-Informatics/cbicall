@@ -180,15 +180,20 @@ against the expected SHA-256 at runtime.
 The catalog does not launch tools directly. The selected backend resolves
 concrete paths.
 
-For Bash workflows, update the relevant profile `env.sh`:
+For the standard bundle layout, select the installed root once for every native
+backend:
 
 ```bash
-DATADIR=/path/to/my-center-resources
-DBDIR=$DATADIR/Databases
-NGSUTILS=$DATADIR/NGSutils
+export CBICALL_DATA=/path/to/my-center-resources
 ```
 
-For Snakemake, native Nextflow, and Cromwell workflows, update the relevant `config.yaml`:
+CBIcall passes that value to Bash `env.sh` and to the generated or command-line
+configuration used by Snakemake, native Nextflow, and Cromwell. Do not edit
+files inside an installed Python package. A custom runtime tree and backend
+configuration are needed only when a resource layout does not follow the
+standard `Databases/` and `NGSutils/` structure.
+
+For example, a custom backend configuration can define another root explicitly:
 
 ```yaml
 datadir: /path/to/my-center-resources

@@ -1,0 +1,9 @@
+# METHOD: sex inferred for QC from VCF-derived depth proxies. If X/autosome ratio >= 0.75, classify FEMALE; otherwise classify FEMALE only when X-Y depth difference >= THRESHOLD.
+MEAN DEPTH FOR AUTOSOMES=1.33
+MEAN DEPTH FOR X=NA
+MEAN DEPTH FOR Y=NA
+X_AUTOSOME_RATIO=NA
+X_MINUS_Y_DEPTH=NA
+THRESHOLD=NA
+DECISION=Insufficient autosome, X, or Y depth values
+SEX=UNKNOWN

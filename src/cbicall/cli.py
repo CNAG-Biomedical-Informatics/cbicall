@@ -29,6 +29,7 @@ from .cli_output import (
     _row,
     _section,
 )
+from .demo import run_demo
 from .execution import WorkflowExecutor, EXECUTION_CONTRACT_FILE
 from .errors import ParameterValidationError
 from .helpmod import usage, parse_args as _parse_args, parse_run_args as _parse_run_args
@@ -1429,6 +1430,29 @@ def _run_report_command(argv: List[str]) -> int:
     return 0
 
 
+def _run_demo_command(argv: List[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="cbicall demo",
+        description="Generate resource-free WES and mtDNA reports from packaged example outputs.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default="cbicall-demo",
+        help="New demo output directory (default: cbicall-demo).",
+    )
+    args = parser.parse_args(argv)
+
+    _section("CBIcall Demo", GREEN)
+    print("Generating reports from precomputed CNAG99901P fixture outputs.")
+    print("No external resource bundle or workflow backend is required.")
+    result = run_demo(Path(args.output_dir))
+    _row("Output", result.output_dir)
+    _row("WES HTML", result.wes_html)
+    _row("mtDNA HTML", result.mtdna_html)
+    _row("mtDNA variants", result.mtdna_variants)
+    _row("Read me", result.output_dir / "README.txt")
+    return 0
+
 
 def _compare_row(label: str, left, right) -> None:
     if left is None and right is None:
@@ -2223,6 +2247,8 @@ def main() -> int:
         return _run_compare_runs_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "report":
         return _run_report_command(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "demo":
+        return _run_demo_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "test":
         return _run_test_command(sys.argv[2:])
 

@@ -2,8 +2,10 @@ import sys
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
 from cbicall import __main__ as main_mod
+from cbicall import demo
 from cbicall import paths
 from cbicall import resource_install
 
@@ -116,3 +118,42 @@ def test_resource_installer_adapter_loads_and_runs_script(tmp_path, monkeypatch)
 
     monkeypatch.setattr(resource_install, "_load_installer", lambda: SimpleNamespace(main=lambda argv: 5))
     assert resource_install.run_resource_installer(["--help"]) == 5
+
+
+def test_native_resource_defaults_are_portable():
+    root = paths.runtime_root()
+    env_files = [
+        root / "workflows" / "bash" / "gatk-3.5" / "env.sh",
+        root / "workflows" / "bash" / "gatk-4.6" / "env.sh",
+        root / "workflows" / "snakemake" / "gatk-4.6" / "env.sh",
+    ]
+    config_files = [
+        root / "workflows" / backend / "gatk-4.6" / "config.yaml"
+        for backend in ("snakemake", "nextflow", "cromwell")
+    ]
+
+    for env_file in env_files:
+        text = env_file.read_text(encoding="utf-8")
+        assert 'DATADIR="${CBICALL_DATA:-/cbicall-data}"' in text
+        assert "/media/mrueda" not in text
+
+    for config_file in config_files:
+        config = yaml.safe_load(config_file.read_text(encoding="utf-8"))
+        assert config["datadir"] == "/cbicall-data"
+
+
+def test_demo_assets_are_part_of_the_python_package():
+    assert (demo.ASSET_DIR / "wes" / "run-report.json").is_file()
+    assert (
+        demo.ASSET_DIR
+        / "mtdna"
+        / "01_mtoolbox"
+        / "mit_prioritized_variants.txt"
+    ).is_file()
+
+
+def test_packaged_cohort_sample_map_is_portable():
+    sample_map = paths.runtime_root() / "examples" / "input" / "sample_map.tsv"
+    text = sample_map.read_text(encoding="utf-8")
+    assert "/media/" not in text
+    assert "./gvcfs/CNAG99901P.hc.g.vcf.gz" in text

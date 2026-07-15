@@ -87,11 +87,16 @@ The bundle layout uses these conventional top-level names:
 
 | Variable | Meaning |
 | --- | --- |
+| `CBICALL_DATA` | User-facing environment variable that selects the installed bundle root for all native backends. |
 | `DATADIR` | Root of the installed CBIcall-provided bundle. |
 | `DBDIR` | `DATADIR/Databases` |
 | `NGSUTILS` | `DATADIR/NGSutils` |
 
-Workflow-specific files such as Bash `env.sh` and Snakemake/Nextflow/Cromwell `config.yaml` resolve the installed bundle layout into concrete executable and reference paths.
+CBIcall resolves `CBICALL_DATA` into the backend-specific `DATADIR`/`datadir`
+value. Workflow files such as Bash `env.sh` and
+Snakemake/Nextflow/Cromwell `config.yaml` then resolve the bundle layout into
+concrete executable and reference paths. Packaged workflow files should not be
+edited to select an installation directory.
 
 ## Tools
 

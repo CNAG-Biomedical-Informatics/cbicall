@@ -8,6 +8,9 @@ cbicall run -p parameters.yaml -t 4
 
 Use this page for command syntax and common execution patterns. For YAML keys and supported combinations, see [Configuration Reference](../help/configuration-reference).
 
+To inspect the WES and mtDNA reports before configuring an analysis, run the
+resource-free `cbicall demo` command described in the [Quickstart](quickstart).
+
 :::tip[Typical workflow]
 Choose or edit a YAML file, run `cbicall run -p ... -t ...`, then inspect the generated run directory and `log.json`.
 :::
@@ -35,6 +38,7 @@ leaves its native output directory layout unchanged.
 
 ```text
 cbicall run -p <parameters_file.yaml> -t <n_threads> [options]
+cbicall demo [--output-dir DIR]
 ```
 
 Use `run` for normal analysis execution. Other subcommands are documented on
@@ -54,7 +58,26 @@ their dedicated pages.
 | `-h`, `--help` | Show brief help. |
 | `-man` | Show full command-line documentation. |
 
+:::note[Why analysis parameters are YAML-only]
+CBIcall deliberately does not duplicate YAML analysis keys as CLI options or
+provide a generic `--set` override. Keeping values such as `pipeline`, `genome`,
+`workflow_backend`, and `cleanup_bam` in one parameters file prevents
+command-line overrides from silently diverging from the submitted YAML and
+keeps the audit report directly traceable. The CLI is reserved for execution
+controls. Reports may additionally show resolved defaults and normalized paths.
+:::
+
 ## Common Commands
+
+Generate reports from packaged, precomputed fixture outputs without launching a
+workflow:
+
+```bash
+cbicall demo
+```
+
+The command creates `cbicall-demo/` and refuses to overwrite an existing
+directory. It does not require the external CBIcall resource bundle.
 
 For most runs, keep the command simple:
 

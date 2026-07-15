@@ -3,6 +3,7 @@ Revision history for cbicall:
 1.1.0  Unreleased
 
     - Add standards-based Python packaging and installed CLI support.
+    - Add a resource-free demo for WES audit and mtDNA browser reports.
     - Fix single-sample workflows to keep one sample name across FASTQs with different prefixes.
     - Fix mtDNA extraction from hg38 BAMs by selecting chrM instead of MT.
     - Migrate project documentation from MkDocs Material to Docusaurus.

@@ -1,0 +1,349 @@
+{
+  "command_trace": "Detailed workflow stdout/stderr is recorded in the workflow log.",
+  "elapsed_seconds": 116.439,
+  "execution_contract": {
+    "backend": "bash",
+    "command_sha256": "70e0e22d49b0739b9b189d08063b08063ee54fc8b36a00ee06a112930ca7c0c3",
+    "fingerprint": "c12f0bf974e8a37d4a6ce9b503bf0602969fbf98d8c8255ea23ced326f43d3cd",
+    "generated_files": [],
+    "normalized_command_sha256": "eb5b7c5e0d282027ecebd81537c62be02cd1816797f554ee5985e9658b015fb3",
+    "path": "{PROJECT_DIR}/cbicall-execution-contract.json",
+    "provider": "cbicall",
+    "schema_version": 1,
+    "sha256": "b7fcb2486881f040676f677b166cc02415e33e0d8ea92d388f392fcebe2da7b4",
+    "source": {
+      "backend_parameters": {
+        "cromwell_parameters": {},
+        "nextflow_parameters": {},
+        "nfcore_parameters": {},
+        "nfcore_profile": null,
+        "nfcore_singularity_cache_dir": null,
+        "snakemake_parameters": {}
+      },
+      "command": {
+        "argv": [
+          "{CBICALL_ROOT}/workflows/bash/gatk-4.6/wes_single.sh",
+          "-t",
+          "1",
+          "--pipeline",
+          "wes"
+        ],
+        "normalized_sha256": "eb5b7c5e0d282027ecebd81537c62be02cd1816797f554ee5985e9658b015fb3",
+        "sha256": "70e0e22d49b0739b9b189d08063b08063ee54fc8b36a00ee06a112930ca7c0c3",
+        "string": "CBICALL_COVERAGE_REGION=chr22 CBICALL_DATA={CBICALL_DATA} GENOME=b37 CBICALL_ENV_FILE={CBICALL_ROOT}/workflows/bash/gatk-4.6/env.sh {CBICALL_ROOT}/workflows/bash/gatk-4.6/wes_single.sh -t 1 --pipeline wes"
+      },
+      "environment_overrides": {
+        "CBICALL_COVERAGE_REGION": "chr22",
+        "CBICALL_DATA": "{CBICALL_DATA}",
+        "CBICALL_ENV_FILE": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/env.sh",
+        "GENOME": "b37"
+      },
+      "fingerprint": "c12f0bf974e8a37d4a6ce9b503bf0602969fbf98d8c8255ea23ced326f43d3cd",
+      "generated_files": [],
+      "inputs": {
+        "input_dir": "{DEMO_INPUT}",
+        "input_vcf": null,
+        "sample_map": null
+      },
+      "kind": "cbicall_execution_contract",
+      "normalization": {
+        "project_dir": "{PROJECT_DIR}",
+        "run_id": "{RUN_ID}"
+      },
+      "run": {
+        "cleanup_bam": false,
+        "cohort_stage": "all",
+        "genome": "b37",
+        "interval_shard": null,
+        "log_path": "{PROJECT_DIR}/bash_gatk-4.6_wes_single_b37.log",
+        "output_basename": "CNAG99901P_ex",
+        "profile": "local",
+        "project_dir": "{PROJECT_DIR}",
+        "qc_coverage_region": "chr22",
+        "run_id": "178404218718435",
+        "run_mode": "full",
+        "threads": 1
+      },
+      "schema_version": 1,
+      "workflow": {
+        "backend": "bash",
+        "config_file": null,
+        "entrypoint": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/wes_single.sh",
+        "helpers": {
+          "coverage": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/coverage.sh",
+          "env": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/env.sh",
+          "jaccard": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/jaccard.sh",
+          "vcf2hash": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/vcf2hash.sh",
+          "vcf2sex": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/vcf2sex.sh"
+        },
+        "key": "bash/wes/single/gatk-4.6/v1",
+        "metadata": {},
+        "mode": "single",
+        "pipeline": "wes",
+        "provider": "cbicall",
+        "registry_version": "v1",
+        "software_stack": "gatk-4.6"
+      }
+    },
+    "status": "present",
+    "workflow_key": "bash/wes/single/gatk-4.6/v1"
+  },
+  "framework": {
+    "name": "CBIcall",
+    "version": "1.1.0b1"
+  },
+  "inputs": {
+    "input_dir": "{DEMO_INPUT}",
+    "input_vcf": null,
+    "sample_map": null
+  },
+  "outputs": {
+    "file_inventory": {
+      "algorithm": "sha256",
+      "scope": "demo directory relative file paths",
+      "entries": 5,
+      "total_bytes": 8138,
+      "directories": [
+        {
+          "group": "03_stats",
+          "count": 3,
+          "bytes": 1239
+        },
+        {
+          "group": "02_varcall",
+          "count": 2,
+          "bytes": 6899
+        }
+      ],
+      "largest_files": [
+        {
+          "path": "02_varcall/CNAG99901P.hc.QC.vcf.gz",
+          "bytes": 6558
+        },
+        {
+          "path": "03_stats/CNAG99901P.vcf.sha256.txt",
+          "bytes": 735
+        },
+        {
+          "path": "03_stats/CNAG99901P.sex.txt",
+          "bytes": 366
+        },
+        {
+          "path": "02_varcall/CNAG99901P.hc.QC.vcf.gz.tbi",
+          "bytes": 341
+        },
+        {
+          "path": "03_stats/CNAG99901P.coverage.txt",
+          "bytes": 138
+        }
+      ],
+      "sha256": "d6884c6b3d6f35ae78158aa374b1f8342d5807f79b43bcd93ed30abdeaa6c0e5",
+      "excluded": [],
+      "paths": [
+        "02_varcall/CNAG99901P.hc.QC.vcf.gz",
+        "02_varcall/CNAG99901P.hc.QC.vcf.gz.tbi",
+        "03_stats/CNAG99901P.coverage.txt",
+        "03_stats/CNAG99901P.sex.txt",
+        "03_stats/CNAG99901P.vcf.sha256.txt"
+      ]
+    },
+    "vcf_hash_reports": [
+      {
+        "algorithm": "sha256",
+        "call_fields": "CHROM,POS,REF,ALT,FILTER,GT_ALL_SAMPLES",
+        "call_records": "6",
+        "call_sha256": "b0803c5e3b6489330b370abd66076c4dd8bb4bee9ac2eb98e4605be308266edf",
+        "call_sort": "LC_ALL=C",
+        "file": "02_varcall/CNAG99901P.hc.QC.vcf.gz",
+        "normalized_pattern": "^#",
+        "normalized_records": "6",
+        "normalized_sha256": "621373dda8e79602e84f24b5e5082914b046c341ba64c7e15c8ce97172559baf",
+        "normalized_sort": "LC_ALL=C",
+        "path": "03_stats/CNAG99901P.vcf.sha256.txt",
+        "raw_sha256": "b2ffadade048881d8740f3dbefe465b39ff90cf9713210552c237825660095fc",
+        "sample_count": "1",
+        "sample_order_fields": "#CHROM_COLUMNS_10_PLUS",
+        "sample_order_sha256": "5cd89126fa3806278ac92a5f24ee6fc2dc299a4a0f4145e018e452b27acc86e2"
+      }
+    ]
+  },
+  "parameters": {
+    "cleanup_bam": false,
+    "cromwell_parameters": {},
+    "nextflow_parameters": {},
+    "nfcore_parameters": {},
+    "nfcore_profile": null,
+    "nfcore_singularity_cache_dir": null,
+    "paramfile": "{CBICALL_ROOT}/examples/input/param.yaml",
+    "qc_coverage_region": "chr22",
+    "snakemake_parameters": {}
+  },
+  "profile": "local",
+  "resources": {
+    "bundle": {
+      "catalog": "{CBICALL_ROOT}/resources/cbicall-resource-catalog.json",
+      "compatible": true,
+      "fingerprint": "57664190df2973f2ee05afd36d3e09891ae23ecaf79392582d8c24e4d90381f8",
+      "identifier_sha256": "2ca48965a3b82a411f730769ddf020b671f08cf2b0c14ce58ec1e1d7ffce377e",
+      "key": "cbicall-germline-resources-v1",
+      "runtime_check": {
+        "checks": [
+          {
+            "file": "{CBICALL_DATA}/cbicall-resource-id.json",
+            "resource_key": "cbicall-germline-resources-v1",
+            "sha256": "2ca48965a3b82a411f730769ddf020b671f08cf2b0c14ce58ec1e1d7ffce377e",
+            "type": "resource_identifier"
+          }
+        ],
+        "datadir": "{CBICALL_DATA}",
+        "source": "CBICALL_DATA",
+        "source_key": "environment.CBICALL_DATA",
+        "status": "verified"
+      },
+      "type": "bundle",
+      "version": "v1",
+      "workflow_key": "bash/wes/single/gatk-4.6/v1"
+    }
+  },
+  "run": {
+    "cohort_stage": "all",
+    "display_genome": "b37",
+    "genome": "b37",
+    "host_threads": 6,
+    "host_threads_minus_one": 5,
+    "hostname": "demo-workstation",
+    "interval_shard": null,
+    "output_basename": "CNAG99901P_ex",
+    "project_dir": "{PROJECT_DIR}",
+    "qc_coverage_region": "chr22",
+    "run_id": "178404218718435",
+    "run_mode": "full",
+    "threads": 1
+  },
+  "runtime": {
+    "backend": {
+      "command": "bash --version",
+      "detail": "GNU bash, version 5.2.21(1)-release (aarch64-unknown-linux-gnu)",
+      "name": "bash",
+      "path": "/usr/bin/bash",
+      "returncode": 0,
+      "status": "ok",
+      "version": "5.2.21"
+    },
+    "configured_java": {
+      "command": "/usr/lib/jvm/java-8-openjdk-arm64/bin/java -version",
+      "detail": "openjdk version \"1.8.0_492\"",
+      "name": "configured_java",
+      "path": "/usr/lib/jvm/java-8-openjdk-arm64/bin/java",
+      "returncode": 0,
+      "source": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/env.sh:JAVA8",
+      "status": "ok",
+      "version": "1.8.0_492"
+    },
+    "java": {
+      "command": "java -version",
+      "detail": "openjdk version \"21.0.11\" 2026-04-21",
+      "name": "java",
+      "path": "/usr/bin/java",
+      "returncode": 0,
+      "status": "ok",
+      "version": "21.0.11"
+    },
+    "python": {
+      "executable": "/usr/bin/python3",
+      "version": "3.12.3"
+    }
+  },
+  "software_versions": {
+    "entries": {
+      "bwa": {
+        "path_hint": "NGSutils/bwa-0.7.18/bwa",
+        "version": "0.7.18"
+      },
+      "gatk4": {
+        "path_hint": "NGSutils/gatk/gatk-4.6.2.0/gatk",
+        "version": "4.6.2.0"
+      },
+      "samtools": {
+        "path_hint": "NGSutils/samtools-0.1.19/samtools",
+        "version": "0.1.19"
+      }
+    },
+    "format": "resource_catalog",
+    "scope": "resource_declared",
+    "sha256": "8efc28cd8a9f5f44c89f0e1f425f7afed4ea03b83d0a7f8a8c0fbdc706e888a4",
+    "source": "{CBICALL_ROOT}/resources/cbicall-resource-catalog.json",
+    "status": "parsed"
+  },
+  "status": "success",
+  "workflow": {
+    "backend": "bash",
+    "config_file": null,
+    "entrypoint": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/wes_single.sh",
+    "files": [
+      {
+        "path": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/wes_single.sh",
+        "role": "entrypoint",
+        "sha256": "e47a3b1d9dd35210a7c0a5627fde614134e79942f2d0c04848169e9acde63178",
+        "size_bytes": 13409,
+        "status": "present"
+      },
+      {
+        "path": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/coverage.sh",
+        "role": "helper:coverage",
+        "sha256": "0c9e0b3d72db7baa14bf1f70fff0f1032f4259be8250badfe066afb9448e7a2b",
+        "size_bytes": 4682,
+        "status": "present"
+      },
+      {
+        "path": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/env.sh",
+        "role": "helper:env",
+        "sha256": "fac4e4fa6823e2a60445f827f9041972666aec3f1be58e80e710df4252001997",
+        "size_bytes": 4232,
+        "status": "present"
+      },
+      {
+        "path": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/jaccard.sh",
+        "role": "helper:jaccard",
+        "sha256": "2961821effd67a49b05c6fd6a512ab1dfe309ac997bc112e86b1e1f553cb71a3",
+        "size_bytes": 1036,
+        "status": "present"
+      },
+      {
+        "path": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/vcf2hash.sh",
+        "role": "helper:vcf2hash",
+        "sha256": "647aa1b6fecba230f811b6aca50878acc8d74fdfe8606bb70b5fc5b5daa004c7",
+        "size_bytes": 3193,
+        "status": "present"
+      },
+      {
+        "path": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/vcf2sex.sh",
+        "role": "helper:vcf2sex",
+        "sha256": "9f54b9ec0128b698b5fb27ecf157c3634b18c8e0893a37a587033f3a912a35d7",
+        "size_bytes": 6620,
+        "status": "present"
+      }
+    ],
+    "fingerprint": "ba351d061352e184ecf6c4c09671a76aa0e682f1d2a912caae8257f26dcf0aeb",
+    "helpers": {
+      "coverage": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/coverage.sh",
+      "env": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/env.sh",
+      "jaccard": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/jaccard.sh",
+      "vcf2hash": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/vcf2hash.sh",
+      "vcf2sex": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/vcf2sex.sh"
+    },
+    "key": "bash/wes/single/gatk-4.6/v1",
+    "metadata": {},
+    "mode": "single",
+    "pipeline": "wes",
+    "provider": "cbicall",
+    "registry_version": "v1",
+    "software_stack": "gatk-4.6"
+  },
+  "workflow_log": "{PROJECT_DIR}/bash_gatk-4.6_wes_single_b37.log",
+  "demo": {
+    "precomputed": true,
+    "source_fixture": "CNAG99901P",
+    "description": "Sanitized audit snapshot derived from the packaged CBIcall integration fixture."
+  }
+}

@@ -35,6 +35,9 @@ jobs:
           cd /tmp
           /tmp/cbicall-wheel-test/bin/cbicall --version
           /tmp/cbicall-wheel-test/bin/cbicall validate-registry
+          /tmp/cbicall-wheel-test/bin/cbicall demo --output-dir /tmp/cbicall-demo
+          test -s /tmp/cbicall-demo/wes/run-report.html
+          test -s /tmp/cbicall-demo/mtdna/02_browser/CNAG99901P.html
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4

@@ -73,6 +73,9 @@ jobs:
           PYTHONPATH=/tmp/cbicall-wheel python -m cbicall validate-registry
           PYTHONPATH=/tmp/cbicall-wheel python -m cbicall validate-resources
           PYTHONPATH=/tmp/cbicall-wheel python -m cbicall install-resources --help >/dev/null
+          PYTHONPATH=/tmp/cbicall-wheel python -m cbicall demo --output-dir /tmp/cbicall-demo
+          test -s /tmp/cbicall-demo/wes/run-report.html
+          test -s /tmp/cbicall-demo/mtdna/02_browser/CNAG99901P.html
           PYTHONPATH=/tmp/cbicall-wheel python - <<'PY'
           from cbicall.integration_tests import prepare_integration_root
           from cbicall.paths import runtime_root
