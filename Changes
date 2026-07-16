@@ -14,7 +14,7 @@ Revision history for cbicall:
     - Add explicit registry versions and rename registry shared files from common to helpers.
     - Add native Nextflow and Cromwell support for GATK 4.6 WES/WGS workflows.
     - Add registered nf-core workflow support through the Nextflow backend, including demo and Sarek examples.
-    - Add validate-parameters, validate-registry, validate-resources, test, compare-runs, and backend-equivalence checks.
+    - Add doctor, validate-parameters, validate-registry, validate-resources, test, compare-runs, and backend-equivalence checks.
     - Add run-report.json audit summaries with CBIcall version, workflow file hashes, software-version evidence, resource provenance, output file inventory hashes, output sizes, execution trace summaries, and output fingerprints.
     - Add text and HTML run comparison reports for two or more runs.
     - Extend run comparison with all-to-all matrices, VCF fingerprints, aliases, and MultiQC exports.

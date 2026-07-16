@@ -1504,6 +1504,19 @@ def test_validate_resources_command_accepts_short_resource_flag(capsys):
     assert "cbicall-germline-resources-v1" in out
 
 
+def test_main_dispatches_doctor(monkeypatch):
+    called = {}
+    monkeypatch.setattr(sys, "argv", ["cbicall", "doctor"])
+    monkeypatch.setattr(
+        cli_mod,
+        "run_doctor",
+        lambda argv: called.setdefault("argv", argv) or 0,
+    )
+
+    assert cli_mod.main() == 0
+    assert called["argv"] == []
+
+
 def test_main_run_subcommand_happy_path(monkeypatch, tmp_path, capsys):
     param_file = tmp_path / "params.yaml"
     param_file.write_text("pipeline: wes\nmode: single\n", encoding="utf-8")

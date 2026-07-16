@@ -81,7 +81,7 @@ Point all native backends to an installed bundle with:
 
 ```bash
 export CBICALL_DATA=/absolute/path/to/cbicall-data
-cbicall validate-resources
+cbicall doctor
 ```
 
 # Quick Start

@@ -232,7 +232,7 @@ editing packaged workflow files.
 Confirm that CBIcall sees the mounted resources:
 
 ```bash
-cbicall validate-resources
+cbicall doctor
 cbicall validate-parameters -p examples/input/param.yaml
 ```
 

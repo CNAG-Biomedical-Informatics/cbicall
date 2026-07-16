@@ -128,6 +128,7 @@ def test_top_level_help_lists_commands(capsys):
     assert helpmod.handle_main_args([], "0.0.1") == 0
     out = capsys.readouterr().out
     assert "Commands:" in out
+    assert "doctor" in out
     assert "validate-registry" in out
     assert "compare-runs" in out
     assert "--threads" not in out

@@ -270,7 +270,8 @@ Most users need only these commands:
 | --- | --- |
 | `cbicall run -p parameters.yaml -t 4` | Execute one analysis. |
 | `cbicall validate-parameters -p parameters.yaml` | Check one parameters YAML before launch. |
-| `cbicall validate-resources` | Check the configured resource catalog and installed bundle. |
+| `cbicall doctor` | Check the CBIcall installation, installed bundle metadata, and available backends. |
+| `cbicall validate-resources` | Validate the resource catalog and workflow compatibility keys. |
 | `cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare runs containing `run-report.json`. Three or more runs automatically include all-to-all evidence. |
 | `cbicall report RUN_DIR` | Summarize an existing successful or failed run report. |
 | `cbicall test --wes-bash -t 1` | Run the minimal shipped WES contract test. |

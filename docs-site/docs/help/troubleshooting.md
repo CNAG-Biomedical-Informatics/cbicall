@@ -45,7 +45,7 @@ Set the bundle directory before validating or launching the workflow:
 
 ```bash
 export CBICALL_DATA=/absolute/path/to/cbicall-data
-cbicall validate-resources
+cbicall doctor
 ```
 
 For containers, make sure the host data directory is bind-mounted at the same path used by the workflow configuration. For external nf-core workflows, missing tools or references are usually controlled by the selected nf-core profile, container/cache setup, or nf-core parameters rather than the CBIcall resource bundle.

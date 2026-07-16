@@ -26,7 +26,7 @@ The recipe runs:
 
 ```bash
 # vm$
-cbicall validate-resources
+cbicall doctor
 cbicall validate-parameters -p examples/input/param.yaml
 cbicall test --wes-bash -t 1
 ```
@@ -35,7 +35,7 @@ Expected evidence:
 
 | Evidence | Meaning |
 | --- | --- |
-| `validate-resources` succeeds | The resource catalog is well formed and points to declared workflows. |
+| `doctor` reports `READY` | The CBIcall contracts, installed bundle metadata, resource layout, and required execution backend are available. |
 | `validate-parameters` resolves the run | The parameters YAML resolves to a concrete workflow, profile, registry version, and resource. |
 | `test --wes-bash` succeeds | The generated WES VCF matches the normalized hash declared by the integration-test contract. |
 | Normalized [SHA-256](https://en.wikipedia.org/wiki/SHA-2) is printed | The test computes this on the fly from the filtered, sorted reference and test VCF records. |
@@ -277,7 +277,7 @@ mkdir -p cloud-evidence
 {
   date -u
   git rev-parse HEAD
-  cbicall validate-resources
+  cbicall doctor
   cbicall validate-parameters -p examples/input/param.yaml
   cbicall test --wes-bash -t 1
 } 2>&1 | tee cloud-evidence/cbicall-google-cloud-wes-stdout.txt
@@ -409,7 +409,7 @@ mkdir -p cloud-evidence
 {
   date -u
   git rev-parse HEAD
-  cbicall validate-resources
+  cbicall doctor
   cbicall validate-parameters -p examples/input/param.yaml
   cbicall test --wes-bash -t 1
 } 2>&1 | tee cloud-evidence/cbicall-google-cloud-wes-stdout.txt

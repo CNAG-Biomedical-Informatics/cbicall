@@ -109,7 +109,7 @@ native workflows:
 
 ```bash
 export CBICALL_DATA=/absolute/path/to/cbicall-data
-cbicall validate-resources
+cbicall doctor
 cbicall validate-parameters -p examples/input/param.yaml
 ```
 

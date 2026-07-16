@@ -22,6 +22,26 @@ example workflows and compare output VCFs.
 For the resource model and JSON examples, see [Adding Resources](../technical-details/adding-resources).
 For the current CBIcall-provided bundle, see [Bundle v1](../technical-details/resource-bundle-v1).
 
+## Check the Installation
+
+Run the installation-level check without a parameters YAML:
+
+```bash
+cbicall doctor
+```
+
+`doctor` validates the packaged workflow registry and resource catalog, then
+checks the resource metadata at the `CBICALL_DATA` root. Current installations
+are verified from `cbicall-resource-installation.json`, including the catalog
+fingerprint, recorded archive-checksum result, and expected top-level layout.
+Installations carrying the catalog-pinned `cbicall-resource-id.json` are also
+recognized. The command does not rehash the large resource archive. It reports
+whether the four supported execution backends are available; missing optional
+backends are warnings.
+
+This command verifies the installation as a whole. It does not select a resource
+for an analysis or determine whether a particular YAML contract can run.
+
 ## Set the Installed Bundle Location
 
 Native workflows read the external bundle location from `CBICALL_DATA`:

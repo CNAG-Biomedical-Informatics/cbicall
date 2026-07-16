@@ -18,9 +18,13 @@ stops before launching the workflow.
 ```bash
 cbicall --help
 cbicall --version
+cbicall doctor
 ```
 
-You should see the command help and the installed CBIcall version.
+You should see the command help, the installed CBIcall version, and a concise
+installation report. `doctor` checks the packaged contracts, `CBICALL_DATA`
+bundle metadata, and available workflow backends. Missing optional backends are
+reported as warnings.
 
 ## 2. Explore the Reports
 

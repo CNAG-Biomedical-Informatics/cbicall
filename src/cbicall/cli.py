@@ -19,6 +19,7 @@ from .cli_output import (
 )
 from .comparison_commands import run_compare_runs_command
 from .demo import run_demo
+from .doctor import run_doctor
 from .execution import WorkflowExecutor
 from .errors import ParameterValidationError
 from .goodbye import GoodBye
@@ -676,6 +677,8 @@ def main() -> int:
         return _run_validate_resources_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "install-resources":
         return run_resource_installer(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "doctor":
+        return run_doctor(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "compare-runs":
         return run_compare_runs_command(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "report":

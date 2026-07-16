@@ -17,8 +17,9 @@ def _build_main_parser(version: str) -> argparse.ArgumentParser:
               run                  Execute an analysis from a parameters YAML file
               validate-parameters  Validate a parameters YAML file
               validate-registry    Validate the workflow registry
-              validate-resources   Validate the resource catalog and installation
+              validate-resources   Validate the resource catalog
               install-resources    Install a registered resource bundle
+              doctor               Check this CBIcall installation
               compare-runs         Compare two or more completed executions
               report               Regenerate reports for a completed execution
               demo                 Generate reports from packaged example data
