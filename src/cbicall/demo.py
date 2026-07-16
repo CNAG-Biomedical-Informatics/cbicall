@@ -7,13 +7,13 @@ import json
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
 from .html_reports import write_run_report_html
 from .mtdna_browser import (
     BrowserError,
     generate_browser_report,
-    load_prioritized_variants,
+    write_filtered_json,
 )
 
 
@@ -71,11 +71,7 @@ def _verify_wes_vcf(wes_dir: Path, report: Dict[str, object]) -> None:
 
 
 def _write_filtered_json(input_path: Path, output_path: Path) -> int:
-    variants: List[Dict[str, object]] = load_prioritized_variants(input_path)
-    output_path.write_text(
-        json.dumps(variants, ensure_ascii=False, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    variants = write_filtered_json(input_path, output_path)
     return len(variants)
 
 
@@ -137,11 +133,10 @@ def run_demo(output_dir: Path) -> DemoResult:
         mtdna_variants = _write_filtered_json(prioritized, filtered_json)
         mtdna_html = browser_dir / "CNAG99901P.html"
         summary = generate_browser_report(
-            prioritized,
+            filtered_json,
             mtdna_html,
             project_id=PROJECT_ID,
             job_id="precomputed-demo",
-            browser_json_path=browser_dir / "mit.json",
         )
         if summary.get("variants") != mtdna_variants:
             raise DemoError("mtDNA browser and filtered JSON variant counts differ")

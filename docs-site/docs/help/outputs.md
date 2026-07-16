@@ -262,8 +262,8 @@ Applies to `pipeline: mit` with `mode: single`.
 | --- | --- |
 | `01_mtoolbox/mit_prioritized_variants.txt` | Final prioritized mtDNA variant report with `GT`, `DP`, and heteroplasmic fraction columns appended by CBIcall. |
 | `01_mtoolbox/VCF_file.vcf` | mtDNA VCF from MToolBox. |
+| `01_mtoolbox/mit.filtered.json` | Canonical machine-readable records retained by the browser's HF and population-frequency filters. |
 | `02_browser/<run-id>.html` | Standalone interactive mtDNA report with embedded data and browser assets. |
-| `02_browser/mit.json` | Structured, filtered data used to generate the browser report. |
 | `02_browser/README.txt` | Local instructions for opening the browser report. |
 
 <details>
@@ -274,7 +274,6 @@ Applies to `pipeline: mit` with `mode: single`.
 | `01_mtoolbox/<id>-DNA_MIT.bam` | Extracted mitochondrial BAM used as MToolBox input. |
 | `01_mtoolbox/<id>-DNA_MIT.bam.bai` | BAM index. |
 | `01_mtoolbox/prioritized_variants.txt` | Raw MToolBox prioritized variant list before CBIcall appends genotype/depth/HF fields. |
-| `01_mtoolbox/mit.filtered.json` | Filtered JSON conversion of the final prioritized report. |
 | `01_mtoolbox/mt_classification_best_results.csv` | MToolBox haplogroup/classification output. |
 | `01_mtoolbox/processed_fastq.tar.gz` | MToolBox processed FASTQ archive. |
 | `01_mtoolbox/summary_*.txt` | MToolBox run summary. |
@@ -294,8 +293,8 @@ The cohort workflow uses the same output directories as mtDNA single-sample mode
 | --- | --- |
 | `01_mtoolbox/mit_prioritized_variants.txt` | Final joint mtDNA variant report with per-sample `GT`, `DP`, and heteroplasmic fraction fields. |
 | `01_mtoolbox/VCF_file.vcf` | Joint mtDNA VCF from MToolBox. |
+| `01_mtoolbox/mit.filtered.json` | Canonical machine-readable records retained by the browser's HF and population-frequency filters. |
 | `02_browser/<run-id>.html` | Standalone interactive cohort report with embedded data and browser assets. |
-| `02_browser/mit.json` | Structured, filtered data used to generate the browser report. |
 | `02_browser/README.txt` | Local instructions for opening the browser report. |
 
 <details>
@@ -307,7 +306,6 @@ The cohort workflow uses the same output directories as mtDNA single-sample mode
 | `01_mtoolbox/<sample-id>-DNA_MIT.bam.bai` | BAM index for each extracted mitochondrial BAM. |
 | `01_mtoolbox/prioritized_variants.txt` | Raw MToolBox prioritized variant list. |
 | `01_mtoolbox/missing_variants.txt` | Temporary variant list used while appending cohort genotype/depth/HF fields. |
-| `01_mtoolbox/mit.filtered.json` | Filtered JSON conversion of the final prioritized report. |
 | `01_mtoolbox/OUT_*/` | MToolBox working directories and intermediate outputs. |
 
 </details>

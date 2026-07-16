@@ -62,6 +62,7 @@ It extracts mtDNA reads, runs MToolBox, and enriches the prioritized variants wi
 | `VCF_file.vcf` | mtDNA VCF from MToolBox |
 | `prioritized_variants.txt` | Raw prioritized list |
 | `mit_prioritized_variants.txt` | Final prioritized list with GT/DP/HF |
+| `mit.filtered.json` | Canonical filtered records used to generate the browser |
 | `02_browser/<run-id>.html` | Standalone interactive mtDNA report |
 
 </TabItem>
@@ -97,6 +98,7 @@ It extracts mtDNA reads, runs MToolBox, and enriches the prioritized variants wi
 | `VCF_file.vcf` | mtDNA VCF for full cohort |
 | `prioritized_variants.txt` | MToolBox-prioritized list |
 | `mit_prioritized_variants.txt` | Joint variant table with GT/DP/HF |
+| `mit.filtered.json` | Canonical filtered records used to generate the browser |
 | `02_browser/<run-id>.html` | Standalone interactive cohort report |
 
 </TabItem>

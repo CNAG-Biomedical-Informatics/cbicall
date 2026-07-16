@@ -11,7 +11,9 @@ required_files:
   - bash_gatk-3.5_mit_single_rsrs.log
   - 01_mtoolbox/mit_prioritized_variants.txt
   - 01_mtoolbox/mit.filtered.json
-  - 02_browser/mit.json
+  - 02_browser/README.txt
+required_globs:
+  - 02_browser/*.html
 json_expectations:
   - path: status
     equals: success

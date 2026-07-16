@@ -88,8 +88,9 @@ Please see:
 02_browser/README.txt
 ```
 
-The CBIcall mtDNA variation browser is a standalone HTML report. It embeds the
-filtered browser payload and its Tabulator table assets at generation time.
+The CBIcall mtDNA variation browser is a standalone HTML report. CBIcall derives
+the displayed rows from `01_mtoolbox/mit.filtered.json` and embeds them with the
+Tabulator table assets at generation time.
 Therefore, `02_browser/<run-id>.html` opens directly without a local web server,
 internet connection, or external static assets.
 
@@ -218,8 +219,9 @@ Please see:
 02_browser/README.txt
 ```
 
-The CBIcall mtDNA variation browser is a standalone HTML report. It embeds the
-filtered browser payload and its Tabulator table assets at generation time, so
+The CBIcall mtDNA variation browser is a standalone HTML report. CBIcall derives
+the displayed rows from `01_mtoolbox/mit.filtered.json` and embeds them with the
+Tabulator table assets at generation time, so
 `02_browser/<run-id>.html` opens directly without a local web server, internet
 connection, or external static assets. The cohort report follows the same
 format as the single-sample report, with sample-level filtering and fields.

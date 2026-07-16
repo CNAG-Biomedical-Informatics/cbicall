@@ -6,11 +6,9 @@ import html
 import json
 import re
 import sys
-from html.parser import HTMLParser
 from pathlib import Path
 from pprint import pprint
 from typing import Any, Dict, Iterable, List, Optional, Sequence
-from urllib.parse import quote, urlparse
 
 
 ASSET_DIR = Path(__file__).with_name("mtdna_browser_assets")
@@ -47,31 +45,6 @@ KEYS2REPORT = [
     "Mamit-tRNA_link",
     "PhastCons20Way",
     "PhyloP20Way",
-    "AC/AN_1000_Genomes",
-    "1000_Genomes_Homoplasmy",
-    "1000_Genomes_Heteroplasmy",
-]
-
-KEYS4HTML = [
-    "Sample",
-    "Locus",
-    "Variant_Allele",
-    "REF",
-    "ALT",
-    "Aa_Change",
-    "GT",
-    "DP",
-    "HF",
-    "tRNA_Annotation",
-    "Disease_Score",
-    "RNA_predictions",
-    "Mitomap_Associated_Disease(s)",
-    "Mitomap_Homoplasmy",
-    "Mitomap_Heteroplasmy",
-    "ClinVar",
-    "OMIM_link",
-    "dbSNP_ID",
-    "Mamit-tRNA_link",
     "AC/AN_1000_Genomes",
     "1000_Genomes_Homoplasmy",
     "1000_Genomes_Heteroplasmy",
@@ -116,21 +89,6 @@ EVIDENCE_FIELDS = ("mitomapDisease", "clinvar", "omim", "dbsnp")
 
 class BrowserError(RuntimeError):
     pass
-
-
-class _TextExtractor(HTMLParser):
-    def __init__(self) -> None:
-        HTMLParser.__init__(self)
-        self.parts = []  # type: List[str]
-
-    def handle_data(self, data: str) -> None:
-        self.parts.append(data)
-
-
-def _strip_html(value: Any) -> str:
-    parser = _TextExtractor()
-    parser.feed(str(value or ""))
-    return html.unescape("".join(parser.parts)).strip()
 
 
 def is_missing(value: Optional[str]) -> bool:
@@ -321,55 +279,20 @@ def hash_to_browser_rows(hash_out: Dict[str, Dict[str, str]]) -> List[Dict[str, 
     return rows
 
 
-def _coerce_browser_rows(data: Any) -> List[Dict[str, Any]]:
-    if not isinstance(data, list):
-        raise BrowserError("Browser JSON must contain a top-level 'data' array")
-    if all(isinstance(item, dict) for item in data):
-        return [dict(item) for item in data]
-
-    rows = []  # type: List[Dict[str, Any]]
-    for row_index, item in enumerate(data):
-        if not isinstance(item, list):
-            raise BrowserError("Browser JSON data entries must be objects or legacy arrays")
-        legacy = {
-            source_key: _strip_html(item[index]) if index < len(item) else ""
-            for index, source_key in enumerate(KEYS4HTML)
-        }
-        key = "{}_{}_{}".format(
-            legacy.get("Sample", ""),
-            legacy.get("Locus", ""),
-            legacy.get("Variant_Allele", row_index),
-        )
-        rows.extend(hash_to_browser_rows({key: legacy}))
-    return rows
-
-
 def build_report_payload(
-    data_payload: Dict[str, Any],
+    filtered_records: Dict[str, Dict[str, str]],
     *,
     project_id: str,
     job_id: str,
     source_name: str,
     disease_threshold: float = DISEASE_THRESHOLD,
 ) -> Dict[str, Any]:
-    rows = _coerce_browser_rows(data_payload.get("data"))
+    rows = hash_to_browser_rows(filtered_records)
     loci = sorted({str(row.get("locus", "")).strip() for row in rows if str(row.get("locus", "")).strip()})
 
     for row in rows:
-        if not isinstance(row.get("_samples"), list):
-            row["_samples"] = _sample_names(str(row.get("sample", "")))
-        if row.get("maxHeteroplasmy") is None:
-            row["maxHeteroplasmy"] = max_hf_any_sample(str(row.get("heteroplasmy", "")))
-        score = row.get("diseaseScoreValue")
-        if score is None:
-            score = _float_or_none(row.get("diseaseScore"))
-            row["diseaseScoreValue"] = score
-        row["_hasEvidence"] = any(str(row.get(field, "")).strip() for field in EVIDENCE_FIELDS)
+        score = row["diseaseScoreValue"]
         row["_highDisease"] = score is not None and score >= disease_threshold
-        row["_heteroplasmic"] = (
-            row["maxHeteroplasmy"] is not None
-            and 0 < row["maxHeteroplasmy"] < 1
-        )
 
     samples = sorted({sample for row in rows for sample in row.get("_samples", [])})
 
@@ -435,17 +358,7 @@ def render_report(payload: Dict[str, Any]) -> str:
     )
 
 
-def resolve_json_path(json_file: str, html_out: Optional[str]) -> Path:
-    json_path = Path(json_file)
-    if json_path.is_absolute() or json_path.exists():
-        return json_path
-    out_dir = Path(html_out).resolve().parent if html_out else Path.cwd()
-    colocated = out_dir / json_file
-    return colocated if colocated.exists() else json_path
-
-
-def load_payload(json_file: str, html_out: Optional[str] = None) -> Dict[str, Any]:
-    json_path = resolve_json_path(json_file, html_out)
+def load_filtered_variants(json_path: Path) -> Dict[str, Dict[str, str]]:
     try:
         with json_path.open("r", encoding="utf-8") as handle:
             payload = json.load(handle)
@@ -453,23 +366,25 @@ def load_payload(json_file: str, html_out: Optional[str] = None) -> Dict[str, An
         raise BrowserError("Cannot read {}: {}".format(json_path, exc)) from exc
     except json.JSONDecodeError as exc:
         raise BrowserError("Cannot parse {}: {}".format(json_path, exc)) from exc
-    if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
-        raise BrowserError("{} must contain a top-level 'data' array".format(json_path))
+    if not isinstance(payload, dict):
+        raise BrowserError("{} must contain a top-level object of filtered records".format(json_path))
+    if not all(isinstance(record, dict) for record in payload.values()):
+        raise BrowserError("{} contains a filtered record that is not an object".format(json_path))
     return payload
 
 
 def render_html(
     project_id: str,
     job_id: str,
-    json_file: str = "mit.json",
-    data_payload: Optional[Dict[str, Any]] = None,
+    source_name: str,
+    filtered_records: Dict[str, Dict[str, str]],
     disease_threshold: float = DISEASE_THRESHOLD,
 ) -> str:
     report = build_report_payload(
-        data_payload or {"data": []},
+        filtered_records,
         project_id=project_id,
         job_id=job_id,
-        source_name=json_file,
+        source_name=source_name,
         disease_threshold=disease_threshold,
     )
     return render_report(report)
@@ -486,77 +401,48 @@ def _write_text_atomic(output_path: Path, content: str) -> None:
         raise BrowserError("Cannot write {}: {}".format(output_path, exc)) from exc
 
 
-def generate_browser_report(
+def write_filtered_json(
     input_path: Path,
     output_path: Path,
     *,
-    project_id: str,
-    job_id: str,
-    browser_json_path: Optional[Path] = None,
     hf_cutoff: float = 0.30,
     maf_cutoff: float = 0.01,
     keep_missing_hf: bool = False,
-) -> Dict[str, int]:
-    hash_out = load_prioritized_variants(
+) -> Dict[str, Dict[str, str]]:
+    filtered_records = load_prioritized_variants(
         input_path,
         hf_cutoff=hf_cutoff,
         maf_cutoff=maf_cutoff,
         keep_missing_hf=keep_missing_hf,
     )
-    data_payload = {"data": hash_to_browser_rows(hash_out)}
-    if browser_json_path is not None:
-        _write_text_atomic(browser_json_path, json.dumps(data_payload, ensure_ascii=False) + "\n")
+    _write_text_atomic(output_path, json.dumps(filtered_records, sort_keys=True) + "\n")
+    return filtered_records
+
+
+def generate_browser_report(
+    filtered_json_path: Path,
+    output_path: Path,
+    *,
+    project_id: str,
+    job_id: str,
+) -> Dict[str, int]:
+    filtered_records = load_filtered_variants(filtered_json_path)
     payload = build_report_payload(
-        data_payload,
+        filtered_records,
         project_id=project_id,
         job_id=job_id,
-        source_name=input_path.name,
+        source_name=filtered_json_path.name,
     )
     _write_text_atomic(output_path, render_report(payload))
     return dict(payload["summary"])
 
 
-def hash2array(hash_out: Dict[str, Dict[str, str]]) -> List[List[str]]:
-    return [
-        [_html_cell(key, hash_out[index_key].get(key, "")) for key in KEYS4HTML]
-        for index_key in sorted(hash_out)
-    ]
-
-
-def _html_link(href: str, text: str) -> str:
-    return '<a target="_blank" rel="noopener noreferrer" href="{}">{}</a>'.format(
-        html.escape(href, quote=True), html.escape(text)
-    )
-
-
-def _is_http_url(value: str) -> bool:
-    parsed = urlparse(value)
-    return parsed.scheme in ("http", "https") and bool(parsed.netloc)
-
-
-def _html_cell(key: str, value: str) -> str:
-    temporary = value or ""
-    if key == "Mitomap_Associated_Disease(s)" and temporary:
-        temporary = temporary.replace("+", "_plus_")
-    if key == "Sample" and temporary:
-        temporary = _clean_sample(temporary)
-    if key in ("GT", "DP", "HF") and temporary:
-        return ",<br />".join(html.escape(part) for part in temporary.split("|"))
-    if key == "Locus" and temporary:
-        return _html_link("https://ghr.nlm.nih.gov/gene/" + quote(temporary, safe="") + "#conditions", temporary)
-    if key == "dbSNP_ID" and temporary:
-        return _html_link("https://www.ncbi.nlm.nih.gov/snp/" + quote(temporary, safe=""), temporary)
-    if key == "OMIM_link" and temporary and _is_http_url(temporary):
-        return _html_link(temporary, temporary)
-    return html.escape(temporary)
-
-
 def build_json_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Parse MToolBox prioritized variants and output hash/json/json4html/tsv"
+        description="Parse MToolBox prioritized variants and output hash/json/tsv"
     )
     parser.add_argument("-i", "--input", required=True, type=Path)
-    parser.add_argument("-f", "--format", default="hash", choices=["hash", "json", "json4html", "tsv"])
+    parser.add_argument("-f", "--format", default="hash", choices=["hash", "json", "tsv"])
     parser.add_argument("--HF", type=float, default=0.30, help="Heteroplasmic fraction cutoff [0.30]. Set to 0 to disable.")
     parser.add_argument("--MAF", type=float, default=0.01, help="1000G MAF cutoff [0.01]. Set to 0 to disable.")
     parser.add_argument("--denovo", action="store_true", help="Reserved; not implemented")
@@ -582,8 +468,6 @@ def json_main(argv: Optional[Sequence[str]] = None) -> int:
         pprint(hash_out)
     elif args.format == "json":
         print(json.dumps(hash_out, sort_keys=True))
-    elif args.format == "json4html":
-        print(json.dumps({"data": hash_to_browser_rows(hash_out)}, ensure_ascii=False))
     elif args.format == "tsv":
         writer = csv.writer(sys.stdout, delimiter="\t", lineterminator="\n")
         writer.writerow(KEYS2REPORT)
@@ -596,18 +480,24 @@ def build_html_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Generate a standalone CBIcall mtDNA report")
     parser.add_argument("--id", required=True, help="Project ID displayed in the report")
     parser.add_argument("--job-id", required=True, help="CBIcall run ID displayed in the report")
-    parser.add_argument("--json", default="mit.json", help="Browser JSON from mtb2json.py -f json4html")
-    parser.add_argument("--out", "-o", default="mtdna.html", help="Output HTML path")
+    parser.add_argument(
+        "--filtered-json",
+        required=True,
+        type=Path,
+        help="Canonical filtered JSON generated by mtb2json.py -f json",
+    )
+    parser.add_argument("--out", "-o", default=Path("mtdna.html"), type=Path, help="Output HTML path")
     return parser
 
 
 def html_main(argv: Optional[Sequence[str]] = None) -> int:
     args = build_html_parser().parse_args(argv)
     try:
-        payload = load_payload(args.json, args.out)
-        _write_text_atomic(
-            Path(args.out),
-            render_html(args.id, args.job_id, args.json, payload),
+        generate_browser_report(
+            args.filtered_json,
+            args.out,
+            project_id=args.id,
+            job_id=args.job_id,
         )
     except BrowserError as exc:
         raise SystemExit(str(exc)) from exc
@@ -619,17 +509,15 @@ __all__ = [
     "BrowserError",
     "DISEASE_THRESHOLD",
     "KEYS2REPORT",
-    "KEYS4HTML",
     "build_download_buttons",
     "build_hash_out",
     "build_report_payload",
     "generate_browser_report",
-    "hash2array",
     "hash_to_browser_rows",
     "html_main",
     "is_missing",
     "json_main",
-    "load_payload",
+    "load_filtered_variants",
     "load_prioritized_variants",
     "max_hf_any_sample",
     "normalize_header",
@@ -637,6 +525,6 @@ __all__ = [
     "passes_maf_filter",
     "render_html",
     "render_report",
-    "resolve_json_path",
     "sort_sample_alphabetically",
+    "write_filtered_json",
 ]

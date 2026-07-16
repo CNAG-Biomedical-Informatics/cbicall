@@ -46,6 +46,11 @@ def test_run_demo_generates_wes_and_mtdna_reports(tmp_path):
         )
     )
     assert len(variants) == result.mtdna_variants
+    json_artifacts = sorted(
+        path.relative_to(output_dir / "mtdna").as_posix()
+        for path in (output_dir / "mtdna").rglob("*.json")
+    )
+    assert json_artifacts == ["01_mtoolbox/mit.filtered.json"]
     readme = (output_dir / "README.txt").read_text(encoding="utf-8")
     assert "did not execute BWA, GATK, or MToolBox" in readme
     assert "cbicall test --wes-bash --mit-bash -t 1" in readme

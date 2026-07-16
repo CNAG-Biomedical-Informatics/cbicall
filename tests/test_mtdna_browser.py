@@ -1,4 +1,3 @@
-import importlib.util
 import json
 from pathlib import Path
 import shutil
@@ -11,15 +10,6 @@ from cbicall import mtdna_browser as browser
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-
-
-def load_wrapper(name):
-    path = REPO_ROOT / "browser" / (name + ".py")
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
 
 def write_prioritized_report(path, rows=None):
     header = [
@@ -112,12 +102,8 @@ def test_parser_preserves_existing_filtering_and_json_shape(tmp_path, capsys):
     emitted = json.loads(capsys.readouterr().out)
     assert emitted == parsed
 
-    assert browser.json_main(["-i", str(report), "-f", "json4html"]) == 0
-    browser_payload = json.loads(capsys.readouterr().out)
-    assert browser_payload["data"][0]["locus"] == "MT-ND1"
-    assert browser_payload["data"][0]["_samples"] == ["A", "B"]
     report_payload = browser.build_report_payload(
-        browser_payload,
+        parsed,
         project_id="project",
         job_id="job",
         source_name=report.name,
@@ -152,25 +138,16 @@ def test_input_and_payload_validation_errors(tmp_path):
         browser.load_prioritized_variants(empty)
     with pytest.raises(browser.BrowserError, match="Cannot read mtDNA input"):
         browser.load_prioritized_variants(tmp_path / "missing.txt")
-    with pytest.raises(browser.BrowserError, match="top-level 'data' array"):
-        browser.build_report_payload(
-            {"data": None},
-            project_id="p",
-            job_id="j",
-            source_name="bad.json",
-        )
-
     payload = browser.build_report_payload(
         {
-            "data": [
-                {
-                    "sample": "sample-DNA_MIT",
-                    "locus": "MT-ND1",
-                    "heteroplasmy": "0.5",
-                    "diseaseScore": "0.9",
-                    "dbsnp": "rs1",
-                }
-            ]
+            "sample_MT-ND1_1A": {
+                "Sample": "sample-DNA_MIT",
+                "Locus": "MT-ND1",
+                "Variant_Allele": "1A",
+                "HF": "0.5",
+                "Disease_Score": "0.9",
+                "dbSNP_ID": "rs1",
+            }
         },
         project_id="p",
         job_id="j",
@@ -184,9 +161,8 @@ def test_input_and_payload_validation_errors(tmp_path):
 def test_structured_payload_has_mtdna_metrics_and_fields(tmp_path):
     report = write_prioritized_report(tmp_path / "report.txt")
     parsed = browser.load_prioritized_variants(report)
-    rows = browser.hash_to_browser_rows(parsed)
     payload = browser.build_report_payload(
-        {"data": rows},
+        parsed,
         project_id="project",
         job_id="job",
         source_name=report.name,
@@ -205,49 +181,21 @@ def test_structured_payload_has_mtdna_metrics_and_fields(tmp_path):
     assert payload["rows"][0]["maxHeteroplasmy"] == 0.75
 
 
-def test_legacy_browser_array_is_still_accepted():
-    payload = browser.build_report_payload(
-        {"data": [["S&lt;1&gt;", '<a href="x">MT-ND1</a>', "123A", "A", "G", "p.X", "1", "50", "0.5"]]},
-        project_id="project",
-        job_id="job",
-        source_name="legacy.json",
-    )
-    assert payload["rows"][0]["sample"] == "S<1>"
-    assert payload["rows"][0]["locus"] == "MT-ND1"
-    assert payload["summary"]["heteroplasmic"] == 1
-
-
-def test_legacy_html_helpers_escape_values_and_links():
-    wrapper = load_wrapper("mtb2json")
-    assert wrapper._html_cell("Sample", "S-DNA_MIT<script>") == "S&lt;script&gt;"
-    assert wrapper._html_cell("HF", "0.4|<x>") == "0.4,<br />&lt;x&gt;"
-    locus = wrapper._html_cell("Locus", "MT-ND1")
-    assert 'rel="noopener noreferrer"' in locus
-    assert 'href="https://ghr.nlm.nih.gov/gene/MT-ND1#conditions"' in locus
-    assert "<a " not in wrapper._html_cell("OMIM_link", "javascript:alert(1)")
-    assert wrapper._is_http_url("https://omim.org/1")
-    assert "_plus_" in wrapper._html_cell("Mitomap_Associated_Disease(s)", "A+B")
-    assert "ncbi.nlm.nih.gov/snp/rs1" in wrapper._html_cell("dbSNP_ID", "rs1")
-    assert "omim.org/1" in wrapper._html_cell("OMIM_link", "https://omim.org/1")
-    assert browser.hash2array({"key": {"Sample": "sample-DNA_MIT"}})[0][0] == "sample"
-
-
 def test_report_embeds_tabulator_data_and_escapes_script_end(tmp_path):
     report = write_prioritized_report(tmp_path / "report.txt")
     parsed = browser.load_prioritized_variants(report)
-    rows = browser.hash_to_browser_rows(parsed)
-    rows[0]["mitomapDisease"] = "</script><script>alert(1)</script>"
+    next(iter(parsed.values()))["Mitomap_Associated_Disease(s)"] = "</script><script>alert(1)</script>"
 
     rendered = browser.render_html(
         "P<1>",
         'J"2',
-        'mit "x".json',
-        {"data": rows},
+        'mit.filtered "x".json',
+        parsed,
     )
 
     assert "P&lt;1&gt;" in rendered
     assert "J&quot;2" in rendered
-    assert "mit &quot;x&quot;.json" in rendered
+    assert "mit.filtered &quot;x&quot;.json" in rendered
     assert "CBIcall mtDNA" in rendered
     assert 'id="detail-panel"' in rendered
     assert 'id="view-tabs"' in rendered
@@ -287,22 +235,23 @@ def test_report_embeds_tabulator_data_and_escapes_script_end(tmp_path):
     assert "BFF Tools Browser" not in rendered
 
 
-def test_generate_report_writes_standalone_html_and_browser_json(tmp_path):
+def test_generate_report_reads_canonical_json_and_writes_standalone_html(tmp_path):
     report = write_prioritized_report(tmp_path / "report.txt")
+    filtered_json = tmp_path / "mtoolbox" / "mit.filtered.json"
     html_path = tmp_path / "browser" / "run.html"
-    json_path = tmp_path / "browser" / "mit.json"
+    filtered_records = browser.write_filtered_json(report, filtered_json)
 
     summary = browser.generate_browser_report(
-        report,
+        filtered_json,
         html_path,
         project_id="project",
         job_id="run",
-        browser_json_path=json_path,
     )
 
     assert summary["variants"] == 1
+    assert browser.load_filtered_variants(filtered_json) == filtered_records
     assert html_path.is_file()
-    assert json.loads(json_path.read_text(encoding="utf-8"))["data"][0]["locus"] == "MT-ND1"
+    assert 'href="../01_mtoolbox/mit.filtered.json"' in html_path.read_text(encoding="utf-8")
     assert not (html_path.parent / "run.html.tmp").exists()
 
 
@@ -319,47 +268,38 @@ def test_report_asset_and_write_errors_are_wrapped(tmp_path, monkeypatch):
         browser._write_text_atomic(tmp_path / "out.html", "content")
 
 
-def test_payload_loading_resolves_colocated_json_and_reports_errors(tmp_path):
-    out = tmp_path / "browser" / "report.html"
-    out.parent.mkdir()
-    payload = {"data": [{"sample": "sample"}]}
-    (out.parent / "mit.json").write_text(json.dumps(payload), encoding="utf-8")
-
-    assert browser.load_payload("mit.json", str(out)) == payload
+def test_filtered_json_loading_reports_errors(tmp_path):
     with pytest.raises(browser.BrowserError, match="Cannot read"):
-        browser.load_payload("missing.json", str(out))
-    bad = out.parent / "bad.json"
+        browser.load_filtered_variants(tmp_path / "missing.json")
+    bad = tmp_path / "bad.json"
     bad.write_text("not json", encoding="utf-8")
     with pytest.raises(browser.BrowserError, match="Cannot parse"):
-        browser.load_payload(str(bad), str(out))
-    wrong = out.parent / "wrong.json"
-    wrong.write_text('{"rows": []}', encoding="utf-8")
-    with pytest.raises(browser.BrowserError, match="top-level 'data' array"):
-        browser.load_payload(str(wrong), str(out))
-    with pytest.raises(browser.BrowserError, match="objects or legacy arrays"):
-        browser.build_report_payload(
-            {"data": ["bad"]},
-            project_id="p",
-            job_id="j",
-            source_name="bad.json",
-        )
+        browser.load_filtered_variants(bad)
+    wrong_shape = tmp_path / "wrong-shape.json"
+    wrong_shape.write_text("[]", encoding="utf-8")
+    with pytest.raises(browser.BrowserError, match="top-level object"):
+        browser.load_filtered_variants(wrong_shape)
+    wrong_record = tmp_path / "wrong-record.json"
+    wrong_record.write_text('{"variant": []}', encoding="utf-8")
+    with pytest.raises(browser.BrowserError, match="not an object"):
+        browser.load_filtered_variants(wrong_record)
 
 
 def test_cli_wrappers_generate_json_and_html(tmp_path):
     report = write_prioritized_report(tmp_path / "report.txt")
-    json_path = tmp_path / "mit.json"
+    json_path = tmp_path / "mit.filtered.json"
     html_path = tmp_path / "report.html"
 
     with json_path.open("w", encoding="utf-8") as handle:
         subprocess.run(
-            [sys.executable, "browser/mtb2json.py", "-i", str(report), "-f", "json4html"],
+            [sys.executable, "browser/mtb2json.py", "-i", str(report), "-f", "json"],
             cwd=REPO_ROOT,
             stdout=handle,
             text=True,
             check=True,
         )
     subprocess.run(
-        [sys.executable, "browser/mtb2html.py", "--id", "project", "--job-id", "job", "--json", str(json_path), "--out", str(html_path)],
+        [sys.executable, "browser/mtb2html.py", "--id", "project", "--job-id", "job", "--filtered-json", str(json_path), "--out", str(html_path)],
         cwd=REPO_ROOT,
         text=True,
         check=True,
@@ -371,13 +311,13 @@ def test_in_process_cli_error_and_html_paths(tmp_path):
     with pytest.raises(SystemExit, match="Cannot read mtDNA input"):
         browser.json_main(["-i", str(tmp_path / "missing.txt"), "-f", "json"])
 
-    payload_path = tmp_path / "mit.json"
+    payload_path = tmp_path / "mit.filtered.json"
     output_path = tmp_path / "report.html"
-    payload_path.write_text('{"data": []}', encoding="utf-8")
+    payload_path.write_text("{}", encoding="utf-8")
     assert browser.html_main([
         "--id", "project",
         "--job-id", "job",
-        "--json", str(payload_path),
+        "--filtered-json", str(payload_path),
         "--out", str(output_path),
     ]) == 0
     assert output_path.is_file()
@@ -386,7 +326,7 @@ def test_in_process_cli_error_and_html_paths(tmp_path):
         browser.html_main([
             "--id", "project",
             "--job-id", "job",
-            "--json", str(tmp_path / "missing.json"),
+            "--filtered-json", str(tmp_path / "missing.json"),
             "--out", str(output_path),
         ])
 
@@ -406,8 +346,8 @@ def test_report_executes_in_headless_chromium_when_available(tmp_path):
             browser.render_html(
                 "project",
                 "job",
-                "mit.json",
-                {"data": browser.hash_to_browser_rows(parsed)},
+                "mit.filtered.json",
+                parsed,
             ),
             encoding="utf-8",
         )
@@ -431,3 +371,14 @@ def test_report_executes_in_headless_chromium_when_available(tmp_path):
     assert 'id="metric-variants">1</strong>' in proc.stdout
     assert 'class="tabulator"' in proc.stdout
     assert "1 of 1 variant" in proc.stdout
+
+
+def test_mtdna_workflows_use_only_canonical_filtered_json():
+    for relative_path in (
+        "workflows/bash/gatk-3.5/mit_single.sh",
+        "workflows/bash/gatk-3.5/mit_cohort.sh",
+    ):
+        script = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+        assert script.count('"$PYBINDIR/mtb2json.py"') == 1
+        assert '-f json > "$mit_filtered_json"' in script
+        assert '--filtered-json "$mit_filtered_json"' in script

@@ -1,7 +1,7 @@
 # Developer smoke test using a completed mtDNA run
 
-./mtb2json.py -i /path/to/01_mtoolbox/mit_prioritized_variants.txt -f json > mit.filtered.json
-./mtb2json.py -i /path/to/01_mtoolbox/mit_prioritized_variants.txt -f json4html > mit.json
-./mtb2html.py --id CNAG99901P --job-id 176099009134887 --json mit.json --out mtdna.html
+run_dir=/path/to/completed/cbicall_mit_run
+./mtb2json.py -i "$run_dir/01_mtoolbox/mit_prioritized_variants.txt" -f json > "$run_dir/01_mtoolbox/mit.filtered.json"
+./mtb2html.py --id CNAG99901P --job-id 176099009134887 --filtered-json "$run_dir/01_mtoolbox/mit.filtered.json" --out "$run_dir/02_browser/mtdna.html"
 
-xdg-open mtdna.html
+xdg-open "$run_dir/02_browser/mtdna.html"

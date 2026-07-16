@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compatibility CLI for the reusable CBIcall mtDNA report module."""
+"""CLI entry point for generating the standalone CBIcall mtDNA report."""
 
 import sys
 from pathlib import Path
@@ -15,10 +15,9 @@ from cbicall import mtdna_browser as _browser  # noqa: E402
 
 BrowserError = _browser.BrowserError
 build_download_buttons = _browser.build_download_buttons
-load_payload = _browser.load_payload
+load_filtered_variants = _browser.load_filtered_variants
 render_html = _browser.render_html
 render_report = _browser.render_report
-resolve_json_path = _browser.resolve_json_path
 _download_button = _browser._download_button
 _json_for_script = _browser._json_for_script
 
