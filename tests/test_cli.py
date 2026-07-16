@@ -2405,3 +2405,33 @@ def test_cli_compare_and_resource_guard_edge_branches(tmp_path, capsys):
     bad_json.write_text("{", encoding="utf-8")
     with pytest.raises(ValueError, match="Invalid run report JSON"):
         cli_mod._load_run_report(str(bad_json))
+
+
+def test_resource_guard_explains_local_data_configuration(monkeypatch):
+    def unresolved(datadir):
+        return SimpleNamespace(
+            resources={
+                "bundle": {
+                    "key": "cbicall-germline-resources-v1",
+                    "runtime_check": {
+                        "status": "datadir_missing",
+                        "datadir": datadir,
+                        "source": "/path/to/env.sh",
+                    },
+                }
+            }
+        )
+
+    monkeypatch.delenv("CBICALL_DATA", raising=False)
+    with pytest.raises(cli_mod.ParameterValidationError) as exc_info:
+        cli_mod._require_verified_resource(unresolved("/cbicall-data"))
+    message = str(exc_info.value)
+    assert "CBICALL_DATA is not set" in message
+    assert "/cbicall-data, the container default" in message
+    assert "export CBICALL_DATA=/absolute/path/to/cbicall-data" in message
+    assert "cbicall validate-resources" in message
+
+    monkeypatch.setenv("CBICALL_DATA", "/missing/resources")
+    with pytest.raises(cli_mod.ParameterValidationError) as exc_info:
+        cli_mod._require_verified_resource(unresolved("/missing/resources"))
+    assert "CBICALL_DATA is set, but the resolved directory does not exist" in str(exc_info.value)

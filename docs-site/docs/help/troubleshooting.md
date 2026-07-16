@@ -36,6 +36,8 @@ evidence available at failure time.
 **Likely cause**
 
 `CBICALL_DATA` does not point to the directory where databases and external tools are installed or mounted.
+If it is unset, native workflows fall back to `/cbicall-data`, which is the
+standard container mount and usually does not exist in a local source installation.
 
 **Fix**
 

@@ -1024,7 +1024,31 @@ def _require_verified_resource(resolved_config: ResolvedConfig) -> None:
         details.append(f"  DATADIR: {runtime_check.get('datadir')}")
     if runtime_check.get("source"):
         details.append(f"  source: {runtime_check.get('source')}")
-    details.append("Run validate-resources and check the configured resource directory before launching.")
+
+    configured_data = os.environ.get("CBICALL_DATA")
+    datadir = runtime_check.get("datadir")
+    if status == "datadir_missing" and not configured_data and datadir == "/cbicall-data":
+        details.extend(
+            [
+                "CBICALL_DATA is not set; CBIcall used /cbicall-data, the container default.",
+                "For a local or source installation, set the resource root containing Databases/ and NGSutils/:",
+                "  export CBICALL_DATA=/absolute/path/to/cbicall-data",
+                "Then validate it:",
+                "  cbicall validate-resources",
+            ]
+        )
+    elif status == "datadir_missing" and configured_data:
+        details.extend(
+            [
+                "CBICALL_DATA is set, but the resolved directory does not exist.",
+                "Set it to the resource root containing Databases/ and NGSutils/:",
+                "  export CBICALL_DATA=/absolute/path/to/cbicall-data",
+                "Then validate it:",
+                "  cbicall validate-resources",
+            ]
+        )
+    else:
+        details.append("Run cbicall validate-resources and check the configured resource directory before launching.")
     raise ParameterValidationError("\n".join(details))
 
 def _apply_cli_runtime_overrides(params: dict, arg: dict) -> dict:
