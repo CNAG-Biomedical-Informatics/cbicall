@@ -49,7 +49,8 @@ _CBIcall validates the user parameters YAML, resolves it against the workflow re
 | **Resource catalog** | Declares external dependency sets, resource identifiers, compatible workflow keys, availability rules, and checksum metadata for downloadable CBIcall bundles. | `resources/cbicall-resource-catalog.json`, `src/cbicall/resources.py` |
 | **Workflow runners** | Execute the resolved implementation. Bash runs local scripts directly; Snakemake, native Nextflow, and Cromwell run bundled workflow files; external nf-core entries are launched through Nextflow. | `src/cbicall/execution.py` |
 | **Workflow implementations** | Contain native CBIcall workflows and registered external workflow entries. Native workflows follow the CBIcall output contract; external workflows keep their upstream output layout. | `workflows/bash/`, `workflows/snakemake/`, `workflows/nextflow/`, `workflows/cromwell/` |
-| **Run audit layer** | Writes `log.json`, `cbicall-execution-contract.json`, `run-report.json`, workflow fingerprints, resource identity, output inventories, normalized VCF fingerprints, HTML reports, and comparison reports. | `src/cbicall/cli.py`, `src/cbicall/html_reports.py`, `cbicall compare-runs` |
+| **Run audit layer** | Writes `log.json` and `run-report.json`; records runtime versions, workflow and resource identity, output inventories, execution contracts, and VCF fingerprints. | `src/cbicall/run_audit.py`, `src/cbicall/runtime_info.py` |
+| **Report layer** | Loads and refreshes completed audits, renders text/HTML/MultiQC summaries, and compares two or more runs. | `src/cbicall/report_commands.py`, `src/cbicall/comparison_commands.py`, `src/cbicall/html_reports.py`, `src/cbicall/multiqc.py` |
 | **Contract tests** | Run small examples and validate expected output contracts without keeping full `ref_*` run directories in the repository. | `src/cbicall/integration_tests.py`, `tests/fixtures/integration/` |
 
 :::note[Source and installed layouts]
