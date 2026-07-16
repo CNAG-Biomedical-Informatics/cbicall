@@ -77,7 +77,7 @@ def test_console_main_returns_codes_and_preserves_debug_tracebacks(monkeypatch, 
     assert main_mod.console_main() == 1
     assert "ERROR: bad input" in capsys.readouterr().err
 
-    monkeypatch.setattr(sys, "argv", ["cbicall", "--debug"])
+    monkeypatch.setattr(sys, "argv", ["cbicall", "run", "--debug"])
     with pytest.raises(ValueError, match="bad input"):
         main_mod.console_main()
 

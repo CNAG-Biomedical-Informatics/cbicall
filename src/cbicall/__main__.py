@@ -26,7 +26,7 @@ def console_main() -> int:
         print("Interrupted by user", file=sys.stderr)
         return 130
     except Exception as exc:
-        if "-debug" in sys.argv or "--debug" in sys.argv:
+        if "--debug" in sys.argv:
             raise
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1

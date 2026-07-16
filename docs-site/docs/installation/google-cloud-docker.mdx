@@ -371,7 +371,7 @@ nohup bash -lc '
 date -u
 git rev-parse HEAD
 cbicall validate-parameters -p cloud-wes-real.yaml
-cbicall -p cloud-wes-real.yaml -t 4
+cbicall run -p cloud-wes-real.yaml -t 4
 ' > cloud-evidence/cbicall-google-cloud-public-wes-stdout.txt 2>&1 &
 ```
 

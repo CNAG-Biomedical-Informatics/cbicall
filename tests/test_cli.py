@@ -14,6 +14,25 @@ from cbicall import cli as cli_mod
 from cbicall.html_reports import render_compare_html, render_run_report_html
 
 
+def _set_main_run_argv(monkeypatch, tmp_path, *, threads=1, options=()):
+    param_file = tmp_path / "params.yaml"
+    param_file.write_text("pipeline: wes\nmode: single\n", encoding="utf-8")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "cbicall",
+            "run",
+            "-t",
+            str(threads),
+            "-p",
+            str(param_file),
+            *options,
+        ],
+    )
+    return param_file
+
+
 def test_write_log_creates_json(tmp_path):
     cfg = {"project_dir": str(tmp_path)}
     arg = {"threads": 4}
@@ -770,7 +789,7 @@ def test_run_analysis_writes_failed_run_report(monkeypatch, tmp_path, capsys):
             {
                 "threads": 1,
                 "paramfile": str(param_file),
-                "debug": 0,
+                "debug": False,
                 "verbose": False,
                 "nocolor": True,
             },
@@ -795,7 +814,7 @@ def test_run_analysis_writes_failed_run_report(monkeypatch, tmp_path, capsys):
             {
                 "threads": 1,
                 "paramfile": str(param_file),
-                "debug": 0,
+                "debug": False,
                 "verbose": False,
                 "nocolor": True,
             },
@@ -1480,78 +1499,6 @@ def test_validate_resources_command_accepts_short_resource_flag(capsys):
     assert "cbicall-germline-resources-v1" in out
 
 
-def test_main_happy_path(monkeypatch, tmp_path):
-    def fake_usage(version):
-        return {
-            "threads": 4,
-            "paramfile": str(tmp_path / "params.yaml"),
-            "debug": 0,
-            "verbose": False,
-            "nocolor": False,
-        }
-
-    monkeypatch.setattr(cli_mod, "usage", fake_usage)
-
-    fake_param = {
-        "pipeline": "wes",
-        "mode": "single",
-        "input_dir": None,
-        "sample_map": None,
-        "workflow_backend": "bash",
-        "software_stack": "gatk-3.5",
-        "cleanup_bam": False,
-    }
-
-    monkeypatch.setattr(cli_mod.config_mod, "read_param_file", lambda _: fake_param)
-    monkeypatch.setattr(
-        cli_mod.config_mod,
-        "set_config_values",
-        lambda _: {
-                "project_dir": str(tmp_path / "proj"),
-            "id": "ID123",
-            "genome": "b37",
-            "inputs": {"input_dir": None, "sample_map": None},
-            "workflow": {
-                "backend": "bash",
-                "pipeline": "wes",
-                "mode": "single",
-                "software_stack": "gatk-3.5",
-                "registry_version": "v1",
-                "entrypoint": "/x.sh",
-                "config_file": None,
-                "helpers": {},
-            },
-        },
-    )
-
-    logs = {}
-    monkeypatch.setattr(
-        cli_mod, "write_log",
-        lambda cfg, arg, param: logs.update({"cfg": cfg, "arg": arg, "param": param})
-    )
-
-    class FakeWorkflowExecutor:
-        def __init__(self, settings):
-            logs["settings"] = settings
-
-        def run(self):
-            return True
-
-    monkeypatch.setattr(cli_mod, "WorkflowExecutor", FakeWorkflowExecutor)
-
-    class FakeGoodBye:
-        def say_goodbye(self):
-            return "Bye"
-
-    monkeypatch.setattr(cli_mod, "GoodBye", FakeGoodBye)
-
-    rc = cli_mod.main()
-    assert rc == 0
-    assert logs["settings"].threads == 4
-    assert logs["settings"].run_id == "ID123"
-    assert logs["settings"].workflow.entrypoint == "/x.sh"
-
-
 def test_main_run_subcommand_happy_path(monkeypatch, tmp_path, capsys):
     param_file = tmp_path / "params.yaml"
     param_file.write_text("pipeline: wes\nmode: single\n", encoding="utf-8")
@@ -1635,16 +1582,7 @@ def test_main_run_subcommand_happy_path(monkeypatch, tmp_path, capsys):
 
 
 def test_main_verbose_prints(monkeypatch, tmp_path, capsys):
-    def fake_usage(version):
-        return {
-            "threads": 1,
-            "paramfile": str(tmp_path / "params.yaml"),
-            "debug": 0,
-            "verbose": True,
-            "nocolor": False,
-        }
-
-    monkeypatch.setattr(cli_mod, "usage", fake_usage)
+    _set_main_run_argv(monkeypatch, tmp_path, options=("--verbose",))
     monkeypatch.setattr(
         cli_mod.config_mod, "read_param_file", lambda _: {
             "pipeline": "wes", "mode": "single", "input_dir": None, "sample_map": None,
@@ -1692,16 +1630,7 @@ def test_main_verbose_prints(monkeypatch, tmp_path, capsys):
 
 
 def test_main_warns_when_genome_is_inferred(monkeypatch, tmp_path, capsys):
-    def fake_usage(version):
-        return {
-            "threads": 1,
-            "paramfile": str(tmp_path / "params.yaml"),
-            "debug": 0,
-            "verbose": False,
-            "nocolor": False,
-        }
-
-    monkeypatch.setattr(cli_mod, "usage", fake_usage)
+    _set_main_run_argv(monkeypatch, tmp_path)
     monkeypatch.setattr(
         cli_mod.config_mod,
         "read_param_file",
@@ -1754,16 +1683,7 @@ def test_main_warns_when_genome_is_inferred(monkeypatch, tmp_path, capsys):
 
 
 def test_main_partial_run_warning_and_metadata(monkeypatch, tmp_path, capsys):
-    def fake_usage(version):
-        return {
-            "threads": 4,
-            "paramfile": str(tmp_path / "params.yaml"),
-            "debug": 0,
-            "verbose": False,
-            "nocolor": False,
-        }
-
-    monkeypatch.setattr(cli_mod, "usage", fake_usage)
+    _set_main_run_argv(monkeypatch, tmp_path, threads=4)
     monkeypatch.setattr(
         cli_mod.config_mod,
         "read_param_file",
@@ -1941,16 +1861,7 @@ def test_run_test_command_release_rejects_other_selectors():
 
 
 def test_main_no_color_disables_ansi_output(monkeypatch, tmp_path, capsys):
-    def fake_usage(version):
-        return {
-            "threads": 1,
-            "paramfile": str(tmp_path / "params.yaml"),
-            "debug": 0,
-            "verbose": False,
-            "nocolor": True,
-        }
-
-    monkeypatch.setattr(cli_mod, "usage", fake_usage)
+    _set_main_run_argv(monkeypatch, tmp_path, options=("--no-color",))
     monkeypatch.setattr(
         cli_mod.config_mod,
         "read_param_file",
@@ -2006,16 +1917,7 @@ def test_main_no_color_disables_ansi_output(monkeypatch, tmp_path, capsys):
 
 
 def test_main_passes_wgs_cohort_workflow_keys(monkeypatch, tmp_path):
-    def fake_usage(version):
-        return {
-            "threads": 4,
-            "paramfile": str(tmp_path / "params.yaml"),
-            "debug": 0,
-            "verbose": False,
-            "nocolor": False,
-        }
-
-    monkeypatch.setattr(cli_mod, "usage", fake_usage)
+    _set_main_run_argv(monkeypatch, tmp_path, threads=4)
 
     fake_param = {
         "pipeline": "wgs",
@@ -2168,7 +2070,7 @@ def test_run_analysis_passes_sarek_nextflow_settings(monkeypatch, tmp_path):
         {
             "threads": 2,
             "paramfile": str(param_file),
-            "debug": 0,
+            "debug": False,
             "verbose": False,
             "nocolor": True,
         },

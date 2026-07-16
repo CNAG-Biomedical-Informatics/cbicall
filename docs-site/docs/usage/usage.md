@@ -51,12 +51,11 @@ their dedicated pages.
 
 | Option | Meaning |
 | --- | --- |
-| `-verbose` | Enable verbose output. |
-| `-debug`, `--debug` | Debugging level. |
-| `-nc`, `--no-color` | Disable ANSI colors explicitly. Colors are automatically disabled when output is redirected. |
+| `--verbose` | Show resolved configuration and input parameters. |
+| `--debug` | Print execution commands and preserve Python tracebacks. |
+| `--no-color` | Disable ANSI colors explicitly. Colors are automatically disabled when output is redirected. |
 | `-v`, `--version` | Show version information. |
-| `-h`, `--help` | Show brief help. |
-| `-man` | Show full command-line documentation. |
+| `-h`, `--help` | Show help for the `run` command. |
 
 :::note[Why analysis parameters are YAML-only]
 CBIcall deliberately does not duplicate YAML analysis keys as CLI options or
@@ -85,7 +84,7 @@ For most runs, keep the command simple:
 cbicall run -p wes_single.yaml -t 4
 ```
 
-Use `-verbose` only when you need more startup detail. When output is redirected
+Use `--verbose` only when you need more startup detail. When output is redirected
 to a file, CBIcall disables ANSI colors automatically.
 
 <details>

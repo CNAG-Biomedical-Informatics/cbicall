@@ -32,7 +32,7 @@ from .cli_output import (
 from .demo import run_demo
 from .execution import WorkflowExecutor, EXECUTION_CONTRACT_FILE
 from .errors import ParameterValidationError
-from .helpmod import usage, parse_args as _parse_args, parse_run_args as _parse_run_args
+from .helpmod import handle_main_args, parse_run_args as _parse_run_args
 from .integration_tests import (
     prepare_integration_root,
     run_integration_tests,
@@ -104,12 +104,11 @@ _refresh_colors()
 
 def parse_args(argv):
     """
-    Convenience wrapper so tests can do cli.parse_args([...])
-    and get an argparse.Namespace.
+    Parse the explicit ``cbicall run`` command for programmatic callers.
     """
-    if argv and argv[0] == "run":
-        return _parse_run_args(argv[1:], VERSION)
-    return _parse_args(argv, VERSION)
+    if not argv or argv[0] != "run":
+        raise SystemExit("The run subcommand is required")
+    return _parse_run_args(argv[1:], VERSION)
 
 
 def _project_root() -> Path:
@@ -1067,7 +1066,7 @@ def _run_validate_parameters_command(argv: List[str]) -> int:
     )
     parser.add_argument("-p", "--param", dest="paramfile", required=True, help="Parameters YAML file.")
     parser.add_argument("--runtime-profile", dest="profile", default="local", help="CBIcall runtime profile for native workflows.")
-    parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
+    parser.add_argument("--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
     args = parser.parse_args(argv)
 
     if args.nocolor:
@@ -1181,7 +1180,7 @@ def _run_validate_registry_command(argv: List[str]) -> int:
     )
     parser.add_argument("--registry", default=str(default_registry), help="Workflow registry YAML.")
     parser.add_argument("--schema", default=str(default_schema), help="Workflow registry JSON Schema.")
-    parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
+    parser.add_argument("--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
     args = parser.parse_args(argv)
 
     if args.nocolor:
@@ -1221,7 +1220,7 @@ def _run_validate_resources_command(argv: List[str]) -> int:
     parser.add_argument("-r", "--resource", help="Validate one resource entry by resource key.")
     parser.add_argument("--registry", default=str(default_registry), help="Workflow registry YAML.")
     parser.add_argument("--schema", default=str(default_schema), help="Workflow registry JSON Schema.")
-    parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
+    parser.add_argument("--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
     args = parser.parse_args(argv)
 
     if args.nocolor:
@@ -1409,7 +1408,7 @@ def _run_report_command(argv: List[str]) -> int:
         help="Write a MultiQC custom-content directory. Defaults to cbicall_mqc/ unless a path is provided.",
     )
     parser.add_argument("-O", "--overwrite", action="store_true", help="Overwrite files written by --refresh, --html, or --multiqc.")
-    parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
+    parser.add_argument("--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
     args = parser.parse_args(argv)
 
     if args.nocolor or args.json:
@@ -1879,7 +1878,7 @@ def _run_compare_runs_command(argv: List[str]) -> int:
         help="Comparison layout. Defaults to baseline for two runs and both for three or more runs.",
     )
     parser.add_argument("--no-html", action="store_true", help="Do not write the default HTML comparison report.")
-    parser.add_argument("-nc", "--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
+    parser.add_argument("--no-color", dest="nocolor", action="store_true", help="Do not print colors.")
     args = parser.parse_args(argv)
 
     if len(args.runs) < 2:
@@ -2276,6 +2275,4 @@ def main() -> int:
     if len(sys.argv) > 1 and sys.argv[1] == "test":
         return _run_test_command(sys.argv[2:])
 
-    # Backward-compatible legacy run form: cbicall -p params.yaml -t THREADS.
-    arg = usage(VERSION)
-    return _run_analysis(arg, start_time=start_time, cbicall_path=cbicall_path)
+    return handle_main_args(sys.argv[1:], VERSION)
