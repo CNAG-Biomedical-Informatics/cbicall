@@ -48,6 +48,26 @@ def warning(message: str) -> None:
     _render_warning(message, BOLD, YELLOW, RESET)
 
 
+def status_tag(status: str, *, width: int = 0) -> str:
+    """Render a fixed-width CBIcall status token with optional ANSI color."""
+    normalized = status.upper()
+    color = {
+        "PASS": GREEN,
+        "FAIL": RED,
+        "WARN": YELLOW,
+        "SKIP": YELLOW,
+        "INFO": CYAN,
+    }.get(normalized, WHITE)
+    token = f"[{normalized}]"
+    padding = " " * max(0, width - len(token))
+    return f"{BOLD}{color}{token}{RESET}{padding}"
+
+
+def status_line(status: str, message: str, *, indent: int = 0) -> None:
+    """Print a CBIcall-owned status without styling the accompanying message."""
+    print(f"{' ' * indent}{status_tag(status)} {message}")
+
+
 def print_config(resolved_config) -> None:
     if isinstance(resolved_config, ResolvedConfig):
         _render_config(resolved_config, BOLD, BLUE, RESET)

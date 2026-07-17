@@ -1307,6 +1307,46 @@ def test_colors_disabled_by_no_color(monkeypatch):
     assert console_mod.colors_enabled() is False
 
 
+def test_status_tag_is_colored_and_preserves_plain_width(monkeypatch):
+    class TtyStdout(io.StringIO):
+        def isatty(self):
+            return True
+
+    monkeypatch.setattr(sys, "stdout", TtyStdout())
+    monkeypatch.delenv("ANSI_COLORS_DISABLED", raising=False)
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    console_mod.refresh_colors()
+
+    rendered = console_mod.status_tag("pass", width=8)
+    assert "\033[32m" in rendered
+    assert "[PASS]" in rendered
+    assert rendered.endswith("  ")
+
+    monkeypatch.setenv("NO_COLOR", "1")
+    console_mod.refresh_colors()
+    assert console_mod.status_tag("pass", width=8) == "[PASS]  "
+
+
+def test_status_line_only_styles_the_status_token(monkeypatch):
+    class TtyStdout(io.StringIO):
+        def isatty(self):
+            return True
+
+    output = TtyStdout()
+    monkeypatch.setattr(sys, "stdout", output)
+    monkeypatch.delenv("ANSI_COLORS_DISABLED", raising=False)
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    console_mod.refresh_colors()
+
+    console_mod.status_line("fail", "third-party detail", indent=2)
+    rendered = output.getvalue()
+    assert rendered.startswith("  \033[1m\033[31m[FAIL]\033[0m ")
+    assert rendered.endswith("third-party detail\n")
+
+    monkeypatch.setenv("ANSI_COLORS_DISABLED", "1")
+    console_mod.refresh_colors()
+
+
 def test_format_duration():
     assert cli_mod._format_duration(5.2) == "5s"
     assert cli_mod._format_duration(65.0) == "1m 5s"
@@ -1857,6 +1897,23 @@ def test_run_test_command_external_nf_core_flags(monkeypatch, tmp_path):
     assert seen["keep_external_work"] is True
 
 
+def test_run_test_command_uses_requested_workspace(monkeypatch, tmp_path):
+    seen = {}
+    workspace = tmp_path / "test-workspace"
+
+    def fake_prepare(project_root, *, workspace=None):
+        seen["source"] = project_root
+        seen["workspace"] = workspace
+        return project_root, workspace
+
+    monkeypatch.setattr(cli_mod, "_project_root", lambda: tmp_path)
+    monkeypatch.setattr(cli_mod, "prepare_integration_root", fake_prepare)
+    monkeypatch.setattr(cli_mod, "run_integration_tests", lambda **_kwargs: 0)
+
+    assert cli_mod._run_test_command(["--wes-bash", "--workspace", str(workspace)]) == 0
+    assert seen == {"source": tmp_path, "workspace": workspace}
+
+
 def test_run_test_command_release_uses_release_equivalence_runner(monkeypatch, tmp_path):
     seen = {}
     (tmp_path / "bin").mkdir()
@@ -1876,6 +1933,15 @@ def test_run_test_command_release_uses_release_equivalence_runner(monkeypatch, t
 def test_run_test_command_release_rejects_other_selectors():
     with pytest.raises(SystemExit):
         cli_mod._run_test_command(["--backend-equivalence", "--wes-bash"])
+
+
+def test_run_test_command_rejects_missing_selector_before_creating_workspace(tmp_path):
+    workspace = tmp_path / "unused-workspace"
+
+    with pytest.raises(SystemExit):
+        cli_mod._run_test_command(["--workspace", str(workspace)])
+
+    assert not workspace.exists()
 
 
 def test_main_no_color_disables_ansi_output(monkeypatch, tmp_path, capsys):

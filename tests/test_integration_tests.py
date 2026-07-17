@@ -163,6 +163,7 @@ def test_prepare_integration_root_stages_installed_assets(tmp_path):
     assert staged != source
     assert (staged / "examples" / "input" / "param.yaml").is_file()
     assert integration_mod._cbicall_command(staged) == [integration_mod.sys.executable, "-m", "cbicall"]
+    integration_mod.shutil.rmtree(staged)
 
     (source / "bin").mkdir()
     launcher = source / "bin" / "cbicall"
@@ -171,6 +172,54 @@ def test_prepare_integration_root_stages_installed_assets(tmp_path):
     assert direct == source.resolve()
     assert temporary is None
     assert integration_mod._cbicall_command(direct) == [str(launcher)]
+
+
+def test_prepare_integration_root_uses_requested_workspace(tmp_path):
+    source = tmp_path / "runtime"
+    (source / "examples" / "input").mkdir(parents=True)
+    (source / "examples" / "input" / "param.yaml").write_text("mode: single\n", encoding="utf-8")
+    workspace = tmp_path / "scratch" / "cbicall-test"
+
+    staged, retained = integration_mod.prepare_integration_root(source, workspace=workspace)
+
+    assert staged == workspace.resolve()
+    assert retained == staged
+    assert (staged / "examples" / "input" / "param.yaml").is_file()
+
+
+def test_prepare_integration_root_rejects_unsafe_workspace(tmp_path):
+    source = tmp_path / "runtime"
+    source.mkdir()
+    nonempty = tmp_path / "nonempty"
+    nonempty.mkdir()
+    (nonempty / "existing.txt").write_text("keep\n", encoding="utf-8")
+
+    with pytest.raises(IntegrationTestError, match="must be empty"):
+        integration_mod.prepare_integration_root(source, workspace=nonempty)
+
+    with pytest.raises(IntegrationTestError, match="outside the CBIcall runtime root"):
+        integration_mod.prepare_integration_root(source, workspace=source / "test-work")
+
+
+def test_prepare_source_checkout_in_requested_workspace_copies_runtime_assets(tmp_path):
+    source = tmp_path / "checkout"
+    (source / "bin").mkdir(parents=True)
+    (source / "bin" / "cbicall").write_text("#!/bin/sh\n", encoding="utf-8")
+    (source / "examples" / "input").mkdir(parents=True)
+    (source / "examples" / "input" / "param.yaml").write_text("mode: single\n", encoding="utf-8")
+    generated = source / "examples" / "input" / "cbicall_bash_previous_run"
+    generated.mkdir()
+    (generated / "large.bam").write_text("old output\n", encoding="utf-8")
+    (source / "docs-site").mkdir()
+    workspace = tmp_path / "workspace"
+
+    staged, retained = integration_mod.prepare_integration_root(source, workspace=workspace)
+
+    assert retained == staged
+    assert (staged / "bin" / "cbicall").is_file()
+    assert (staged / "examples" / "input" / "param.yaml").is_file()
+    assert not (staged / "examples" / "input" / generated.name).exists()
+    assert not (staged / "docs-site").exists()
 
 
 def test_run_integration_tests_executes_and_cleans_contract_run(tmp_path, monkeypatch, capsys):
@@ -222,7 +271,7 @@ def test_run_integration_tests_executes_and_cleans_contract_run(tmp_path, monkey
     assert rc == 0
     assert not (workdir / "cbicall_bash_test_001" / "work").exists()
     out = capsys.readouterr().out
-    assert "SUCCESS: WES Bash integration contract passed." in out
+    assert "[PASS] WES Bash integration contract passed." in out
     assert "Note: This test prints a setup note." in out
 
 
@@ -287,7 +336,7 @@ def test_run_integration_tests_skips_missing_optional_backend_under_all(tmp_path
     )
 
     assert rc == 0
-    assert "SKIP: WES Snakemake requires backend executable snakemake on PATH." in capsys.readouterr().out
+    assert "[SKIP] WES Snakemake requires backend executable snakemake on PATH." in capsys.readouterr().out
 
 
 def test_run_integration_tests_skips_architecture_limited_tests_under_all(tmp_path, monkeypatch, capsys):
@@ -303,8 +352,8 @@ def test_run_integration_tests_skips_architecture_limited_tests_under_all(tmp_pa
 
     assert rc == 0
     out = capsys.readouterr().out
-    assert "SKIP: MIT Bash is not supported on this architecture" in out
-    assert "SKIP: WES Cohort Bash is not supported on this architecture" in out
+    assert "[SKIP] MIT Bash is not supported on this architecture" in out
+    assert "[SKIP] WES Cohort Bash is not supported on this architecture" in out
 
 
 def test_run_integration_tests_fails_architecture_limited_explicit_test(tmp_path, monkeypatch, capsys):
@@ -349,7 +398,7 @@ def test_run_one_skips_or_fails_missing_cromwell_before_loading_contract(tmp_pat
         skip_missing_optional=True,
         keep_external_work=False,
     ) == ("WES Cromwell", "skipped", "CROMWELL_JAR or cromwell executable not found")
-    assert "SKIP: WES Cromwell requires CROMWELL_JAR" in capsys.readouterr().out
+    assert "[SKIP] WES Cromwell requires CROMWELL_JAR" in capsys.readouterr().out
 
     with pytest.raises(IntegrationTestError, match="WES Cromwell requires CROMWELL_JAR"):
         integration_mod._run_one(
@@ -737,7 +786,7 @@ def test_run_integration_tests_records_failed_summary(tmp_path, monkeypatch, cap
     )
     assert rc == 1
     out = capsys.readouterr().out
-    assert "ERROR: contract failed" in out
+    assert "[FAIL] contract failed" in out
     assert "[FAIL]" in out
     assert "WES Bash" in out
     assert "contract failed" in out

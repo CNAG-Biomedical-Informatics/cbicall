@@ -37,14 +37,8 @@ def _result(status: str, label: str, detail: str, *, required: bool = True) -> d
 
 
 def _print_result(result: dict) -> None:
-    status = result["status"]
-    color = {
-        "PASS": console.GREEN,
-        "WARN": console.YELLOW,
-        "FAIL": console.RED,
-    }[status]
     print(
-        f"{console.BOLD}{color}[{status}]{console.RESET} "
+        f"{console.status_tag(result['status'])} "
         f"{result['label']:<20} {result['detail']}"
     )
 

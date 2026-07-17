@@ -414,6 +414,11 @@ def _run_test_command(argv: List[str]) -> int:
     parser.add_argument("-t", "--threads", type=int, default=1, help="Number of threads to use.")
     parser.add_argument("--runtime-profile", dest="profile", default="local", help="CBIcall runtime profile for native workflow tests.")
     parser.add_argument(
+        "--workspace",
+        type=Path,
+        help="Stage and run tests in this new or empty directory instead of the default location.",
+    )
+    parser.add_argument(
         "--keep-external-work",
         action="store_true",
         help="Keep heavy Nextflow work directories for external nf-core tests.",
@@ -439,22 +444,22 @@ def _run_test_command(argv: List[str]) -> int:
     if args.backend_equivalence and any(selectors):
         parser.error("--backend-equivalence cannot be combined with individual test selectors or --all")
 
-    root, staged_root = prepare_integration_root(_project_root())
+    selected = selected_tests_from_args(args)
+    if not args.backend_equivalence and not selected:
+        parser.error(
+            "select at least one test with --wes-bash, --wes-cohort-bash, --wes-cohort-bash-sharded, --wes-bash-gatk35, "
+            "--wes-snakemake, --wes-nextflow, --wes-cromwell, --mit-bash, --nf-core-demo, "
+            "--nf-core-sarek, --backend-equivalence, or --all"
+        )
+
+    root, staged_root = prepare_integration_root(_project_root(), workspace=args.workspace)
     if staged_root is not None:
-        print(f"Installed test workspace: {staged_root}")
+        console.row("Test workspace", staged_root)
     if args.backend_equivalence:
         return run_release_equivalence_test(
             project_root=root,
             threads=args.threads,
             runtime_profile=args.profile,
-        )
-
-    selected = selected_tests_from_args(args)
-    if not selected:
-        parser.error(
-            "select at least one test with --wes-bash, --wes-cohort-bash, --wes-cohort-bash-sharded, --wes-bash-gatk35, "
-            "--wes-snakemake, --wes-nextflow, --wes-cromwell, --mit-bash, --nf-core-demo, "
-            "--nf-core-sarek, --backend-equivalence, or --all"
         )
 
     return run_integration_tests(

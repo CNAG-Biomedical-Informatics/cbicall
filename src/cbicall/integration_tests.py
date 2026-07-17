@@ -16,6 +16,8 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 import yaml
 
+from . import console
+
 
 class IntegrationTestError(RuntimeError):
     """Raised when an integration contract fails."""
@@ -79,22 +81,75 @@ TESTS: Dict[str, TestSelection] = {
 }
 
 
-def prepare_integration_root(project_root: Path) -> Tuple[Path, Optional[Path]]:
+SOURCE_INTEGRATION_ASSETS = (
+    "bin",
+    "browser",
+    "examples",
+    "mtdna",
+    "resources",
+    "scripts",
+    "src",
+    "tests",
+    "workflows",
+)
+
+
+def _integration_destination(workspace: Optional[Path]) -> Path:
+    if workspace is None:
+        return Path(tempfile.mkdtemp(prefix="cbicall-integration-"))
+
+    destination = Path(workspace).expanduser().resolve()
+    if destination.exists():
+        if not destination.is_dir():
+            raise IntegrationTestError(f"Test workspace is not a directory: {destination}")
+        if any(destination.iterdir()):
+            raise IntegrationTestError(f"Test workspace must be empty: {destination}")
+    else:
+        destination.mkdir(parents=True)
+    return destination
+
+
+def prepare_integration_root(
+    project_root: Path,
+    workspace: Optional[Path] = None,
+) -> Tuple[Path, Optional[Path]]:
     """Return a writable runtime root for integration tests.
 
     Source checkouts already provide a writable examples tree and launcher.
     Installed distributions stage their packaged runtime assets in a temporary
-    directory so tests never write into ``site-packages``.
+    or user-selected directory so tests never write into ``site-packages``.
     """
     source = Path(project_root).resolve()
-    if (source / "bin" / "cbicall").is_file():
+    is_source_checkout = (source / "bin" / "cbicall").is_file()
+    if is_source_checkout and workspace is None:
         return source, None
 
-    destination = Path(tempfile.mkdtemp(prefix="cbicall-integration-"))
-    for child in source.iterdir():
+    if workspace is not None:
+        requested = Path(workspace).expanduser().resolve()
+        if requested == source or source in requested.parents:
+            raise IntegrationTestError(
+                f"Test workspace must be outside the CBIcall runtime root: {requested}"
+            )
+
+    destination = _integration_destination(workspace)
+    if is_source_checkout:
+        children = [source / name for name in SOURCE_INTEGRATION_ASSETS if (source / name).exists()]
+    else:
+        children = list(source.iterdir())
+
+    for child in children:
         target = destination / child.name
         if child.is_dir():
-            shutil.copytree(child, target)
+            ignore = None
+            if is_source_checkout and child.name == "examples":
+                ignore = shutil.ignore_patterns(
+                    "cbicall_*",
+                    ".nextflow",
+                    ".snakemake",
+                    "work",
+                    "*.log",
+                )
+            shutil.copytree(child, target, ignore=ignore)
         else:
             shutil.copy2(child, target)
     return destination, destination
@@ -430,19 +485,27 @@ def _release_hash_detail(hash_info: Optional[dict]) -> str:
     return f"{_short_hash(hash_info.get('normalized_sha256'))}{record_text}"
 
 
-def _status_marker(status: str) -> str:
+def _status_marker(status: str, *, width: int = 0) -> str:
     normalized = status.lower()
     if normalized in {"passed", "same final vcf"}:
-        return "[PASS]"
-    if normalized == "skipped":
-        return "[SKIP]"
-    if normalized == "failed":
-        return "[FAIL]"
-    return "[INFO]"
+        marker = "PASS"
+    elif normalized == "skipped":
+        marker = "SKIP"
+    elif normalized == "failed":
+        marker = "FAIL"
+    else:
+        marker = "INFO"
+    return console.status_tag(marker, width=width)
 
 
-def _overall_marker(exit_code: int) -> str:
-    return "[PASS]" if exit_code == 0 else "[FAIL]"
+def _overall_marker(exit_code: int, *, width: int = 0) -> str:
+    return console.status_tag("PASS" if exit_code == 0 else "FAIL", width=width)
+
+
+def _test_banner(title: str) -> None:
+    print("========================================")
+    console.section(f"TEST: {title}", console.CYAN)
+    print("========================================")
 
 
 def validate_contract(run_dir: Path, contract: dict) -> None:
@@ -693,9 +756,7 @@ def _run_staged_finalize(
         str(runtime_profile),
     ]
 
-    print("========================================")
-    print(f"TEST: {selection.label} Finalize")
-    print("========================================")
+    _test_banner(f"{selection.label} Finalize")
     print("Running staged cohort finalize integration test...")
     proc = subprocess.run(
         cmd,
@@ -738,8 +799,8 @@ def _run_staged_finalize(
         _print_artifacts(f"{selection.label} Finalize", run_dir, finalize_contract, launcher_log)
         print("Validating staged finalize contract:")
         validate_contract(run_dir, finalize_contract)
-        print("  OK finalize required files")
-        print("  OK finalize run-report fields")
+        console.status_line("PASS", "finalize required files", indent=2)
+        console.status_line("PASS", "finalize run-report fields", indent=2)
         _cleanup(run_dir, finalize_contract, keep_external_work)
         return run_dir
     finally:
@@ -760,21 +821,27 @@ def _run_one(
     architecture_skip = _architecture_skip_reason(selection)
     if architecture_skip:
         if skip_missing_optional:
-            print(f"SKIP: {selection.label} is not supported on this architecture: {architecture_skip}.")
+            console.status_line(
+                "SKIP",
+                f"{selection.label} is not supported on this architecture: {architecture_skip}.",
+            )
             return selection.label, "skipped", architecture_skip
         raise IntegrationTestError(f"{selection.label} is not supported on this architecture: {architecture_skip}.")
 
     if selection.key == "wes-cromwell" and not (os.environ.get("CROMWELL_JAR") or shutil.which("cromwell")):
         detail = "CROMWELL_JAR or cromwell executable not found"
         if skip_missing_optional and selection.optional_in_all:
-            print("SKIP: WES Cromwell requires CROMWELL_JAR or cromwell on PATH.")
+            console.status_line("SKIP", "WES Cromwell requires CROMWELL_JAR or cromwell on PATH.")
             return selection.label, "skipped", detail
         raise IntegrationTestError("WES Cromwell requires CROMWELL_JAR or cromwell on PATH.")
 
     if selection.backend_executable and shutil.which(selection.backend_executable) is None:
         detail = f"backend executable {selection.backend_executable} not found"
         if skip_missing_optional and selection.optional_in_all:
-            print(f"SKIP: {selection.label} requires backend executable {selection.backend_executable} on PATH.")
+            console.status_line(
+                "SKIP",
+                f"{selection.label} requires backend executable {selection.backend_executable} on PATH.",
+            )
             return selection.label, "skipped", detail
         raise IntegrationTestError(f"{selection.label} requires backend executable {selection.backend_executable} on PATH.")
 
@@ -818,9 +885,7 @@ def _run_one(
         str(runtime_profile),
     ]
 
-    print("========================================")
-    print(f"TEST: {selection.label}")
-    print("========================================")
+    _test_banner(selection.label)
     print(f"Running {selection.label} integration test...")
     for note in contract.get("notes", []):
         print(f"Note: {note}")
@@ -856,11 +921,11 @@ def _run_one(
         _print_artifacts(selection.label, run_dir, contract, launcher_log)
         print("Validating contract:")
         validate_contract(run_dir, contract)
-        print("  OK required files")
-        print("  OK required globs")
-        print("  OK run-report fields")
+        console.status_line("PASS", "required files", indent=2)
+        console.status_line("PASS", "required globs", indent=2)
+        console.status_line("PASS", "run-report fields", indent=2)
         if contract.get("hashes"):
-            print("  OK output hashes")
+            console.status_line("PASS", "output hashes", indent=2)
         detail_run_dir = run_dir
         if contract.get("staged_finalize"):
             detail_run_dir = _run_staged_finalize(
@@ -874,7 +939,7 @@ def _run_one(
                 keep_external_work=keep_external_work,
             )
         _cleanup(run_dir, contract, keep_external_work)
-        print(f"SUCCESS: {selection.label} integration contract passed.")
+        console.status_line("PASS", f"{selection.label} integration contract passed.")
         return selection.label, "passed", str(detail_run_dir)
     finally:
         if temp_param:
@@ -908,17 +973,17 @@ def run_integration_tests(
             )
         except IntegrationTestError as exc:
             overall_status = 1
-            print(f"ERROR: {exc}")
+            console.status_line("FAIL", str(exc))
             summary.append((selection.label, "failed", str(exc).splitlines()[0]))
 
     print("========================================")
-    print("Integration test summary")
+    console.section("Integration test summary", console.CYAN)
     print("========================================")
     print(f"{'Result':<8} {'Test':<24} Details")
     print(f"{'-' * 8} {'-' * 24} {'-' * 40}")
     for label, status, detail in summary:
         details = detail or ""
-        print(f"{_status_marker(status):<8} {label:<24} {details}")
+        print(f"{_status_marker(status, width=8)} {label:<24} {details}")
     print("========================================")
     print("All requested tests finished.")
     print(f"Status: {_overall_marker(overall_status)} {'PASSED' if overall_status == 0 else 'FAILED'}")
@@ -941,7 +1006,7 @@ def run_release_equivalence_test(
     passed_comparisons = 0
 
     print("========================================")
-    print("Backend equivalence")
+    console.section("Backend equivalence", console.CYAN)
     print("========================================")
     print("Running native WES backends and comparing normalized final VCF content.")
 
@@ -1008,7 +1073,7 @@ def run_release_equivalence_test(
         results.append(("Backend equivalence", "failed", "no non-Bash backend was available for comparison"))
 
     print("========================================")
-    print("Backend equivalence summary")
+    console.section("Backend equivalence summary", console.CYAN)
     print("========================================")
     print("Baseline")
     for label, status, detail in results:
@@ -1016,11 +1081,11 @@ def run_release_equivalence_test(
             continue
         hash_info = comparison_hashes.get(label)
         suffix = f" ({detail})" if detail else ""
-        marker = _status_marker(status)
+        marker = _status_marker(status, width=8)
         if hash_info:
-            print(f"  {marker:<8} {label:<13} => {status} | {_release_hash_detail(hash_info)}{suffix}")
+            print(f"  {marker} {label:<13} => {status} | {_release_hash_detail(hash_info)}{suffix}")
         else:
-            print(f"  {marker:<8} {label:<13} => {status}{suffix}")
+            print(f"  {marker} {label:<13} => {status}{suffix}")
     print()
     print("Backend equivalence")
     for label, status, detail in results:
@@ -1028,11 +1093,11 @@ def run_release_equivalence_test(
             continue
         hash_info = comparison_hashes.get(label)
         suffix = f" ({detail})" if detail else ""
-        marker = _status_marker(status)
+        marker = _status_marker(status, width=8)
         if hash_info:
-            print(f"  {marker:<8} {label:<13} => {status} | {_release_hash_detail(hash_info)}{suffix}")
+            print(f"  {marker} {label:<13} => {status} | {_release_hash_detail(hash_info)}{suffix}")
         else:
-            print(f"  {marker:<8} {label:<13} => {status}{suffix}")
+            print(f"  {marker} {label:<13} => {status}{suffix}")
     print()
     print(f"Compared non-Bash backends: {passed_comparisons}")
     print(f"Status: {_overall_marker(overall_status)} {'PASSED' if overall_status == 0 else 'FAILED'}")

@@ -29,6 +29,20 @@ On HPC, pass the same runtime profile you use for normal Bash runs:
 cbicall test --wes-bash -t 1 --runtime-profile cnag-hpc
 ```
 
+:::tip[Choose where installed-package tests run]
+Wheel installations stage their writable test assets under the system temporary
+directory by default. Use `--workspace` to place the complete test workspace on
+another filesystem and retain it for inspection:
+
+```bash
+cbicall test --wes-bash -t 1 --workspace /scratch/cbicall-wes-test
+```
+
+The selected path must be new or empty. Source checkouts normally run against
+the repository fixtures; with `--workspace`, CBIcall instead stages a separate
+copy of the required runtime and test assets.
+:::
+
 :::note[Bash-specific profile]
 `--runtime-profile` selects a registry-resolved Bash `env.sh` mapping. Other
 backends use their own configuration/profile mechanisms.
@@ -65,15 +79,15 @@ The final summary is the key audit line:
 Backend equivalence summary
 ========================================
 Baseline
-  WES Bash      => passed | 621373dda8e7...72559baf | 6 records (...)
+  [PASS]   WES Bash      => passed | 621373dda8e7...72559baf | 6 records (...)
 
 Backend equivalence
-  WES Snakemake => same final VCF | 621373dda8e7...72559baf | 6 records (...)
-  WES Nextflow  => same final VCF | 621373dda8e7...72559baf | 6 records (...)
-  WES Cromwell  => same final VCF | 621373dda8e7...72559baf | 6 records (...)
+  [PASS]   WES Snakemake => same final VCF | 621373dda8e7...72559baf | 6 records (...)
+  [PASS]   WES Nextflow  => same final VCF | 621373dda8e7...72559baf | 6 records (...)
+  [PASS]   WES Cromwell  => same final VCF | 621373dda8e7...72559baf | 6 records (...)
 
 Compared non-Bash backends: 3
-Status: PASSED
+Status: [PASS] PASSED
 Exit code: 0
 ========================================
 ```
@@ -122,6 +136,7 @@ cohort regressions fail in the normal native integration sweep.
 | Item | Use |
 | --- | --- |
 | `--runtime-profile cnag-hpc` | Test the same native environment profile used for production runs. |
+| `--workspace DIR` | Stage all test assets and outputs in a new or empty directory instead of the default location. |
 | `--keep-external-work` | Keep nf-core/Nextflow `work/` and `.nextflow/` directories for debugging. |
 | Snakemake tests | Require `snakemake` on `PATH`. |
 | Nextflow and nf-core tests | Require `nextflow` on `PATH`; on CNAG HPC load it with `module load Nextflow/25.10.2`. |
