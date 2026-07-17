@@ -1,3 +1,4 @@
+import json
 import sys
 from types import SimpleNamespace
 
@@ -5,6 +6,7 @@ import pytest
 import yaml
 
 from cbicall import __main__ as main_mod
+from cbicall import __version__
 from cbicall import demo
 from cbicall import paths
 from cbicall import resource_install
@@ -150,6 +152,15 @@ def test_demo_assets_are_part_of_the_python_package():
         / "01_mtoolbox"
         / "mit_prioritized_variants.txt"
     ).is_file()
+
+
+def test_user_visible_version_metadata_matches_package_version():
+    root = paths.runtime_root()
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    report = json.loads((demo.ASSET_DIR / "wes" / "run-report.json").read_text(encoding="utf-8"))
+
+    assert f"version-{__version__}-" in readme
+    assert report["framework"]["version"] == __version__
 
 
 def test_packaged_cohort_sample_map_is_portable():

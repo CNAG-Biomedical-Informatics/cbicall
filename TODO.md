@@ -12,7 +12,7 @@
   - Repository: `cbicall`
   - Workflow: `publish-testpypi.yml`
   - GitHub environment: `testpypi`
-- [x] Run the `Publish to TestPyPI` workflow manually. It builds and validates the
+- [ ] Run the `Publish to TestPyPI` workflow manually for `1.1.0b2`. It builds and validates the
   distributions with:
 
   ```bash
@@ -20,16 +20,16 @@
   python3 -m twine check dist/*
   ```
 
-- [x] Confirm that the trusted-publishing job uploads to TestPyPI.
+- [ ] Confirm that the trusted-publishing job uploads `1.1.0b2` to TestPyPI.
 
-- [x] Test the uploaded wheel without changing the system installation:
+- [ ] Test the uploaded `1.1.0b2` wheel without changing the system installation:
 
   ```bash
   python3 -m pip install \
     --index-url https://test.pypi.org/simple/ \
     --no-deps \
     --target /tmp/cbicall-testpypi \
-    "cbicall==1.1.0b1"
+    "cbicall==1.1.0b2"
 
   PYTHONPATH=/tmp/cbicall-testpypi python3 -m cbicall --version
   PYTHONPATH=/tmp/cbicall-testpypi python3 -m cbicall validate-registry
