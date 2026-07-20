@@ -1,22 +1,45 @@
 name: Docker build
 
 on:
-  workflow_dispatch
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Annotated stable tag to build, for example v1.1.0"
+        required: true
+        type: string
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
 
       - name: Read build metadata
         id: build_metadata
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
           version=$(PYTHONPATH=src python3 -c 'from cbicall import __version__; print(__version__)')
+          test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = "tag" || {
+            echo "Docker release tag $RELEASE_TAG must be annotated"
+            exit 1
+          }
+          test "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")" = "$(git rev-parse HEAD)" || {
+            echo "Checked-out commit does not match Docker release tag $RELEASE_TAG"
+            exit 1
+          }
+          python -c 'import re, sys; version = sys.argv[1]; sys.exit(0 if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) else f"Docker version must be stable X.Y.Z, got {version}")' "$version"
+          test "$RELEASE_TAG" = "v$version" || {
+            echo "Docker tag $RELEASE_TAG does not match package version $version"
+            exit 1
+          }
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 

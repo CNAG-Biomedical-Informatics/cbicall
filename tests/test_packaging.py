@@ -163,6 +163,36 @@ def test_user_visible_release_metadata_is_consistent():
     assert report["framework"]["version"] == __version__
 
 
+def test_release_workflows_enforce_tag_only_policy():
+    root = paths.runtime_root()
+    workflows = root / ".github" / "workflows"
+    stable = (workflows / "publish-pypi.yml").read_text(encoding="utf-8")
+    test = (workflows / "publish-testpypi.yml").read_text(encoding="utf-8")
+    docker = (workflows / "docker-build-multi-arch.yml").read_text(encoding="utf-8")
+    releasing = (root / "RELEASING.md").read_text(encoding="utf-8")
+
+    assert 'push:\n    tags:\n      - "v*"' in stable
+    assert "\n  release:" not in stable
+    assert "refs/tags/$GITHUB_REF_NAME" in stable
+    assert "Release tag $GITHUB_REF_NAME must be annotated" in stable
+    assert "name: pypi" in stable
+    assert "python -m build" in stable
+    assert "python -m twine check dist/*" in stable
+
+    assert "workflow_dispatch:" in test
+    assert 'test "$GITHUB_REF" = "refs/heads/main"' in test
+    assert "TestPyPI version must be a prerelease" in test
+    assert "name: testpypi" in test
+    assert "https://test.pypi.org/legacy/" in test
+
+    assert "tag:" in docker
+    assert "ref: ${{ inputs.tag }}" in docker
+    assert "refs/tags/$RELEASE_TAG" in docker
+    assert "Docker release tag $RELEASE_TAG must be annotated" in docker
+    assert "Git tags are the canonical release records" in releasing
+    assert "Never reuse a published version" in releasing
+
+
 def test_packaged_cohort_sample_map_is_portable():
     sample_map = paths.runtime_root() / "examples" / "input" / "sample_map.tsv"
     text = sample_map.read_text(encoding="utf-8")

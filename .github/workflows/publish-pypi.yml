@@ -1,8 +1,9 @@
 name: Publish to PyPI
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -13,13 +14,14 @@ concurrency:
 
 jobs:
   build:
-    if: ${{ github.event.release.prerelease == false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - name: Check out release
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -38,6 +40,15 @@ jobs:
         run: |
           package_version=$(python -c "from cbicall import __version__; print(__version__)")
           metadata_version=$(python -c "from importlib.metadata import version; print(version('cbicall'))")
+          test "$(git cat-file -t "refs/tags/$GITHUB_REF_NAME")" = "tag" || {
+            echo "Release tag $GITHUB_REF_NAME must be annotated"
+            exit 1
+          }
+          test "$(git rev-parse "refs/tags/${GITHUB_REF_NAME}^{commit}")" = "$(git rev-parse HEAD)" || {
+            echo "Checked-out commit does not match release tag $GITHUB_REF_NAME"
+            exit 1
+          }
+          python -c 'import re, sys; version = sys.argv[1]; sys.exit(0 if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) else f"Production version must be stable X.Y.Z, got {version}")' "$package_version"
           test "$GITHUB_REF_NAME" = "v$package_version" || {
             echo "Release tag $GITHUB_REF_NAME does not match package version $package_version"
             exit 1
