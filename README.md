@@ -60,17 +60,24 @@ Workflow sources:
 
 # Installation
 
-Install the core command from PyPI:
+Install the released command from PyPI (recommended):
 
 ```bash
-python3 -m pip install cbicall
+python3 -m pip install --upgrade cbicall
 ```
 
-For development or all optional Python integrations:
+Install all optional Python integrations when needed:
 
 ```bash
-python3 -m pip install -e ".[all,test]"  # source checkout
-python3 -m pip install "cbicall[all]"    # released package
+python3 -m pip install --upgrade "cbicall[all]"
+```
+
+Use an editable source checkout only for development:
+
+```bash
+git clone https://github.com/CNAG-Biomedical-Informatics/cbicall.git
+cd cbicall
+python3 -m pip install -e ".[all,test]"
 ```
 
 Native workflows also require the separately distributed resource bundle. See

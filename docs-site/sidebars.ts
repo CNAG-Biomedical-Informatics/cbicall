@@ -18,7 +18,7 @@ const sidebars: SidebarsConfig = {
             {
               type: 'doc',
               id: 'installation/non-containerized',
-              label: 'Python package / source',
+              label: 'PyPI / source',
             },
             {
               type: 'doc',

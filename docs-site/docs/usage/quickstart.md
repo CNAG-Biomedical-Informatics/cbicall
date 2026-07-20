@@ -6,6 +6,16 @@ family you want to execute first.
 If you still need to choose an installation method or workflow, start with the
 [Overview](../overview).
 
+## 1. Install from PyPI
+
+```bash
+python3 -m pip install --upgrade cbicall
+```
+
+Install optional Snakemake and MultiQC integrations with
+`python3 -m pip install --upgrade "cbicall[all]"`. Container and source
+installation alternatives are described under [Install](../installation/non-containerized).
+
 :::info[YAML contract]
 In CBIcall, the parameters YAML becomes a **YAML contract** after CBIcall has
 validated it and resolved it against the workflow registry and resource catalog.
@@ -13,7 +23,7 @@ Both `validate-parameters` and `run` perform this validation; `validate-paramete
 stops before launching the workflow.
 :::
 
-## 1. Confirm the CLI
+## 2. Confirm the CLI
 
 ```bash
 cbicall --help
@@ -26,7 +36,7 @@ installation report. `doctor` checks the packaged contracts, `CBICALL_DATA`
 bundle metadata, and available workflow backends. Missing optional backends are
 reported as warnings.
 
-## 2. Explore the Reports
+## 3. Explore the Reports
 
 Generate a WES audit report and an interactive mtDNA browser from packaged
 example outputs:
@@ -51,7 +61,7 @@ Use a different empty destination when needed:
 cbicall demo --output-dir my-cbicall-demo
 ```
 
-## 3. Choose an Execution Test
+## 4. Choose an Execution Test
 
 For actual workflow execution, choose one of these paths:
 
@@ -63,7 +73,7 @@ For actual workflow execution, choose one of these paths:
 For nf-core, CBIcall validates the YAML and records provenance, while nf-core and
 Nextflow manage the workflow's own test data, containers, and references.
 
-## 4. Option A: Run nf-core Without the CBIcall Bundle
+## 5. Option A: Run nf-core Without the CBIcall Bundle
 
 From `examples/input`, run the lightweight nf-core demo example:
 
@@ -77,7 +87,7 @@ This does not require the CBIcall germline resource bundle or `DATADIR`. It does
 require Nextflow and the container/runtime profile selected in the YAML, for
 example `test,singularity` on HPC or `test,docker` on a Docker workstation.
 
-## 5. Option B: Run the Native WES Example Test
+## 6. Option B: Run the Native WES Example Test
 
 Point CBIcall to the installed external bundle, then run the test:
 
@@ -98,7 +108,7 @@ Use [Integration Tests](../validation/integration-tests) for bundled WES/mtDNA t
 the selected resource entry.
 :::
 
-## 6. Optional: Run the mtDNA Test
+## 7. Optional: Run the mtDNA Test
 
 Run the WES and mtDNA integration contracts together so that the WES test
 produces the BAM consumed by MToolBox:
@@ -111,7 +121,7 @@ cbicall test --wes-bash --mit-bash -t 1
 The mtDNA workflow uses MToolBox and is x86_64-only. If you are on ARM / aarch64, run WES/WGS workflows there but move mtDNA runs to an x86_64 host.
 :::
 
-## 7. Run With Your Own YAML
+## 8. Run With Your Own YAML
 
 Once the integration tests work, use the normal invocation:
 

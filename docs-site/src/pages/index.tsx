@@ -7,7 +7,7 @@ const guideLinks = [
   {
     label: 'Get started',
     title: 'Install and run',
-    text: 'Choose Docker, Apptainer, or a source installation and execute the shipped WES test.',
+    text: 'Install from PyPI, Docker, or Apptainer and execute the shipped WES test.',
     to: '/docs/usage/quickstart',
   },
   {

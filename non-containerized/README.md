@@ -7,25 +7,25 @@ genomes and third-party bioinformatics tools remain in the external bundle.
 
 ## Install CBIcall
 
-### Method 1: PyPI
+### Method 1: PyPI (recommended)
 
 Install the core command:
 
 ```bash
-python3 -m pip install cbicall
+python3 -m pip install --upgrade cbicall
 cbicall --version
 ```
 
 Install the optional Snakemake and MultiQC Python dependencies when needed:
 
 ```bash
-python3 -m pip install "cbicall[all]"
+python3 -m pip install --upgrade "cbicall[all]"
 ```
 
 Nextflow and Cromwell are external executables and are not installed as Python
 dependencies. Bash workflows need neither engine.
 
-### Method 2: Source checkout
+### Method 2: Source checkout (development)
 
 Use an editable install for development:
 
