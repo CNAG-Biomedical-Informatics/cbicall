@@ -21,7 +21,7 @@ keywords = [
   "reproducibility",
 ]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 5 - Production/Stable",
   "Environment :: Console",
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
@@ -71,7 +71,7 @@ Homepage = "https://cnag-biomedical-informatics.github.io/cbicall/"
 Documentation = "https://cnag-biomedical-informatics.github.io/cbicall/"
 Repository = "https://github.com/CNAG-Biomedical-Informatics/cbicall"
 Issues = "https://github.com/CNAG-Biomedical-Informatics/cbicall/issues"
-Changelog = "https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/Changes"
+Changelog = "https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/CHANGELOG.md"
 
 [tool.hatch.version]
 path = "src/cbicall/__about__.py"
@@ -107,6 +107,7 @@ include = [
   "/browser/README",
   "/browser/mtb2html.py",
   "/browser/mtb2json.py",
+  "/CHANGELOG.md",
   "/examples/input/*.csv",
   "/examples/input/*.tsv",
   "/examples/input/*.yaml",

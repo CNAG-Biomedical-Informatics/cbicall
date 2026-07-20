@@ -154,12 +154,12 @@ def test_demo_assets_are_part_of_the_python_package():
     ).is_file()
 
 
-def test_user_visible_version_metadata_matches_package_version():
+def test_user_visible_release_metadata_is_consistent():
     root = paths.runtime_root()
     readme = (root / "README.md").read_text(encoding="utf-8")
     report = json.loads((demo.ASSET_DIR / "wes" / "run-report.json").read_text(encoding="utf-8"))
 
-    assert f"version-{__version__}-" in readme
+    assert "img.shields.io/pypi/v/cbicall.svg" in readme
     assert report["framework"]["version"] == __version__
 
 

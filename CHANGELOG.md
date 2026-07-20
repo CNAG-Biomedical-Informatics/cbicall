@@ -1,0 +1,30 @@
+# Changelog
+
+## 1.1.0 - 2026-07-20
+
+- Add standards-based Python packaging and installed CLI support.
+- Require the explicit `cbicall run` command and use conventional long-form execution flags.
+- Add a resource-free demo for WES audit and mtDNA browser reports.
+- Fix single-sample workflows to keep one sample name across FASTQs with different prefixes.
+- Fix mtDNA extraction from hg38 BAMs by selecting `chrM` instead of `MT`.
+- Migrate project documentation from MkDocs Material to Docusaurus.
+- Add a resource catalog, CBIcall bundle downloader, and runtime resource identity checks.
+- Add JSON Schema validation for the resource catalog.
+- Add runtime profiles for site-specific environment files, including CNAG HPC.
+- Add explicit registry versions and rename registry shared files from `common` to `helpers`.
+- Add native Nextflow and Cromwell support for GATK 4.6 WES/WGS workflows.
+- Add registered nf-core workflow support through the Nextflow backend, including demo and Sarek examples.
+- Add `doctor`, validation, integration-test, run-comparison, and backend-equivalence commands.
+- Add `run-report.json` audit summaries with workflow, resource, execution, output, and fingerprint evidence.
+- Add text and HTML run-comparison reports for two or more runs.
+- Extend run comparison with all-to-all matrices, VCF fingerprints, aliases, and MultiQC exports.
+- Add execution-contract audit files and generalize the workflow execution layer.
+- Add failed-run auditing and staged cohort execution for WES/WGS analyses.
+- Replace the legacy mtDNA report with an interactive variant browser.
+- Build Docker images from the checked-out source revision with provenance labels.
+- Rename `workflow_engine`/`workflow_version` to `workflow_backend`/`workflow_provider`.
+- Rename `gatk_version` to `software_stack`.
+
+## 1.0.0 - 2026-03-23
+
+- First stable version released with the preprint.
