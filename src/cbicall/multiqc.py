@@ -62,7 +62,7 @@ def _provider(payload: dict) -> str:
         _nested(payload, "workflow", "provider")
         or _nested(payload, "workflow", "metadata", "provider")
         or _nested(payload, "execution_contract", "provider")
-        or "cbicall"
+        or "cbicall-core"
     )
 
 

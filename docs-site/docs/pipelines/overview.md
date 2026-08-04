@@ -9,11 +9,12 @@ This page summarizes the analysis pipelines CBIcall can launch and the backend c
 | Pipeline | `pipeline` | The analysis family: `wes`, `wgs`, `mit`, or a registered external pipeline such as `sarek`. |
 | Mode | `mode` | The run shape, usually `single` or `cohort`. |
 | Workflow backend | `workflow_backend` | The execution technology: Bash, Snakemake, Nextflow, or Cromwell. |
-| Workflow provider | `workflow_provider` | Who supplies the implementation: `cbicall` for native CBIcall pipelines, `nf-core` for registered external provider entries. |
+| Workflow provider | `workflow_provider` | Which collection supplies the implementation: `cbicall-core` for CBIcall's bundled native workflows, or `nf-core` for registered external entries. |
 
 A pipeline implementation is **native** when it produces the CBIcall output contract: standard
 run directory, logs, reports, output inventory, and final-output fingerprints
-when available. External provider entries can still be launched and audited by CBIcall,
+when available. `cbicall-core` identifies the native workflow collection distributed
+with CBIcall. External provider entries can still be launched and audited by CBIcall,
 but they keep their upstream output layout and runtime assumptions.
 
 ## Pipeline Guides
@@ -26,14 +27,6 @@ but they keep their upstream output layout and runtime assumptions.
 | Run selected external nf-core provider entries | [External nf-core](../backends/nf-core) |
 
 For a backend-centered view, see [Native Backends](../backends/native).
-
-:::info[Backend-native validation]
-CBIcall validates the parameters YAML against the workflow registry and resource
-catalog, then writes a `cbicall-execution-contract.json` for the concrete command
-it launches. Syntax or semantic validation inside each workflow language remains
-backend-native: use `bash -n`, Snakemake lint/dry-run checks, Nextflow validation,
-or `womtool validate` for WDL/Cromwell workflows.
-:::
 
 ## Compatibility Matrix
 

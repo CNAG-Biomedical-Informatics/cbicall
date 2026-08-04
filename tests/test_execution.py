@@ -575,7 +575,7 @@ def test_execution_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
     assert recorded["backend"] == "nextflow"
     contract = json.loads((project_dir / "cbicall-execution-contract.json").read_text(encoding="utf-8"))
     assert contract["workflow"]["backend"] == "nextflow"
-    assert contract["workflow"]["provider"] == "cbicall"
+    assert contract["workflow"]["provider"] == "cbicall-core"
     assert contract["command"]["normalized_sha256"]
 
 

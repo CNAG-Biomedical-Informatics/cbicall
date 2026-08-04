@@ -22,14 +22,12 @@ Joint genotyping defaults to **64 GiB** of RAM for `GenomicsDBImport` and `Genot
 The value is controlled by `MEM_GENOTYPE` in the GATK 4.6 [environment file](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/bash/gatk-4.6/env.sh#L20) and by `mem_genotype` in the Snakemake workflow.
 :::
 
-:::note[Python driver overhead]
-CBIcall adds minimal orchestration overhead. During the shipped WES integration
-test, the Python wrapper process had a measured peak resident memory of **27
-MiB**. It does not process reads or variants and does not create Python worker
-threads. Python CPU use is limited to short configuration, validation,
-dispatch, and reporting phases. For long-running variant-calling jobs,
-scheduler CPU and memory requests should be sized for the selected external
-tools and workflow threads, not for the CBIcall Python process itself.
+:::note[CBIcall driver]
+During the bundled WES integration test, the CBIcall Python process used a
+maximum of **27 MiB of resident memory**. The driver validates and launches the
+workflow, then records its report; it does not process sequencing data. Size
+scheduler requests for the workflow tools, which determine the CPU and memory
+requirements.
 :::
 
 ### Parallelization

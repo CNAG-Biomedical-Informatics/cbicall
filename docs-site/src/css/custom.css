@@ -262,6 +262,57 @@
   color: var(--ifm-color-primary-darkest);
 }
 
+.cbicallStackBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  min-height: 1.55rem;
+  padding: 0.12rem 0.42rem 0.12rem 0.18rem;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.cbicallStackMark {
+  display: inline-grid;
+  width: 1.12rem;
+  height: 1.12rem;
+  place-items: center;
+  border-radius: 3px;
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 850;
+}
+
+.cbicallStackBadgeLegacy {
+  border-color: rgba(166, 103, 22, 0.34);
+  background: rgba(196, 130, 42, 0.09);
+  color: #765019;
+}
+
+.cbicallStackBadgeLegacy .cbicallStackMark {
+  background: #9b651d;
+}
+
+.cbicallStackBadgeCurrent {
+  border-color: rgba(15, 111, 143, 0.3);
+  background: rgba(15, 111, 143, 0.08);
+  color: #165f76;
+}
+
+.cbicallStackBadgeCurrent .cbicallStackMark {
+  background: #0f6f8f;
+}
+
+.cbicallStackSet {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+}
+
 [data-theme='dark'] .cbicallTestBadgeYes {
   color: #8fd19e;
 }
@@ -272,6 +323,14 @@
 
 [data-theme='dark'] .cbicallTestBadgeNeutral {
   color: var(--ifm-color-primary-lightest);
+}
+
+[data-theme='dark'] .cbicallStackBadgeLegacy {
+  color: #e4bd79;
+}
+
+[data-theme='dark'] .cbicallStackBadgeCurrent {
+  color: #8bc9dc;
 }
 
 .giabResultsHero {

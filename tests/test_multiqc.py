@@ -15,7 +15,7 @@ def test_multiqc_helper_fallbacks_and_invalid_values(tmp_path):
     assert multiqc._run_label({"_report_path": str(tmp_path / "run_b" / "run-report.json")}) == "run_b"
     assert multiqc._run_label({}) == "cbicall_run"
 
-    assert multiqc._provider({}) == "cbicall"
+    assert multiqc._provider({}) == "cbicall-core"
     assert multiqc._provider({"workflow": {"metadata": {"provider": "nf-core"}}}) == "nf-core"
     assert multiqc._provider({"execution_contract": {"provider": "external"}}) == "external"
 

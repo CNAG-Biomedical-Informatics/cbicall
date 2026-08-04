@@ -147,7 +147,7 @@ then run `finalize` once on the gathered raw VCF. Final filtering stays global,
 which is easier to reason about than applying VQSR independently to each shard.
 
 :::info[Backend support]
-Staged cohort execution is supported for CBIcall-native GATK 4.6 cohort runs
+Staged cohort execution is supported for bundled GATK 4.6 cohort workflows
 with `workflow_backend: bash`, `snakemake`, `nextflow`, or `cromwell`.
 :::
 

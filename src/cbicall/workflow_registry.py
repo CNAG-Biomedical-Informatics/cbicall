@@ -34,6 +34,7 @@ def resolve_registry_context(project_root: Path) -> dict:
 
 def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> WorkflowSpec:
     backend = cfg_in["workflow_backend"]
+    workflow_provider = cfg_in["workflow_provider"]
     software_stack = cfg_in["software_stack"]
     pipeline = cfg_in["pipeline"]
     mode = cfg_in["mode"]
@@ -49,6 +50,12 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
         raise WorkflowResolutionError(f"Software stack not defined for backend '{backend}': {software_stack}")
 
     ver_cfg = software_stacks_cfg[software_stack]
+    registry_provider = str(ver_cfg["provider"])
+    if workflow_provider != registry_provider:
+        raise WorkflowResolutionError(
+            f"Workflow provider mismatch for {backend}/{software_stack}: "
+            f"requested '{workflow_provider}', registry declares '{registry_provider}'"
+        )
     helpers = ver_cfg.get("helpers", {})
     pipelines_cfg = ver_cfg["pipelines"]
 
@@ -96,6 +103,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
                 "vcf2hash": str(base_dir / helpers["vcf2hash"]),
             },
             profiles=profiles,
+            metadata={"provider": registry_provider},
         )
 
     if backend == "snakemake":
@@ -119,6 +127,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
                 "vcf2hash": str(base_dir / helpers["vcf2hash"]),
             },
             profiles=profiles,
+            metadata={"provider": registry_provider},
         )
 
     if backend == "cromwell":
@@ -128,7 +137,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
             raise WorkflowResolutionError(
                 f"Workflow registry is missing helper keys for cromwell/{software_stack}: {missing_helpers}"
             )
-        metadata = {}
+        metadata = {"provider": registry_provider}
         if isinstance(implementation, dict):
             metadata["canonical_outputs"] = [
                 {
@@ -156,7 +165,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
         )
 
     if backend == "nextflow":
-        if isinstance(implementation, dict) and implementation.get("provider") == "nf-core":
+        if isinstance(implementation, dict) and registry_provider == "nf-core":
             return WorkflowSpec(
                 backend=backend,
                 pipeline=pipeline,
@@ -168,7 +177,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
                 helpers={},
                 profiles=profiles,
                 metadata={
-                    "provider": str(implementation["provider"]),
+                    "provider": registry_provider,
                     "source": str(implementation["source"]),
                     "release": str(implementation["release"]),
                     "default_outdir": str(implementation.get("default_outdir", pipeline)),
@@ -203,6 +212,7 @@ def resolve_workflow_spec(cfg_in: dict, registry: dict, project_root: Path) -> W
                 "vcf2hash": str(base_dir / helpers["vcf2hash"]),
             },
             profiles=profiles,
+            metadata={"provider": registry_provider},
         )
 
     raise WorkflowResolutionError(f"Unsupported workflow_backend: {backend}")
@@ -297,7 +307,7 @@ def _resolve_pipeline_implementation(
             if set(implementation) == {"script"}:
                 return selected_registry_version, str(implementation["script"])
             return selected_registry_version, implementation
-        if implementation.get("provider") == "nf-core":
+        if implementation.get("source") or implementation.get("release"):
             missing = [key for key in ("source", "release") if not implementation.get(key)]
             if missing:
                 raise WorkflowResolutionError(

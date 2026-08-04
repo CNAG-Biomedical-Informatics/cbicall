@@ -91,7 +91,7 @@ def test_write_run_report_creates_compact_summary(tmp_path, monkeypatch):
             "schema_version": 1,
             "kind": "cbicall_execution_contract",
             "fingerprint": "contract-normalized",
-            "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "backend": "bash", "provider": "cbicall"},
+            "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "backend": "bash", "provider": "cbicall-core"},
             "command": {"sha256": "command-raw", "normalized_sha256": "command-normalized"},
             "generated_files": [],
         }),
@@ -921,7 +921,7 @@ def test_report_command_summarizes_run_without_writing_by_default(tmp_path, caps
             "schema_version": 1,
             "kind": "cbicall_execution_contract",
             "fingerprint": "refreshed-contract",
-            "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "backend": "bash", "provider": "cbicall"},
+            "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "backend": "bash", "provider": "cbicall-core"},
             "command": {"normalized_sha256": "refreshed-command"},
             "generated_files": [],
         }),
@@ -991,7 +991,7 @@ def test_report_command_refreshes_and_writes_html_when_requested(tmp_path, capsy
             "schema_version": 1,
             "kind": "cbicall_execution_contract",
             "fingerprint": "refreshed-contract",
-            "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "backend": "bash", "provider": "cbicall"},
+            "workflow": {"key": "bash/wes/single/gatk-4.6/v1", "backend": "bash", "provider": "cbicall-core"},
             "command": {"normalized_sha256": "refreshed-command"},
             "generated_files": [],
         }),
@@ -1097,7 +1097,7 @@ SEX=FEMALE
         "elapsed_seconds": 120,
         "framework": {"version": "1.2.3"},
         "runtime": {"python": {"version": "3.12.3"}, "backend": {"version": "5.2.21"}},
-        "workflow": {"backend": "bash", "provider": "cbicall", "pipeline": "wes", "mode": "single", "fingerprint": "a" * 64},
+        "workflow": {"backend": "bash", "provider": "cbicall-core", "pipeline": "wes", "mode": "single", "fingerprint": "a" * 64},
         "resources": {"bundle": {"key": "bundle", "version": "v1", "fingerprint": "b" * 64}},
         "execution_contract": {"fingerprint": "c" * 64},
         "outputs": {
@@ -1477,7 +1477,8 @@ def test_validate_registry_command_uses_default_registry(capsys, monkeypatch):
     assert "cbicall-workflow-registry.schema.json" in out
     assert "Backends" in out
     assert "bash, cromwell, nextflow, snakemake" in out
-    assert "External" in out
+    assert "Providers" in out
+    assert "cbicall-core" in out
     assert "nf-core" in out
     assert "Engines" not in out
 

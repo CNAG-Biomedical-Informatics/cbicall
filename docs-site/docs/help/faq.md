@@ -87,7 +87,7 @@ For mtDNA, `GT` tells you **which allele** was detected, not **how much** of it 
 <details>
 <summary>What is the difference between native and external workflows?</summary>
 
-**Native CBIcall workflows** are maintained in this repository and launched through a supported workflow backend: Bash, Snakemake, Nextflow, or Cromwell. They use the CBIcall project layout, provenance files, run reports, and usually the CBIcall resource bundle.
+**Native CBIcall workflows** are maintained in the `cbicall-core` collection and launched through a supported workflow backend: Bash, Snakemake, Nextflow, or Cromwell. They use the CBIcall project layout, provenance files, run reports, and usually the CBIcall resource bundle. Here, CBIcall is the orchestration framework and `cbicall-core` identifies the bundled workflow collection.
 
 **External workflows** are third-party workflows registered in CBIcall. Today this means selected nf-core workflows launched through Nextflow. CBIcall validates the YAML contract, pins the registered workflow, and writes provenance and run reports, while nf-core keeps its own output layout, profiles, containers, and reference-resource assumptions.
 
@@ -106,7 +106,7 @@ In this setup:
 
 - the container image is read-only
 - configuration files and workflows are stored in a writable host directory
-- native CBIcall resources, when needed, are downloaded outside the container and bind-mounted at runtime
+- the CBIcall resource bundle, when needed, is downloaded outside the container and bind-mounted at runtime
 
 Recommended workflow:
 

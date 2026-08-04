@@ -328,7 +328,7 @@ class BaseRunner:
             "kind": "cbicall_execution_contract",
             "workflow": {
                 "backend": self.backend,
-                "provider": str(self.workflow.metadata.get("provider", "cbicall")),
+                "provider": str(self.workflow.metadata.get("provider", "cbicall-core")),
                 "pipeline": self.pipeline,
                 "mode": self.mode,
                 "software_stack": self.software_stack,

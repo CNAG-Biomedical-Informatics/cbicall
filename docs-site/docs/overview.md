@@ -47,8 +47,8 @@ executes it.
 | Workflow backends | Bash, Snakemake, Nextflow, and Cromwell |
 | External provider entries | Registered nf-core pipelines launched through the Nextflow backend |
 
-The native CBIcall WES/WGS/mtDNA pipeline implementations use the CBIcall-provided resource
-bundle. Registered nf-core provider entries can be validated and launched without that
+The bundled `cbicall-core` WES/WGS/mtDNA workflows use the CBIcall resource
+bundle. Registered nf-core entries can be validated and launched without that
 bundle; Nextflow/nf-core manages the external pipeline's own test data,
 containers, and references.
 

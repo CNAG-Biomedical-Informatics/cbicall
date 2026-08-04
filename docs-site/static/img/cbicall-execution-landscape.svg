@@ -61,7 +61,7 @@
     <text x="706" y="73" fill="#263f49" font-size="15" font-weight="700">Bash</text>
     <text x="706" y="137" fill="#263f49" font-size="15" font-weight="700">Snakemake</text>
     <text x="706" y="197" fill="#263f49" font-size="15" font-weight="700">Nextflow</text>
-    <text x="791" y="197" fill="#667b84" font-size="12">native + nf-core</text>
+    <text x="782" y="197" fill="#667b84" font-size="10.5">cbicall-core / nf-core</text>
     <text x="706" y="265" fill="#263f49" font-size="15" font-weight="700">Cromwell</text>
 
     <path d="M900 68 H930 M900 132 H930 M900 196 H930 M900 260 H930" fill="none" stroke="#78909b" stroke-width="2"/>

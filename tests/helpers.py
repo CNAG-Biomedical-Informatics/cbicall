@@ -54,8 +54,9 @@ def write_workflow_schema(path: Path) -> None:
             "softwareStack": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["pipelines"],
+                "required": ["provider", "pipelines"],
                 "properties": {
+                    "provider": {"enum": ["cbicall-core", "nf-core"]},
                     "helpers": {
                         "type": "object",
                         "additionalProperties": {"type": "string", "minLength": 1},
@@ -104,11 +105,10 @@ def write_workflow_schema(path: Path) -> None:
                 "additionalProperties": False,
                 "oneOf": [
                     {"required": ["script"]},
-                    {"required": ["provider", "source", "release"]},
+                    {"required": ["source", "release"]},
                 ],
                 "properties": {
                     "script": {"type": "string", "minLength": 1},
-                    "provider": {"enum": ["nf-core"]},
                     "source": {"type": "string", "minLength": 1},
                     "release": {"type": "string", "minLength": 1},
                     "default_outdir": {"type": "string", "minLength": 1},
@@ -171,6 +171,7 @@ def write_registry(
             "    base_dir: \"workflows/bash\"",
             "    software_stacks:",
             f"      {software_stack}:",
+            "        provider: \"cbicall-core\"",
             "        helpers:",
             "          env: \"env.sh\"",
             "          coverage: \"coverage.sh\"",
@@ -195,6 +196,7 @@ def write_registry(
             "    base_dir: \"workflows/snakemake\"",
             "    software_stacks:",
             f"      {software_stack}:",
+            "        provider: \"cbicall-core\"",
             "        helpers:",
             "          config: \"config.yaml\"",
             "          coverage: \"coverage.sh\"",

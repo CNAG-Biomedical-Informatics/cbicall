@@ -3,6 +3,7 @@ workflows:
     base_dir: "workflows/bash"
     software_stacks:
       gatk-3.5:
+        provider: "cbicall-core"
         helpers:
           env: "env.sh"
           coverage: "coverage.sh"
@@ -37,6 +38,7 @@ workflows:
                   script: "mit_cohort.sh"
 
       gatk-4.6:
+        provider: "cbicall-core"
         helpers:
           env: "env.sh"
           coverage: "coverage.sh"
@@ -74,6 +76,7 @@ workflows:
     base_dir: "workflows/snakemake"
     software_stacks:
       gatk-4.6:
+        provider: "cbicall-core"
         helpers:
           config: "config.yaml"
           coverage: "../../bash/gatk-4.6/coverage.sh"
@@ -107,6 +110,7 @@ workflows:
     base_dir: "workflows/cromwell"
     software_stacks:
       gatk-4.6:
+        provider: "cbicall-core"
         helpers:
           config: "config.yaml"
           coverage: "../../bash/gatk-4.6/coverage.sh"
@@ -156,6 +160,7 @@ workflows:
     base_dir: "workflows/nextflow"
     software_stacks:
       gatk-4.6:
+        provider: "cbicall-core"
         helpers:
           config: "config.yaml"
           coverage: "../../bash/gatk-4.6/coverage.sh"
@@ -186,13 +191,13 @@ workflows:
                   script: "wgs_cohort.nf"
 
       nf-core:
+        provider: "nf-core"
         pipelines:
           demo:
             single:
               default_registry_version: "v1"
               registry_versions:
                 v1:
-                  provider: "nf-core"
                   source: "nf-core/demo"
                   release: "1.1.0"
                   default_outdir: "demo"
@@ -201,7 +206,6 @@ workflows:
               default_registry_version: "v1"
               registry_versions:
                 v1:
-                  provider: "nf-core"
                   source: "nf-core/sarek"
                   release: "3.8.1"
                   default_outdir: "sarek"

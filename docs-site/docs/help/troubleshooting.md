@@ -3,11 +3,11 @@
 Use the error text from the terminal or workflow log to find the matching section. Most failures fall into three groups: missing external data, GATK/Picard input problems, or mtDNA-specific MToolBox issues.
 
 :::tip[Identify the execution path]
-Before debugging, confirm whether the run is native CBIcall or external nf-core.
+Before debugging, identify the selected workflow provider.
 
 | Run type | YAML signal | First place to look |
 | --- | --- | --- |
-| Native CBIcall | `workflow_provider: cbicall` or omitted | CBIcall run log, `log.json`, and backend logs such as `logs/*.log` |
+| Bundled `cbicall-core` | `workflow_provider: cbicall-core` or omitted | CBIcall run log, `log.json`, and backend logs such as `logs/*.log` |
 | External nf-core | `workflow_provider: nf-core` | Nextflow launcher log, nf-core output directory, `pipeline_info/`, and task work directories |
 
 For all runs, check `log.json` to confirm the resolved `input_dir`, `sample_map`, `genome`, workflow, resource, and run directory.
@@ -36,7 +36,7 @@ evidence available at failure time.
 **Likely cause**
 
 `CBICALL_DATA` does not point to the directory where databases and external tools are installed or mounted.
-If it is unset, native workflows fall back to `/cbicall-data`, which is the
+If it is unset, bundled workflows fall back to `/cbicall-data`, which is the
 standard container mount and usually does not exist in a local source installation.
 
 **Fix**

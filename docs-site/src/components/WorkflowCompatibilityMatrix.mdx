@@ -1,15 +1,31 @@
-### Native CBIcall workflows
+export const GatkBadge = ({version}) => {
+  const legacy = version === '3.5';
+  return (
+    <span
+      className={`cbicallStackBadge ${legacy ? 'cbicallStackBadgeLegacy' : 'cbicallStackBadgeCurrent'}`}
+      title={legacy ? 'Legacy GATK 3.5 workflow stack' : 'Current GATK 4.6 workflow stack'}>
+      <span className="cbicallStackMark" aria-hidden="true">G</span>
+      <span>GATK {version}</span>
+    </span>
+  );
+};
 
-| Pipeline | Mode | Genome | Software stack | Bash | Snakemake | Nextflow | Cromwell |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| **WES** | `single` | `b37` | `gatk-3.5`, `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` | `gatk-4.6` | `gatk-4.6` |
-| **WES** | `cohort` | `b37` | `gatk-3.5`, `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` | `gatk-4.6` | `gatk-4.6` |
-| **WGS** | `single` | `b37`, `hg38` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` |
-| **WGS** | `cohort` | `b37`, `hg38` | `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | `gatk-4.6` |
-| **mtDNA** | `single` | `rsrs` | `gatk-3.5` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
-| **mtDNA** | `cohort` | `rsrs` | `gatk-3.5` | <span className="cbicallTestBadge cbicallTestBadgeYes">V</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
+### Bundled workflows (`cbicall-core`)
 
-CBIcall does not ship a validated `gatk-3.5` WGS workflow; native WGS support is provided through the `gatk-4.6` stack.
+Each backend cell shows the available GATK stack. `X` means that `cbicall-core`
+does not provide that pipeline/backend combination.
+
+| Pipeline | Mode | Genome | Bash | Snakemake | Nextflow | Cromwell |
+| --- | --- | --- | --- | --- | --- | --- |
+| **WES** | `single` | `b37` | <span className="cbicallStackSet"><GatkBadge version="4.6" /><GatkBadge version="3.5" /></span> | <GatkBadge version="4.6" /> | <GatkBadge version="4.6" /> | <GatkBadge version="4.6" /> |
+| **WES** | `cohort` | `b37` | <span className="cbicallStackSet"><GatkBadge version="4.6" /><GatkBadge version="3.5" /></span> | <GatkBadge version="4.6" /> | <GatkBadge version="4.6" /> | <GatkBadge version="4.6" /> |
+| **WGS** | `single` | `b37`, `hg38` | <GatkBadge version="4.6" /> | <GatkBadge version="4.6" /> | <GatkBadge version="4.6" /> | <GatkBadge version="4.6" /> |
+| **WGS** | `cohort` | `b37`, `hg38` | <GatkBadge version="4.6" /> | <GatkBadge version="4.6" /> | <GatkBadge version="4.6" /> | <GatkBadge version="4.6" /> |
+| **mtDNA** | `single` | `rsrs` | <GatkBadge version="3.5" /> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
+| **mtDNA** | `cohort` | `rsrs` | <GatkBadge version="3.5" /> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
+
+`cbicall-core` does not include a validated GATK 3.5 WGS workflow. Bundled WGS
+support uses GATK 4.6.
 
 ::::warning[mtDNA platform limitation]
 The bundled mtDNA workflow is not supported on ARM / aarch64 because of legacy

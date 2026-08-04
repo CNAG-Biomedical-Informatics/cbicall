@@ -14,8 +14,8 @@ def _versioned(script="wes_single.sh"):
 
 
 def test_workflow_registry_resolve_errors_and_version_syntax(tmp_path):
-    registry = {"workflows": {"bash": {"base_dir": "workflows/bash", "software_stacks": {"gatk-4.6": {"helpers": {}, "pipelines": {"wes": {"single": _versioned()}}}}}}}
-    cfg = {"workflow_backend": "bash", "software_stack": "gatk-4.6", "pipeline": "wes", "mode": "single"}
+    registry = {"workflows": {"bash": {"base_dir": "workflows/bash", "software_stacks": {"gatk-4.6": {"provider": "cbicall-core", "helpers": {}, "pipelines": {"wes": {"single": _versioned()}}}}}}}
+    cfg = {"workflow_backend": "bash", "workflow_provider": "cbicall-core", "software_stack": "gatk-4.6", "pipeline": "wes", "mode": "single"}
 
     with pytest.raises(WorkflowResolutionError, match="Backend not defined"):
         wr.resolve_workflow_spec({**cfg, "workflow_backend": "missing"}, registry, tmp_path)
@@ -41,7 +41,7 @@ def test_workflow_registry_resolve_errors_and_version_syntax(tmp_path):
     with pytest.raises(WorkflowResolutionError, match="Available: v1"):
         wr._resolve_pipeline_implementation({"default_registry_version": "v1", "registry_versions": {"v1": "x.sh"}}, "v2", backend="bash", software_stack="gatk", pipeline="wes", mode="single")
     with pytest.raises(WorkflowResolutionError, match="missing keys"):
-        wr._resolve_pipeline_implementation({"default_registry_version": "v1", "registry_versions": {"v1": {"provider": "nf-core", "source": "nf-core/demo"}}}, None, backend="nextflow", software_stack="nf-core", pipeline="demo", mode="single")
+        wr._resolve_pipeline_implementation({"default_registry_version": "v1", "registry_versions": {"v1": {"source": "nf-core/demo"}}}, None, backend="nextflow", software_stack="nf-core", pipeline="demo", mode="single")
     with pytest.raises(WorkflowResolutionError, match="must define a script path"):
         wr._resolve_pipeline_implementation({"default_registry_version": "v1", "registry_versions": {"v1": {"note": "bad"}}}, None, backend="bash", software_stack="gatk", pipeline="wes", mode="single")
 
@@ -60,6 +60,7 @@ def test_workflow_registry_resolves_backends_and_file_validation(tmp_path):
                 "base_dir": "workflows/bash",
                 "software_stacks": {
                     "gatk-4.6": {
+                        "provider": "cbicall-core",
                         "helpers": {"env": "env.sh", "coverage": "coverage.sh", "jaccard": "jaccard.sh", "vcf2sex": "vcf2sex.sh", "vcf2hash": "vcf2hash.sh"},
                         "profiles": {"cnag-hpc": {"env": "cnag-hpc-env.sh"}},
                         "pipelines": {"wes": {"single": _versioned()}},
@@ -68,7 +69,8 @@ def test_workflow_registry_resolves_backends_and_file_validation(tmp_path):
             }
         }
     }
-    spec = wr.resolve_workflow_spec({"workflow_backend": "bash", "software_stack": "gatk-4.6", "pipeline": "wes", "mode": "single"}, registry, root)
+    spec = wr.resolve_workflow_spec({"workflow_backend": "bash", "workflow_provider": "cbicall-core", "software_stack": "gatk-4.6", "pipeline": "wes", "mode": "single"}, registry, root)
+    assert spec.metadata["provider"] == "cbicall-core"
     assert spec.helpers["env"].endswith("env.sh")
     assert spec.profiles["cnag-hpc"]["env"].endswith("cnag-hpc-env.sh")
     wr.validate_resolved_workflow_files(spec)
@@ -92,6 +94,33 @@ def test_workflow_registry_resolves_backends_and_file_validation(tmp_path):
         wr.validate_resolved_workflow_files(WorkflowSpec(backend="nextflow", pipeline="wes", mode="single", software_stack="gatk-4.6", registry_version="v1", entrypoint=str(entry), config_file=str(config), helpers={"coverage": str(helper)}))
 
     wr.validate_resolved_workflow_files(WorkflowSpec(backend="nextflow", pipeline="demo", mode="single", software_stack="nf-core", registry_version="v1", entrypoint="nf-core/demo", metadata={"provider": "nf-core"}))
+
+
+def test_workflow_registry_rejects_provider_mismatch(tmp_path):
+    registry = {
+        "workflows": {
+            "bash": {
+                "base_dir": "workflows/bash",
+                "software_stacks": {
+                    "gatk-4.6": {
+                        "provider": "cbicall-core",
+                        "helpers": {},
+                        "pipelines": {"wes": {"single": _versioned()}},
+                    }
+                },
+            }
+        }
+    }
+    cfg = {
+        "workflow_backend": "bash",
+        "workflow_provider": "nf-core",
+        "software_stack": "gatk-4.6",
+        "pipeline": "wes",
+        "mode": "single",
+    }
+
+    with pytest.raises(WorkflowResolutionError, match="Workflow provider mismatch"):
+        wr.resolve_workflow_spec(cfg, registry, tmp_path)
 
 
 def test_workflow_registry_load_and_schema_errors(tmp_path):

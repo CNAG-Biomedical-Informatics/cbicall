@@ -11,7 +11,7 @@ used to audit CBIcall executions.
 | Can this installation run the shipped example workflows? | [Integration Tests](integration-tests) |
 | Do repeated runs match across machines or environments? | [Cross-Environment Reproducibility](cross-environment) |
 | Are installed resource bundles compatible with selected workflows? | [Resource Validation](../usage/resource-validation) |
-| How do native WES calls compare with a truth set? | [GIAB Benchmarking](giab) |
+| How do bundled WES/WGS calls compare with a truth set? | [GIAB Benchmarking](giab) |
 
 :::important[Scope]
 Integration tests and run comparison validate the CBIcall execution contract:

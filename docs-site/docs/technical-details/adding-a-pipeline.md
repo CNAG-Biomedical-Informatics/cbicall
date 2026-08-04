@@ -41,7 +41,7 @@ For an external workflow, usually do this:
 | --- | --- | --- |
 | Integration level | native, external | Determines whether the workflow must follow the CBIcall output contract. |
 | Workflow backend | `bash`, `snakemake`, `nextflow`, `cromwell` | Determines how CBIcall launches the workflow. |
-| Workflow provider | `cbicall`, `nf-core` | Identifies whether the workflow is maintained by CBIcall or an external ecosystem. |
+| Workflow provider | `cbicall-core`, `nf-core` | Identifies the registered collection that supplies the workflow. |
 | Software stack | `gatk-3.5`, `gatk-4.6`, `nf-core` | Selects implementation files or an external workflow source. |
 | Pipeline and mode | `wes`/`single`, `wgs`/`cohort` | Defines the user-facing YAML values and registry path. |
 | Inputs | `input_dir`, `sample_map`, backend parameters | Defines how users provide samples and workflow-specific options. |
@@ -51,7 +51,7 @@ Example native YAML:
 ```yaml
 mode: single
 pipeline: wes
-workflow_provider: cbicall
+workflow_provider: cbicall-core
 workflow_backend: bash
 software_stack: gatk-4.6
 genome: b37
@@ -235,13 +235,13 @@ workflows:
     base_dir: "workflows/nextflow"
     software_stacks:
       nf-core:
+        provider: "nf-core"
         pipelines:
           demo:
             single:
               default_registry_version: "v1"
               registry_versions:
                 v1:
-                  provider: "nf-core"
                   source: "nf-core/demo"
                   release: "1.1.0"
                   default_outdir: "demo"
@@ -250,7 +250,6 @@ workflows:
               default_registry_version: "v1"
               registry_versions:
                 v1:
-                  provider: "nf-core"
                   source: "nf-core/sarek"
                   release: "3.8.1"
                   default_outdir: "sarek"
@@ -312,6 +311,7 @@ workflows:
     base_dir: "workflows/bash"
     software_stacks:
       gatk-4.6:
+        provider: "cbicall-core"
         helpers:
           env: "env.sh"
           coverage: "coverage.sh"

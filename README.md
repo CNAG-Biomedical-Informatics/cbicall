@@ -29,7 +29,8 @@ and records **structured run reports** for auditable production runs and run-to-
 CBIcall orchestrates germline variant calling workflows for Illumina sequencing data.
 It does **not** implement variant calling algorithms itself. Instead, it validates
 parameters, resolves workflows from a versioned registry, checks resource compatibility,
-launches native CBIcall workflows through **Bash, Snakemake, Nextflow, or Cromwell**
+launches workflows from the native **cbicall-core** collection through **Bash,
+Snakemake, Nextflow, or Cromwell**
 backends, and captures audit artifacts for traceability. Selected external nf-core
 workflows can also run through the same validation and provenance layer.
 
@@ -44,7 +45,7 @@ CBIcall uses a three-part execution contract:
 Key points:
 
 - Configuration-driven execution from a YAML parameter file
-- Native CBIcall workflow support through Bash, Snakemake, Nextflow, and Cromwell backends
+- Native `cbicall-core` workflow support through Bash, Snakemake, Nextflow, and Cromwell backends
 - Support for WES, WGS, and mtDNA analysis modes
 - Registry-backed support for selected external nf-core/Nextflow workflows
 - Structured audit artifacts: `log.json`, `run-report.json`, optional `run-report.html`, workflow fingerprints, resource identity, output inventories, and normalized VCF hashes
@@ -55,7 +56,7 @@ Workflow sources:
 
 | Source | Role |
 | --- | --- |
-| Native CBIcall workflows | Packaged WES/WGS/mtDNA pipelines with CBIcall validation, logging, and output structure. |
+| `cbicall-core` workflows | Packaged native WES/WGS/mtDNA pipelines with CBIcall validation, logging, and output structure. |
 | External nf-core workflows | Selected registry-backed Nextflow workflows executed with CBIcall validation and provenance. |
 
 # Installation

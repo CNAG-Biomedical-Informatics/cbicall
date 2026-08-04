@@ -51,7 +51,7 @@ class WorkflowSpec:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "backend": self.backend,
-            "provider": str(self.metadata.get("provider", "cbicall")),
+            "provider": str(self.metadata.get("provider", "cbicall-core")),
             "pipeline": self.pipeline,
             "mode": self.mode,
             "software_stack": self.software_stack,
@@ -178,7 +178,7 @@ class ResolvedConfig:
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "ResolvedConfig":
         workflow_backend = data["workflow_backend"] if "workflow_backend" in data else data["workflow"]["backend"]
-        workflow_provider = data["workflow_provider"] if "workflow_provider" in data else data["workflow"].get("provider", "cbicall")
+        workflow_provider = data["workflow_provider"] if "workflow_provider" in data else data["workflow"].get("provider", "cbicall-core")
         pipeline = data["pipeline"] if "pipeline" in data else data["workflow"]["pipeline"]
         mode = data["mode"] if "mode" in data else data["workflow"]["mode"]
         software_stack = data["software_stack"] if "software_stack" in data else data["workflow"]["software_stack"]

@@ -1,5 +1,3 @@
-import WorkflowCompatibilityMatrix from '@site/src/components/WorkflowCompatibilityMatrix.mdx';
-
 # Configuration Reference
 
 CBIcall runs from a YAML parameters file plus CLI runtime settings.
@@ -36,8 +34,8 @@ genome:          b37
 | `mode` | `single` | `single`, `cohort` | Selects one-sample processing or cohort-level processing. |
 | `pipeline` | `wes` | `wes`, `wgs`, `mit`; external names are registry-defined | Selects the analysis type. For `workflow_provider: nf-core`, the value is resolved through the workflow registry. |
 | `workflow_backend` | `bash` | `bash`, `snakemake`, `nextflow`, `cromwell` | Selects the execution backend supported by the current workflows. |
-| `software_stack` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the GATK release for CBIcall-native workflows. Use `gatk-4.6` for current bundled WES/WGS workflows. |
-| `workflow_provider` | `cbicall` | `cbicall`, `nf-core` | Selects whether the workflow is a CBIcall-maintained implementation or an external nf-core workflow. Use `workflow_provider: nf-core` for external nf-core workflows. |
+| `software_stack` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the GATK release for bundled workflows. Use `gatk-4.6` for current WES/WGS workflows. |
+| `workflow_provider` | `cbicall-core` | `cbicall-core`, `nf-core` | Selects the registered workflow collection. `cbicall-core` contains CBIcall's bundled native implementations; use `nf-core` for registered external nf-core workflows. |
 | `resource` | `cbicall-germline-resources-v1` | resource key | Selects one entry from `resources/cbicall-resource-catalog.json`. |
 | `genome` | inferred | `b37`, `hg38`, `rsrs`, `external` | Reference genome. If omitted, CBIcall uses `b37` for WES/WGS, `rsrs` for mtDNA, and `external` for nf-core/Sarek. |
 | `input_dir` | `null` | path | Input sample or project directory. Relative paths are resolved from the YAML file location. |
@@ -53,9 +51,11 @@ genome:          b37
 The resource catalog is the inventory of selectable resource entries and their
 workflow compatibility metadata.
 
-## Compatibility Matrix
+## Supported Combinations
 
-<WorkflowCompatibilityMatrix />
+See the [compatibility matrix](../pipelines/overview#compatibility-matrix) for
+the pipeline, mode, software stack, genome, and backend combinations currently
+supported by CBIcall.
 
 :::info[Genome rules]
 - `pipeline: mit` always uses `genome: rsrs`.
@@ -131,7 +131,7 @@ input_vcf:       ./cohort.gathered.gv.raw.vcf.gz
 output_basename: cohort
 ```
 
-Staged cohort keys are currently supported only with CBIcall-native
+Staged cohort keys are currently supported only with bundled
 `software_stack: gatk-4.6`, `mode: cohort`, and `workflow_backend` set to
 `bash`, `snakemake`, `nextflow`, or `cromwell`. See the WES/WGS cohort page for
 a GNU parallel chromosome-sharding example.

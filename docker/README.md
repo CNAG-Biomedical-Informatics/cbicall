@@ -27,7 +27,7 @@ cd cbicall
 For a released version, check out its tag before building. For example:
 
 ```bash
-git checkout 1.1.0
+git checkout v1.2.0
 ```
 
 Then build the container from the repository root. The source revision and
@@ -74,7 +74,7 @@ build context.
 | Workflow path | Needs `/cbicall-data`? | Notes |
 | --- | --- | --- |
 | `workflow_provider: nf-core` | No CBIcall bundle required | Nextflow/nf-core manage their own test data, references, and containers. The selected runtime profile must still work in your environment. |
-| Native CBIcall Bash/Snakemake/Nextflow/Cromwell WES/WGS/mtDNA | Yes | Mount the CBIcall resource bundle as `/cbicall-data` and set `CBICALL_DATA=/cbicall-data`. |
+| `workflow_provider: cbicall-core` (default) | Yes | Runs native Bash/Snakemake/Nextflow/Cromwell WES/WGS/mtDNA workflows. Mount the CBIcall resource bundle as `/cbicall-data` and set `CBICALL_DATA=/cbicall-data`. |
 
 For Docker-based nf-core tests, make sure the selected nf-core profile can run
 from your container setup. Many users run nf-core directly on the host with

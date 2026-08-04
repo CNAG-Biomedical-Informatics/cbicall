@@ -120,7 +120,7 @@ large CBIcall germline resource bundle.
 | Workflow path | Resource bundle required? | Runtime requirement |
 | --- | --- | --- |
 | `workflow_provider: nf-core` | No | Nextflow plus Singularity/Apptainer, usually provided by the HPC environment. |
-| Native CBIcall Bash/Snakemake/Nextflow WES/WGS/mtDNA | Yes | Bind the CBIcall resource bundle and configure `DATADIR`. |
+| `workflow_provider: cbicall-core` (default) | Yes | Runs native Bash/Snakemake/Nextflow WES/WGS/mtDNA workflows. Bind the CBIcall resource bundle and configure `DATADIR`. |
 
 Use the resource download steps below for native CBIcall workflows. For nf-core
 provider runs, start with the checked-in `examples/input/nf-core-demo.yaml` and

@@ -19,7 +19,10 @@ The resource catalog can contain different resource types. This page documents
 the current `bundle` type and the CBIcall-provided bundle used by the packaged
 workflows.
 
-The `scripts/download_cbicall_bundle.py` utility is intentionally scoped to CBIcall-provided bundle entries in the resource catalog. It is not a general-purpose installer for arbitrary local, HPC module, or third-party layouts. The downloader uses the local catalog when it is present. If the script is used standalone and the local catalog is absent, it fetches the canonical catalog URL before selecting the bundle entry.
+The `scripts/download_cbicall_bundle.py` utility installs CBIcall bundle entries
+from the resource catalog. It uses the local catalog when available and
+otherwise retrieves the canonical catalog. It does not install arbitrary local
+or third-party resource layouts.
 
 ## Bundle Identity
 
@@ -34,19 +37,17 @@ records this key, the resource version, and a catalog fingerprint, so two runs
 can be checked for the same declared external dependency set.
 :::
 
-## Compatible Native Workflows
+## Bundle Scope
 
-This bundle is compatible with the packaged CBIcall-native workflows below.
+This bundle supplies the external tools and reference data used by the
+`cbicall-core` workflows. See the [canonical compatibility
+matrix](../pipelines/overview#compatibility-matrix) for supported pipelines,
+modes, software stacks, and backends.
 
-| Workflow backend | WES | WGS | mtDNA |
-| --- | --- | --- | --- |
-| `bash` | `single`, `cohort` with `gatk-3.5` or `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-3.5` |
-| `snakemake` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
-| `nextflow` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
-| `cromwell` | `single`, `cohort` with `gatk-4.6` | `single`, `cohort` with `gatk-4.6` | <span className="cbicallTestBadge cbicallTestBadgeNo">X</span> |
-
-CBIcall checks the exact workflow key internally, for example
-`nextflow/wgs/cohort/gatk-4.6/v1`.
+CBIcall checks compatibility using the exact versioned workflow keys declared
+in the resource catalog, for example `nextflow/wgs/cohort/gatk-4.6/v1`.
+External nf-core workflows manage their own dependencies and do not use this
+bundle.
 
 ## Downloaded Files
 

@@ -221,7 +221,7 @@ snakemake_parameters:
   target: call_variants
 ```
 
-For native CBIcall Nextflow workflows, pass extra workflow parameters with:
+For bundled Nextflow workflows, pass extra workflow parameters with:
 
 ```yaml
 workflow_backend: nextflow
@@ -229,7 +229,7 @@ nextflow_parameters:
   publish_debug_files: true
 ```
 
-For native CBIcall Cromwell workflows, pass advanced WDL inputs with
+For bundled Cromwell workflows, pass advanced WDL inputs with
 `cromwell_parameters`. CBIcall blocks overrides of inputs it owns.
 
 </details>

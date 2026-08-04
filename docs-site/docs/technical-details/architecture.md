@@ -1,5 +1,3 @@
-import WorkflowCompatibilityMatrix from '@site/src/components/WorkflowCompatibilityMatrix.mdx';
-
 # Architecture
 
 CBIcall is a **configuration-driven execution framework** for reproducible
@@ -48,7 +46,7 @@ _CBIcall validates the user parameters YAML, resolves it against the workflow re
 | **Workflow registry** | Developer-facing routing table that maps `workflow_provider`, `workflow_backend`, `software_stack`, `pipeline`, `mode`, and `registry_version` to one approved implementation. | `workflows/registry/cbicall-workflow-registry.yaml`, `src/cbicall/workflow_registry.py` |
 | **Resource catalog** | Declares external dependency sets, resource identifiers, compatible workflow keys, availability rules, and checksum metadata for downloadable CBIcall bundles. | `resources/cbicall-resource-catalog.json`, `src/cbicall/resources.py` |
 | **Workflow runners** | Execute the resolved implementation. Bash runs local scripts directly; Snakemake, native Nextflow, and Cromwell run bundled workflow files; external nf-core entries are launched through Nextflow. | `src/cbicall/execution.py` |
-| **Workflow implementations** | Contain native CBIcall workflows and registered external workflow entries. Native workflows follow the CBIcall output contract; external workflows keep their upstream output layout. | `workflows/bash/`, `workflows/snakemake/`, `workflows/nextflow/`, `workflows/cromwell/` |
+| **Workflow implementations** | Contain native workflows and registered external entries. Native workflows follow the CBIcall output contract; external workflows keep their upstream output layout. | `workflows/bash/`, `workflows/snakemake/`, `workflows/nextflow/`, `workflows/cromwell/` |
 | **Run audit layer** | Writes `log.json` and `run-report.json`; records runtime versions, workflow and resource identity, output inventories, execution contracts, and VCF fingerprints. | `src/cbicall/run_audit.py`, `src/cbicall/runtime_info.py` |
 | **Report layer** | Loads and refreshes completed audits, renders text/HTML/MultiQC summaries, and compares two or more runs. | `src/cbicall/report_commands.py`, `src/cbicall/comparison_commands.py`, `src/cbicall/html_reports.py`, `src/cbicall/multiqc.py` |
 | **Contract tests** | Run small examples and validate expected output contracts without keeping full `ref_*` run directories in the repository. | `src/cbicall/integration_tests.py`, `tests/fixtures/integration/` |
@@ -117,7 +115,7 @@ workflow registry declares canonical final outputs.
 The parameters YAML selects an analysis in layers:
 
 ```yaml
-workflow_provider: cbicall
+workflow_provider: cbicall-core
 workflow_backend: bash
 software_stack: gatk-4.6
 pipeline: wes
@@ -125,7 +123,7 @@ mode: single
 genome: b37
 ```
 
-For native pipeline implementations, `workflow_provider: cbicall` is the default. For external
+For workflows in the bundled native collection, `workflow_provider: cbicall-core` is the default. For external
 nf-core provider entries, users select `workflow_provider: nf-core` and
 `workflow_backend: nextflow`; the external release is declared by the registry
 entry.
@@ -165,8 +163,12 @@ Workflow providers identify where the implementation comes from:
 
 | Workflow provider | Meaning |
 | --- | --- |
-| `cbicall` | Pipeline implementation is maintained as part of CBIcall and follows the CBIcall output contract. |
+| `cbicall-core` | Pipeline implementation belongs to CBIcall's bundled native workflow collection and follows the CBIcall output contract. |
 | `nf-core` | Pipeline implementation comes from nf-core and keeps its upstream output layout. |
+
+The CBIcall framework is not itself a workflow provider. `cbicall-core` names
+the workflow collection maintained with the framework; `workflow_backend`
+independently selects the engine or shell used to execute that implementation.
 
 ::::tip[Backend choice]
 Bash workflows are direct and transparent. Snakemake, Nextflow, and Cromwell
@@ -214,7 +216,9 @@ default, generate both terminal and HTML summaries.
 
 ## Supported Pipelines and Backends
 
-<WorkflowCompatibilityMatrix />
+See the [canonical compatibility
+matrix](../pipelines/overview#compatibility-matrix) for the combinations
+currently registered with CBIcall.
 
 ---
 

@@ -16,14 +16,7 @@ Install optional Snakemake and MultiQC integrations with
 `python3 -m pip install --upgrade "cbicall[all]"`. Container and source
 installation alternatives are described under [Install](../installation/non-containerized).
 
-:::info[YAML contract]
-In CBIcall, the parameters YAML becomes a **YAML contract** after CBIcall has
-validated it and resolved it against the workflow registry and resource catalog.
-Both `validate-parameters` and `run` perform this validation; `validate-parameters`
-stops before launching the workflow.
-:::
-
-## 2. Confirm the CLI
+### Confirm the installation
 
 ```bash
 cbicall --help
@@ -36,7 +29,7 @@ installation report. `doctor` checks the packaged contracts, `CBICALL_DATA`
 bundle metadata, and available workflow backends. Missing optional backends are
 reported as warnings.
 
-## 3. Explore the Reports
+## 2. Explore the Reports
 
 Generate a WES audit report and an interactive mtDNA browser from packaged
 example outputs:
@@ -61,35 +54,32 @@ Use a different empty destination when needed:
 cbicall demo --output-dir my-cbicall-demo
 ```
 
-## 4. Choose an Execution Test
+## 3. Run an Execution Test
 
 For actual workflow execution, choose one of these paths:
 
 | Path | CBIcall bundle | Other requirements | Use when |
 | --- | --- | --- | --- |
 | nf-core provider | No | Nextflow and the selected container runtime | You want to test external-provider orchestration. |
-| Native CBIcall WES/mtDNA | Yes | Tools supplied by the bundle | You want to execute packaged native workflows against CBIcall integration contracts. |
+| Bundled `cbicall-core` WES/mtDNA | Yes | Tools supplied by the bundle | You want to execute the bundled workflows and their integration contracts. |
 
 For nf-core, CBIcall validates the YAML and records provenance, while nf-core and
 Nextflow manage the workflow's own test data, containers, and references.
 
-## 5. Option A: Run nf-core Without the CBIcall Bundle
+### Option A: Run nf-core Without the CBIcall Bundle
 
-From `examples/input`, run the lightweight nf-core demo example:
+Run the lightweight nf-core demo integration test:
 
 ```bash
-cd examples/input
-cbicall validate-parameters -p nf-core-demo.yaml --no-color
-cbicall run -p nf-core-demo.yaml -t 4 --no-color
+cbicall test --nf-core-demo -t 4
 ```
 
-This does not require the CBIcall germline resource bundle or `DATADIR`. It does
-require Nextflow and the container/runtime profile selected in the YAML, for
-example `test,singularity` on HPC or `test,docker` on a Docker workstation.
+This does not require the CBIcall resource bundle. It requires Nextflow and the
+container runtime selected by the packaged test configuration.
 
-## 6. Option B: Run the Native WES Example Test
+### Option B: Run the Bundled WES Test
 
-Point CBIcall to the installed external bundle, then run the test:
+Point CBIcall to the installed resource bundle, then run the test:
 
 ```bash
 export CBICALL_DATA=/absolute/path/to/cbicall-data
@@ -99,7 +89,7 @@ cbicall test --wes-bash -t 1
 This runs the bundled Bash WES workflow and validates the generated VCF against
 the expected normalized hash declared by the integration contract. It requires
 the CBIcall-provided resource bundle to be installed. `CBICALL_DATA` is applied
-consistently to the Bash, Snakemake, Nextflow, and Cromwell native backends.
+consistently to the bundled Bash, Snakemake, Nextflow, and Cromwell workflows.
 
 :::tip[Need deeper checks?]
 Use [Integration Tests](../validation/integration-tests) for bundled WES/mtDNA test details,
@@ -108,7 +98,7 @@ Use [Integration Tests](../validation/integration-tests) for bundled WES/mtDNA t
 the selected resource entry.
 :::
 
-## 7. Optional: Run the mtDNA Test
+### Optional: Run the mtDNA Test
 
 Run the WES and mtDNA integration contracts together so that the WES test
 produces the BAM consumed by MToolBox:
@@ -121,7 +111,7 @@ cbicall test --wes-bash --mit-bash -t 1
 The mtDNA workflow uses MToolBox and is x86_64-only. If you are on ARM / aarch64, run WES/WGS workflows there but move mtDNA runs to an x86_64 host.
 :::
 
-## 8. Run With Your Own YAML
+## 4. Run With Your Own YAML
 
 Once the integration tests work, use the normal invocation:
 

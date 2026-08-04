@@ -13,7 +13,7 @@ The **resource catalog** is the JSON inventory of those resource entries:
 **resource version**, **workflow compatibility**, and optional identity metadata.
 
 <div className="cbicallNotePanel">
-  <p><strong>Use this page when the question is:</strong> does this resource catalog, selected resource key, or installed resource directory match the workflow I am about to run?</p>
+  <p>Use this page to check that the resource catalog and installed bundle match the workflow you plan to run.</p>
 </div>
 
 Use [Integration Tests](../validation/integration-tests) when you want to run the shipped
@@ -30,21 +30,17 @@ Run the installation-level check without a parameters YAML:
 cbicall doctor
 ```
 
-`doctor` validates the packaged workflow registry and resource catalog, then
-checks the resource metadata at the `CBICALL_DATA` root. Current installations
-are verified from `cbicall-resource-installation.json`, including the catalog
-fingerprint, recorded archive-checksum result, and expected top-level layout.
-Installations carrying the catalog-pinned `cbicall-resource-id.json` are also
-recognized. The command does not rehash the large resource archive. It reports
-whether the four supported execution backends are available; missing optional
-backends are warnings.
+`doctor` checks the packaged workflow registry and resource catalog, the bundle
+installed under `CBICALL_DATA`, and the available workflow backends. Missing
+optional backends are reported as warnings. The command reads the installation
+metadata; it does not rehash the large resource archive.
 
 This command verifies the installation as a whole. It does not select a resource
 for an analysis or determine whether a particular YAML contract can run.
 
 ## Set the Installed Bundle Location
 
-Native workflows read the external bundle location from `CBICALL_DATA`:
+Bundled workflows read the external resource location from `CBICALL_DATA`:
 
 ```bash
 export CBICALL_DATA=/absolute/path/to/cbicall-data

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0 - 2026-08-0X
+
+- Introduce `cbicall-core` as the provider identifier for CBIcall's native workflow collection.
+- Replace `workflow_provider: cbicall` with `workflow_provider: cbicall-core`.
+
 ## 1.1.0 - 2026-07-20
 
 - Add standards-based Python packaging and installed CLI support.

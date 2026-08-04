@@ -38,8 +38,11 @@
     "softwareStack": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["pipelines"],
+      "required": ["provider", "pipelines"],
       "properties": {
+        "provider": {
+          "enum": ["cbicall-core", "nf-core"]
+        },
         "helpers": {
           "type": "object",
           "additionalProperties": false,
@@ -104,11 +107,10 @@
       "additionalProperties": false,
       "oneOf": [
         { "required": ["script"] },
-        { "required": ["provider", "source", "release"] }
+        { "required": ["source", "release"] }
       ],
       "properties": {
         "script": { "$ref": "#/$defs/pathString" },
-        "provider": { "enum": ["nf-core"] },
         "source": { "$ref": "#/$defs/pathString" },
         "release": { "$ref": "#/$defs/pathString" },
         "default_outdir": { "$ref": "#/$defs/pathString" },

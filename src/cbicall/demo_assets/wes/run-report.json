@@ -4,13 +4,13 @@
   "execution_contract": {
     "backend": "bash",
     "command_sha256": "70e0e22d49b0739b9b189d08063b08063ee54fc8b36a00ee06a112930ca7c0c3",
-    "fingerprint": "c12f0bf974e8a37d4a6ce9b503bf0602969fbf98d8c8255ea23ced326f43d3cd",
+    "fingerprint": "a9eaf696bb35079e59915c1a8a74c4453c8644e2d5155995a5609a172516e8e8",
     "generated_files": [],
     "normalized_command_sha256": "eb5b7c5e0d282027ecebd81537c62be02cd1816797f554ee5985e9658b015fb3",
     "path": "{PROJECT_DIR}/cbicall-execution-contract.json",
-    "provider": "cbicall",
+    "provider": "cbicall-core",
     "schema_version": 1,
-    "sha256": "b7fcb2486881f040676f677b166cc02415e33e0d8ea92d388f392fcebe2da7b4",
+    "sha256": "c3e3ec5416c3221a39d2e99ac848a8c9f464f1992197b7de5c4bf0da7b911e8f",
     "source": {
       "backend_parameters": {
         "cromwell_parameters": {},
@@ -38,7 +38,7 @@
         "CBICALL_ENV_FILE": "{CBICALL_ROOT}/workflows/bash/gatk-4.6/env.sh",
         "GENOME": "b37"
       },
-      "fingerprint": "c12f0bf974e8a37d4a6ce9b503bf0602969fbf98d8c8255ea23ced326f43d3cd",
+      "fingerprint": "a9eaf696bb35079e59915c1a8a74c4453c8644e2d5155995a5609a172516e8e8",
       "generated_files": [],
       "inputs": {
         "input_dir": "{DEMO_INPUT}",
@@ -80,7 +80,7 @@
         "metadata": {},
         "mode": "single",
         "pipeline": "wes",
-        "provider": "cbicall",
+        "provider": "cbicall-core",
         "registry_version": "v1",
         "software_stack": "gatk-4.6"
       }
@@ -90,7 +90,7 @@
   },
   "framework": {
     "name": "CBIcall",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "inputs": {
     "input_dir": "{DEMO_INPUT}",
@@ -336,7 +336,7 @@
     "metadata": {},
     "mode": "single",
     "pipeline": "wes",
-    "provider": "cbicall",
+    "provider": "cbicall-core",
     "registry_version": "v1",
     "software_stack": "gatk-4.6"
   },

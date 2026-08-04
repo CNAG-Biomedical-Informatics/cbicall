@@ -7,15 +7,15 @@ files, and records the run metadata. The nf-core pipeline keeps its own upstream
 output layout and runtime behavior.
 
 In CBIcall terms, nf-core is a **workflow provider** and Nextflow is the
-**workflow backend**. Registered nf-core entries are launched through the
-Nextflow backend, but they are not one of the shipped CBIcall WES/WGS/mtDNA
-CBIcall-native implementations. Use this page when testing registered nf-core
-examples on a workstation or on a cluster.
+**workflow backend**. CBIcall currently provides ready-to-run entries for
+`nf-core/demo` and `nf-core/sarek`. These remain external workflows: nf-core
+maintains their code, dependencies, and output layout, while CBIcall validates
+the launch configuration and records the run audit.
 
 :::note[Run directory location]
 nf-core run directories are created where `cbicall run` is launched,
 for example `cbicall_nextflow_nf-core_sarek_cohort_GATK.GRCh38_<run-id>/`.
-This differs from native CBIcall WES/WGS/mtDNA pipelines, whose run directories
+This differs from bundled `cbicall-core` WES/WGS/mtDNA workflows, whose run directories
 are created under the discovered sample/input directory.
 :::
 

@@ -14,7 +14,7 @@ def _resolved_config(tmp_path, workflow, **overrides):
         "run_mode": "full",
         "inputs": SimpleNamespace(input_dir="/tmp/input", sample_map=None),
         "workflow": workflow,
-        "workflow_provider": workflow.metadata.get("provider", "cbicall"),
+        "workflow_provider": workflow.metadata.get("provider", "cbicall-core"),
         "snakemake_parameters": {},
         "nfcore_profile": None,
         "nfcore_parameters": {},

@@ -42,7 +42,7 @@ PIPELINE_VALUES = {"wes", "wgs", "mit"}
 ORGANISM_VALUES = {"Homo sapiens", "Mus musculus"}
 TECHNOLOGY_VALUES = {"Illumina HiSeq", "NovaSeq"}
 WORKFLOW_BACKEND_VALUES = {"bash", "cromwell", "nextflow", "snakemake"}
-WORKFLOW_PROVIDER_VALUES = {"cbicall", "nf-core"}
+WORKFLOW_PROVIDER_VALUES = {"cbicall-core", "nf-core"}
 SOFTWARE_STACK_VALUES = {"gatk-3.5", "gatk-4.6"}
 GENOME_VALUES = {"b37", "hg38", "rsrs", "external"}
 COHORT_STAGE_VALUES = {"all", "shard", "finalize"}
@@ -77,7 +77,7 @@ _DEFAULTS = {
     "nfcore_parameters": {},
     "nfcore_singularity_cache_dir": None,
     "software_stack": "gatk-3.5",
-    "workflow_provider": "cbicall",
+    "workflow_provider": "cbicall-core",
     "registry_version": None,
     "project_dir": "cbicall",
     "cleanup_bam": False,
@@ -168,8 +168,8 @@ def _apply_genome_rules(cfg: dict, user_provided_genome: bool) -> None:
             )
 
     if cfg.get("workflow_backend") == "cromwell":
-        if cfg.get("workflow_provider") != "cbicall":
-            raise ParameterValidationError("workflow_backend='cromwell' is currently supported only with workflow_provider='cbicall'.")
+        if cfg.get("workflow_provider") != "cbicall-core":
+            raise ParameterValidationError("workflow_backend='cromwell' is currently supported only with workflow_provider='cbicall-core'.")
         if cfg.get("software_stack") != "gatk-4.6":
             raise ParameterValidationError("workflow_backend='cromwell' currently supports software_stack='gatk-4.6' only.")
         if cfg.get("pipeline") not in {"wes", "wgs"} or cfg.get("mode") not in {"single", "cohort"}:
@@ -419,7 +419,7 @@ def _validate_cohort_stage_settings(cfg: dict) -> None:
 
     staged = stage != "all" or cfg.get("interval_shard") is not None or cfg.get("input_vcf") is not None
     if staged:
-        if cfg.get("workflow_provider") != "cbicall" or cfg.get("software_stack") != "gatk-4.6":
+        if cfg.get("workflow_provider") != "cbicall-core" or cfg.get("software_stack") != "gatk-4.6":
             raise ParameterValidationError(
                 "cohort_stage, interval_shard, and input_vcf are currently supported only for native GATK 4.6 cohort runs."
             )
@@ -452,10 +452,14 @@ def _validate_registry_version_settings(cfg: dict) -> None:
 def _normalize_workflow_provider_settings(cfg: dict) -> None:
     workflow_provider = cfg.get("workflow_provider")
     if workflow_provider is None:
-        workflow_provider = "cbicall"
+        workflow_provider = "cbicall-core"
     workflow_provider = str(workflow_provider).strip()
     if not workflow_provider:
         raise ParameterValidationError("workflow_provider must be a non-empty value when provided.")
+    if workflow_provider == "cbicall":
+        raise ParameterValidationError(
+            "workflow_provider='cbicall' was replaced by workflow_provider='cbicall-core' in CBIcall 1.2.0."
+        )
     _validate_enum("workflow_provider", workflow_provider, WORKFLOW_PROVIDER_VALUES)
     cfg["workflow_provider"] = workflow_provider
     if workflow_provider == "nf-core":

@@ -9,6 +9,10 @@ the generated `cbicall_*` run directory, standard logs, audit reports, output
 inventory, and final-output fingerprints when available. Native status is about
 that output contract, not the workflow language.
 
+`cbicall-core` is the workflow-provider identifier for the native collection
+maintained and distributed with CBIcall. CBIcall itself remains the orchestration
+framework.
+
 ## Supported Native Backends
 
 | Native backend | Current native role |
@@ -27,12 +31,13 @@ assumptions. See [External nf-core](nf-core).
 ```yaml
 pipeline: wes
 mode: single
-workflow_provider: cbicall
+workflow_provider: cbicall-core
 workflow_backend: bash
 software_stack: gatk-4.6
 ```
 
-For native pipeline implementations, `workflow_provider: cbicall` is the default. Change
+For workflows in CBIcall's bundled native collection, `workflow_provider: cbicall-core`
+is the default. Change
 `workflow_backend` to `snakemake`, `nextflow`, or `cromwell` when the selected
 pipeline/mode/software stack supports that backend.
 

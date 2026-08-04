@@ -201,14 +201,14 @@ def _run_validate_parameters_command(argv: List[str]) -> int:
     return 0
 
 
-def _collect_external_sources(value) -> List[str]:
-    sources = set()
+def _collect_workflow_providers(value) -> List[str]:
+    providers = set()
 
     def visit(node):
         if isinstance(node, dict):
             provider = node.get("provider")
             if provider:
-                sources.add(str(provider))
+                providers.add(str(provider))
             for child in node.values():
                 visit(child)
         elif isinstance(node, list):
@@ -216,7 +216,7 @@ def _collect_external_sources(value) -> List[str]:
                 visit(child)
 
     visit(value)
-    return sorted(sources)
+    return sorted(providers)
 
 
 def _collect_cromwell_wdls(registry: dict, project_root: Path) -> List[Path]:
@@ -282,14 +282,14 @@ def _run_validate_registry_command(argv: List[str]) -> int:
     schema_path = Path(args.schema)
     registry = load_workflow_registry(registry_path, schema_path)
     backends = sorted((registry.get("workflows") or {}).keys())
-    external_sources = _collect_external_sources(registry)
+    providers = _collect_workflow_providers(registry)
     wdl_validation = _validate_cromwell_wdls_with_womtool(registry, root)
 
     _section("Registry OK", console.GREEN)
     _row("Registry", _short_path(registry_path))
     _row("Schema", _short_path(schema_path))
     _row("Backends", ", ".join(backends) if backends else "(none)")
-    _row("External", ", ".join(external_sources) if external_sources else "(none)")
+    _row("Providers", ", ".join(providers) if providers else "(none)")
     if wdl_validation["status"] == "ok":
         _row("WDL syntax", f"ok ({wdl_validation['count']} files)")
     elif wdl_validation["status"] == "skipped":
