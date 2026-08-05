@@ -57,7 +57,7 @@ const sidebars: SidebarsConfig = {
         {
           type: 'doc',
           id: 'usage/end-to-end-example-wes',
-          label: 'WES Example',
+          label: 'WES/WGS Examples',
         },
         {
           type: 'doc',
@@ -73,16 +73,16 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Workflow Backends',
+      label: 'Workflow Execution',
       items: [
         {
           type: 'doc',
           id: 'backends/native',
-          label: 'Native',
+          label: 'Native Backends',
         },
         {
           type: 'category',
-          label: 'External',
+          label: 'External Providers',
           items: [
             {
               type: 'doc',

@@ -41,9 +41,8 @@ THREADS=4
 MEM="24G"
 
 # Apptainer settings (edit as needed)
-SIF_IMAGE="/software/biomed/containers/cbicall_latest.sif"
+SIF_IMAGE="/software/biomed/containers/cbicall_1.2.0.sif"
 CBICALL_DATA="/software/biomed/cbicall-data"
-CBICALL_WRITABLE="\$HOME/cbicall"   # writable copy of /usr/share/cbicall (per-user)
 
 cat > "${JOB_SCRIPT}" <<EOF
 #!/bin/bash
@@ -74,14 +73,7 @@ if [ ! -d "${CBICALL_DATA}" ]; then
   exit 2
 fi
 
-if [ ! -d "${CBICALL_WRITABLE}" ]; then
-  echo "ERROR: Writable cbicall copy not found: ${CBICALL_WRITABLE}"
-  echo "Create it once with:"
-  echo "  apptainer exec ${SIF_IMAGE} bash -lc 'mkdir -p \$HOME/cbicall && cp -a /usr/share/cbicall/. \$HOME/cbicall/'"
-  exit 2
-fi
-
-cd \$SLURM_SUBMIT_DIR
+cd "${WORKDIR}"
 
 # write a pipeline-specific yaml
 YAML_FILE="${SAMPLE_ID}_${PIPELINE}_param.yaml"
@@ -97,21 +89,18 @@ cleanup_bam: false
 YAML
 
 # Run cbicall inside the container
-# - Bind writable workflow tree over /usr/share/cbicall (container install is read-only)
 # - Bind databases to /cbicall-data
 # - Bind WORKDIR so paths referenced in the YAML exist inside the container
-CBICALL_IN_CONTAINER="/usr/share/cbicall/bin/cbicall"
 
 srun apptainer exec \\
-  --pwd /usr/share/cbicall \\
-  --bind "${CBICALL_WRITABLE}":/usr/share/cbicall \\
   --bind "${CBICALL_DATA}":/cbicall-data \\
   --bind "${WORKDIR}":"${WORKDIR}" \\
+  --env CBICALL_DATA=/cbicall-data \\
+  --pwd "${WORKDIR}" \\
   "${SIF_IMAGE}" \\
-  "\${CBICALL_IN_CONTAINER}" \\
+  cbicall \\
     run \\
     -p "\${YAML_FILE}" \\
-    --runtime-profile cnag-hpc \\
     -t ${THREADS}
 EOF
 

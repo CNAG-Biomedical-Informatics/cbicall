@@ -1,215 +1,146 @@
-# Containerized Installation
+# Docker installation
 
-## Install CBIcall with Docker
+The Docker image contains CBIcall and all four supported workflow backends. The
+large reference and software bundle remains outside the image and is mounted
+only for bundled `cbicall-core` workflows.
 
-CBIcall installation and CBIcall resource installation are separate steps. Pull
-or build the CBIcall image first; download the native CBIcall resource bundle
-only if the workflow path you choose needs it.
+## 1. Get the image
 
-### Method 1: Installing from Docker Hub (fast)
-
-Pull the latest Docker image from [Docker Hub](https://hub.docker.com/r/manuelrueda/cbicall):
+For reproducible analyses, use a released version rather than `latest`:
 
 ```bash
-docker pull manuelrueda/cbicall:latest
-docker image tag manuelrueda/cbicall:latest cnag/cbicall:latest
+export CBICALL_IMAGE=manuelrueda/cbicall:1.2.0
+docker pull "$CBICALL_IMAGE"
 ```
 
-### Method 2: Building from the source checkout (slow)
-
-Clone CBIcall so Docker can build the exact checked-out revision:
+<details>
+<summary>Build the checked-out source instead</summary>
 
 ```bash
 git clone https://github.com/CNAG-Biomedical-Informatics/cbicall.git
 cd cbicall
-```
-
-For a released version, check out its tag before building. For example:
-
-```bash
 git checkout v1.2.0
+
+docker buildx build --load \
+  -f docker/Dockerfile \
+  --build-arg CBICALL_VERSION="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/cbicall/__about__.py)" \
+  --build-arg VCS_REF="$(git rev-parse HEAD)" \
+  -t cbicall:local .
 ```
 
-Then build the container from the repository root. The source revision and
-CBIcall version are recorded in the image metadata:
-
-The Dockerfile installs the CBIcall Python dependencies, including Snakemake,
-plus pinned Nextflow, Cromwell, and WOMtool launchers. Bash workflows do not
-need those engines, but the image can run the packaged Snakemake, Nextflow, and
-Cromwell WES/WGS workflows without extra engine installation.
-
-- **For Docker version 19.03 and above (supports buildx):**
-
-  ```bash
-  docker buildx build --load \
-    -f docker/Dockerfile \
-    --build-arg CBICALL_VERSION="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/cbicall/__about__.py)" \
-    --build-arg VCS_REF="$(git rev-parse HEAD)" \
-    -t cnag/cbicall:latest .
-  ```
-
-- **For Docker versions older than 19.03 (no buildx support):**
-
-  ```bash
-  docker build \
-    -f docker/Dockerfile \
-    --build-arg CBICALL_VERSION="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/cbicall/__about__.py)" \
-    --build-arg VCS_REF="$(git rev-parse HEAD)" \
-    -t cnag/cbicall:latest .
-  ```
-
-Inspect the revision packaged in an image with:
+The Docker build uses the current checkout as its build context; it does not
+clone a different revision. Inspect the recorded commit with:
 
 ```bash
-docker inspect cnag/cbicall:latest \
+docker inspect cbicall:local \
   --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}'
 ```
 
-The Docker Hub multi-architecture image is built in the same way: GitHub
-Actions checks out one repository commit and passes that checkout as the Docker
-build context.
+</details>
 
-## Choose a Workflow Path
+## 2. Choose the workflow source
 
-| Workflow path | Needs `/cbicall-data`? | Notes |
+| Workflow source | CBIcall bundle required? | Notes |
 | --- | --- | --- |
-| `workflow_provider: nf-core` | No CBIcall bundle required | Nextflow/nf-core manage their own test data, references, and containers. The selected runtime profile must still work in your environment. |
-| `workflow_provider: cbicall-core` (default) | Yes | Runs native Bash/Snakemake/Nextflow/Cromwell WES/WGS/mtDNA workflows. Mount the CBIcall resource bundle as `/cbicall-data` and set `CBICALL_DATA=/cbicall-data`. |
+| `workflow_provider: cbicall-core` (default) | Yes | Bundled native WES/WGS workflows support Bash, Snakemake, Nextflow, and Cromwell. mtDNA uses Bash and requires x86_64. |
+| `workflow_provider: nf-core` | No | The selected nf-core task runtime must be available from the container setup. Running CBIcall directly on the host is often simpler for Docker-based nf-core runs. |
 
-For Docker-based nf-core tests, make sure the selected nf-core profile can run
-from your container setup. Many users run nf-core directly on the host with
-Docker or on HPC with Singularity/Apptainer.
+## 3. Install resources for `cbicall-core`
 
-## Download the Resource Bundle for Native Workflows
-
-> Note: this process can be lengthy.
-
-Begin by downloading the required databases and software for native CBIcall
-workflows. Save the data outside the container; this preserves it across
-container restarts and lets you update the software without downloading the data
-again. Skip this section when you only want to validate or run registered
-nf-core provider workflows.
-
-Run the installer from the CBIcall image while mounting a persistent host
-directory:
+Keep the bundle in a persistent host directory:
 
 ```bash
-mkdir -p /absolute/path/to/cbicall-data
+export CBICALL_DATA=/absolute/path/to/cbicall-data
+mkdir -p "$CBICALL_DATA"
+
 docker run --rm \
-  --volume /absolute/path/to/cbicall-data:/cbicall-data \
-  cnag/cbicall:latest \
+  --volume "$CBICALL_DATA":/cbicall-data \
+  "$CBICALL_IMAGE" \
   cbicall install-resources --outdir /cbicall-data
 ```
 
-To verify only the catalog-to-Google-Drive bundle identity before starting the large archive download:
+Confirm that the image can see the installation:
 
 ```bash
-docker run --rm --volume /absolute/path/to/cbicall-data:/cbicall-data \
-  cnag/cbicall:latest cbicall install-resources --outdir /cbicall-data \
-  --verify-resource-id-only
-```
-
-Google Drive can be restrictive with large files. If the Python download stalls or fails, print the manual download list:
-
-```bash
-docker run --rm --volume /absolute/path/to/cbicall-data:/cbicall-data \
-  cnag/cbicall:latest cbicall install-resources --outdir /cbicall-data \
-  --print-manual-download
-```
-
-Download every listed file into `/absolute/path/to/cbicall-data`, then let the script continue from those files. **This step can take time because it assembles, verifies, and extracts the full resource bundle.** On a typical VM or workstation disk, expect roughly 20-50 minutes after all parts are present; faster disks may be shorter.
-
-```bash
-docker run --rm --volume /absolute/path/to/cbicall-data:/cbicall-data \
-  cnag/cbicall:latest cbicall install-resources --outdir /cbicall-data \
-  --skip-download
-```
-
-The script will:
-
-- download missing split files when possible
-- reassemble `data.tar.gz`
-- verify the split parts or assembled archive with `data.tar.gz.md5`
-- load the CBIcall resource catalog, locally or from the catalog URL
-- optionally verify a small GDrive resource identifier file such as `cbicall-resource-id.json`
-- rename the verified archive using the bundle identity, for example `cbicall-germline-resources-v1.tar.gz`
-- extract the archive into `DATADIR`
-- write `cbicall-resource-installation.json` with the installed bundle provenance
-
-If disk space is tight and the checksum has passed, add `--remove-parts` to remove `data.tar.gz.part-*` after assembly.
-
-CBIcall keeps the rich resource registry in `resources/cbicall-resource-catalog.json`. The GDrive bundle only needs a small identifier file, for example `cbicall-resource-id.json` containing `{"resource_key": "cbicall-germline-resources-v1"}`. When that identifier file is available, the registry can store its Google Drive file ID and SHA-256 so the downloader can verify that the remote bundle matches the local CBIcall catalog entry.
-
-## Running and Interacting with the Container
-
-For native CBIcall workflows:
-
-```bash
-# Please update '/absolute/path/to/cbicall-data' with your actual local data path
-docker run -tid \
-  --volume /absolute/path/to/cbicall-data:/cbicall-data \
+docker run --rm \
+  --volume "$CBICALL_DATA":/cbicall-data \
   --env CBICALL_DATA=/cbicall-data \
-  --env USERNAME=root \
-  --name cbicall cnag/cbicall:latest
+  "$CBICALL_IMAGE" \
+  cbicall doctor
 ```
 
-For nf-core-only validation, the CBIcall bundle mount is not required:
+Skip this step when using only an external nf-core workflow.
+
+<details>
+<summary>Manual resource-download recovery</summary>
+
+If the automatic Google Drive download fails, print the registered file list:
 
 ```bash
-docker run -tid -e USERNAME=root --name cbicall cnag/cbicall:latest
+docker run --rm \
+  --volume "$CBICALL_DATA":/cbicall-data \
+  "$CBICALL_IMAGE" \
+  cbicall install-resources --outdir /cbicall-data --print-manual-download
 ```
 
-The container/runtime setup must still support the nf-core profile you select.
-
-To connect to the container:
+Place every listed file in `$CBICALL_DATA`, then resume:
 
 ```bash
-docker exec -ti cbicall bash
+docker run --rm \
+  --volume "$CBICALL_DATA":/cbicall-data \
+  "$CBICALL_IMAGE" \
+  cbicall install-resources --outdir /cbicall-data --skip-download
 ```
 
-### Validate the mounted resources
+Use `--verify-resource-id-only` to verify the small catalog-pinned identifier
+before downloading the archive. Add `--remove-parts` after successful
+verification when disk space is limited.
 
-The container was started with `CBICALL_DATA=/cbicall-data`, so all native
-backends receive the mounted resource location without modifying packaged
-workflow files.
+</details>
 
-Then confirm that CBIcall sees the mounted resources:
+## 4. Run an analysis
+
+Keep the parameters YAML and input data under one host project directory. Bind
+that directory at the same absolute path so paths in the YAML remain valid:
 
 ```bash
-cbicall doctor
-cbicall validate-parameters -p examples/input/param.yaml
+export PROJECT_DIR=/absolute/path/to/project
+
+docker run --rm \
+  --user "$(id -u):$(id -g)" \
+  --env HOME=/tmp \
+  --env CBICALL_DATA=/cbicall-data \
+  --volume "$CBICALL_DATA":/cbicall-data \
+  --volume "$PROJECT_DIR":"$PROJECT_DIR" \
+  --workdir "$PROJECT_DIR" \
+  "$CBICALL_IMAGE" \
+  cbicall run -p "$PROJECT_DIR/parameters.yaml" -t 4
 ```
 
-## Performing integration tests
+The run directory is written to the mounted project directory and remains on
+the host after the container exits.
 
-Inside the container, from the CBIcall repository root:
+## 5. Run an integration test
 
-**WES**
-
-```bash
-cbicall test --wes-bash -t 1
-```
-
-**mtDNA**
+Use a new or empty host directory to retain the generated reports:
 
 ```bash
-cbicall test --mit-bash -t 1
+export TEST_DIR=/absolute/path/to/cbicall-wes-test
+mkdir -p "$TEST_DIR"
+
+docker run --rm \
+  --user "$(id -u):$(id -g)" \
+  --env HOME=/tmp \
+  --env CBICALL_DATA=/cbicall-data \
+  --volume "$CBICALL_DATA":/cbicall-data \
+  --volume "$TEST_DIR":/work \
+  "$CBICALL_IMAGE" \
+  cbicall test --wes-bash -t 1 --workspace /work
 ```
 
 ## System requirements
 
-- OS/ARCH supported: **linux/amd64** and **linux/arm64**.
-- Ideally a Debian-based distribution (Ubuntu or Mint), but any other (e.g., CentOS, OpenSUSE) should do as well.
-- 16GB of RAM
-- \>= 1 core (ideally i7 or Xeon).
-- At least 100GB HDD.
-
-## Common errors: Symptoms and treatment
-
-  * Dockerfile:
-
-          * DNS errors
-
-            - Error: Temporary failure resolving 'foo'
-
-              Solution: https://askubuntu.com/questions/91543/apt-get-update-fails-to-fetch-files-temporary-failure-resolving-error
+- Docker with Buildx support for local multi-platform builds.
+- A Linux amd64 or arm64 host; mtDNA workflows require amd64/x86_64.
+- Sufficient CPU, memory, and storage for the selected workflow. Allow at least
+  16 GB RAM and 100 GB disk for the bundle and shipped WES test.

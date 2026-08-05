@@ -8,7 +8,7 @@ cbicall run -p parameters.yaml -t 4
 
 Unknown YAML keys are rejected, so misspellings fail early instead of being ignored.
 Analysis configuration is defined in YAML. Runtime controls such as thread count,
-color output, validation commands, and the CBIcall native runtime profile are
+color output, validation commands, and the Bash runtime profile are
 selected on the CLI.
 
 A **YAML contract** is the parameters YAML after CBIcall has validated and
@@ -40,11 +40,7 @@ genome:          b37
 | `genome` | inferred | `b37`, `hg38`, `rsrs`, `external` | Reference genome. If omitted, CBIcall uses `b37` for WES/WGS, `rsrs` for mtDNA, and `external` for nf-core/Sarek. |
 | `input_dir` | `null` | path | Input sample or project directory. Relative paths are resolved from the YAML file location. |
 | `sample_map` | `null` | path | Cohort-mode TSV containing sample IDs and gVCF paths. Relative paths are resolved from the YAML file location. |
-| `input_vcf` | `null` | path | Gathered raw VCF used by native GATK 4.6 cohort `cohort_stage: finalize`. Relative paths are resolved from the YAML file location. |
 | `project_dir` | `cbicall` | path or prefix | Prefix for the generated run directory. |
-| `output_basename` | `null` | filename stem | Optional basename for generated VCFs. In staged cohort runs this is useful for names such as `cohort.chr1`. |
-| `cohort_stage` | `all` | `all`, `shard`, `finalize` | Native GATK 4.6 cohort staging mode. `all` keeps the standard one-job behavior. |
-| `interval_shard` | `null` | contig label | Required for `cohort_stage: shard`; selects the contig or interval-list shard to joint-genotype. |
 | `cleanup_bam` | `false` | `true`, `false` | Deletes intermediate BAM and BAI files after successful WES/WGS single-sample runs. |
 | `qc_coverage_region` | `chr1` | contig name | Contig used only for the lightweight coverage summary. It does not change variant-calling intervals. |
 
@@ -94,8 +90,15 @@ sample_map:      ./sample_map.tsv
 
 #### Staged Cohort Runs
 
-Native GATK 4.6 cohort runs can be split into shard jobs and one finalize job.
+Bundled `cbicall-core` GATK 4.6 cohort runs can be split into shard jobs and one finalize job.
 This is useful when running chromosomes in parallel on a scheduler.
+
+| Key | Default | Use |
+| --- | --- | --- |
+| `cohort_stage` | `all` | `all` runs the complete workflow, `shard` stops after one raw interval VCF, and `finalize` filters a gathered raw VCF. |
+| `interval_shard` | `null` | Contig or interval-list label required by `cohort_stage: shard`. |
+| `input_vcf` | `null` | Gathered raw VCF required by `cohort_stage: finalize`. |
+| `output_basename` | `null` | Output stem, such as `cohort.chr1` for a shard or `cohort` for the final callset. |
 
 Shard one contig:
 
@@ -138,7 +141,8 @@ a GNU parallel chromosome-sharding example.
 
 ### mtDNA
 
-mtDNA workflows consume BAMs from previous WES/WGS runs. They do not start from FASTQ files.
+mtDNA workflows consume BAMs from previous bundled Bash WES/WGS runs. They do
+not start from FASTQ files.
 
 ```yaml
 mode:            single
@@ -150,8 +154,8 @@ input_dir:       CNAG999_exome/CNAG99901P_ex
 
 ### nf-core/demo
 
-`nf-core/demo` is useful for testing CBIcall's external nf-core support without
-modeling a full biological workflow. It uses the nf-core `test` profile.
+`nf-core/demo` tests the external-provider path without the CBIcall resource
+bundle:
 
 ```yaml
 mode:             single
@@ -162,18 +166,11 @@ resource:         nf-core-demo-managed-resources-v1
 nfcore_profile: test,singularity
 ```
 
-Use the checked-in `test,singularity` profile on HPC. Here, `test` supplies
-nf-core's built-in demo inputs and smoke-test settings, while `singularity`
-selects the Singularity/Apptainer runtime. On an x86_64 Docker workstation,
-`test,docker` is also possible. If `nfcore_parameters.input` is set, it overrides
-the input supplied by the `test` profile. For workstation and cluster runs, see
-[nf-core External Workflows](../backends/nf-core).
+Use `test,singularity` on HPC or `test,docker` on an x86_64 Docker workstation.
 
 ### nf-core/Sarek
 
-Sarek is launched as an external nf-core Nextflow workflow. CBIcall validates the
-YAML, pins the registered nf-core release, writes a small params file in the run
-directory, and leaves Sarek outputs in their native layout under `sarek/`.
+Sarek is launched through the registered external nf-core provider:
 
 ```yaml
 mode:             cohort
@@ -182,35 +179,17 @@ workflow_backend:  nextflow
 workflow_provider: nf-core
 resource:         nf-core-sarek-managed-resources-v1
 nfcore_profile: singularity
-# nfcore_singularity_cache_dir: nxf-singularity-cache
 nfcore_parameters:
   input: sarek_samplesheet.csv
   genome: GATK.GRCh38
   tools: haplotypecaller
-  skip_tools: haplotypecaller_filter
   wes: true
-  intervals: ../../workflows/nextflow/nf-core/sarek/grch38_chr22_test.bed
-  max_memory: 30.GB
 ```
 
-CBIcall does not interpret Sarek-specific parameters. Values under
-`nfcore_parameters` are passed to the generated nf-core parameters file. Use the
-samplesheet format and parameter names expected by the selected Sarek release.
-
-For nf-core/Sarek, the CLI thread value is written to the generated params file
-as `max_cpus`. For example, `cbicall run -p nf-core-sarek.yaml -t 6` passes
-`max_cpus: 6` to Sarek and writes a small Nextflow config with
-`process.resourceLimits` so individual processes do not request more than six
-CPUs. Memory caps stay in `nfcore_parameters`, for example `max_memory: 30.GB`;
-CBIcall writes the same value to Nextflow `process.resourceLimits.memory`.
-On HPC, set `nfcore_singularity_cache_dir` to a user- or project-owned
-directory so the generated Nextflow config points away from unreadable
-site-level container libraries. If the HPC module exports `NXF_*` variables,
-keep those exports in the shell or SLURM bootstrap before invoking CBIcall.
-For the tiny chr22 smoke test, `skip_tools: haplotypecaller_filter` avoids a
-GATK `FilterVariantTranches` failure caused by too few overlapping resource
-variants. Remove it for production Sarek runs if you want Sarek's default
-HaplotypeCaller filtering.
+CBIcall passes `nfcore_parameters` to the selected nf-core release and controls
+the output directory and CPU limit. Use the upstream pipeline's parameter names
+and samplesheet format. See [External nf-core Workflows](../backends/nf-core)
+for profiles, container caches, memory limits, and the packaged smoke tests.
 
 ## Bundle Provenance
 
@@ -222,28 +201,10 @@ workflow and records resource key, version, and fingerprint provenance in
 Use [Resource Validation](../usage/resource-validation) for resource checks and
 [Run Comparison](run-comparison) to compare repeated runs.
 
-## Registry Version
-
-Each workflow registry entry has a CBIcall registry version, currently `v1` for
-the bundled workflows. Normal YAML files do not need to set this; the registry
-provides `default_registry_version`.
-
-Set `registry_version` only when a registry entry exposes more than one
-registry version and a run must pin a non-default one.
-
 ## Runtime Profiles
 
-CBIcall runtime profiles are currently a **native Bash environment-file feature**.
-The default profile is `local`; additional profiles can be declared in the
-workflow registry when the same Bash workflow needs more than one `env.sh`
-layout, for example on a shared HPC system. At launch, CBIcall passes the
-selected Bash env file through `CBICALL_ENV_FILE`, and the Bash script sources it
-instead of its colocated `$BINDIR/env.sh` fallback.
-
-Snakemake, Nextflow, Cromwell, and nf-core workflows do not use this Bash env-file
-switch. They use their own backend-specific configuration mechanisms, such as
-Snakemake `config.yaml`, Nextflow params/config/profiles, Cromwell WDL inputs,
-or nf-core profiles.
+`--runtime-profile` is a CLI-only setting for bundled Bash environment mappings.
+The default is `local`; a site can register another mapping such as `cnag-hpc`.
 
 Select a non-default CBIcall profile on the CLI:
 
@@ -262,36 +223,21 @@ resolved profile and selected environment file are written to `log.json`.
 `validate-parameters` prints the same resolved values without creating a run
 directory or log file.
 
-## Command Utilities
-
-Most users need only these commands:
-
-| Command | Use |
-| --- | --- |
-| `cbicall run -p parameters.yaml -t 4` | Execute one analysis. |
-| `cbicall validate-parameters -p parameters.yaml` | Check one parameters YAML before launch. |
-| `cbicall doctor` | Check the CBIcall installation, installed bundle metadata, and available backends. |
-| `cbicall validate-resources` | Validate the resource catalog and workflow compatibility keys. |
-| `cbicall compare-runs RUN_A RUN_B [RUN_C ...]` | Compare runs containing `run-report.json`. Three or more runs automatically include all-to-all evidence. |
-| `cbicall report RUN_DIR` | Summarize an existing successful or failed run report. |
-| `cbicall test --wes-bash -t 1` | Run the minimal shipped WES contract test. |
-
 <details>
-<summary>Advanced flags</summary>
+<summary>How backend profiles differ</summary>
 
-| Flag | Use when |
-| --- | --- |
-| `--runtime-profile cnag-hpc` | Running a native workflow with a site-specific environment profile. |
-| `--alias A B C` | Comparing runs whose directory names are long or opaque. |
-| `--multiqc` | Exporting CBIcall summaries as MultiQC custom content. |
-| `--html` | Rendering a browser report from an existing run report. |
-| `--refresh` | Updating output-derived metadata in `run-report.json` after files changed. |
-| Backend test flags | Optional integration checks; see [Integration Tests](../validation/integration-tests). |
+For Bash, CBIcall resolves the selected environment file and passes it through
+`CBICALL_ENV_FILE`. Snakemake, Nextflow, Cromwell, and nf-core use their own
+configuration or profile mechanisms and do not use this Bash switch.
 
 </details>
 
-For a higher-level explanation of pipelines, providers, and execution backends,
-see [Workflows](../pipelines/overview).
+## Related commands
+
+This page documents YAML configuration. See [General Usage](../usage) for
+CLI syntax, [Integration Tests](../validation/integration-tests) for shipped
+workflow checks, [Resource Validation](../usage/resource-validation) for the
+resource catalog, and [Run Comparison](run-comparison) for audit reports.
 
 ## Advanced Keys
 
@@ -299,8 +245,8 @@ see [Workflows](../pipelines/overview).
 | --- | --- | --- |
 | `registry_version` | Registry default, currently `v1` | Advanced pin for a specific CBIcall registry version. Leave unset for normal runs. |
 | `snakemake_parameters` | `{}` | Snakemake-specific options. `target` selects a Snakemake target instead of the default `all`; other keys are passed through as extra `--config key=value` entries after CBIcall-managed config values. |
-| `nextflow_parameters` | `{}` | Native CBIcall Nextflow parameters passed as `--key value`. CBIcall blocks keys it owns, such as `pipeline`, `genome`, `threads`, `qc_coverage_region`, helper scripts, and cohort workspace settings. |
-| `cromwell_parameters` | `{}` | Native CBIcall Cromwell/WDL inputs for advanced workflow-specific values. CBIcall blocks overrides of inputs it owns, including tool paths, reference paths, sample identity, genome, pipeline, `qc_coverage_region`, and thread count. |
+| `nextflow_parameters` | `{}` | Extra parameters for bundled Nextflow workflows. CBIcall blocks keys it owns, such as `pipeline`, `genome`, threads, helper scripts, and cohort workspace settings. |
+| `cromwell_parameters` | `{}` | Extra WDL inputs for bundled Cromwell workflows. CBIcall blocks overrides of tool paths, references, sample identity, pipeline, coverage region, and thread count. |
 | `nfcore_profile` | `null` | nf-core profile passed to external nf-core workflows, for example `docker`, `singularity`, or `test,singularity`. |
 | `nfcore_parameters` | `{}` | Pass-through nf-core parameters written to the generated params file. CBIcall controls `outdir` and `max_cpus`. |
 | `nfcore_singularity_cache_dir` | `null` | Optional Singularity/Apptainer image cache directory for external nf-core workflows. CBIcall writes it to the generated Nextflow config as cache and library directories. |

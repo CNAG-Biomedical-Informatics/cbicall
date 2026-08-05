@@ -27,7 +27,8 @@ CNAG999_exome/CNAG99901P_ex/
 
 For WES/WGS cohort runs, `sample_map` points to a TSV containing sample IDs and gVCF paths.
 
-For mtDNA runs, CBIcall expects BAM files from previous WES/WGS single-sample runs. mtDNA workflows do not start from FASTQ files.
+For mtDNA runs, CBIcall expects BAM files from previous bundled Bash WES/WGS
+single-sample runs. mtDNA workflows do not start from FASTQ files.
 
 For external nf-core workflows, workflow-specific inputs are passed in
 `nfcore_parameters`. For example, Sarek expects its samplesheet under

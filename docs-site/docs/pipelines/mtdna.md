@@ -1,157 +1,92 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# mtDNA Pipelines
+# mtDNA pipelines
 
-These pipelines extract mitochondrial reads from exome data and run **MToolBox** to generate mtDNA variant calls, annotations, and heteroplasmy estimates.
+The bundled `cbicall-core` mtDNA workflows extract mitochondrial reads from
+completed bundled Bash WES/WGS BAMs and use MToolBox to call, annotate, and
+prioritize mtDNA variants. They do not start from FASTQ files.
 
-There are two processing modes:
+| Mode | Use |
+| --- | --- |
+| `single` | Analyze one individual. |
+| `cohort` | Analyze all eligible samples in one project together. |
 
-- **Single-sample analysis**: `mit_single`
-- **Cohort / family analysis**: `mit_cohort`
-
-Both consume **WES single-sample outputs** and assume [this nomenclature](../help/naming-conventions).
-
----
-
-## Choosing a Pipeline
-
-| Use Case | Pipeline | Description |
-|----------|----------|-------------|
-| Analyze **one individual** | `mit_single` | Fast, sample-specific mtDNA variant calling + HF/DP/GT extraction |
-| Analyze **a full family or cohort** | `mit_cohort` | Joint variant calling across samples; useful for transmission and segregation checks |
-
----
-
-## Workflow Details
+:::warning[Architecture]
+The bundled MToolBox workflow supports x86_64 Linux only.
+:::
 
 <Tabs groupId="workflow-mode">
-<TabItem value="single-sample-mit-single" label="Single-Sample: mit_single" default>
+<TabItem value="single" label="Single sample" default>
 
-## mtDNA Single-Sample Pipeline
-
-**Source:** [View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/bash/gatk-3.5/mit_single.sh)
-
-### Workflow Diagram
+## Single-sample workflow
 
 ![mtDNA single-sample workflow](/img/diagram-mtdna-single.svg)
 
-### Summary
+Set `input_dir` to a sample directory containing a completed bundled Bash
+WES/WGS single-sample run. CBIcall discovers the recalibrated BAM, extracts the
+mitochondrial contig, runs MToolBox, and appends genotype (`GT`), depth (`DP`),
+and heteroplasmy fraction values to the prioritized report.
 
-The `mit_single` pipeline processes **one individual** at a time.  
-It extracts mtDNA reads, runs MToolBox, and enriches the prioritized variants with:
-
-- **GT** — genotype  
-- **DP** — depth  
-- **HF** — heteroplasmic fraction  
-
-### Inputs
-
-- Run inside directory: `cbicall_bash_mit_single_*`
-- Needs WES single-sample directory:
-  `../../cbicall_bash_wes_single*/01_bam/input.merged.filtered.realigned.fixed.bam`
-- `env.sh` provides:
-  - `REF`
-  - `SAM` path
-  - `MTOOLBOXDIR`
-
-### Outputs
-
-| File | Description |
-|------|-------------|
-| `VCF_file.vcf` | mtDNA VCF from MToolBox |
-| `prioritized_variants.txt` | Raw prioritized list |
-| `mit_prioritized_variants.txt` | Final prioritized list with GT/DP/HF |
-| `mit.filtered.json` | Canonical filtered records used to generate the browser |
-| `02_browser/<run-id>.html` | Standalone interactive mtDNA report |
+```yaml
+mode:             single
+pipeline:         mit
+workflow_backend: bash
+software_stack:   gatk-3.5
+input_dir:        CNAG999_exome/CNAG99901P_ex
+```
 
 </TabItem>
-<TabItem value="cohort-mit-cohort" label="Cohort: mit_cohort">
+<TabItem value="cohort" label="Cohort">
 
-## mtDNA Cohort Pipeline
-
-**Source:** [View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/bash/gatk-3.5/mit_cohort.sh)
-
-### Workflow Diagram
+## Cohort workflow
 
 ![mtDNA cohort workflow](/img/diagram-mtdna-cohort.svg)
 
-### Summary
+Set `input_dir` to a project directory containing the sample directories and
+their completed bundled Bash WES/WGS single-sample runs. CBIcall extracts
+mitochondrial reads from each usable BAM and runs MToolBox jointly.
 
-`mit_cohort` processes **all samples together**, generating a **joint mtDNA variant table** useful for:
+```yaml
+mode:             cohort
+pipeline:         mit
+workflow_backend: bash
+software_stack:   gatk-3.5
+input_dir:        CNAG999_exome
+```
 
-- Family mtDNA transmission studies  
-- Maternal-lineage analysis  
-- Variant segregation and consistency checks  
-
-### Inputs
-
-- Run inside: `cbicall_bash_mit_cohort_*`
-- Expects WES single-sample directories:
-  `../../??????????_ex/cbicall_bash_wes_single*/01_bam/`
-- `env.sh` defines `REF`, `SAM`, `MTOOLBOXDIR`
-
-### Outputs
-
-| File | Description |
-|------|-------------|
-| `VCF_file.vcf` | mtDNA VCF for full cohort |
-| `prioritized_variants.txt` | MToolBox-prioritized list |
-| `mit_prioritized_variants.txt` | Joint variant table with GT/DP/HF |
-| `mit.filtered.json` | Canonical filtered records used to generate the browser |
-| `02_browser/<run-id>.html` | Standalone interactive cohort report |
+Use cohort mode for a family, maternal-lineage analysis, or a project-level
+mtDNA table. A WES/WGS cohort run is not required beforehand.
 
 </TabItem>
 </Tabs>
-## When to Use Each Pipeline
 
-### Use `mit_single` when:
+## Outputs
 
-- You need results for **one individual**.
-- You are adding or reprocessing a single relative.
-- You want faster turnaround for a standalone case.
+Both modes produce the same principal artifacts:
 
-### Use `mit_cohort` when:
+| File | Description |
+| --- | --- |
+| `01_mtoolbox/mit_prioritized_variants.txt` | Annotated variants with CBIcall-added `GT`, `DP`, and heteroplasmy values. |
+| `01_mtoolbox/VCF_file.vcf` | mtDNA VCF from MToolBox. |
+| `01_mtoolbox/mt_classification_best_results.csv` | Predicted mitochondrial haplogroups. |
+| `01_mtoolbox/mit.filtered.json` | Canonical filtered records used to generate the browser. |
+| `02_browser/<run-id>.html` | Standalone interactive mtDNA report. |
 
-- You want a **joint variant table** across multiple individuals.
-- You are analyzing **mtDNA inheritance** within a family.
-- You need a cohort-level mtDNA table for downstream review or comparison.
+See the [mtDNA end-to-end example](../usage/end-to-end-example-mit) for the
+complete run procedure and browser screenshots.
 
----
+<details>
+<summary>Implementation details and source files</summary>
 
-## Background Information
+The workflow builds on
+[MToolBox v1.0](https://github.com/mitoNGS/MToolBox). It converts and prepares
+the input BAM, aligns mitochondrial reads to RSRS, calls variants, predicts
+haplogroups, and performs functional annotation and prioritization. CBIcall then
+creates the canonical filtered JSON and standalone browser report.
 
-**CBIcall mtDNA** builds on [MToolbox v1.0](https://github.com/mitoNGS/MToolBox) and performs:
+- [Single-sample Bash workflow](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/bash/gatk-3.5/mit_single.sh)
+- [Cohort Bash workflow](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/bash/gatk-3.5/mit_cohort.sh)
+- Calabrese C. et al. *MToolBox: a highly automated pipeline for heteroplasmy annotation and prioritization analysis of human mitochondrial variants in high-throughput sequencing.* Bioinformatics (2014). [Article](https://academic.oup.com/bioinformatics/article-lookup/doi/10.1093/bioinformatics/btu483)
 
----
-### 1. Preprocessing (PicardTools)
-Converts BAM → FASTQ using:
-- *SortSam.jar*
-- *MarkDuplicates.jar*
-- *SamFormatConverter.jar*
-([PicardTools](http://picard.sourceforge.net))
-
----
-### 2. Alignment
-- Aligns reads to **RSRS** via `mapExome.py`
-- Uses **GSNAP** ([2015-12-31.v7](http://research-pub.gene.com/gmap/))
-
----
-### 3. Variant Calling & Annotation (MToolBox)
-Pipeline steps include:
-
-- *mpileup* (SAMtools)
-- *mtVariantCaller.py*
-- *VCFoutput.py* (with [PyVCF](https://github.com/jamescasbon/PyVCF))
-- *mt-classifier.py* (haplogroup prediction)
-- *variants_functional_annotation.py*
-- *prioritization.py*
-- *summary.py*
-
----
-### Reference
-
-1. Calabrese C. *et al.*  
-   **MToolBox: a highly automated pipeline for heteroplasmy annotation and prioritization analysis of human mitochondrial variants in high-throughput sequencing.**  
-   *Bioinformatics* (2014).  
-   [Read paper](https://academic.oup.com/bioinformatics/article-lookup/doi/10.1093/bioinformatics/btu483)
+</details>

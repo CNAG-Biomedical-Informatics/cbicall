@@ -13,7 +13,7 @@ const guideLinks = [
   {
     label: 'Analyses',
     title: 'Select a pipeline',
-    text: 'Review the native WES, WGS, and mtDNA workflows for single-sample and cohort analysis.',
+    text: 'Review the bundled WES, WGS, and mtDNA workflows for single-sample and cohort analysis.',
     to: '/docs/pipelines/overview',
   },
   {
@@ -46,9 +46,9 @@ export default function Home() {
               <h1 className={styles.srOnly}>CBIcall</h1>
               <p className={styles.kicker}>Configuration-driven variant calling</p>
               <p className={styles.lede}>
-                Validate one analysis request against controlled workflow and
-                resource contracts, execute it through supported backends, and
-                retain structured evidence for audit and run comparison.
+                Define one analysis in YAML. CBIcall validates it, runs the
+                selected workflow through a supported backend, and records the
+                evidence needed to audit and compare runs.
               </p>
               <div className={styles.actions}>
                 <Link className="button button--primary button--lg" to="/docs/usage/quickstart">

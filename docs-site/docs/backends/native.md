@@ -9,22 +9,26 @@ the generated `cbicall_*` run directory, standard logs, audit reports, output
 inventory, and final-output fingerprints when available. Native status is about
 that output contract, not the workflow language.
 
-`cbicall-core` is the workflow-provider identifier for the native collection
-maintained and distributed with CBIcall. CBIcall itself remains the orchestration
-framework.
-
 ## Supported Native Backends
 
-| Native backend | Current native role |
-| --- | --- |
-| Bash | Broadest native backend; includes WES, WGS, and mtDNA pipelines. |
-| Snakemake | Native WES/WGS implementation for rule-based execution and partial targets. |
-| Nextflow | Native WES/WGS implementation that follows the CBIcall run layout. |
-| Cromwell | Native WDL implementation for GATK 4.6 WES/WGS pipelines. |
+| Backend | Workflow form | Required runner |
+| --- | --- | --- |
+| **Bash** | Shell scripts | Bash |
+| **Snakemake** | Snakefile rules | Snakemake |
+| **Nextflow** | Nextflow processes | Nextflow and Java |
+| **Cromwell** | WDL workflows and tasks | Cromwell and Java |
+
+:::tip[What `cbicall-core` means]
+CBIcall is the framework. `cbicall-core` is the ready-to-run workflow collection
+distributed and maintained with it.
+:::
 
 External nf-core provider entries are different: they are launched through the Nextflow
 backend, but they keep their upstream nf-core output layout and runtime
 assumptions. See [External nf-core](nf-core).
+
+Use `cbicall doctor` to see which backend runners are available in the current
+installation.
 
 ## Selecting a Backend
 
@@ -36,10 +40,10 @@ workflow_backend: bash
 software_stack: gatk-4.6
 ```
 
-For workflows in CBIcall's bundled native collection, `workflow_provider: cbicall-core`
-is the default. Change
-`workflow_backend` to `snakemake`, `nextflow`, or `cromwell` when the selected
-pipeline/mode/software stack supports that backend.
+For these bundled workflows, `workflow_provider: cbicall-core` is the default
+and can be omitted. Change `workflow_backend` to `snakemake`, `nextflow`, or
+`cromwell` when the selected pipeline, mode, and software stack support that
+backend.
 
 Use [Included Pipelines](../pipelines/overview) for the compatibility matrix and
 pipeline-specific guides.

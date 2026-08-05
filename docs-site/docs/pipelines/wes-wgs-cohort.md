@@ -3,10 +3,8 @@ import TabItem from '@theme/TabItem';
 
 # WES/WGS Cohort Joint-Genotyping Pipeline
 
-A user-oriented guide for multi-sample joint genotyping using GenomicsDB, GenotypeGVCFs, and VQSR.
-
-
-**Sources:** [Bash](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/bash/gatk-4.6/wes_cohort.sh), [Snakemake](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/snakemake/gatk-4.6/wes_cohort.smk), [Nextflow](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/nextflow/gatk-4.6/wes_cohort.nf), [Cromwell](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/cromwell/gatk-4.6/wes_cohort.wdl)
+A user-oriented guide for multi-sample joint genotyping using GenomicsDB,
+GenotypeGVCFs, and VQSR.
 
 ---
 
@@ -33,8 +31,8 @@ Use this when:
 - **Sample map file** (`sample_map` in the CBIcall YAML):
   TSV used by `GenomicsDBImport` (sample name → gVCF path).
 - **Per-sample gVCFs** from the single-sample pipeline.
-- **Reference genome** (`REF` from `env.sh`).
-- **VQSR resources** (SNP and INDEL training sets).
+- **Reference genome** supplied by the selected resource bundle.
+- **VQSR resources** associated with that bundle.
 - Optional **interval list** for WES mode.
 
 :::note[WES interval source]
@@ -128,11 +126,11 @@ project-level review.
 </TabItem>
 <TabItem value="staged" label="Staged run">
 
-Staged execution splits a large native GATK 4.6 cohort run into shard jobs and
+Staged execution splits a large bundled GATK 4.6 cohort run into shard jobs and
 one final filtering job.
 
 For large WES/WGS cohorts, a single GenomicsDB import and joint-genotyping job
-can be slow or memory-heavy. Native GATK 4.6 cohort workflows can split the
+can be slow or memory-heavy. The `cbicall-core` GATK 4.6 cohort workflows split the
 cohort run into two explicit stages:
 
 | Stage | What it does | Main output |
@@ -160,24 +158,25 @@ can still run on ARM if the gathered raw cohort VCF was created elsewhere.
 
 ### Shard runs
 
-Each shard run still uses the full `sample_map`; the shard only restricts the
-genomic intervals sent to `GenomicsDBImport` and `GenotypeGVCFs`.
+The example below uses WES with b37 throughout. Each shard uses the same
+`sample_map`; `interval_shard` restricts the intervals sent to
+`GenomicsDBImport` and `GenotypeGVCFs`.
 
 ```yaml
 mode:            cohort
-pipeline:        wgs
+pipeline:        wes
 workflow_backend: bash
 software_stack:    gatk-4.6
-genome:          hg38
+genome:          b37
 sample_map:      ./sample_map.tsv
 cohort_stage:    shard
-interval_shard:  chr1
+interval_shard:  1
 output_basename: cohort.chr1
 ```
 
-For WGS, `interval_shard` must match a contig in the reference dictionary, such
-as `chr1` for hg38. For WES, CBIcall filters the configured WES interval list to
-records whose contig column matches `interval_shard`.
+For b37 WES, use bare contig labels such as `1`, `2`, `X`, and `Y`. For WGS,
+`interval_shard` must match the selected reference dictionary, such as `chr1`
+for hg38.
 
 :::note[GenomicsDB workspace names]
 Do not set a GenomicsDB workspace in the parameters YAML. CBIcall creates a unique
@@ -204,9 +203,8 @@ node.
 <summary>Workstation GNU parallel example</summary>
 
 This example launches one WES b37 shard per chromosome with two concurrent
-CBIcall runs (`-j 2`). It assumes one sample map per chromosome, named
-`sample_map.chr1.txt` ... `sample_map.chr22.txt`, `sample_map.chrX.txt`, and
-`sample_map.chrY.txt`. Each sample map should contain absolute gVCF paths.
+CBIcall runs (`-j 2`). It reuses one sample map containing absolute paths to
+full per-sample gVCFs.
 
 ```bash
 #!/usr/bin/env bash
@@ -227,21 +225,20 @@ parallel --halt soon,fail=1 --joblog cbicall.shards.joblog -j 2 \
     "workflow_backend: bash" \
     "software_stack: gatk-4.6" \
     "genome: b37" \
-    "sample_map: ${ROOT}/sample_map.chr${chr}.txt" \
+    "sample_map: ${ROOT}/sample_map.tsv" \
     "cohort_stage: shard" \
     "interval_shard: ${chr}" \
     "output_basename: cohort.chr${chr}" \
     > "$yaml"
 
-  "$CBICALL" -p "$yaml" -t 4
+  "$CBICALL" run -p "$yaml" -t 4
 ' ::: $(seq 22 -1 1) X Y
 ```
 
 </details>
 
-For WES b37, `interval_shard` uses bare contig labels (`1`, `2`, ..., `22`,
-`X`, `Y`) because the bundled b37 exome interval list uses bare contig names.
-For WGS hg38, use reference-dictionary labels such as `chr1`.
+If the input gVCFs were themselves generated per chromosome, provide the
+matching chromosome-specific sample map in each shard YAML instead.
 
 ### Gather raw shard VCFs
 
@@ -270,10 +267,10 @@ and produces the same kind of filtered cohort output as the default `all` run.
 
 ```yaml
 mode:            cohort
-pipeline:        wgs
+pipeline:        wes
 workflow_backend: bash
 software_stack:    gatk-4.6
-genome:          hg38
+genome:          b37
 cohort_stage:    finalize
 input_vcf:       ./cohort.gathered.gv.raw.vcf.gz
 output_basename: cohort
@@ -318,3 +315,13 @@ below with that value.
   - Family-based segregation analysis.
   - Case/control or population cohorts.
   - Downstream tools that expect joint genotypes.
+
+<details>
+<summary>Workflow source files</summary>
+
+- [Bash](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/bash/gatk-4.6/wes_cohort.sh)
+- [Snakemake](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/snakemake/gatk-4.6/wes_cohort.smk)
+- [Nextflow](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/nextflow/gatk-4.6/wes_cohort.nf)
+- [Cromwell](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/cromwell/gatk-4.6/wes_cohort.wdl)
+
+</details>

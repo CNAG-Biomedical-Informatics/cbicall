@@ -1,70 +1,61 @@
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# End-to-end examples (GATK 4.6)
+# End-to-end WES and WGS examples
 
-> **Prerequisites**
-    Installation, reference bundles, and all dependencies must be completed beforehand.  
-
-    [Installation](../installation/non-containerized)
-
----
+These examples use the bundled `cbicall-core` GATK 4.6 workflows. Complete the
+[installation](../installation/non-containerized), install the resource bundle,
+and run `cbicall doctor` before starting.
 
 <Tabs groupId="workflow-mode">
-<TabItem value="wes-single-sample-run" label="WES single-sample run" default>
+<TabItem value="single-sample" label="Single sample" default>
 
-This example demonstrates how to run CBIcall on a real WES sample from FASTQ files through final VCF and QC outputs.
+## 1. Prepare paired FASTQ files
 
-## 1. Prepare your FASTQ files
+Place the read pairs in one sample directory. Their names must share a prefix
+and distinguish R1 from R2:
 
-
-CBIcall expects paired-end FASTQ files with a shared prefix, for example:
-```
-# Project    / Sample (Proband WES)
+```text
 CNAG999_exome/CNAG99901P_ex/
   CNAG99901P_ex_S1_L001_R1_001.fastq.gz
   CNAG99901P_ex_S1_L001_R2_001.fastq.gz
 ```
 
-> **Note on nomenclature**
-    Please see [this page](../help/naming-conventions).
----
+See [Naming Conventions](../help/naming-conventions) for supported file names
+and multi-lane samples.
 
-## 2. Create a parameters file
+## 2. Create the parameters YAML
 
-Create a YAML file, e.g. `wes_single.yaml`:
+Create `wes_single.yaml`:
 
 ```yaml
-mode:            single
-pipeline:        wes
+mode:             single
+pipeline:         wes
 workflow_backend: bash
-software_stack:    gatk-4.6
-input_dir:       CNAG999_exome/CNAG99901P_ex
-genome:          b37
-cleanup_bam:     false
+software_stack:   gatk-4.6
+input_dir:        CNAG999_exome/CNAG99901P_ex
+genome:           b37
+cleanup_bam:      false
 ```
 
-Notes:
+`workflow_backend` can be `bash`, `snakemake`, `nextflow`, or `cromwell` for
+the bundled GATK 4.6 WES/WGS workflows. The selected backend must be installed
+and available to CBIcall.
 
-- `mode` selects single-sample or cohort (joint genotyping).  
-- `pipeline` switches between WES, WGS or mtDNA.  
-- `workflow_backend` chooses the backend (bash, snakemake, or nextflow).
-- See [Configuration Reference](../help/configuration-reference) for all YAML keys and supported combinations.
+:::note[Running WGS]
+Use a directory containing WGS FASTQ files and change `pipeline` to `wgs`.
+Select `b37` or `hg38` to match the intended WGS reference resources:
 
-> **How can I perform WGS?**
-    Simply change the parameter `pipeline` to `wgs`. Like this:
-
-    ```yaml
-    mode:            single
-    pipeline:        wgs
-    workflow_backend: bash
-    software_stack:    gatk-4.6
-    input_dir:       CNAG999_exome/CNAG99901P_ex
-    genome:          b37
-    cleanup_bam:     false
+```yaml
+mode:             single
+pipeline:         wgs
+workflow_backend: bash
+software_stack:   gatk-4.6
+input_dir:        CNAG999_genome/CNAG99901P_wg
+genome:           hg38
+cleanup_bam:      false
 ```
-
----
+:::
 
 ## 3. Run CBIcall
 
@@ -72,171 +63,94 @@ Notes:
 cbicall run -p wes_single.yaml -t 4
 ```
 
-- `-p` selects the YAML parameters file  
-- `-t` sets the number of threads
+CBIcall prints the resolved workflow and run directory before launch. A
+successful run ends with the workflow log and the paths to `run-report.json`
+and `run-report.html`.
 
+## 4. Inspect the outputs
 
-You should see something like this on the screen:
+The generated run directory contains:
 
-```bash
-CBIcall 1.0.0
-  Executable   => .../.local/bin/cbicall
-  Workflow     => bash -> wes -> single
-  Genome       => b37
-  Threads      => 4
-  Project      => .../CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_177447031761843
-  Run ID       => 177447031761843
-
-Inputs
-  Param file   => wes_single.yaml
-  Input dir    => .../input/CNAG999_exome/CNAG99901P_ex
-  Sample map   => (undef)
-  Software stack => gatk-4.6
-  Registry ver => v1
-
-Resolved
-  Entrypoint   => .../bash/gatk-4.6/wes_single.sh
-  Env file     => .../bash/gatk-4.6/env.sh
-  Log          => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_177447031761843/bash_gatk-4.6_wes_single_b37.log
-
-Running
-  Workflow     => bash -> wes -> single
-  This workflow may take a while depending on input size and pipeline.
-
-Completed
-  Status       => Finished successfully
-  Elapsed      => 1m 30s
-  Log          => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_177447031761843/bash_gatk-4.6_wes_single_b37.log
-  Report       => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_177447031761843/run-report.json
-  HTML         => /media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/examples/input/CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_177447031761843/run-report.html
-Do Widzenia
-```
----
-
-## 4. Inspect outputs
-
-After completion, you will find:
-```
-CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_*/
+```text
+cbicall_bash_gatk-4.6_wes_single_b37_*/
   01_bam/
   02_varcall/
   03_stats/
   logs/
+  log.json
+  run-report.json
+  run-report.html
 ```
 
-Where:
+The principal files are:
 
-- VCF files are stored in `02_varcall/`  
-- QC metrics (coverage, sample stats, sex prediction) are in `03_stats`  
-- Logs for all pipeline steps are under `logs/`  
-
-:::tip[What you get]
-- Final VCF for interpretation: `02_varcall/<id>.hc.QC.vcf.gz`
-- gVCF for cohort joint genotyping: `02_varcall/<id>.hc.g.vcf.gz`
-- Run metadata: `log.json`
-
-See [Outputs](../help/outputs) for the full file reference.
-:::
-
----
-
-For advanced parameters, multi-sample analyses, mtDNA workflows and troubleshooting, see the **Usage** and **FAQ** sections.
+| File | Use |
+| --- | --- |
+| `02_varcall/<id>.hc.QC.vcf.gz` | Final filtered VCF. |
+| `02_varcall/<id>.hc.g.vcf.gz` | Per-sample gVCF for later cohort joint genotyping. |
+| `03_stats/<id>.coverage.txt` | Lightweight coverage summary. |
+| `03_stats/<id>.sex.txt` | VCF-derived sex inference for QC. |
+| `run-report.html` | Human-readable run and provenance report. |
 
 </TabItem>
-<TabItem value="wes-cohort-run" label="WES cohort run">
+<TabItem value="cohort" label="Cohort">
 
-> **Important**
-    In order to run a `cohort` based calculation you first have to create `GVCF` for each sample. This is being done by running `wes` mode `single`.
+## 1. Prepare per-sample gVCFs
 
+Cohort mode starts from gVCFs produced by WES or WGS single-sample runs. Create
+a two-column, tab-separated sample map with one absolute gVCF path per sample:
 
-## 1. Create a sample map file like the one we display below:
-
-
-[View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/examples/input/sample_map.tsv)
-
-**GATK** needs **absolute paths** for the files.
-
----
-
-> **Scaling joint genotyping for large cohorts**
-    For very large cohorts (hundreds to thousands of samples), the joint
-    genotyping step can become computationally demanding when executed as a
-    single job.
-
-    A common strategy is to split the analysis by chromosome and run one job
-    per chromosome through the HPC scheduler. This reduces memory usage per
-    job and allows parallel execution across compute nodes.
-
-    After all chromosomes have finished, the resulting VCF files can be merged (if needed)
-    into a single cohort callset.
-
-    Example:
-
-    ```bash
-    bcftools concat -Oz -o cohort_merged.vcf.gz chr*.vcf.gz
-    bcftools index cohort_merged.vcf.gz
+```text
+SAMPLE_001	/absolute/path/SAMPLE_001.hc.g.vcf.gz
+SAMPLE_002	/absolute/path/SAMPLE_002.hc.g.vcf.gz
 ```
 
-    In this example, `chr*.vcf.gz` simply represents a set of per-chromosome
-    VCF files (e.g., `chr1.vcf.gz`, `chr2.vcf.gz`, …). The naming pattern is
-    arbitrary and should be adapted to the filenames generated by your
-    workflow.
+Each gVCF must have its corresponding index.
 
-## 2. Create a parameters file
+## 2. Create the parameters YAML
 
-Create a YAML file, e.g. `wes_cohort.yaml`:
+Create `wes_cohort.yaml`:
 
 ```yaml
-mode:            cohort
-pipeline:        wes
+mode:             cohort
+pipeline:         wes
 workflow_backend: bash
-software_stack:    gatk-4.6
-genome:          b37
-sample_map:      ./sample_map.tsv
+software_stack:   gatk-4.6
+genome:           b37
+sample_map:       ./sample_map.tsv
 ```
 
----
+Relative paths such as `sample_map` are resolved from the YAML file location.
 
-## 3. Run CBIcall
+## 3. Run joint genotyping
 
 ```bash
 cbicall run -p wes_cohort.yaml -t 4
 ```
 
-- `-p` selects the YAML parameters file  
-- `-t` sets the number of threads
+For large cohorts, use the documented `shard` and `finalize` stages instead of
+constructing independent filtered chromosome VCFs. See
+[WES/WGS Cohort Joint Genotyping](../pipelines/wes-wgs-cohort#execution-modes).
 
----
+## 4. Inspect the outputs
 
-## 4. Inspect outputs
-
-After completion, you will find:
-```
+```text
 cbicall_bash_gatk-4.6_wes_cohort_b37_*/
   01_genomicsdb/
   02_varcall/
   logs/
+  log.json
+  run-report.json
+  run-report.html
 ```
 
-Where:
-
-- GenomicsDB workspaces and WGS-derived interval lists are stored in `01_genomicsdb/`
-- Final VCF files are stored in `02_varcall/`  
-- Logs for all pipeline steps are under `logs/`  
-
-:::tip[What you get]
-- Final joint VCF: `02_varcall/cohort.gv.QC.vcf.gz`
-- GenomicsDB workspace in `01_genomicsdb/`
-- Raw cohort VCF in `02_varcall/`
-- Run metadata: `log.json`
-
-See [Outputs](../help/outputs) for the full file reference.
-:::
+The final joint callset is `02_varcall/cohort.gv.QC.vcf.gz`. The raw
+joint-genotyped VCF and conditional VQSR outputs are also retained in
+`02_varcall/`.
 
 </TabItem>
 </Tabs>
-> **Do you have examples in how to run CBIcall programatically?**
-    Yes, you can find examples at [https://github.com/CNAG-Biomedical-Informatics/cbicall/tree/main/examples/scripts](https://github.com/CNAG-Biomedical-Informatics/cbicall/tree/main/examples/scripts).
 
-> **Any suggestions for performing annotation?**
-    We recommend using [beacon2-cbi-tools](https://github.com/CNAG-Biomedical-Informatics/beacon2-cbi-tools). This tool allows you not only to annotate data, but also to convert it into a data exchange format compatible with the [Beacon v2 API](https://genomebeacons.org/).
+See [Outputs](../help/outputs) for the complete file reference and
+[Configuration Reference](../help/configuration-reference) for all accepted
+YAML keys.

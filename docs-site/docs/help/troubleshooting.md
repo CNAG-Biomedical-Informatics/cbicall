@@ -241,7 +241,8 @@ ERROR: No usable sample BAMs found. Nothing to do.
 
 **Likely cause**
 
-The mtDNA workflow expects BAMs from previous WES/WGS single-sample runs in the expected project layout.
+The mtDNA workflow expects BAMs from previous bundled Bash WES/WGS
+single-sample runs in the expected project layout.
 
 **Fix**
 
@@ -284,32 +285,6 @@ Below roughly 10x mtDNA coverage, heteroplasmy fraction estimates are unreliable
 **Fix**
 
 Flag samples below 10x median mtDNA coverage, interpret HF values cautiously, exclude low-coverage samples from HF-based analyses when needed, and consider resequencing if mtDNA interpretation is critical.
-
-</details>
-
-## Variant Interpretation
-
-<details>
-<summary>Unexpected de novo rates in trios</summary>
-
-**Symptom**
-
-Observed de novo rates differ strongly from expectations.
-
-**Likely cause**
-
-Large deviations can indicate sample, data-quality, annotation, or pipeline issues.
-
-**Reference values**
-
-| Sample type | Typical de novo rate |
-| --- | ---: |
-| Proband | ~1% |
-| Parent | ~10% |
-
-**Fix**
-
-Check sample identity, pedigree labels, coverage, variant filters, and annotation assumptions before interpreting the result biologically.
 
 </details>
 

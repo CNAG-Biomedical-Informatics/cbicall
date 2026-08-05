@@ -1,35 +1,5 @@
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
 # WES/WGS Single-Sample Pipeline
 A user-focused guide to processing whole-exome (WES) and whole-genome (WGS) data using GATK Best Practices.
-
-
-<Tabs groupId="workflow-mode">
-<TabItem value="bash" label="Bash" default>
-
-**Source:** [View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/bash/gatk-4.6/wes_single.sh)
-
-</TabItem>
-<TabItem value="snakemake" label="Snakemake">
-
-**Source:** [View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/snakemake/gatk-4.6/wes_single.smk)
-
-</TabItem>
-<TabItem value="nextflow" label="Nextflow">
-
-**Source:** [View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/nextflow/gatk-4.6/wes_single.nf)
-
-</TabItem>
-<TabItem value="cromwell" label="Cromwell">
-
-**Source:** [View source](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/cromwell/gatk-4.6/wes_single.wdl)
-
-The WES and WGS WDL entrypoints currently share the same implementation logic,
-with pipeline-specific behavior selected by the validated `pipeline` value.
-
-</TabItem>
-</Tabs>
 ---
 
 ## Diagram: Single-Sample WES/WGS Workflow
@@ -154,3 +124,16 @@ the GATK bundle / Broad b37 exome interval list. See the
 - Standard research **WES** or **WGS** processing.
 - Generating gVCFs for **cohort joint genotyping**.
 - Producing filtered single-sample VCFs for downstream review or interpretation.
+
+<details>
+<summary>Workflow source files</summary>
+
+- [Bash](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/bash/gatk-4.6/wes_single.sh)
+- [Snakemake](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/snakemake/gatk-4.6/wes_single.smk)
+- [Nextflow](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/nextflow/gatk-4.6/wes_single.nf)
+- [Cromwell](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/workflows/cromwell/gatk-4.6/wes_single.wdl)
+
+The WES and WGS WDL entrypoints share the same implementation logic, with
+pipeline-specific behavior selected by the validated `pipeline` value.
+
+</details>
