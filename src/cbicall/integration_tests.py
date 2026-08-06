@@ -502,9 +502,9 @@ def _overall_marker(exit_code: int, *, width: int = 0) -> str:
     return console.status_tag("PASS" if exit_code == 0 else "FAIL", width=width)
 
 
-def _test_banner(title: str) -> None:
+def _integration_banner(title: str, *, phase: str = "TEST") -> None:
     print("========================================")
-    console.section(f"TEST: {title}", console.CYAN)
+    console.section(f"{phase}: {title}", console.CYAN)
     print("========================================")
 
 
@@ -617,6 +617,7 @@ def _run_setup_runs(
             skip_missing_optional=False,
             keep_external_work=keep_external_work,
             stack=stack + [key],
+            banner_phase="SETUP",
         )
         if status != "passed":
             raise IntegrationTestError(f"Setup run did not pass: {label} ({status})")
@@ -756,7 +757,7 @@ def _run_staged_finalize(
         str(runtime_profile),
     ]
 
-    _test_banner(f"{selection.label} Finalize")
+    _integration_banner(f"{selection.label} Finalize")
     print("Running staged cohort finalize integration test...")
     proc = subprocess.run(
         cmd,
@@ -816,6 +817,7 @@ def _run_one(
     skip_missing_optional: bool,
     keep_external_work: bool,
     stack: Optional[List[str]] = None,
+    banner_phase: str = "TEST",
 ) -> Tuple[str, str, str]:
     stack = stack or [selection.key]
     architecture_skip = _architecture_skip_reason(selection)
@@ -885,7 +887,7 @@ def _run_one(
         str(runtime_profile),
     ]
 
-    _test_banner(selection.label)
+    _integration_banner(selection.label, phase=banner_phase)
     print(f"Running {selection.label} integration test...")
     for note in contract.get("notes", []):
         print(f"Note: {note}")

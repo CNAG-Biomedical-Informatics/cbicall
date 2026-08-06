@@ -4,6 +4,12 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_mtoolbox_config_preserves_selected_runtime_profile():
+    text = (REPO_ROOT / "mtdna" / "MToolBox_config.sh").read_text(encoding="utf-8")
+    assert 'source "${CBICALL_ENV_FILE:-$ENVDIR/env.sh}"' in text
+    assert 'source "$ENVDIR/env.sh"' not in text
+
+
 def test_gatk46_cohort_merge_input_intervals_is_wes_only():
     workflow_files = [
         "workflows/bash/gatk-4.6/wes_cohort.sh",

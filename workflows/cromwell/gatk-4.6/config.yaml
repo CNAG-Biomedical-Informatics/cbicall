@@ -1,4 +1,6 @@
-# Shared config for bundled GATK 4.6 Snakemake and Nextflow WES/WGS workflows.
+# Backend-local copy of the common bundled GATK 4.6 configuration.
+# Keep this file byte-for-byte synchronized across Snakemake, Nextflow, and
+# Cromwell. Separate copies preserve registry-local paths and package reliably.
 
 # -----------------------
 # Base directories

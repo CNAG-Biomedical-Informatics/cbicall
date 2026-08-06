@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# run_cbicall_slurm_apptainer.sh
-# usage: ./run_cbicall_slurm_apptainer.sh <sample_id> <pipeline: wes|wgs>
+# run_cbicall_apptainer_slurm.sh
+# usage: ./run_cbicall_apptainer_slurm.sh <sample_id> <pipeline: wes|wgs>
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <sample_id> <pipeline: wes|wgs>"
@@ -42,8 +42,8 @@ THREADS=4
 MEM="24G"
 
 # Apptainer settings (edit as needed)
-SIF_IMAGE="/software/biomed/containers/cbicall_1.2.0.sif"
-CBICALL_DATA="/software/biomed/cbicall-data"
+SIF_IMAGE="/scratch_isilon/projects/0012-hereditary/software/containers/cbicall_1.2.0.sif"
+CBICALL_DATA="/scratch_isilon/projects/0012-hereditary/software/cbicall-data"
 
 cat > "${JOB_SCRIPT}" <<EOF
 #!/bin/bash
@@ -93,7 +93,7 @@ YAML
 # - Bind databases to /cbicall-data
 # - Bind WORKDIR so paths referenced in the YAML exist inside the container
 
-srun apptainer exec \\
+apptainer exec \\
   --bind "${CBICALL_DATA}":/cbicall-data \\
   --bind "${WORKDIR}":"${WORKDIR}" \\
   --env CBICALL_DATA=/cbicall-data \\
@@ -103,7 +103,7 @@ srun apptainer exec \\
     run \\
     -p "\${YAML_FILE}" \\
     --runtime-profile cnag-hpc \\
-    -t ${THREADS}
+    -t "\${SLURM_CPUS_PER_TASK}"
 EOF
 
 # submit it

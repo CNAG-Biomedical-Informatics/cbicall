@@ -940,6 +940,7 @@ def test_setup_run_and_setup_file_error_branches(tmp_path, monkeypatch):
         )
 
     def fake_failed_run(**kwargs):
+        assert kwargs["banner_phase"] == "SETUP"
         return kwargs["selection"].label, "failed", "boom"
 
     monkeypatch.setattr(integration_mod, "_run_one", fake_failed_run)
@@ -954,6 +955,7 @@ def test_setup_run_and_setup_file_error_branches(tmp_path, monkeypatch):
         )
 
     def fake_passed_run(**kwargs):
+        assert kwargs["banner_phase"] == "SETUP"
         return kwargs["selection"].label, "passed", str(run_dir)
 
     monkeypatch.setattr(integration_mod, "_run_one", fake_passed_run)

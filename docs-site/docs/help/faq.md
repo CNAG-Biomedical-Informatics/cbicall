@@ -124,11 +124,12 @@ See [HPC with Apptainer / Singularity](../installation/apptainer).
 </details>
 
 <details>
-<summary>Do you have a Slurm + Apptainer example?</summary>
+<summary>Do you have Slurm examples?</summary>
 
-Yes. See the example script:
+Yes. Complete templates are available for both installation models:
 
-[run_cbicall_apptainer_slurm.sh](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/examples/scripts/run_cbicall_apptainer_slurm.sh)
+- [Source checkout](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/examples/scripts/run_cbicall_slurm.sh)
+- [Apptainer](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/examples/scripts/run_cbicall_apptainer_slurm.sh)
 
 </details>
 

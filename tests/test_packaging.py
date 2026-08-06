@@ -124,6 +124,13 @@ def test_resource_installer_adapter_loads_and_runs_script(tmp_path, monkeypatch)
 
 def test_native_resource_defaults_are_portable():
     root = paths.runtime_root()
+    for filename in ("env.sh", "cnag-hpc-env.sh"):
+        stack_env_files = [
+            root / "workflows" / "bash" / stack / filename
+            for stack in ("gatk-3.5", "gatk-4.6")
+        ]
+        assert len({env_file.read_bytes() for env_file in stack_env_files}) == 1
+
     env_files = [
         root / "workflows" / "bash" / "gatk-3.5" / "env.sh",
         root / "workflows" / "bash" / "gatk-4.6" / "env.sh",
@@ -133,6 +140,7 @@ def test_native_resource_defaults_are_portable():
         root / "workflows" / backend / "gatk-4.6" / "config.yaml"
         for backend in ("snakemake", "nextflow", "cromwell")
     ]
+    assert len({config_file.read_bytes() for config_file in config_files}) == 1
 
     for env_file in env_files:
         text = env_file.read_text(encoding="utf-8")

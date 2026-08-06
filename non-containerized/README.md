@@ -114,6 +114,14 @@ Nextflow and Cromwell are not Python extras and must be installed separately.
 Use `cbicall` after installation. The repository launcher `bin/cbicall` remains
 available inside a source checkout.
 
+## Slurm
+
+For a source checkout on the CNAG GenE cluster, see the complete
+[run_cbicall_slurm.sh](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/examples/scripts/run_cbicall_slurm.sh)
+template. It selects the appropriate research partition, requests the workflow
+resources, exposes the Python packages installed under the site-specific
+`cbi_py3` prefix, and launches CBIcall with `--runtime-profile cnag-hpc`.
+
 <details>
 <summary>Manual resource-download recovery</summary>
 

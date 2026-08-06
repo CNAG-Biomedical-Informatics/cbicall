@@ -28,7 +28,7 @@ if [ "$ARCH" == "aarch64" ]; then
 else
     export JAVA8=$NGSUTILS/java8/amazon-corretto-8.472.08.1-linux-x64/bin/java
     BWA=$SOFTWAREDIR/BWA/0.7.19-GCCcore-14.3.0/bin/bwa
-    SAM=$NGSUTILS/samtools-0.1.19/samtools
+    SAM=$SOFTWAREDIR/SAMtools/1.22.1-GCC-14.3.0/bin/samtools
     BED=$NGSUTILS/bedtools2/bin/bedtools
     PY27_PREFIX=$NGSUTILS/python_2.7/linux-x86_64/python27_portable
     # Python 2 module to use on HPC (fallback)

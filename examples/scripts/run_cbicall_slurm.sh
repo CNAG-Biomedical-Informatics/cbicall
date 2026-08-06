@@ -56,10 +56,12 @@ cat > "${JOB_SCRIPT}" <<EOF
 #SBATCH --mail-user=manuel.rueda@cnag.eu
 
 # Set CBICALL exe
-CBICALL_DIR="/software/biomed/cbicall"
+CBICALL_DIR="/scratch_isilon/projects/0012-hereditary/software/cbicall"
 CBICALL="\$CBICALL_DIR/bin/cbicall"
+CBICALL_PYTHON_PREFIX="/scratch_isilon/projects/0012-hereditary/software/cbi_py3"
 
 module load Python/3.13.5-GCCcore-14.3.0
+export PYTHONPATH="\$CBICALL_PYTHON_PREFIX/lib/python3.13/site-packages\${PYTHONPATH:+:\$PYTHONPATH}"
 
 # Required only for Nextflow/nf-core runs; harmless for Bash runs when available.
 module load Nextflow/25.10.2 2>/dev/null || true
@@ -84,11 +86,11 @@ project_dir: ${SAMPLE_ID}_cbicall
 cleanup_bam: false
 YAML
 
-srun "\$CBICALL" \\
-     run \\
-     -p "\$YAML_FILE" \\
-     --runtime-profile cnag-hpc \\
-     -t $THREADS
+"\$CBICALL" \\
+  run \\
+  -p "\$YAML_FILE" \\
+  --runtime-profile cnag-hpc \\
+  -t "\$SLURM_CPUS_PER_TASK"
 EOF
 
 # submit it

@@ -10,8 +10,9 @@
 BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENVDIR="$BINDIR/../workflows/bash/gatk-3.5"
 
-# Source env.sh from the same directory
-source "$ENVDIR/env.sh"
+# Preserve the runtime profile selected by CBIcall, with the local profile as
+# the fallback for direct MToolBox use.
+source "${CBICALL_ENV_FILE:-$ENVDIR/env.sh}"
 
 ######################MTOOLBOX CONFIG FILE###################################################################
 ##If the default installation of MToolBox was used (install.sh), the user should specify 

@@ -206,10 +206,12 @@ runtime needed by CBIcall before calling `cbicall`. For example:
 
 ```bash
 module load Python/3.13.5-GCCcore-14.3.0
+export CBICALL_PYTHON_PREFIX=/scratch_isilon/projects/0012-hereditary/software/cbi_py3
+export PYTHONPATH="$CBICALL_PYTHON_PREFIX/lib/python3.13/site-packages${PYTHONPATH:+:$PYTHONPATH}"
 ```
 
-The bundled SLURM examples set this directly in the generated job script rather
-than requiring a separate sourced bootstrap.
+The bundled source-based SLURM example sets both values directly in the
+generated job script rather than requiring a separate sourced bootstrap.
 
 <details>
 <summary>Additional HPC and Nextflow notes</summary>
