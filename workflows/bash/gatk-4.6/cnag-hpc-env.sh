@@ -27,8 +27,8 @@ if [ "$ARCH" == "aarch64" ]; then
     # PY27_PREFIX=$NGSUTILS/python_2.7/linux-aarch64/Python-2.7.18
 else
     export JAVA8=$NGSUTILS/java8/amazon-corretto-8.472.08.1-linux-x64/bin/java
-    BWA=$SOFTWAREDIR/BWA/0.7.19-GCCcore-14.3.0/bin/bwa
-    SAM=$SOFTWAREDIR/SAMtools/1.22.1-GCC-14.3.0/bin/samtools
+    BWA="${CBICALL_BWA:-$NGSUTILS/bwa-0.7.18/bwa}"
+    SAM="${CBICALL_SAM:-$NGSUTILS/samtools-0.1.19-cnaghpc/samtools}"
     BED=$NGSUTILS/bedtools2/bin/bedtools
     PY27_PREFIX=$NGSUTILS/python_2.7/linux-x86_64/python27_portable
     # Python 2 module to use on HPC (fallback)
