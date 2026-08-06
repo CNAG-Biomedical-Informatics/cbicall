@@ -1,9 +1,9 @@
 # Changelog
 
-## 1.2.0 - 2026-08-0X
+## 1.2.0 - 2026-08-06
 
-- Introduce `cbicall-core` as the provider identifier for CBIcall's native workflow collection.
-- Replace `workflow_provider: cbicall` with `workflow_provider: cbicall-core`.
+- Rename the native workflow provider from `cbicall` to `cbicall-core`.
+- Update PyPI installation and CNAG HPC deployment support.
 
 ## 1.1.0 - 2026-07-20
 

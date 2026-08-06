@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Annotated stable tag to build, for example v1.2.0"
+        description: "Annotated stable tag to build, for example vX.Y.Z"
         required: true
         type: string
 
