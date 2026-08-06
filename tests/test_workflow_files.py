@@ -21,7 +21,7 @@ def test_mtoolbox_config_uses_runtime_profile_java_and_samtools():
             REPO_ROOT / "workflows" / "bash" / stack / "cnag-hpc-env.sh"
         ).read_text(encoding="utf-8")
         assert (
-            'MTOOLBOX_SAM="${CBICALL_MTOOLBOX_SAM:-$DATADIR/../samtools-1.3-cnaghpc/bin/samtools}"'
+            'MTOOLBOX_SAM="${CBICALL_MTOOLBOX_SAM:-$NGSUTILS/samtools-1.3-cnaghpc/bin/samtools}"'
             in profile
         )
 
