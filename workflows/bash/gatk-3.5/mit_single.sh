@@ -52,6 +52,12 @@ BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source env.sh from the same directory
 source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
 
+MIT_EXTRACT_SAM="${MIT_EXTRACT_SAM:-$SAM}"
+if [ ! -x "$MIT_EXTRACT_SAM" ]; then
+  echo "ERROR: mtDNA extraction SAMtools is not executable: $MIT_EXTRACT_SAM" >&2
+  exit 1
+fi
+
 # Check ARCH
 if [ "$ARCH" == "aarch64" ]
  then
@@ -134,8 +140,8 @@ esac
 
 echo "Extracting mitochondrial contig '$chrM' from BAM: $bam_raw"
 
-$SAM view -b $bam_raw $chrM > $out_raw
-$SAM index $out_raw
+"$MIT_EXTRACT_SAM" view -b "$bam_raw" "$chrM" > "$out_raw"
+"$MIT_EXTRACT_SAM" index "$out_raw"
 
 # Performing Variant calling and annotation with MToolBox
 echo "Analyzing mitochondrial DNA with MToolBox..."

@@ -53,6 +53,8 @@ GATK4_JAVA_OPTS_64G="--java-options -Xmx${MEM_GENOTYPE}"
 # MToolBox directory and DB
 MTOOLBOXDIR=$NGSUTILS/MToolBox-master/MToolBox
 MTOOLBOXDB=$DBDIR/mtDNA
+# Preserve the legacy mtDNA extraction and MToolBox calling toolchain.
+MIT_EXTRACT_SAM="${CBICALL_MIT_EXTRACT_SAM:-$NGSUTILS/samtools-0.1.19-cnaghpc/samtools}"
 # Keep MToolBox on its validated SAMtools 1.3 mpileup implementation.
 MTOOLBOX_SAM="${CBICALL_MTOOLBOX_SAM:-$NGSUTILS/samtools-1.3-cnaghpc/bin/samtools}"
 

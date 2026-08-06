@@ -55,6 +55,12 @@ BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source env.sh from the same directory
 source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
 
+MIT_EXTRACT_SAM="${MIT_EXTRACT_SAM:-$SAM}"
+if [ ! -x "$MIT_EXTRACT_SAM" ]; then
+  echo "ERROR: mtDNA extraction SAMtools is not executable: $MIT_EXTRACT_SAM" >&2
+  exit 1
+fi
+
 # Check ARCH (same behavior as mit_single)
 if [ "${ARCH:-}" = "aarch64" ]; then
   echo "mit_cohort cannot be performed with: ${ARCH:-aarch64}"
@@ -169,8 +175,8 @@ for sdir in $sample_dirs; do
 
   echo "Extracting mitochondrial contig '$chrM' from BAM for $sid: $bam_raw"
 
-  "$SAM" view -b "$bam_raw" "$chrM" > "$out_raw"
-  "$SAM" index "$out_raw"
+  "$MIT_EXTRACT_SAM" view -b "$bam_raw" "$chrM" > "$out_raw"
+  "$MIT_EXTRACT_SAM" index "$out_raw"
 done
 
 if [ "$found_any" -ne 1 ]; then

@@ -21,9 +21,21 @@ def test_mtoolbox_config_uses_runtime_profile_java_and_samtools():
             REPO_ROOT / "workflows" / "bash" / stack / "cnag-hpc-env.sh"
         ).read_text(encoding="utf-8")
         assert (
+            'MIT_EXTRACT_SAM="${CBICALL_MIT_EXTRACT_SAM:-$NGSUTILS/samtools-0.1.19-cnaghpc/samtools}"'
+            in profile
+        )
+        assert (
             'MTOOLBOX_SAM="${CBICALL_MTOOLBOX_SAM:-$NGSUTILS/samtools-1.3-cnaghpc/bin/samtools}"'
             in profile
         )
+
+    for workflow in ("mit_single.sh", "mit_cohort.sh"):
+        workflow_text = (
+            REPO_ROOT / "workflows" / "bash" / "gatk-3.5" / workflow
+        ).read_text(encoding="utf-8")
+        assert 'MIT_EXTRACT_SAM="${MIT_EXTRACT_SAM:-$SAM}"' in workflow_text
+        assert '"$MIT_EXTRACT_SAM" view -b' in workflow_text
+        assert '"$MIT_EXTRACT_SAM" index' in workflow_text
 
 
 def test_gatk46_cohort_merge_input_intervals_is_wes_only():
