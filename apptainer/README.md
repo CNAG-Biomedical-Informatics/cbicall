@@ -120,6 +120,11 @@ apptainer exec \
 Use the same binds inside the scheduled job. A complete template is available
 in [run_cbicall_apptainer_slurm.sh](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/examples/scripts/run_cbicall_apptainer_slurm.sh).
 
+On the CNAG GenE cluster, the template uses `research` for the 10-hour WES
+example and `research_long` for the two-day WGS example. Use the standard
+partition whenever the job can finish within its 12-hour limit. The script does
+not request a QoS because GenE selects its single QoS automatically.
+
 <details>
 <summary>Site-specific workflow development</summary>
 

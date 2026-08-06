@@ -78,12 +78,38 @@ a chosen location.
 
 ## Source checkout for development
 
+Clone the repository and install the minimum functional Python package:
+
 ```bash
 git clone https://github.com/CNAG-Biomedical-Informatics/cbicall.git
 cd cbicall
+python3 -m pip install -e .
+cbicall --version
+```
+
+This installs CBIcall and its core dependencies only. For a complete
+development environment with Snakemake, MultiQC, and the test tools, use:
+
+```bash
 python3 -m pip install -e ".[all,test]"
 pytest
 ```
+
+:::tip[Choose the extras you need]
+
+| Editable install | What it adds |
+| --- | --- |
+| `-e .` | Core CBIcall dependencies, including PyYAML, JSON Schema validation, and resource downloading. |
+| `-e ".[snakemake]"` | Snakemake and its pinned PuLP dependency. |
+| `-e ".[multiqc]"` | MultiQC report generation. |
+| `-e ".[all]"` | Both Snakemake and MultiQC. |
+| `-e ".[test]"` | pytest and coverage tooling. |
+| `-e ".[all,test]"` | All optional runtime integrations plus the test suite; this is the complete development installation shown above. |
+| `-e ".[build]"` | Package build and upload tools used for releases. |
+
+Nextflow and Cromwell are not Python extras and must be installed separately.
+
+:::
 
 Use `cbicall` after installation. The repository launcher `bin/cbicall` remains
 available inside a source checkout.

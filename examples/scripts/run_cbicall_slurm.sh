@@ -16,12 +16,13 @@ if [[ "$PIPELINE" != "wes" && "$PIPELINE" != "wgs" ]]; then
   exit 1
 fi
 
-# choose SLURM settings based on pipeline
+# Choose GenE SLURM settings based on the expected runtime. The standard
+# research partition is limited to 12 hours; QoS is selected automatically.
 if [ "$PIPELINE" = "wes" ]; then
-  QUEUE="normal"
+  PARTITION="research"
   TIME="10:00:00"
 elif [ "$PIPELINE" = "wgs" ]; then
-  QUEUE="vlong"
+  PARTITION="research_long"
   TIME="2-00:00:00"
 fi
 
@@ -43,7 +44,7 @@ MEM="24G"
 cat > "${JOB_SCRIPT}" <<EOF
 #!/bin/bash
 #SBATCH --job-name=cbicall
-#SBATCH -q ${QUEUE}
+#SBATCH --partition=${PARTITION}
 #SBATCH -D ${WORKDIR}
 #SBATCH -e ${WORKDIR}/slurm-%N.%j.err
 #SBATCH -o ${WORKDIR}/slurm-%N.%j.out
@@ -58,8 +59,7 @@ cat > "${JOB_SCRIPT}" <<EOF
 CBICALL_DIR="/software/biomed/cbicall"
 CBICALL="\$CBICALL_DIR/bin/cbicall"
 
-module load Python/3.10.8-GCCcore-12.2.0
-export PYTHONPATH="/software/biomed/cbi_py3/lib/python3.10/site-packages:\${PYTHONPATH:-}"
+module load Python/3.13.5-GCCcore-14.3.0
 
 # Required only for Nextflow/nf-core runs; harmless for Bash runs when available.
 module load Nextflow/25.10.2 2>/dev/null || true

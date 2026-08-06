@@ -1,5 +1,6 @@
 # Paths
-DATADIR="${CBICALL_DATA:-/software/biomed/cbicall-data}"
+DATADIR="${CBICALL_DATA:-/scratch_isilon/projects/0012-hereditary/software/cbicall-data}"
+SOFTWAREDIR="${CBICALL_SOFTWARE:-/software}"
 DBDIR=$DATADIR/Databases
 NGSUTILS=$DATADIR/NGSutils
 
@@ -26,7 +27,7 @@ if [ "$ARCH" == "aarch64" ]; then
     # PY27_PREFIX=$NGSUTILS/python_2.7/linux-aarch64/Python-2.7.18
 else
     export JAVA8=$NGSUTILS/java8/amazon-corretto-8.472.08.1-linux-x64/bin/java
-    BWA=/software/crgadm/software/BWA/0.7.17-foss-2018b/bin/bwa
+    BWA=$SOFTWAREDIR/BWA/0.7.19-GCCcore-14.3.0/bin/bwa
     SAM=$NGSUTILS/samtools-0.1.19/samtools
     BED=$NGSUTILS/bedtools2/bin/bedtools
     PY27_PREFIX=$NGSUTILS/python_2.7/linux-x86_64/python27_portable
@@ -35,7 +36,7 @@ else
 fi
 
 # CNAG HPC Cluster (Java/25.36) <---required
-export PATH=/software/crgadm/software/Java/25.36/bin:$PATH
+export PATH=$SOFTWAREDIR/Java/25.36/bin:$PATH
 
 # Picard (shared by GATK3 & bed conversion)
 PIC="$JAVA8 -Xmx$MEM -Djava.io.tmpdir=$TMPDIR -jar $NGSUTILS/picard-2.25/build/libs/picard.jar"

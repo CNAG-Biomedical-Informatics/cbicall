@@ -205,8 +205,7 @@ When running from a source checkout, make sure the SLURM script loads the Python
 runtime needed by CBIcall before calling `cbicall`. For example:
 
 ```bash
-module load Python/3.10.8-GCCcore-12.2.0
-export PYTHONPATH=/software/biomed/cbi_py3/lib/python3.10/site-packages:$PYTHONPATH
+module load Python/3.13.5-GCCcore-14.3.0
 ```
 
 The bundled SLURM examples set this directly in the generated job script rather

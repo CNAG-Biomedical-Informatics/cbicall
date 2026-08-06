@@ -16,12 +16,13 @@ if [[ "$PIPELINE" != "wes" && "$PIPELINE" != "wgs" ]]; then
   exit 1
 fi
 
-# choose SLURM settings based on pipeline
+# Choose GenE SLURM settings based on the expected runtime. The standard
+# research partition is limited to 12 hours; QoS is selected automatically.
 if [ "$PIPELINE" = "wes" ]; then
-  QUEUE="normal"
+  PARTITION="research"
   TIME="10:00:00"
 elif [ "$PIPELINE" = "wgs" ]; then
-  QUEUE="vlong"
+  PARTITION="research_long"
   TIME="2-00:00:00"
 fi
 
@@ -47,7 +48,7 @@ CBICALL_DATA="/software/biomed/cbicall-data"
 cat > "${JOB_SCRIPT}" <<EOF
 #!/bin/bash
 #SBATCH --job-name=cbicall
-#SBATCH -q ${QUEUE}
+#SBATCH --partition=${PARTITION}
 #SBATCH -D ${WORKDIR}
 #SBATCH -e ${WORKDIR}/slurm-%N.%j.err
 #SBATCH -o ${WORKDIR}/slurm-%N.%j.out
@@ -101,6 +102,7 @@ srun apptainer exec \\
   cbicall \\
     run \\
     -p "\${YAML_FILE}" \\
+    --runtime-profile cnag-hpc \\
     -t ${THREADS}
 EOF
 
