@@ -10,6 +10,19 @@ def test_mtoolbox_config_preserves_selected_runtime_profile():
     assert 'source "$ENVDIR/env.sh"' not in text
 
 
+def test_mtoolbox_config_uses_runtime_profile_java_and_samtools():
+    text = (REPO_ROOT / "mtdna" / "MToolBox_config.sh").read_text(encoding="utf-8")
+    assert 'export PATH="$(dirname "$JAVA8"):$PATH"' in text
+    assert 'samtoolsexe="${MTOOLBOX_SAM:-$NGSUTILS/samtools-1.3/samtools}"' in text
+    assert "samtools_version=1.3" in text
+
+    for stack in ("gatk-3.5", "gatk-4.6"):
+        profile = (
+            REPO_ROOT / "workflows" / "bash" / stack / "cnag-hpc-env.sh"
+        ).read_text(encoding="utf-8")
+        assert "MTOOLBOX_SAM=$SAM" in profile
+
+
 def test_gatk46_cohort_merge_input_intervals_is_wes_only():
     workflow_files = [
         "workflows/bash/gatk-4.6/wes_cohort.sh",

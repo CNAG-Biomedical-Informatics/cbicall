@@ -35,7 +35,7 @@ else
     PY27_MODULE="Python/2.7.18-GCCcore-11.2.0"
 fi
 
-# CNAG HPC Cluster (Java/25.36) <---required
+# GATK 4.6 launcher resolves `java` from PATH.
 export PATH=$SOFTWAREDIR/Java/25.36/bin:$PATH
 
 # Picard (shared by GATK3 & bed conversion)
@@ -53,6 +53,7 @@ GATK4_JAVA_OPTS_64G="--java-options -Xmx${MEM_GENOTYPE}"
 # MToolBox directory and DB
 MTOOLBOXDIR=$NGSUTILS/MToolBox-master/MToolBox
 MTOOLBOXDB=$DBDIR/mtDNA
+MTOOLBOX_SAM=$SAM
 
 ############################################
 # Reference bundle & resources by GENOME

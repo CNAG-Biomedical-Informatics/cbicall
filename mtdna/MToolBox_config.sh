@@ -14,6 +14,10 @@ ENVDIR="$BINDIR/../workflows/bash/gatk-3.5"
 # the fallback for direct MToolBox use.
 source "${CBICALL_ENV_FILE:-$ENVDIR/env.sh}"
 
+# MToolBox uses $JAVA8 for most Java steps but invokes `java` directly when
+# sorting its mapped SAM file. Keep that legacy call on the profile's Java 8.
+export PATH="$(dirname "$JAVA8"):$PATH"
+
 ######################MTOOLBOX CONFIG FILE###################################################################
 ##If the default installation of MToolBox was used (install.sh), the user should specify 
 ##only the MANDATORY parameters. To enable other options, please remove the # before the OPTIONAL parameters
@@ -27,11 +31,11 @@ source "${CBICALL_ENV_FILE:-$ENVDIR/env.sh}"
 ##
 ##OPTIONAL. If MToolBox default installation (install.sh) was used, samtoolsexe path is $MTOOLBOX_BIN/samtools-{samtools_version}/samtools. Otherwise please specify the FULL PATH to samtools executables.
 ##
-samtoolsexe=$NGSUTILS/samtools-1.3/samtools
+samtoolsexe="${MTOOLBOX_SAM:-$NGSUTILS/samtools-1.3/samtools}"
 ##
 ##OPTIONAL. If MToolBox default installation (install.sh) was used, samtools_version is 1.3
 ##
-#samtools_version=1.3
+samtools_version=1.3
 ##
 ##OPTIONAL. If MToolBox default installation (install.sh) was used, musclexe path is $MTOOLBOX_BIN/muscle3.8.31_i86linux64. Otherwise, please specify the FULL PATH to muscle executables.
 ##
