@@ -1,22 +1,18 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-DIR=/media/mrueda/2TBS/CNAG/Project_CBI_Call
-CBICALL=/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/bin/cbicall
-NCPU=4
+# Edit this path. It must contain completed CBIcall WES/WGS runs.
+INPUT_DIR="/path/to/cohort"
 
-for DIRNAME in MA99999_exome
-do
-  cd "$DIR/$DIRNAME"
-  echo "$DIRNAME"
-  echo "...$DIRNAME"
-
-  cat <<EOF > "$DIRNAME.mit_cohort.yaml"
+cat > mit_cohort.yaml <<EOF
 mode: cohort
 pipeline: mit
-input_dir: $DIR/$DIRNAME
+workflow_provider: cbicall-core
+workflow_backend: bash
+software_stack: gatk-3.5
+genome: rsrs
+resource: cbicall-germline-resources-v1
+input_dir: "$INPUT_DIR"
 EOF
 
-  "$CBICALL" run -t "$NCPU" -p "$DIRNAME.mit_cohort.yaml"
-  cd ..
-done
+cbicall run -p mit_cohort.yaml -t 4

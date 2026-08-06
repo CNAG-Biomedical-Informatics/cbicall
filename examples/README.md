@@ -98,4 +98,5 @@ Because the nuclear component contains chromosome 22 only, it is suitable for
 compact workflow integration tests but not for genome-wide coverage or sex
 inference validation.
 
-The `scripts/` directory contains examples for running CBIcall in bulk.
+The [`scripts/`](scripts/README.md) directory contains adaptable local, cohort,
+Slurm, and Apptainer launch examples.

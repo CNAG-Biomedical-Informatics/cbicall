@@ -1,31 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-DIR=/media/mrueda/2TBS/CNAG/Project_CBI_Call
-CBICALL=/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/bin/cbicall
-NCPU=8
+# Edit this path.
+INPUT_DIR="/path/to/sample01"
 
-for DIRNAME in MA99999_exome
-do
-  cd "$DIR/$DIRNAME"
-  echo "$DIRNAME"
-
-  for SAMPLE in MA*P*ex
-  do
-    echo "...$SAMPLE"
-    cd "$SAMPLE"
-
-    cat <<EOF > "$SAMPLE.smk_wes_single.yaml"
+cat > wes_single.yaml <<EOF
 mode: single
 pipeline: wes
-workflow_backend: snakemake
+workflow_provider: cbicall-core
+workflow_backend: bash
 software_stack: gatk-4.6
-input_dir: $DIR/$DIRNAME/$SAMPLE
+genome: b37
+resource: cbicall-germline-resources-v1
+input_dir: "$INPUT_DIR"
+cleanup_bam: false
 EOF
 
-    time "$CBICALL" run -t "$NCPU" -p "$SAMPLE.smk_wes_single.yaml" > "$SAMPLE.smk_wes_single.log" 2>&1
-    cd ".."
-  done
-
-  cd ".."
-done
+cbicall run -p wes_single.yaml -t 4

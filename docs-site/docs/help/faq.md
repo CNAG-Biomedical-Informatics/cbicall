@@ -128,6 +128,7 @@ See [HPC with Apptainer / Singularity](../installation/apptainer).
 
 Yes. Complete templates are available for both installation models:
 
+- [Script guide](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/examples/scripts/README.md)
 - [Source checkout](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/examples/scripts/run_cbicall_slurm.sh)
 - [Apptainer](https://github.com/CNAG-Biomedical-Informatics/cbicall/blob/main/examples/scripts/run_cbicall_apptainer_slurm.sh)
 

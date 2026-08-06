@@ -112,6 +112,7 @@ include = [
   "/examples/input/*.tsv",
   "/examples/input/*.yaml",
   "/examples/input/CNAG999_exome/CNAG99901P_ex/*.fastq.gz",
+  "/examples/scripts",
   "/LICENSE",
   "/mtdna/MToolBox_config.sh",
   "/pyproject.toml",

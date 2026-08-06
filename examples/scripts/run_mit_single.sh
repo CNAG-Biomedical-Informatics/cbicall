@@ -1,28 +1,18 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-DIR=/media/mrueda/2TBS/CNAG/Project_CBI_Call
-CBICALL=/media/mrueda/2TBS/CNAG/Project_CBI_Call/cbicall/bin/cbicall
-NCPU=4
+# Edit this path. It must contain a completed CBIcall WES/WGS run.
+INPUT_DIR="/path/to/sample01"
 
-for DIRNAME in MA99999_exome
-do
-  cd "$DIR/$DIRNAME"
-  echo "$DIRNAME"
-
-  for SAMPLE in MA*ex; do
-    echo "...$SAMPLE"
-    cd "$SAMPLE"
-
-    cat <<EOF > "$SAMPLE.mit_single.yaml"
+cat > mit_single.yaml <<EOF
 mode: single
 pipeline: mit
-input_dir: $DIR/$DIRNAME/$SAMPLE
+workflow_provider: cbicall-core
+workflow_backend: bash
+software_stack: gatk-3.5
+genome: rsrs
+resource: cbicall-germline-resources-v1
+input_dir: "$INPUT_DIR"
 EOF
 
-    "$CBICALL" run -t "$NCPU" -p "$SAMPLE.mit_single.yaml" > "$SAMPLE.mit_single.log" 2>&1
-    cd ".."
-  done
-
-  cd ".."
-done
+cbicall run -p mit_single.yaml -t 4
