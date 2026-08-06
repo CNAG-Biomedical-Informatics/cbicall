@@ -111,6 +111,26 @@ edited to select an installation directory.
 Some workflow branches may use architecture-specific executable paths or legacy tool paths. The catalog records the intended bundle identity; the workflow logs and `log.json` record the concrete paths resolved during a run.
 :::
 
+:::caution[When a bundled executable is incompatible]
+A precompiled executable may fail or hang after moving to a newer Linux
+distribution. Rebuild the same pinned tool version from source in a separate,
+site-specific directory, verify its reported version, and run a small smoke
+test before selecting it in the institutional runtime profile. Do not overwrite
+the distributed bundle. A site may deliberately select a newer tool version,
+but this is a toolchain change rather than a compatibility rebuild and requires
+rerunning the relevant integration tests. A passing contract confirms expected
+output equivalence for that tested workflow and fixture. Effects are
+workflow-dependent, however, so a downstream workflow such as mtDNA analysis
+may still show small output differences and must be tested separately.
+
+For example, during the CNAG CentOS-to-AlmaLinux migration, the WES contract
+still passed when upstream processing used BWA 0.7.19 and Samtools 1.22.1, but
+the downstream mtDNA test produced 1,106 prioritized records and 711 filtered
+JSON records instead of the reference 1,119 and 716. Rebuilding and selecting
+the pinned BWA 0.7.18 and Samtools 0.1.19/1.3 versions restored both reference
+hashes exactly.
+:::
+
 ## Reference Resources
 
 ### b37

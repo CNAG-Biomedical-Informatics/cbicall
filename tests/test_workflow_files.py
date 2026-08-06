@@ -20,7 +20,10 @@ def test_mtoolbox_config_uses_runtime_profile_java_and_samtools():
         profile = (
             REPO_ROOT / "workflows" / "bash" / stack / "cnag-hpc-env.sh"
         ).read_text(encoding="utf-8")
-        assert 'BWA="${CBICALL_BWA:-$NGSUTILS/bwa-0.7.18/bwa}"' in profile
+        assert (
+            'BWA="${CBICALL_BWA:-$NGSUTILS/bwa-0.7.18-cnaghpc/bwa}"'
+            in profile
+        )
         assert (
             'SAM="${CBICALL_SAM:-$NGSUTILS/samtools-0.1.19-cnaghpc/samtools}"'
             in profile
