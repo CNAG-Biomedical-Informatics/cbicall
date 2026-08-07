@@ -4,12 +4,19 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing annotated release tag to publish, for example v1.2.0"
+        required: true
+        type: string
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 concurrency:
-  group: pypi-${{ github.ref }}
+  group: pypi-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -21,6 +28,7 @@ jobs:
       - name: Check out release
         uses: actions/checkout@v5
         with:
+          ref: ${{ env.RELEASE_TAG }}
           fetch-depth: 0
 
       - name: Set up Python
@@ -38,19 +46,21 @@ jobs:
 
       - name: Verify release version
         run: |
+          python -c 'import re, sys; tag = sys.argv[1]; sys.exit(0 if re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", tag) else f"Release tag must be vX.Y.Z, got {tag}")' "$RELEASE_TAG"
+          git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
           package_version=$(python -c "from cbicall import __version__; print(__version__)")
           metadata_version=$(python -c "from importlib.metadata import version; print(version('cbicall'))")
-          test "$(git cat-file -t "refs/tags/$GITHUB_REF_NAME")" = "tag" || {
-            echo "Release tag $GITHUB_REF_NAME must be annotated"
+          test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = "tag" || {
+            echo "Release tag $RELEASE_TAG must be annotated"
             exit 1
           }
-          test "$(git rev-parse "refs/tags/${GITHUB_REF_NAME}^{commit}")" = "$(git rev-parse HEAD)" || {
-            echo "Checked-out commit does not match release tag $GITHUB_REF_NAME"
+          test "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")" = "$(git rev-parse HEAD)" || {
+            echo "Checked-out commit does not match release tag $RELEASE_TAG"
             exit 1
           }
           python -c 'import re, sys; version = sys.argv[1]; sys.exit(0 if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) else f"Production version must be stable X.Y.Z, got {version}")' "$package_version"
-          test "$GITHUB_REF_NAME" = "v$package_version" || {
-            echo "Release tag $GITHUB_REF_NAME does not match package version $package_version"
+          test "$RELEASE_TAG" = "v$package_version" || {
+            echo "Release tag $RELEASE_TAG does not match package version $package_version"
             exit 1
           }
           test "$metadata_version" = "$package_version" || {
@@ -72,7 +82,7 @@ jobs:
           python -m venv /tmp/cbicall-wheel-test
           /tmp/cbicall-wheel-test/bin/python -m pip install dist/*.whl
           cd /tmp
-          test "$(/tmp/cbicall-wheel-test/bin/cbicall --version)" = "${GITHUB_REF_NAME#v}"
+          test "$(/tmp/cbicall-wheel-test/bin/cbicall --version)" = "${RELEASE_TAG#v}"
           /tmp/cbicall-wheel-test/bin/cbicall validate-registry
           /tmp/cbicall-wheel-test/bin/cbicall demo --output-dir /tmp/cbicall-demo
           test -s /tmp/cbicall-demo/wes/run-report.html
