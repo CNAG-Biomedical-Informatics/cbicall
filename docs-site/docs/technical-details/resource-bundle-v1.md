@@ -112,23 +112,34 @@ Some workflow branches may use architecture-specific executable paths or legacy 
 :::
 
 :::caution[When a bundled executable is incompatible]
-A precompiled executable may fail or hang after moving to a newer Linux
-distribution. Rebuild the same pinned tool version from source in a separate,
-site-specific directory, verify its reported version, and run a small smoke
-test before selecting it in the institutional runtime profile. Do not overwrite
-the distributed bundle. A site may deliberately select a newer tool version,
-but this is a toolchain change rather than a compatibility rebuild and requires
-rerunning the relevant integration tests. A passing contract confirms expected
-output equivalence for that tested workflow and fixture. Effects are
-workflow-dependent, however, so a downstream workflow such as mtDNA analysis
-may still show small output differences and must be tested separately.
+The bundle includes precompiled executables for both `amd64` and `arm64`
+architectures. These binaries should work on most common Linux distributions,
+such as Ubuntu and CentOS, but compatibility with every Linux environment cannot
+be guaranteed.
 
-For example, during the CNAG CentOS-to-AlmaLinux migration, the WES contract
-still passed when upstream processing used BWA 0.7.19 and Samtools 1.22.1, but
-the downstream mtDNA test produced 1,106 prioritized records and 711 filtered
-JSON records instead of the reference 1,119 and 716. Rebuilding and selecting
-the pinned BWA 0.7.18 and Samtools 0.1.19/1.3 versions restored both reference
-hashes exactly.
+In some environments, precompiled executables for external dependencies such as
+BWA or Samtools may fail to run because of missing or incompatible shared
+libraries (`.so` files) or other system-level dependencies.
+
+If a bundled executable is incompatible with the target system, we recommend
+rebuilding the same pinned tool version from source in a separate, site-specific
+directory. Before using the rebuilt executable in production, run a small smoke
+test and, if successful, select it in the institutional runtime profile.
+
+It is also possible to use a different tool version available on the system—for
+example, on an HPC cluster via `module load foo.new`. However, using versions
+other than those pinned by the bundle may affect reproducibility. In that case,
+we cannot guarantee that the integration tests will produce exactly the same
+results across different machines or environments.
+
+For example, during the CNAG migration from CentOS to AlmaLinux, the WES
+contract continued to pass when upstream processing used BWA 0.7.19 and
+Samtools 1.22.1. However, the downstream mtDNA test produced 1,106 prioritized
+records and 711 filtered JSON records, compared with the reference values of
+1,119 and 716, respectively.
+
+Rebuilding and selecting the pinned BWA 0.7.18 and Samtools 0.1.19/1.3 versions
+restored the reference outputs, including both expected hashes.
 :::
 
 ## Reference Resources

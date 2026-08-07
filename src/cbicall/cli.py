@@ -371,7 +371,10 @@ def _run_test_command(argv: List[str]) -> int:
     parser.add_argument(
         "--wes-cohort-bash-sharded",
         action="store_true",
-        help="Run the Bash WES cohort staged shard integration test.",
+        help=(
+            "Run the Bash WES cohort staged shard integration test. "
+            "Requires bcftools on PATH or BCFTOOLS=/path/to/bcftools."
+        ),
     )
     parser.add_argument("--wes-bash-gatk35", action="store_true", help="Run the legacy Bash WES GATK 3.5 integration test.")
     parser.add_argument(
@@ -403,7 +406,11 @@ def _run_test_command(argv: List[str]) -> int:
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Run all native bundled integration tests. Optional backend tests are skipped if their backend executable is not installed.",
+        help=(
+            "Run all native bundled integration tests. Requires bcftools on PATH or "
+            "BCFTOOLS=/path/to/bcftools; optional backend tests are skipped if their "
+            "backend executable is not installed."
+        ),
     )
     parser.add_argument(
         "--backend-equivalence",

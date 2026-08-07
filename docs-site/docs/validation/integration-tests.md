@@ -109,7 +109,7 @@ examples.
 | --- | --- | --- | --- | --- |
 | `cbicall test --wes-bash -t 1` | **Bundled WES**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | <span className="cbicallTestBadge cbicallTestBadgeNeutral">none</span> | Run report fields, expected files, **normalized VCF hash** |
 | `cbicall test --wes-cohort-bash -t 1` | **Bundled WES cohort**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Runs WES Bash first, then reuses its real gVCF with fake cohort sample names | Run report fields, expected files, **GenomicsDB marker**, raw/QC cohort VCFs |
-| `cbicall test --wes-cohort-bash-sharded -t 1` | **Bundled WES cohort shard**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Runs WES Bash first, then reuses its real gVCF with fake cohort sample names | Run report fields, expected files, **GenomicsDB marker**, staged raw shard VCF |
+| `cbicall test --wes-cohort-bash-sharded -t 1` | **Bundled WES cohort shard**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `bcftools` on `PATH` or `BCFTOOLS=/path/to/bcftools`; runs WES Bash first, then reuses its real gVCF with fake cohort sample names | Run report fields, expected files, **GenomicsDB marker**, staged raw shard VCF |
 | `cbicall test --wes-snakemake -t 1` | **Bundled WES**, Snakemake | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `snakemake` on `PATH` | Run report fields, expected files, **normalized VCF hash** |
 | `cbicall test --wes-nextflow -t 1` | **Bundled WES**, Nextflow | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `nextflow` on `PATH` | Run report fields, expected files, **normalized VCF hash** |
 | `cbicall test --wes-cromwell -t 1` | **Bundled WES**, Cromwell | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `CROMWELL_JAR` or `cromwell` on `PATH` | Generated inputs/options/metadata, run report fields, expected files, **normalized VCF hash** |
@@ -117,7 +117,7 @@ examples.
 | `cbicall test --nf-core-demo -t 4` | **nf-core/demo** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile | Generated params/config, run reports, **pipeline info**, **MultiQC anchors** |
 | `cbicall test --nf-core-sarek -t 4` | **nf-core/Sarek** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile and Sarek inputs/resources | Generated params/config, run reports, **pipeline info**, **MultiQC anchors**, declared canonical outputs when produced |
 | `cbicall test --backend-equivalence -t 1` | **Bundled WES backend equivalence** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | At least one non-Bash backend available | Bash baseline plus available bundled WES backends; **same normalized final VCF** required |
-| `cbicall test --all -t 1` | **Bundled tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | Optional backends skipped if missing | Runs WES Bash, WES cohort Bash, WES cohort Bash sharded, WES Snakemake, WES Nextflow, WES Cromwell, and mtDNA contracts |
+| `cbicall test --all -t 1` | **Bundled tests only** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `bcftools` required for the staged cohort test; optional workflow backends skipped if missing | Runs WES Bash, WES cohort Bash, WES cohort Bash sharded, WES Snakemake, WES Nextflow, WES Cromwell, and mtDNA contracts |
 
 </details>
 
@@ -128,6 +128,20 @@ the bundled WES interval list unless `CBICALL_INTERVAL_LIST` is set explicitly.
 The sharded WES cohort Bash contract is also included in `--all` so staged
 cohort regressions fail in the normal native integration sweep.
 
+The sharded test uses `bcftools concat` and `bcftools index` only for its staged
+gather/finalize step. CBIcall first honors an exported `BCFTOOLS` value. If it
+is unset, the Bash GATK 4.6 `env.sh` defaults it to the command name `bcftools`,
+which CBIcall looks up on the `PATH` inherited from the shell that launched it.
+Check the lookup or provide an absolute path explicitly:
+
+```bash
+command -v bcftools
+
+# If bcftools is not on PATH:
+BCFTOOLS=/absolute/path/to/bcftools \
+  cbicall test --wes-cohort-bash-sharded -t 1
+```
+
 <details>
 <summary>Advanced test flags and backend requirements</summary>
 
@@ -136,6 +150,7 @@ cohort regressions fail in the normal native integration sweep.
 | `--runtime-profile cnag-hpc` | Test the same native environment profile used for production runs. |
 | `--workspace DIR` | Stage all test assets and outputs in a new or empty directory instead of the default location. |
 | `--keep-external-work` | Keep nf-core/Nextflow `work/` and `.nextflow/` directories for debugging. |
+| Sharded WES cohort test | Requires `bcftools` on the inherited `PATH`, or an exported/inline `BCFTOOLS=/absolute/path/to/bcftools`. This also applies to `--all`. |
 | Snakemake tests | Require `snakemake` on `PATH`. |
 | Nextflow and nf-core tests | Require `nextflow` on `PATH`; on CNAG HPC load it with `module load Nextflow/25.10.2`. |
 | Cromwell tests | Require `CROMWELL_JAR=/path/to/cromwell.jar` or a `cromwell` launcher on `PATH`. |
