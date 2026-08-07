@@ -64,7 +64,7 @@ module load Python/3.13.5-GCCcore-14.3.0
 export PYTHONPATH="\$CBICALL_PYTHON_PREFIX/lib/python3.13/site-packages\${PYTHONPATH:+:\$PYTHONPATH}"
 
 # Required only for Nextflow/nf-core runs; harmless for Bash runs when available.
-module load Nextflow/25.10.2 2>/dev/null || true
+module load Nextflow/25.10.3 2>/dev/null || true
 
 # For nf-core with Singularity/Apptainer, uncomment and set a user- or
 # project-owned cache if the site-level cache is not suitable.
