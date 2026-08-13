@@ -37,4 +37,5 @@ preferred-citation:
     - family-names: Gut
       given-names: "Ivo G."
   year: 2026
-  doi: 10.64898/2026.03.23.713646
+  journal: "Bioinformatics Advances"
+  doi: 10.1093/bioadv/vbag232

@@ -57,7 +57,7 @@ cbicall run -p parameters.yaml -t 4
 
 ## Citation
 
-CBIcall: a configuration-driven framework for variant calling in large sequencing cohorts. [Preprint DOI](https://doi.org/10.64898/2026.03.23.713646).
+Rueda M, Fernandez-Orth D, Gut IG. CBIcall: a configuration-driven framework for variant calling in large sequencing cohorts. *Bioinformatics Advances*. 2026. [doi:10.1093/bioadv/vbag232](https://doi.org/10.1093/bioadv/vbag232).
 
 ## Author
 
