@@ -59,6 +59,16 @@ the downloaded ENA FASTQs because they were taken from the MToolBox FASTQ
 outputs: their headers are shortened and their quality strings reflect that
 intermediate representation.
 
+### Interpreting the mtDNA test output
+
+This constructed fixture is intended to test workflow execution, filtering,
+report generation, and output reproducibility. It is not a biologically
+representative mtDNA sample or a haplogroup benchmark. Its incomplete and
+ambiguity-rich mitochondrial consensus causes MToolBox to report 4,805 tied
+candidate haplogroups in the reference run. That large candidate set is an
+expected property of the fixture and must not be interpreted as 4,805
+biological haplogroups.
+
 ## Fixture assembly
 
 The two components were concatenated by mate and compressed:

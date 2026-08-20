@@ -121,6 +121,13 @@ examples.
 
 </details>
 
+:::note[mtDNA fixture interpretation]
+The constructed mtDNA fixture tests execution and output reproducibility, not
+biological haplogroup inference. Its reference run produces many tied MToolBox
+candidate haplogroups because the mitochondrial consensus is incomplete and
+ambiguity-rich.
+:::
+
 The WES cohort Bash test is intentionally slower than the single-sample checks:
 it first runs the WES Bash contract to create a real gVCF, then runs joint
 genotyping over a chr22 interval fixture. The production workflow still uses
