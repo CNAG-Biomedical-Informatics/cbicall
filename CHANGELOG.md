@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1 - 2026-08-21
+
+- Correct MToolBox deletion handling and annotation CSV detection.
+
 ## 1.2.0 - 2026-08-06
 
 - Rename the native workflow provider from `cbicall` to `cbicall-core`.

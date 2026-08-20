@@ -133,13 +133,11 @@ we cannot guarantee that the integration tests will produce exactly the same
 results across different machines or environments.
 
 For example, during the CNAG migration from CentOS to AlmaLinux, the WES
-contract continued to pass when upstream processing used BWA 0.7.19 and
-Samtools 1.22.1. However, the downstream mtDNA test produced 1,106 prioritized
-records and 711 filtered JSON records, compared with the reference values of
-1,119 and 716, respectively.
-
-Rebuilding and selecting the pinned BWA 0.7.18 and Samtools 0.1.19/1.3 versions
-restored the reference outputs, including both expected hashes.
+contract continued to pass with newer BWA and Samtools releases, but the mtDNA
+contract produced different record counts and hashes. Rebuilding and selecting
+the pinned BWA 0.7.18 and Samtools 0.1.19/1.3 versions restored the expected
+mtDNA outputs. Run the relevant integration test after replacing any bundled
+executable.
 :::
 
 ## Reference Resources
