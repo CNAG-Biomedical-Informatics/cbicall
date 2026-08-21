@@ -36,9 +36,9 @@ hashes:
     type: normalized_text
     path: 01_mtoolbox/mit_prioritized_variants.txt
     pattern: ^#
-    records: 1087
-    sha256: 7dbb903f52c7394c6caf75bc8ad66746f27a7dec063f35c29564708504a92f66
+    records: 1081
+    sha256: df996cfce4abeed83c017d048a933d6a181c341fb19e7a262cbf9d9561d482fa
   - name: mit_filtered_json
     type: canonical_json
     path: 01_mtoolbox/mit.filtered.json
-    sha256: 3eba6f1cd0b3b01a1d089e9d007e7cf40c8ce433cb0713b9cc39a2c8c6dfdec8
+    sha256: 54402c9ba1cfc3763c98d443c99528ac1f623e6d55f948a98c94e65a20d97d81

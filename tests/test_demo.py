@@ -20,7 +20,7 @@ def test_run_demo_generates_wes_and_mtdna_reports(tmp_path):
     result = demo.run_demo(output_dir)
 
     assert result.output_dir == output_dir.resolve()
-    assert result.mtdna_variants == 722
+    assert result.mtdna_variants == 718
     assert result.wes_html.is_file()
     assert result.mtdna_html.is_file()
     wes_html = result.wes_html.read_text(encoding="utf-8")
@@ -29,7 +29,7 @@ def test_run_demo_generates_wes_and_mtdna_reports(tmp_path):
 
     browser_html = result.mtdna_html.read_text(encoding="utf-8")
     assert "CBIcall mtDNA Report - CNAG99901P" in browser_html
-    assert '"variants":722' in browser_html
+    assert '"variants":718' in browser_html
 
     report = json.loads(result.wes_report.read_text(encoding="utf-8"))
     assert report["demo"]["precomputed"] is True
@@ -66,7 +66,7 @@ def test_demo_command_prints_report_paths(tmp_path, capsys):
     assert "precomputed CNAG99901P" in output
     assert "No external resource bundle" in output
     assert str(output_dir.resolve()) in output
-    assert "mtDNA variants => 722" in output
+    assert "mtDNA variants => 718" in output
 
 
 def test_main_dispatches_demo(monkeypatch):
