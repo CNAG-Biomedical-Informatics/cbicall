@@ -33,7 +33,7 @@ Usage: $0 -t <n_threads> -p <wes|wgs> [-c] [--export-mtdna-bam]
   -t, --threads         Number of CPU threads for GATK tools
   -p, --pipeline        Pipeline mode: 'wes' or 'wgs'
   -c, --cleanup-bam     If set, delete all 01_bam/*.bam when done (default: off)
-      --export-mtdna-bam  Preserve an mtDNA-only BAM in 04_mtdna_input (default: off)
+      --export-mtdna-bam  Preserve an mtDNA-only BAM in exports/mtdna (default: off)
 EOF
     exit 1
 }
@@ -194,7 +194,7 @@ set +x
 
 if [ "$EXPORT_MTDNA_BAM" = true ]; then
   echo ">>> Export mtDNA input BAM"
-  MTDNADIR=$dir/04_mtdna_input
+  MTDNADIR=$dir/exports/mtdna
   mkdir -p "$MTDNADIR"
   mt_contig=MT
   if [ "$GENOME" = "hg38" ]; then

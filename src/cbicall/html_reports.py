@@ -80,7 +80,7 @@ def _file_link(path: str, base_dir: Path, label: Optional[str] = None) -> str:
 
 
 def _is_essential_output(rel_path: str) -> bool:
-    if rel_path.startswith(("02_varcall/", "03_stats/", "04_mtdna_input/", "02_browser/", "01_mtoolbox/")):
+    if rel_path.startswith(("02_varcall/", "03_stats/", "exports/mtdna/", "02_browser/", "01_mtoolbox/")):
         return True
     return rel_path.endswith((".vcf", ".vcf.gz", ".g.vcf.gz", ".html", ".txt")) and not rel_path.startswith("01_bam/")
 

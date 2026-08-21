@@ -963,7 +963,7 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
         task = tmp_path / "task-output"
         (task / "02_varcall").mkdir(parents=True)
         (task / "03_stats").mkdir()
-        (task / "04_mtdna_input").mkdir()
+        (task / "exports" / "mtdna").mkdir(parents=True)
         (task / "logs").mkdir()
         outputs = {}
         for name in ("hc.g.vcf.gz", "hc.raw.vcf.gz", "hc.QC.vcf.gz"):
@@ -979,8 +979,8 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
             path = task / "03_stats" / filename
             path.write_text(key + "\n", encoding="utf-8")
             outputs[f"CBIcallWesSingle.{key}"] = str(path)
-        mtdna_bam = task / "04_mtdna_input" / "CNAG99901P-DNA_MIT.bam"
-        mtdna_bai = task / "04_mtdna_input" / "CNAG99901P-DNA_MIT.bam.bai"
+        mtdna_bam = task / "exports" / "mtdna" / "CNAG99901P-DNA_MIT.bam"
+        mtdna_bai = task / "exports" / "mtdna" / "CNAG99901P-DNA_MIT.bam.bai"
         mtdna_bam.write_text("bam\n", encoding="utf-8")
         mtdna_bai.write_text("index\n", encoding="utf-8")
         outputs["CBIcallWesSingle.mtdna_bam"] = [str(mtdna_bam)]
@@ -1046,8 +1046,8 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
     assert (project_dir / "cbicall_cromwell.fastq_pairs.tsv").read_text(encoding="utf-8").count("\n") == 1
     assert (project_dir / "02_varcall" / "CNAG99901P.hc.QC.vcf.gz").is_file()
     assert (project_dir / "03_stats" / "CNAG99901P.vcf.sha256.txt").is_file()
-    assert (project_dir / "04_mtdna_input" / "CNAG99901P-DNA_MIT.bam").is_file()
-    assert (project_dir / "04_mtdna_input" / "CNAG99901P-DNA_MIT.bam.bai").is_file()
+    assert (project_dir / "exports" / "mtdna" / "CNAG99901P-DNA_MIT.bam").is_file()
+    assert (project_dir / "exports" / "mtdna" / "CNAG99901P-DNA_MIT.bam.bai").is_file()
     assert (project_dir / "logs" / "CNAG99901P.log").is_file()
     contract = json.loads((project_dir / "cbicall-execution-contract.json").read_text(encoding="utf-8"))
     generated = {item["role"]: item for item in contract["generated_files"]}

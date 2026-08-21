@@ -943,8 +943,8 @@ class CromwellRunner(BaseRunner):
             "coverage": "03_stats",
             "sex": "03_stats",
             "vcf_hash": "03_stats",
-            "mtdna_bam": "04_mtdna_input",
-            "mtdna_bai": "04_mtdna_input",
+            "mtdna_bam": "exports/mtdna",
+            "mtdna_bai": "exports/mtdna",
             "logs": "logs",
         }
         for key, value in outputs.items():

@@ -70,7 +70,8 @@ complete runtime tree. Normal installations do not need it.
     01_bam/
     02_varcall/
     03_stats/
-    04_mtdna_input/  # optional
+    exports/
+      mtdna/         # optional
     logs/
     log.json
     cbicall-execution-contract.json
@@ -95,7 +96,7 @@ Typical native usage:
 - Intermediate alignment and BAM files are stored under `01_bam/`.
 - Variant-calling outputs, gVCFs, VCFs and related files are stored under `02_varcall/`.
 - Summary statistics and QC metrics are collected under `03_stats/`.
-- Optional mtDNA handoff BAMs are stored under `04_mtdna_input/`.
+- Optional mtDNA handoff BAMs are stored under `exports/mtdna/`.
 - Log files for workflow steps are stored under `logs/`.
 
 For external nf-core workflows, upstream nf-core outputs remain under the pipeline

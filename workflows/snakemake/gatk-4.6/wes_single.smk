@@ -83,7 +83,7 @@ MIN_INDEL_FOR_VQSR = int(config.get("min_indel_for_vqsr", 8000))
 BAMDIR     = "01_bam"
 VARCALLDIR = "02_varcall"
 STATSDIR   = "03_stats"
-MTDNADIR   = "04_mtdna_input"
+MTDNADIR   = "exports/mtdna"
 LOGDIR     = "logs"
 for d in (BAMDIR, VARCALLDIR, STATSDIR, LOGDIR):
     os.makedirs(d, exist_ok=True)

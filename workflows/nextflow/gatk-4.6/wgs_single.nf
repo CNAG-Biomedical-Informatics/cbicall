@@ -156,7 +156,7 @@ def VCF2HASH = params.vcf2hash_script ? params.vcf2hash_script.toString() : file
 def BAMDIR     = "01_bam"
 def VARCALLDIR = "02_varcall"
 def STATSDIR   = "03_stats"
-def MTDNADIR   = "04_mtdna_input"
+def MTDNADIR   = "exports/mtdna"
 def LOGDIR     = "logs"
 
 new File(BAMDIR).mkdirs()

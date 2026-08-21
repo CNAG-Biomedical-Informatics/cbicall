@@ -9,7 +9,7 @@ small BAM exported by an earlier native GATK 4.6 WES or WGS single-sample run.
 :::warning[Requirements]
 - MToolBox runs on x86_64 Linux only. ARM systems, including Apple Silicon, are not supported.
 - The WES/WGS run must set `export_mtdna_bam: true`.
-- Keep the WES/WGS run directory under the sample directory so CBIcall can find `04_mtdna_input`.
+- Keep the WES/WGS run directory under the sample directory so CBIcall can find `exports/mtdna`.
 - mtDNA workflows do not fall back to the full recalibrated BAM or start from FASTQ files.
 :::
 
@@ -32,9 +32,10 @@ The completed run contains:
 CNAG999_exome/
   CNAG99901P_ex/
     cbicall_bash_gatk-4.6_wes_single_b37_*/
-      04_mtdna_input/
-        CNAG99901P-DNA_MIT.bam
-        CNAG99901P-DNA_MIT.bam.bai
+      exports/
+        mtdna/
+          CNAG99901P-DNA_MIT.bam
+          CNAG99901P-DNA_MIT.bam.bai
 ```
 
 `cleanup_bam: true` removes `01_bam` only. The exported mtDNA BAM remains
@@ -60,7 +61,7 @@ input_dir:        CNAG999_exome/CNAG99901P_ex
 ```
 
 The `input_dir` is the sample directory containing the earlier native WES/WGS
-run and its `04_mtdna_input` directory.
+run and its `exports/mtdna` directory.
 
 ## 2. Run CBIcall
 

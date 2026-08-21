@@ -24,7 +24,7 @@
     <text class="small" x="66" y="49" text-anchor="middle">native WES/WGS</text>
     <rect class="box" x="170" y="0" width="132" height="68" rx="10"/>
     <text class="label" x="236" y="25" text-anchor="middle">Collect exports</text>
-    <text class="small" x="236" y="47" text-anchor="middle">04_mtdna_input</text>
+    <text class="small" x="236" y="47" text-anchor="middle">exports/mtdna</text>
     <rect class="box" x="340" y="0" width="132" height="68" rx="10"/>
     <text class="label" x="406" y="25" text-anchor="middle">BAM set</text>
     <text class="small" x="406" y="47" text-anchor="middle">cohort input</text>

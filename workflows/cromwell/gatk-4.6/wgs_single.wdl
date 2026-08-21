@@ -111,7 +111,7 @@ task RunWesSingle {
     BAMDIR="01_bam"
     VARCALLDIR="02_varcall"
     STATSDIR="03_stats"
-    MTDNADIR="04_mtdna_input"
+    MTDNADIR="exports/mtdna"
     LOGDIR="logs"
     mkdir -p "$BAMDIR" "$VARCALLDIR" "$STATSDIR" "$LOGDIR"
     LOG="$LOGDIR/~{id}.log"
@@ -328,8 +328,8 @@ task RunWesSingle {
     File coverage = "03_stats/" + id + ".coverage.txt"
     File sex = "03_stats/" + id + ".sex.txt"
     File vcf_hash = "03_stats/" + id + ".vcf.sha256.txt"
-    Array[File] mtdna_bam = glob("04_mtdna_input/*.bam")
-    Array[File] mtdna_bai = glob("04_mtdna_input/*.bam.bai")
+    Array[File] mtdna_bam = glob("exports/mtdna/*.bam")
+    Array[File] mtdna_bai = glob("exports/mtdna/*.bam.bai")
     Array[File] logs = glob("logs/*")
   }
 

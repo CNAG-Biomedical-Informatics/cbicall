@@ -39,7 +39,7 @@ def test_mtdna_workflows_require_exported_bams():
         workflow_text = (
             REPO_ROOT / "workflows" / "bash" / "gatk-3.5" / workflow
         ).read_text(encoding="utf-8")
-        assert "04_mtdna_input" in workflow_text
+        assert "exports/mtdna" in workflow_text
         assert "export_mtdna_bam: true" in workflow_text
         assert "MIT_EXTRACT_SAM" not in workflow_text
         assert "rg.merged.dedup.recal.bam" not in workflow_text
@@ -60,7 +60,7 @@ def test_native_gatk46_single_workflows_support_mtdna_export():
     for relpath in workflow_files:
         text = (REPO_ROOT / relpath).read_text(encoding="utf-8")
         assert "export_mtdna_bam" in text or "--export-mtdna-bam" in text, relpath
-        assert "04_mtdna_input" in text, relpath
+        assert "exports/mtdna" in text, relpath
         assert "-DNA_MIT.bam" in text, relpath
         assert "view -c" in text, relpath
 

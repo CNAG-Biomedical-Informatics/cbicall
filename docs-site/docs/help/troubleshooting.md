@@ -236,7 +236,7 @@ ERROR: No exported mtDNA BAM found for ID ...
 **Likely cause**
 
 The earlier WES/WGS single-sample run did not create the required
-`04_mtdna_input/<sample>-DNA_MIT.bam` and index, or the run directory is no
+`exports/mtdna/<sample>-DNA_MIT.bam` and index, or the run directory is no
 longer under the expected sample directory.
 
 **Fix**

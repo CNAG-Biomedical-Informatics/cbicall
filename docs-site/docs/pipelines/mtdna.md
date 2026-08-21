@@ -18,7 +18,7 @@ The bundled MToolBox workflow supports x86_64 Linux only.
 
 :::warning[Required input]
 Run WES/WGS single-sample processing with `export_mtdna_bam: true` first.
-mtDNA workflows require `04_mtdna_input/<sample>-DNA_MIT.bam` and its index;
+mtDNA workflows require `exports/mtdna/<sample>-DNA_MIT.bam` and its index;
 they do not extract reads from a full BAM.
 :::
 

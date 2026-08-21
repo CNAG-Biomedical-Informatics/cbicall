@@ -55,7 +55,7 @@ parallelism.
 - Output: recalibrated BAM used for variant calling.
 
 Set `export_mtdna_bam: true` to also write
-`04_mtdna_input/<id>-DNA_MIT.bam` and its index. This small handoff file is the
+`exports/mtdna/<id>-DNA_MIT.bam` and its index. This small handoff file is the
 required input for a later mtDNA run and is preserved when `cleanup_bam: true`.
 
 ### 5. Variant Calling (HaplotypeCaller, gVCF)
@@ -123,8 +123,8 @@ required input for a later mtDNA run and is preserved when `cleanup_bam: true`.
 | `02_varcall/<id>.hc.QC.vcf.gz`         | Final QC-filtered VCF (recommended)                 |
 | `03_stats/<id>.coverage.txt`           | Coverage metrics (`region`, sample, mode, read counts, depth, duplicate and target percentages) |
 | `03_stats/<id>.sex.txt`                | Sex determination result                            |
-| `04_mtdna_input/<id>-DNA_MIT.bam`      | Optional mtDNA-only BAM for a later MToolBox run    |
-| `04_mtdna_input/<id>-DNA_MIT.bam.bai`  | Index for the optional mtDNA-only BAM                |
+| `exports/mtdna/<id>-DNA_MIT.bam`      | Optional mtDNA-only BAM for a later MToolBox run    |
+| `exports/mtdna/<id>-DNA_MIT.bam.bai`  | Index for the optional mtDNA-only BAM                |
 | `logs/<id>.log`                        | Main pipeline log                                   |
 
 ---

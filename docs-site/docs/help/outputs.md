@@ -161,8 +161,8 @@ Applies to `pipeline: wes` or `pipeline: wgs` with `mode: single`.
 | `03_stats/<id>.coverage.txt` | Coverage summary with a `region`-first tabular schema. |
 | `03_stats/<id>.sex.txt` | Sex inference result from the final VCF. |
 | `03_stats/<id>.vcf.sha256.txt` | Per-VCF SHA-256 report with raw-file, sample count/order, call-level, and strict-record VCF fingerprints. |
-| `04_mtdna_input/<id>-DNA_MIT.bam` | Optional mtDNA-only handoff BAM created when `export_mtdna_bam: true`. |
-| `04_mtdna_input/<id>-DNA_MIT.bam.bai` | Index for the mtDNA-only handoff BAM. |
+| `exports/mtdna/<id>-DNA_MIT.bam` | Optional mtDNA-only handoff BAM created when `export_mtdna_bam: true`. |
+| `exports/mtdna/<id>-DNA_MIT.bam.bai` | Index for the mtDNA-only handoff BAM. |
 
 Coverage files use one tabular row per sample:
 

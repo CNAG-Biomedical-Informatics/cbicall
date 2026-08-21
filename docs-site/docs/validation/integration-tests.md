@@ -186,12 +186,13 @@ CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_*/
   01_bam/
   02_varcall/
   03_stats/
-  04_mtdna_input/
+  exports/
+    mtdna/
   logs/
 ```
 
 The Bash WES integration contract enables `export_mtdna_bam` so the following
-mtDNA contract can consume the indexed BAM in `04_mtdna_input`.
+mtDNA contract can consume the indexed BAM in `exports/mtdna`.
 
 The optional Snakemake WES test uses the same input and expected VCF records, but
 the run directory starts with `cbicall_snakemake_gatk-4.6_wes_single_b37_*`.

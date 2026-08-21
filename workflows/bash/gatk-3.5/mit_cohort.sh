@@ -20,9 +20,9 @@ function usage {
 
 MA00024_exome  <-- ID taken from here
 ├── MA0002401P_ex
-│   └── cbicall_*_gatk-4.6_wes_single_*/04_mtdna_input/...
+│   └── cbicall_*_gatk-4.6_wes_single_*/exports/mtdna/...
 ├── MA0002402M_ex
-│   └── cbicall_*_gatk-4.6_wes_single_*/04_mtdna_input/...
+│   └── cbicall_*_gatk-4.6_wes_single_*/exports/mtdna/...
 └── cbicall_bash_mit_cohort_* <- Submit from inside this directory
     """
     echo "$USAGE"
@@ -109,7 +109,7 @@ for sdir in $sample_dirs; do
   mtb_id="${sid}-DNA_MIT"
   out_raw="${mtb_id}.bam"
 
-  export_pattern="$sdir/"*_gatk-4.6_w[ge]s_single_*/04_mtdna_input/"${mtb_id}.bam"
+  export_pattern="$sdir/"*_gatk-4.6_w[ge]s_single_*/exports/mtdna/"${mtb_id}.bam"
   export_list=$(ls -1 $export_pattern 2>/dev/null | grep -v 'ref_cbicall' || true)
   export_count=$(printf "%s\n" "$export_list" | sed '/^$/d' | wc -l)
 

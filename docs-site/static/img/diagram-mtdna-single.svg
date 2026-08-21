@@ -26,7 +26,7 @@
     <text class="small" x="232" y="48" text-anchor="middle">export enabled</text>
     <rect class="box" x="336" y="0" width="128" height="66" rx="10"/>
     <text class="label" x="400" y="27" text-anchor="middle">mtDNA BAM</text>
-    <text class="small" x="400" y="48" text-anchor="middle">04_mtdna_input</text>
+    <text class="small" x="400" y="48" text-anchor="middle">exports/mtdna</text>
     <rect class="tool" x="504" y="0" width="128" height="66" rx="10"/>
     <text class="label" x="568" y="27" text-anchor="middle">MToolBox</text>
     <text class="small" x="568" y="48" text-anchor="middle">RSRS reference</text>

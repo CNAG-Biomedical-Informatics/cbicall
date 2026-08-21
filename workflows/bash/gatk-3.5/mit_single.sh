@@ -26,7 +26,7 @@ MA00047_exome
     ├── MA0004701P_ex_S5_L001_R2_001.fastq.gz
     ├── MA0004701P_ex_S5_L002_R1_001.fastq.gz
     ├── MA0004701P_ex_S5_L002_R2_001.fastq.gz
-    ├── cbicall_*_gatk-4.6_wes_single_*/04_mtdna_input/...
+    ├── cbicall_*_gatk-4.6_wes_single_*/exports/mtdna/...
     └── cbicall_bash_gatk-3.5_mit_single_rsrs_* <- Submit from inside this directory
     """
     echo "$USAGE"
@@ -84,7 +84,7 @@ echo "Preparing Mitochondrial DNA input BAM..."
 
 out_raw=$mtb_id.bam
 
-export_pattern="../../*_gatk-4.6_w[ge]s_single_*/04_mtdna_input/${mtb_id}.bam"
+export_pattern="../../*_gatk-4.6_w[ge]s_single_*/exports/mtdna/${mtb_id}.bam"
 export_list=$(ls -1 $export_pattern 2>/dev/null | grep -v 'ref_cbicall' || true)
 export_count=$(printf "%s\n" "$export_list" | sed '/^$/d' | wc -l)
 
