@@ -7,6 +7,7 @@ workflow CBIcallWesSingle {
     String genome
     Int threads
     Boolean cleanup_bam
+    Boolean export_mtdna_bam
     String qc_coverage_region
     File fastq_pairs_tsv
     String tmpdir
@@ -35,6 +36,7 @@ workflow CBIcallWesSingle {
       genome = genome,
       threads = threads,
       cleanup_bam = cleanup_bam,
+      export_mtdna_bam = export_mtdna_bam,
       qc_coverage_region = qc_coverage_region,
       fastq_pairs_tsv = fastq_pairs_tsv,
       tmpdir = tmpdir,
@@ -63,6 +65,8 @@ workflow CBIcallWesSingle {
     File coverage = RunWesSingle.coverage
     File sex = RunWesSingle.sex
     File vcf_hash = RunWesSingle.vcf_hash
+    Array[File] mtdna_bam = RunWesSingle.mtdna_bam
+    Array[File] mtdna_bai = RunWesSingle.mtdna_bai
     Array[File] logs = RunWesSingle.logs
   }
 }
@@ -74,6 +78,7 @@ task RunWesSingle {
     String genome
     Int threads
     Boolean cleanup_bam
+    Boolean export_mtdna_bam
     String qc_coverage_region
     File fastq_pairs_tsv
     String tmpdir
@@ -106,6 +111,7 @@ task RunWesSingle {
     BAMDIR="01_bam"
     VARCALLDIR="02_varcall"
     STATSDIR="03_stats"
+    MTDNADIR="04_mtdna_input"
     LOGDIR="logs"
     mkdir -p "$BAMDIR" "$VARCALLDIR" "$STATSDIR" "$LOGDIR"
     LOG="$LOGDIR/~{id}.log"
@@ -172,6 +178,24 @@ task RunWesSingle {
       --bqsr-recal-file "$bqsr_table" \
       -O "$BAMDIR/~{id}.rg.merged.dedup.recal.bam" --tmp-dir "~{tmpdir}" 2>> "$LOG"
     ~{samtools} index "$BAMDIR/~{id}.rg.merged.dedup.recal.bam"
+
+    if [ "~{if export_mtdna_bam then "true" else "false"}" = true ]; then
+      echo "Exporting mtDNA input BAM"
+      mkdir -p "$MTDNADIR"
+      mt_contig=MT
+      if [ "~{genome}" = "hg38" ]; then
+        mt_contig=chrM
+      fi
+      mt_bam="$MTDNADIR/~{id}-DNA_MIT.bam"
+      mt_bai="${mt_bam}.bai"
+      ~{samtools} view -b "$BAMDIR/~{id}.rg.merged.dedup.recal.bam" "$mt_contig" > "$mt_bam" 2>> "$LOG"
+      ~{samtools} index "$mt_bam" "$mt_bai" 2>> "$LOG"
+      mt_reads=$(~{samtools} view -c "$mt_bam" 2>> "$LOG")
+      if [ "$mt_reads" -eq 0 ]; then
+        echo "ERROR: Exported mtDNA BAM contains no alignments for contig '$mt_contig'." >&2
+        exit 1
+      fi
+    fi
 
     echo "STEP 5: HaplotypeCaller to gVCF"
     ~{gatk4_cmd} HaplotypeCaller \
@@ -304,6 +328,8 @@ task RunWesSingle {
     File coverage = "03_stats/" + id + ".coverage.txt"
     File sex = "03_stats/" + id + ".sex.txt"
     File vcf_hash = "03_stats/" + id + ".vcf.sha256.txt"
+    Array[File] mtdna_bam = glob("04_mtdna_input/*.bam")
+    Array[File] mtdna_bai = glob("04_mtdna_input/*.bam.bai")
     Array[File] logs = glob("logs/*")
   }
 

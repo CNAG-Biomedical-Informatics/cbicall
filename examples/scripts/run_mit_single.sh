@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Edit this path. It must contain a completed CBIcall WES/WGS run.
+# Edit this path. It must contain a completed WES/WGS run created with
+# export_mtdna_bam: true.
 INPUT_DIR="/path/to/sample01"
 
 cat > mit_single.yaml <<EOF

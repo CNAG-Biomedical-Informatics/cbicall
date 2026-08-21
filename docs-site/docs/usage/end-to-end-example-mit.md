@@ -3,24 +3,42 @@ import TabItem from '@theme/TabItem';
 
 # End-to-end mtDNA examples
 
-The bundled mtDNA workflows use MToolBox to analyze mitochondrial reads from
-BAM files created by an earlier bundled Bash WES or WGS single-sample run.
+The bundled mtDNA workflows use MToolBox to analyze mitochondrial reads from a
+small BAM exported by an earlier native GATK 4.6 WES or WGS single-sample run.
 
 :::warning[Requirements]
 - MToolBox runs on x86_64 Linux only. ARM systems, including Apple Silicon, are not supported.
-- The mtDNA workflows start from bundled Bash WES/WGS BAM outputs, not FASTQ files.
-- Keep the WES/WGS run directory under the sample directory so CBIcall can discover its recalibrated BAM.
+- The WES/WGS run must set `export_mtdna_bam: true`.
+- Keep the WES/WGS run directory under the sample directory so CBIcall can find `04_mtdna_input`.
+- mtDNA workflows do not fall back to the full recalibrated BAM or start from FASTQ files.
 :::
 
-For example:
+First, add the export setting to the WES/WGS single-sample YAML. Any native
+backend can create the handoff:
+
+```yaml
+mode:             single
+pipeline:         wes
+workflow_backend: bash
+software_stack:   gatk-4.6
+input_dir:        CNAG999_exome/CNAG99901P_ex
+export_mtdna_bam: true
+cleanup_bam:      true
+```
+
+The completed run contains:
 
 ```text
 CNAG999_exome/
   CNAG99901P_ex/
     cbicall_bash_gatk-4.6_wes_single_b37_*/
-      01_bam/
-        CNAG99901P.rg.merged.dedup.recal.bam
+      04_mtdna_input/
+        CNAG99901P-DNA_MIT.bam
+        CNAG99901P-DNA_MIT.bam.bai
 ```
+
+`cleanup_bam: true` removes `01_bam` only. The exported mtDNA BAM remains
+available for the next run.
 
 CBIcall derives the sample identifier from the input directory name. There is
 no separate `sample` key in the parameters YAML. See
@@ -41,8 +59,8 @@ software_stack:   gatk-3.5
 input_dir:        CNAG999_exome/CNAG99901P_ex
 ```
 
-The `input_dir` is the sample directory containing the earlier bundled Bash
-WES/WGS run.
+The `input_dir` is the sample directory containing the earlier native WES/WGS
+run and its `04_mtdna_input` directory.
 
 ## 2. Run CBIcall
 
@@ -67,7 +85,7 @@ cbicall_bash_gatk-3.5_mit_single_rsrs_*/
 ## 1. Prepare the project directory
 
 Place each sample directory under one project directory. Every sample must have
-a completed bundled Bash WES/WGS single-sample run containing a usable BAM:
+a completed native WES/WGS single-sample run with `export_mtdna_bam: true`:
 
 ```text
 CNAG999_exome/

@@ -27,8 +27,8 @@ CNAG999_exome/CNAG99901P_ex/
 
 For WES/WGS cohort runs, `sample_map` points to a TSV containing sample IDs and gVCF paths.
 
-For mtDNA runs, CBIcall expects BAM files from previous bundled Bash WES/WGS
-single-sample runs. mtDNA workflows do not start from FASTQ files.
+For mtDNA runs, CBIcall expects the indexed mtDNA-only BAM exported by a native
+GATK 4.6 WES/WGS single-sample run with `export_mtdna_bam: true`.
 
 For external nf-core workflows, workflow-specific inputs are passed in
 `nfcore_parameters`. For example, Sarek expects its samplesheet under
@@ -61,7 +61,7 @@ their dedicated pages.
 :::note[Why analysis parameters are YAML-only]
 CBIcall deliberately does not duplicate YAML analysis keys as CLI options or
 provide a generic `--set` override. Keeping values such as `pipeline`, `genome`,
-`workflow_backend`, and `cleanup_bam` in one parameters file prevents
+`workflow_backend`, `cleanup_bam`, and `export_mtdna_bam` in one parameters file prevents
 command-line overrides from silently diverging from the submitted YAML and
 keeps the audit report directly traceable. The CLI is reserved for execution
 controls. Reports may additionally show resolved defaults and normalized paths.

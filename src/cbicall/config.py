@@ -81,6 +81,7 @@ _DEFAULTS = {
     "registry_version": None,
     "project_dir": "cbicall",
     "cleanup_bam": False,
+    "export_mtdna_bam": False,
     "qc_coverage_region": "chr1",
     "genome": None,  # Option 1: effective default assigned in _apply_genome_rules
     "resource": "cbicall-germline-resources-v1",
@@ -253,6 +254,7 @@ def _validate_backend_parameter_settings(cfg: dict) -> None:
     reserved_snakemake = sorted(
         set(snakemake_parameters)
         & {
+            "export_mtdna_bam",
             "genome",
             "pipeline",
             "qc_coverage_region",
@@ -279,6 +281,7 @@ def _validate_backend_parameter_settings(cfg: dict) -> None:
             "genome",
             "threads",
             "cleanup_bam",
+            "export_mtdna_bam",
             "qc_coverage_region",
             "sample_map",
             "workspace",
@@ -304,6 +307,7 @@ def _validate_backend_parameter_settings(cfg: dict) -> None:
             "genome",
             "threads",
             "cleanup_bam",
+            "export_mtdna_bam",
             "qc_coverage_region",
             "fastq_pairs_tsv",
             "sample_map",
@@ -372,6 +376,24 @@ def _validate_qc_coverage_settings(cfg: dict) -> None:
     if any(char in region for char in ("/", "\\", ":")):
         raise ParameterValidationError("qc_coverage_region must be a contig name, not a path or interval.")
     cfg["qc_coverage_region"] = region
+
+
+def _validate_mtdna_export_settings(cfg: dict) -> None:
+    enabled = cfg.get("export_mtdna_bam")
+    if not isinstance(enabled, bool):
+        raise ParameterValidationError("export_mtdna_bam must be true or false.")
+    if not enabled:
+        return
+    if (
+        cfg.get("workflow_provider") != "cbicall-core"
+        or cfg.get("software_stack") != "gatk-4.6"
+        or cfg.get("pipeline") not in {"wes", "wgs"}
+        or cfg.get("mode") != "single"
+    ):
+        raise ParameterValidationError(
+            "export_mtdna_bam is supported only for native GATK 4.6 WES/WGS "
+            "single-sample runs."
+        )
 
 
 def _validate_safe_label(key: str, value: object) -> str:
@@ -575,6 +597,7 @@ def read_param_file(yaml_file: str) -> dict:
     _validate_enums_except_genome(cfg)
     _validate_profile_settings(cfg)
     _validate_qc_coverage_settings(cfg)
+    _validate_mtdna_export_settings(cfg)
     _validate_registry_version_settings(cfg)
     _validate_backend_parameter_settings(cfg)
     _validate_resource_settings(cfg)
@@ -637,6 +660,7 @@ def _merge_and_validate_param_values(params: dict) -> dict:
     _validate_enums_except_genome(cfg_in)
     _validate_profile_settings(cfg_in)
     _validate_qc_coverage_settings(cfg_in)
+    _validate_mtdna_export_settings(cfg_in)
     _validate_registry_version_settings(cfg_in)
     _validate_backend_parameter_settings(cfg_in)
     _validate_resource_settings(cfg_in)

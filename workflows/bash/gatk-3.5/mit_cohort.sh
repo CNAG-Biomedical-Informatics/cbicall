@@ -20,9 +20,9 @@ function usage {
 
 MA00024_exome  <-- ID taken from here
 ├── MA0002401P_ex
-│   └── cbicall_*_gatk-*_wes_single_*/...
+│   └── cbicall_*_gatk-4.6_wes_single_*/04_mtdna_input/...
 ├── MA0002402M_ex
-│   └── cbicall_*_gatk-*_wes_single_*/...
+│   └── cbicall_*_gatk-4.6_wes_single_*/04_mtdna_input/...
 └── cbicall_bash_mit_cohort_* <- Submit from inside this directory
     """
     echo "$USAGE"
@@ -54,12 +54,6 @@ BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source env.sh from the same directory
 source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
-
-MIT_EXTRACT_SAM="${MIT_EXTRACT_SAM:-$SAM}"
-if [ ! -x "$MIT_EXTRACT_SAM" ]; then
-  echo "ERROR: mtDNA extraction SAMtools is not executable: $MIT_EXTRACT_SAM" >&2
-  exit 1
-fi
 
 # Check ARCH (same behavior as mit_single)
 if [ "${ARCH:-}" = "aarch64" ]; then
@@ -95,94 +89,51 @@ mkdir -p "$BROWSERDIR"
 cd "$VARCALLDIR"
 
 # ------------------------------------------------------------
-# Extract chrM from each sample BAM found in sibling sample dirs
+# Collect exported mtDNA BAMs from sibling sample dirs
 # ------------------------------------------------------------
 
-echo "Extracting Mitochondrial DNA from exome BAM files..."
+echo "Collecting exported Mitochondrial DNA input BAMs..."
 
 # Find candidate sample directories one level up (same layout as your tree)
 # Example: ../MA0002401P_ex/...
 sample_dirs=$(ls -d ../../??????????_{ex,wg} 2>/dev/null || true)
 
 if [ -z "${sample_dirs:-}" ]; then
-  echo "ERROR: No sample directories matching ../??????????_ex were found." >&2
+  echo "ERROR: No sample directories matching ../??????????_{ex,wg} were found." >&2
   exit 1
 fi
-
-found_any=0
 
 for sdir in $sample_dirs; do
   # Sample ID (directory name prefix before first '_')
   sid="$(basename "$sdir" | awk -F'_' '{print $1}')"
   mtb_id="${sid}-DNA_MIT"
-
-  bam_raw=""
-
-  # --- Prefer GATK 3.5 bam layout (wes_single, fixed.bam) ---
-  p35="$sdir/"*_bash_gatk-3.5_wes_single_*/01_bam/input.merged.filtered.realigned.fixed.bam
-  list35=$(ls -1 $p35 2>/dev/null | grep -v 'ref_cbicall' || true)
-  n35=$(printf "%s\n" "$list35" | sed '/^$/d' | wc -l)
-
-  if [ "$n35" -gt 1 ]; then
-    echo "ERROR: More than one GATK 3.5 BAM found for sample '$sid' (excluding ref_cbicall):" >&2
-    printf "%s\n" "$list35" >&2
-    exit 1
-  elif [ "$n35" -eq 1 ]; then
-    bam_raw=$(printf "%s\n" "$list35" | head -n 1)
-    echo "Using GATK 3.5 BAM for $sid: $bam_raw"
-  fi
-
-  # --- Otherwise try GATK 4.6 bam layout (wes/wgs single, recal.bam) ---
-  if [ -z "$bam_raw" ]; then
-    p46="$sdir/"*_bash_gatk-4.6_w[ge]s_single_*/01_bam/"$sid".rg.merged.dedup.recal.bam
-    list46=$(ls -1 $p46 2>/dev/null | grep -v 'ref_cbicall' || true)
-    n46=$(printf "%s\n" "$list46" | sed '/^$/d' | wc -l)
-
-    if [ "$n46" -gt 1 ]; then
-      echo "ERROR: More than one GATK 4.6 BAM found for sample '$sid' (excluding ref_cbicall):" >&2
-      printf "%s\n" "$list46" >&2
-      exit 1
-    elif [ "$n46" -eq 1 ]; then
-      bam_raw=$(printf "%s\n" "$list46" | head -n 1)
-      echo "Using GATK 4.6 BAM for $sid: $bam_raw"
-    fi
-  fi
-
-  if [ -z "$bam_raw" ]; then
-    echo "WARNING: Could not find BAM for sample '$sid' (excluding ref_cbicall). Skipping." >&2
-    continue
-  fi
-
-  found_any=1
-
-  # Ensure index exists as *.bam.bai (MToolBox/samtools expectations are happier)
-  bam_raw_index="${bam_raw%.bam}.bai"
-  bam_raw_index_ok="${bam_raw}.bai"
-  if [ -s "$bam_raw_index" ] && [ ! -s "$bam_raw_index_ok" ]; then
-    cp "$bam_raw_index" "$bam_raw_index_ok"
-  fi
-
   out_raw="${mtb_id}.bam"
 
-  case "$bam_raw" in
-    *_b37_*)
-      chrM="MT"
-      ;;
-    *)
-      chrM="chrM"
-      ;;
-  esac
+  export_pattern="$sdir/"*_gatk-4.6_w[ge]s_single_*/04_mtdna_input/"${mtb_id}.bam"
+  export_list=$(ls -1 $export_pattern 2>/dev/null | grep -v 'ref_cbicall' || true)
+  export_count=$(printf "%s\n" "$export_list" | sed '/^$/d' | wc -l)
 
-  echo "Extracting mitochondrial contig '$chrM' from BAM for $sid: $bam_raw"
+  if [ "$export_count" -gt 1 ]; then
+    echo "ERROR: More than one exported mtDNA BAM found for sample '$sid' (excluding ref_cbicall):" >&2
+    printf "%s\n" "$export_list" >&2
+    exit 1
+  elif [ "$export_count" -eq 0 ]; then
+    echo "ERROR: No exported mtDNA BAM found for sample '$sid'." >&2
+    echo "Run WES/WGS single-sample processing with export_mtdna_bam: true first." >&2
+    echo "Expected: $export_pattern" >&2
+    exit 1
+  fi
 
-  "$MIT_EXTRACT_SAM" view -b "$bam_raw" "$chrM" > "$out_raw"
-  "$MIT_EXTRACT_SAM" index "$out_raw"
+  exported_bam=$(printf "%s\n" "$export_list" | head -n 1)
+  exported_bai="${exported_bam}.bai"
+  if [ ! -s "$exported_bai" ]; then
+    echo "ERROR: Exported mtDNA BAM index not found for sample '$sid': $exported_bai" >&2
+    exit 1
+  fi
+  echo "Using exported mtDNA BAM for $sid: $exported_bam"
+  cp "$exported_bam" "$out_raw"
+  cp "$exported_bai" "${out_raw}.bai"
 done
-
-if [ "$found_any" -ne 1 ]; then
-  echo "ERROR: No usable sample BAMs found. Nothing to do." >&2
-  exit 1
-fi
 
 # ------------------------------------------------------------
 # Run MToolBox (same python2 / numpy,pandas bootstrap as mit_single)

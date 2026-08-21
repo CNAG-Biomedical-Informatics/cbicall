@@ -3,9 +3,9 @@ import TabItem from '@theme/TabItem';
 
 # mtDNA pipelines
 
-The bundled `cbicall-core` mtDNA workflows extract mitochondrial reads from
-completed bundled Bash WES/WGS BAMs and use MToolBox to call, annotate, and
-prioritize mtDNA variants. They do not start from FASTQ files.
+The bundled `cbicall-core` mtDNA workflows use mtDNA-only BAMs exported by
+native GATK 4.6 WES/WGS single-sample runs. MToolBox then calls, annotates, and
+prioritizes mtDNA variants.
 
 | Mode | Use |
 | --- | --- |
@@ -16,6 +16,12 @@ prioritize mtDNA variants. They do not start from FASTQ files.
 The bundled MToolBox workflow supports x86_64 Linux only.
 :::
 
+:::warning[Required input]
+Run WES/WGS single-sample processing with `export_mtdna_bam: true` first.
+mtDNA workflows require `04_mtdna_input/<sample>-DNA_MIT.bam` and its index;
+they do not extract reads from a full BAM.
+:::
+
 <Tabs groupId="workflow-mode">
 <TabItem value="single" label="Single sample" default>
 
@@ -23,10 +29,10 @@ The bundled MToolBox workflow supports x86_64 Linux only.
 
 ![mtDNA single-sample workflow](/img/diagram-mtdna-single.svg)
 
-Set `input_dir` to a sample directory containing a completed bundled Bash
-WES/WGS single-sample run. CBIcall discovers the recalibrated BAM, extracts the
-mitochondrial contig, runs MToolBox, and appends genotype (`GT`), depth (`DP`),
-and heteroplasmy fraction values to the prioritized report.
+Set `input_dir` to a sample directory containing a completed native WES/WGS
+single-sample run with an exported mtDNA BAM. CBIcall copies that BAM into the
+MToolBox workspace and appends genotype (`GT`), depth (`DP`), and heteroplasmy
+fraction values to the prioritized report.
 
 ```yaml
 mode:             single
@@ -44,8 +50,9 @@ input_dir:        CNAG999_exome/CNAG99901P_ex
 ![mtDNA cohort workflow](/img/diagram-mtdna-cohort.svg)
 
 Set `input_dir` to a project directory containing the sample directories and
-their completed bundled Bash WES/WGS single-sample runs. CBIcall extracts
-mitochondrial reads from each usable BAM and runs MToolBox jointly.
+their completed native WES/WGS single-sample runs. Each run must contain its
+exported mtDNA BAM and index. CBIcall collects these files and runs MToolBox
+jointly.
 
 ```yaml
 mode:             cohort

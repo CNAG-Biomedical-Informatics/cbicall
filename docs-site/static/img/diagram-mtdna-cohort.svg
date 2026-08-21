@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" role="img" aria-labelledby="title desc">
   <title id="title">mtDNA cohort workflow</title>
-  <desc id="desc">Workflow from multiple WES sample directories through mtDNA BAM extraction, joint MToolBox analysis, genotype/depth/heteroplasmy extraction, and cohort prioritized variant report.</desc>
+  <desc id="desc">Workflow from multiple exported mtDNA BAMs through joint MToolBox analysis, genotype/depth/heteroplasmy extraction, and cohort prioritized variant report.</desc>
   <rect width="960" height="280" rx="18" fill="#f8fafc"/>
   <style>
     .label{font:600 15px Arial,Helvetica,sans-serif;fill:#1f2937}
@@ -17,14 +17,14 @@
     </marker>
   </defs>
   <text x="480" y="38" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="25" font-weight="700" fill="#0f172a">mtDNA Cohort Workflow</text>
-  <text x="480" y="62" text-anchor="middle" class="small">Multiple WES/WGS BAMs to one joint mtDNA variant table</text>
+  <text x="480" y="62" text-anchor="middle" class="small">Exported mtDNA BAMs to one joint variant table</text>
   <g transform="translate(38 110)">
     <rect class="data" x="0" y="0" width="132" height="68" rx="10"/>
     <text class="label" x="66" y="27" text-anchor="middle">Sample dirs</text>
-    <text class="small" x="66" y="49" text-anchor="middle">WES/WGS outputs</text>
+    <text class="small" x="66" y="49" text-anchor="middle">native WES/WGS</text>
     <rect class="box" x="170" y="0" width="132" height="68" rx="10"/>
-    <text class="label" x="236" y="25" text-anchor="middle">Extract mtDNA</text>
-    <text class="small" x="236" y="47" text-anchor="middle">per sample</text>
+    <text class="label" x="236" y="25" text-anchor="middle">Collect exports</text>
+    <text class="small" x="236" y="47" text-anchor="middle">04_mtdna_input</text>
     <rect class="box" x="340" y="0" width="132" height="68" rx="10"/>
     <text class="label" x="406" y="25" text-anchor="middle">BAM set</text>
     <text class="small" x="406" y="47" text-anchor="middle">cohort input</text>

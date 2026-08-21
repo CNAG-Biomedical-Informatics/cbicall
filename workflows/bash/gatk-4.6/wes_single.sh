@@ -24,14 +24,16 @@ set -eu
 set -o pipefail
 
 CLEANUP_BAM=false
+EXPORT_MTDNA_BAM=false
 
 function usage {
     cat <<EOF
-Usage: $0 -t <n_threads> -p <wes|wgs> [-c]
+Usage: $0 -t <n_threads> -p <wes|wgs> [-c] [--export-mtdna-bam]
 
   -t, --threads         Number of CPU threads for GATK tools
   -p, --pipeline        Pipeline mode: 'wes' or 'wgs'
   -c, --cleanup-bam     If set, delete all 01_bam/*.bam when done (default: off)
+      --export-mtdna-bam  Preserve an mtDNA-only BAM in 04_mtdna_input (default: off)
 EOF
     exit 1
 }
@@ -49,6 +51,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -c|--cleanup-bam)
       CLEANUP_BAM=true
+      shift
+      ;;
+    --export-mtdna-bam)
+      EXPORT_MTDNA_BAM=true
       shift
       ;;
     *)
@@ -185,6 +191,25 @@ set -x
   -O "$BAMDIR/${id}.rg.merged.dedup.recal.bam" --tmp-dir "$TMPDIR" 2>> "$LOG"
 $SAM index "$BAMDIR/${id}.rg.merged.dedup.recal.bam"
 set +x
+
+if [ "$EXPORT_MTDNA_BAM" = true ]; then
+  echo ">>> Export mtDNA input BAM"
+  MTDNADIR=$dir/04_mtdna_input
+  mkdir -p "$MTDNADIR"
+  mt_contig=MT
+  if [ "$GENOME" = "hg38" ]; then
+    mt_contig=chrM
+  fi
+  mt_bam="$MTDNADIR/${id}-DNA_MIT.bam"
+  mt_bai="${mt_bam}.bai"
+  $SAM view -b "$BAMDIR/${id}.rg.merged.dedup.recal.bam" "$mt_contig" > "$mt_bam" 2>> "$LOG"
+  $SAM index "$mt_bam" "$mt_bai" 2>> "$LOG"
+  mt_reads=$($SAM view -c "$mt_bam" 2>> "$LOG")
+  if [ "$mt_reads" -eq 0 ]; then
+    echo "ERROR: Exported mtDNA BAM contains no alignments for contig '$mt_contig'." >&2
+    exit 1
+  fi
+fi
 
 #------------------------------------------------------------------------------
 # STEP 5: HaplotypeCaller -> gVCF

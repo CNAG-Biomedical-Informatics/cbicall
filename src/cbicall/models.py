@@ -72,6 +72,7 @@ class RunSettings:
     profile: str
     genome: Optional[str]
     cleanup_bam: bool
+    export_mtdna_bam: bool
     qc_coverage_region: str
     output_basename: Optional[str]
     cohort_stage: str
@@ -104,6 +105,7 @@ class RunSettings:
             nfcore_singularity_cache_dir=data.get("nfcore_singularity_cache_dir"),
             genome=data.get("genome"),
             cleanup_bam=bool(data.get("cleanup_bam", False)),
+            export_mtdna_bam=bool(data.get("export_mtdna_bam", False)),
             qc_coverage_region=str(data.get("qc_coverage_region", "chr1")),
             output_basename=data.get("output_basename"),
             cohort_stage=str(data.get("cohort_stage", "all")),
@@ -128,6 +130,7 @@ class RunSettings:
             "nfcore_singularity_cache_dir": self.nfcore_singularity_cache_dir,
             "genome": self.genome,
             "cleanup_bam": self.cleanup_bam,
+            "export_mtdna_bam": self.export_mtdna_bam,
             "qc_coverage_region": self.qc_coverage_region,
             "output_basename": self.output_basename,
             "cohort_stage": self.cohort_stage,

@@ -41,7 +41,8 @@ genome:          b37
 | `input_dir` | `null` | path | Input sample or project directory. Relative paths are resolved from the YAML file location. |
 | `sample_map` | `null` | path | Cohort-mode TSV containing sample IDs and gVCF paths. Relative paths are resolved from the YAML file location. |
 | `project_dir` | `cbicall` | path or prefix | Prefix for the generated run directory. |
-| `cleanup_bam` | `false` | `true`, `false` | Deletes intermediate BAM and BAI files after successful WES/WGS single-sample runs. |
+| `cleanup_bam` | `false` | `true`, `false` | Deletes intermediate files in `01_bam` after successful WES/WGS single-sample runs. |
+| `export_mtdna_bam` | `false` | `true`, `false` | Exports an indexed mtDNA-only BAM to `04_mtdna_input` from a native GATK 4.6 WES/WGS single-sample run. |
 | `qc_coverage_region` | `chr1` | contig name | Contig used only for the lightweight coverage summary. It does not change variant-calling intervals. |
 
 The resource catalog is the inventory of selectable resource entries and their
@@ -141,8 +142,10 @@ a GNU parallel chromosome-sharding example.
 
 ### mtDNA
 
-mtDNA workflows consume BAMs from previous bundled Bash WES/WGS runs. They do
-not start from FASTQ files.
+mtDNA workflows require the indexed BAM created by a native GATK 4.6 WES/WGS
+single-sample run with `export_mtdna_bam: true`. The upstream run may use Bash,
+Snakemake, Nextflow, or Cromwell. The mtDNA workflow does not fall back to a
+full BAM or start from FASTQ files.
 
 ```yaml
 mode:            single

@@ -36,6 +36,7 @@ if PIPELINE == "wes" and GENOME == "hg38":
     raise ValueError("genome='hg38' is only supported for pipeline='wgs'")
 
 CLEANUP_BAM = bool(config.get("cleanup_bam", False))
+EXPORT_MTDNA_BAM = bool(config.get("export_mtdna_bam", False))
 QC_COVERAGE_REGION = str(config.get("qc_coverage_region") or os.environ.get("CBICALL_COVERAGE_REGION") or "chr1").strip()
 if not QC_COVERAGE_REGION:
     raise ValueError("qc_coverage_region must be a non-empty contig name")
@@ -82,6 +83,7 @@ MIN_INDEL_FOR_VQSR = int(config.get("min_indel_for_vqsr", 8000))
 BAMDIR     = "01_bam"
 VARCALLDIR = "02_varcall"
 STATSDIR   = "03_stats"
+MTDNADIR   = "04_mtdna_input"
 LOGDIR     = "logs"
 for d in (BAMDIR, VARCALLDIR, STATSDIR, LOGDIR):
     os.makedirs(d, exist_ok=True)
@@ -126,6 +128,9 @@ def normalize_coverage_region(region, ref):
 
 CHR1 = normalize_coverage_region(QC_COVERAGE_REGION, REF)
 CHR1_FILE = "".join(ch if ch.isalnum() or ch in "_.-" else "_" for ch in CHR1)
+MT_CONTIG = "chrM" if GENOME == "hg38" else "MT"
+MT_BAM = os.path.join(MTDNADIR, f"{ID}-DNA_MIT.bam")
+MT_BAI = f"{MT_BAM}.bai"
 
 # -----------------------------
 # Targets
@@ -136,8 +141,14 @@ FINAL_INPUTS = [
     os.path.join(STATSDIR,   f"{ID}.sex.txt"),
     os.path.join(STATSDIR,   f"{ID}.vcf.sha256.txt"),
 ]
+if EXPORT_MTDNA_BAM:
+    FINAL_INPUTS.extend([MT_BAM, MT_BAI])
 if CLEANUP_BAM:
     FINAL_INPUTS.append(os.path.join(LOGDIR, f"{ID}.cleanup.done"))
+
+CLEANUP_INPUTS = list(FINAL_INPUTS[:4])
+if EXPORT_MTDNA_BAM:
+    CLEANUP_INPUTS.extend([MT_BAM, MT_BAI])
 
 rule all:
     input:
@@ -256,6 +267,30 @@ rule bqsr:
           2>> {log}
 
         {SAM} index {output.recal} 2>> {log}
+        """
+
+# -----------------------------
+# Optional mtDNA input export
+# -----------------------------
+rule export_mtdna_bam:
+    input:
+        recal=os.path.join(BAMDIR, f"{ID}.rg.merged.dedup.recal.bam")
+    output:
+        bam=MT_BAM,
+        bai=MT_BAI
+    log:
+        os.path.join(LOGDIR, f"{ID}.04_export_mtdna_bam.log")
+    shell:
+        r"""
+        set -eu
+        mkdir -p {MTDNADIR}
+        {SAM} view -b {input.recal} {MT_CONTIG} > {output.bam} 2>> {log}
+        {SAM} index {output.bam} {output.bai} 2>> {log}
+        mt_reads=$({SAM} view -c {output.bam} 2>> {log})
+        if [ "$mt_reads" -eq 0 ]; then
+          echo "ERROR: Exported mtDNA BAM contains no alignments for contig '{MT_CONTIG}'." >&2
+          exit 1
+        fi
         """
 
 # -----------------------------
@@ -463,7 +498,7 @@ rule vcf_hash:
 # -----------------------------
 rule cleanup_bams:
     input:
-        os.path.join(VARCALLDIR, f"{ID}.hc.QC.vcf.gz")
+        CLEANUP_INPUTS
     output:
         done=os.path.join(LOGDIR, f"{ID}.cleanup.done")
     log:

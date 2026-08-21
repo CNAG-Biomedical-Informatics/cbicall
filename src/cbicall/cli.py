@@ -581,6 +581,7 @@ def _run_analysis(arg: dict, *, start_time: float, cbicall_path: Path) -> int:
             "genome": resolved_config.genome,
             "qc_coverage_region": resolved_config.qc_coverage_region,
             "cleanup_bam": params.get("cleanup_bam", False),
+            "export_mtdna_bam": params.get("export_mtdna_bam", False),
             "output_basename": resolved_config.output_basename,
             "cohort_stage": resolved_config.cohort_stage,
             "interval_shard": resolved_config.interval_shard,

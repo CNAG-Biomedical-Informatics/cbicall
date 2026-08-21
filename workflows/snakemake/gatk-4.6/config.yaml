@@ -12,6 +12,7 @@ tmpdir: "{datadir}/tmp"
 
 genome: "b37"
 cleanup_bam: false
+export_mtdna_bam: false
 min_snp_for_vqsr: 1000
 min_indel_for_vqsr: 8000
 

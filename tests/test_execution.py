@@ -28,6 +28,7 @@ def test_execution_builds_bash_command_with_flags(tmp_path, monkeypatch):
         "run_id": "RID123",
         "debug": False,
         "cleanup_bam": True,
+        "export_mtdna_bam": True,
         "genome": "b37",
         "qc_coverage_region": "chr22",
         "inputs": {"input_dir": None, "sample_map": "map.txt"},
@@ -53,6 +54,7 @@ def test_execution_builds_bash_command_with_flags(tmp_path, monkeypatch):
     assert recorded["cmd"][1:3] == ["-t", "8"]
     assert "--pipeline" in recorded["cmd"]
     assert "--cleanup-bam" in recorded["cmd"]
+    assert "--export-mtdna-bam" in recorded["cmd"]
     assert "--sample-map" in recorded["cmd"]
     assert recorded["env"]["GENOME"] == "b37"
     assert recorded["env"]["CBICALL_COVERAGE_REGION"] == "chr22"
@@ -68,6 +70,7 @@ def test_execution_builds_bash_command_with_flags(tmp_path, monkeypatch):
         "GENOME": "b37",
     }
     assert contract["run"]["qc_coverage_region"] == "chr22"
+    assert contract["run"]["export_mtdna_bam"] is True
     assert contract["command"]["argv"] == recorded["cmd"]
     assert "PATH" not in contract["environment_overrides"]
     assert len(contract["fingerprint"]) == 64
@@ -170,6 +173,7 @@ def test_execution_ignores_cleanup_bam_for_bash_cohort(tmp_path, monkeypatch):
         "run_id": "RIDBASHCOHORT",
         "debug": False,
         "cleanup_bam": True,
+        "export_mtdna_bam": True,
         "genome": "hg38",
         "inputs": {"input_dir": None, "sample_map": str(sample_map)},
         "snakemake_parameters": {},
@@ -191,6 +195,7 @@ def test_execution_ignores_cleanup_bam_for_bash_cohort(tmp_path, monkeypatch):
     assert recorded["cmd"][:5] == [script, "-t", "4", "--pipeline", "wgs"]
     assert "--sample-map" in recorded["cmd"]
     assert "--cleanup-bam" not in recorded["cmd"]
+    assert "--export-mtdna-bam" not in recorded["cmd"]
     assert recorded["backend"] == "bash"
 
 
@@ -348,6 +353,7 @@ def test_execution_builds_snakemake_command_and_config(tmp_path, monkeypatch):
         "run_id": "RID777",
         "debug": False,
         "cleanup_bam": True,
+        "export_mtdna_bam": True,
         "genome": "hg38",
         "qc_coverage_region": "chr22",
         "inputs": {"input_dir": None, "sample_map": None},
@@ -375,6 +381,7 @@ def test_execution_builds_snakemake_command_and_config(tmp_path, monkeypatch):
     assert "qc_coverage_region=chr22" in cmd
     assert "pipeline=wes" in cmd
     assert "cleanup_bam=true" in cmd
+    assert "export_mtdna_bam=true" in cmd
     assert recorded["backend"] == "snakemake"
 
 
@@ -543,6 +550,7 @@ def test_execution_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
         "nextflow_parameters": {"emit_report": True, "scatter_count": 2},
         "run_mode": "full",
         "cleanup_bam": True,
+        "export_mtdna_bam": True,
         "workflow": {
             "backend": "nextflow",
             "pipeline": "wgs",
@@ -567,6 +575,7 @@ def test_execution_builds_nextflow_command_and_helpers(tmp_path, monkeypatch):
     assert "--pipeline" in cmd and "wgs" in cmd
     assert "--genome" in cmd and "hg38" in cmd
     assert "--cleanup_bam" in cmd and "true" in cmd
+    assert "--export_mtdna_bam" in cmd and "true" in cmd
     assert "--qc_coverage_region" in cmd and "chr22" in cmd
     assert "--datadir" in cmd and str(data_dir) in cmd
     assert "--vcf2hash_script" in cmd
@@ -954,6 +963,7 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
         task = tmp_path / "task-output"
         (task / "02_varcall").mkdir(parents=True)
         (task / "03_stats").mkdir()
+        (task / "04_mtdna_input").mkdir()
         (task / "logs").mkdir()
         outputs = {}
         for name in ("hc.g.vcf.gz", "hc.raw.vcf.gz", "hc.QC.vcf.gz"):
@@ -969,6 +979,12 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
             path = task / "03_stats" / filename
             path.write_text(key + "\n", encoding="utf-8")
             outputs[f"CBIcallWesSingle.{key}"] = str(path)
+        mtdna_bam = task / "04_mtdna_input" / "CNAG99901P-DNA_MIT.bam"
+        mtdna_bai = task / "04_mtdna_input" / "CNAG99901P-DNA_MIT.bam.bai"
+        mtdna_bam.write_text("bam\n", encoding="utf-8")
+        mtdna_bai.write_text("index\n", encoding="utf-8")
+        outputs["CBIcallWesSingle.mtdna_bam"] = [str(mtdna_bam)]
+        outputs["CBIcallWesSingle.mtdna_bai"] = [str(mtdna_bai)]
         log = task / "logs" / "CNAG99901P.log"
         log.write_text("task log\n", encoding="utf-8")
         outputs["CBIcallWesSingle.logs"] = [str(log)]
@@ -996,6 +1012,7 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
         "cromwell_parameters": {"extra_label": "audit"},
         "run_mode": "full",
         "cleanup_bam": False,
+        "export_mtdna_bam": True,
         "workflow": {
             "backend": "cromwell",
             "pipeline": "wes",
@@ -1024,10 +1041,13 @@ def test_execution_builds_and_promotes_cromwell_wes_single(tmp_path, monkeypatch
     assert inputs["CBIcallWesSingle.bwa"] == f"{data_dir}/NGSutils/bwa/bwa"
     assert inputs["CBIcallWesSingle.ref"] == f"{data_dir}/Databases/GATK_bundle/b37/ref.fasta"
     assert inputs["CBIcallWesSingle.qc_coverage_region"] == "chr22"
+    assert inputs["CBIcallWesSingle.export_mtdna_bam"] is True
     assert inputs["CBIcallWesSingle.extra_label"] == "audit"
     assert (project_dir / "cbicall_cromwell.fastq_pairs.tsv").read_text(encoding="utf-8").count("\n") == 1
     assert (project_dir / "02_varcall" / "CNAG99901P.hc.QC.vcf.gz").is_file()
     assert (project_dir / "03_stats" / "CNAG99901P.vcf.sha256.txt").is_file()
+    assert (project_dir / "04_mtdna_input" / "CNAG99901P-DNA_MIT.bam").is_file()
+    assert (project_dir / "04_mtdna_input" / "CNAG99901P-DNA_MIT.bam.bai").is_file()
     assert (project_dir / "logs" / "CNAG99901P.log").is_file()
     contract = json.loads((project_dir / "cbicall-execution-contract.json").read_text(encoding="utf-8"))
     generated = {item["role"]: item for item in contract["generated_files"]}

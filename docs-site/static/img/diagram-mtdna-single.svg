@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 260" role="img" aria-labelledby="title desc">
   <title id="title">mtDNA single-sample workflow</title>
-  <desc id="desc">Workflow from WES BAM through mitochondrial read extraction, MToolBox, genotype/depth/heteroplasmy extraction, and final prioritized variant report.</desc>
+  <desc id="desc">Workflow from a native WES or WGS run through mtDNA BAM export, MToolBox, genotype/depth/heteroplasmy extraction, and final prioritized variant report.</desc>
   <rect width="960" height="260" rx="18" fill="#f8fafc"/>
   <style>
     .label{font:600 15px Arial,Helvetica,sans-serif;fill:#1f2937}
@@ -19,14 +19,14 @@
   <text x="480" y="38" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="25" font-weight="700" fill="#0f172a">mtDNA Single-Sample Workflow</text>
   <g transform="translate(42 96)">
     <rect class="data" x="0" y="0" width="128" height="66" rx="10"/>
-    <text class="label" x="64" y="27" text-anchor="middle">WES BAM</text>
+    <text class="label" x="64" y="27" text-anchor="middle">WES/WGS run</text>
     <text class="small" x="64" y="48" text-anchor="middle">one sample</text>
     <rect class="box" x="168" y="0" width="128" height="66" rx="10"/>
-    <text class="label" x="232" y="27" text-anchor="middle">Extract chrM</text>
-    <text class="small" x="232" y="48" text-anchor="middle">MT / chrM</text>
+    <text class="label" x="232" y="27" text-anchor="middle">Export MT / chrM</text>
+    <text class="small" x="232" y="48" text-anchor="middle">export enabled</text>
     <rect class="box" x="336" y="0" width="128" height="66" rx="10"/>
     <text class="label" x="400" y="27" text-anchor="middle">mtDNA BAM</text>
-    <text class="small" x="400" y="48" text-anchor="middle">MToolBox input</text>
+    <text class="small" x="400" y="48" text-anchor="middle">04_mtdna_input</text>
     <rect class="tool" x="504" y="0" width="128" height="66" rx="10"/>
     <text class="label" x="568" y="27" text-anchor="middle">MToolBox</text>
     <text class="small" x="568" y="48" text-anchor="middle">RSRS reference</text>

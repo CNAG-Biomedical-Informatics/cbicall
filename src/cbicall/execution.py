@@ -348,6 +348,7 @@ class BaseRunner:
                 "genome": self.settings.genome,
                 "qc_coverage_region": self.settings.qc_coverage_region,
                 "cleanup_bam": bool(self.settings.cleanup_bam),
+                "export_mtdna_bam": bool(self.settings.export_mtdna_bam),
                 "run_mode": self.settings.run_mode,
                 "output_basename": self.settings.output_basename,
                 "cohort_stage": self.settings.cohort_stage,
@@ -433,6 +434,9 @@ class BashRunner(BaseRunner):
             if bool(self.settings.cleanup_bam) and self.mode == "single":
                 cmd.append("--cleanup-bam")
 
+            if bool(self.settings.export_mtdna_bam) and self.mode == "single":
+                cmd.append("--export-mtdna-bam")
+
             if self.mode == "cohort" and self.settings.cohort_stage == "finalize":
                 cmd += ["--cohort-stage", "finalize"]
                 if self.settings.output_basename:
@@ -500,6 +504,9 @@ class SnakemakeRunner(BaseRunner):
                     snk_config_kvs.append(f"{config_key}={self.workflow.helpers[helper_name]}")
             if self.mode == "single":
                 snk_config_kvs.append(f"cleanup_bam={_parameter_value_to_string(bool(self.settings.cleanup_bam))}")
+                snk_config_kvs.append(
+                    f"export_mtdna_bam={_parameter_value_to_string(bool(self.settings.export_mtdna_bam))}"
+                )
 
             if self.mode == "cohort":
                 if self.settings.output_basename:
@@ -643,6 +650,7 @@ class NextflowRunner(BaseRunner):
             cmd += ["--datadir", self.data_dir]
         if self.mode == "single":
             cmd += ["--cleanup_bam", "true" if bool(self.settings.cleanup_bam) else "false"]
+            cmd += ["--export_mtdna_bam", "true" if bool(self.settings.export_mtdna_bam) else "false"]
 
         sample_map = self.inputs.sample_map
         if self.mode == "cohort":
@@ -839,6 +847,7 @@ class CromwellRunner(BaseRunner):
                 {
                     prefix + "id": self._sample_id(),
                     prefix + "cleanup_bam": bool(self.settings.cleanup_bam),
+                    prefix + "export_mtdna_bam": bool(self.settings.export_mtdna_bam),
                     prefix + "fastq_pairs_tsv": str(self.fastq_pairs_tsv.resolve()),
                     prefix + "bwa": str(tools["bwa"]),
                     prefix + "samtools": str(tools["samtools"]),
@@ -934,6 +943,8 @@ class CromwellRunner(BaseRunner):
             "coverage": "03_stats",
             "sex": "03_stats",
             "vcf_hash": "03_stats",
+            "mtdna_bam": "04_mtdna_input",
+            "mtdna_bai": "04_mtdna_input",
             "logs": "logs",
         }
         for key, value in outputs.items():

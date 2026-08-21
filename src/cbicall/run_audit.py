@@ -626,6 +626,7 @@ def write_run_report(
         "parameters": {
             "paramfile": arg.get("paramfile"),
             "cleanup_bam": params.get("cleanup_bam", False),
+            "export_mtdna_bam": params.get("export_mtdna_bam", False),
             "qc_coverage_region": resolved_config.qc_coverage_region,
             "snakemake_parameters": resolved_config.snakemake_parameters,
             "nextflow_parameters": resolved_config.nextflow_parameters,

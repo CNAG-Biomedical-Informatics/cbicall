@@ -12,8 +12,8 @@ command that runs it.
 | `run_wgs_single.sh` | Single-sample WGS |
 | `run_wes_cohort.sh` | WES joint genotyping from a sample map |
 | `run_wgs_cohort.sh` | WGS joint genotyping from a sample map |
-| `run_mit_single.sh` | Single-sample mtDNA from a completed WES/WGS run |
-| `run_mit_cohort.sh` | Cohort mtDNA from completed WES/WGS runs |
+| `run_mit_single.sh` | Single-sample mtDNA from an exported WES/WGS mtDNA BAM |
+| `run_mit_cohort.sh` | Cohort mtDNA from exported WES/WGS mtDNA BAMs |
 
 Open the required script and change the path marked near the top. Then run it
 without arguments. For example:
@@ -28,6 +28,9 @@ The WES example writes `wes_single.yaml` and launches the visible command:
 ```bash
 cbicall run -p wes_single.yaml -t 4
 ```
+
+The single-sample WES/WGS examples set `export_mtdna_bam: true`, so their
+outputs can be passed directly to the mtDNA examples.
 
 When using a source checkout, either replace `cbicall` with
 `/path/to/cbicall/bin/cbicall` or add that directory to `PATH`.

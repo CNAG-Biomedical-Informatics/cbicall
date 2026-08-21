@@ -101,7 +101,7 @@ the selected resource entry.
 ### Optional: Run the mtDNA Test
 
 Run the WES and mtDNA integration contracts together so that the WES test
-produces the BAM consumed by MToolBox:
+produces the mtDNA-only BAM consumed by MToolBox:
 
 ```bash
 cbicall test --wes-bash --mit-bash -t 1

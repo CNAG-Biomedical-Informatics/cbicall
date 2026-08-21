@@ -18,7 +18,7 @@ function usage {
     USAGE="""
     Usage: $0 -t n_threads
 
-    NB1: The script is expecting that you follow SRTI nomenclature for samples
+    NB1: The script expects a WES/WGS run created with export_mtdna_bam: true
 
 MA00047_exome
 └── MA0004701P_ex  <--- ID taken from here
@@ -26,7 +26,8 @@ MA00047_exome
     ├── MA0004701P_ex_S5_L001_R2_001.fastq.gz
     ├── MA0004701P_ex_S5_L002_R1_001.fastq.gz
     ├── MA0004701P_ex_S5_L002_R2_001.fastq.gz
-    └── cbicall_bash_gatk-3.5_mit_single_rsrs_* <- The script expects that you are submitting the job from inside this directory
+    ├── cbicall_*_gatk-4.6_wes_single_*/04_mtdna_input/...
+    └── cbicall_bash_gatk-3.5_mit_single_rsrs_* <- Submit from inside this directory
     """
     echo "$USAGE"
     exit 1
@@ -51,12 +52,6 @@ BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source env.sh from the same directory
 source "${CBICALL_ENV_FILE:-$BINDIR/env.sh}"
-
-MIT_EXTRACT_SAM="${MIT_EXTRACT_SAM:-$SAM}"
-if [ ! -x "$MIT_EXTRACT_SAM" ]; then
-  echo "ERROR: mtDNA extraction SAMtools is not executable: $MIT_EXTRACT_SAM" >&2
-  exit 1
-fi
 
 # Check ARCH
 if [ "$ARCH" == "aarch64" ]
@@ -84,64 +79,35 @@ mkdir "$BROWSERDIR"
 # From now on we will work on VARCALL dir
 cd "$VARCALLDIR"
 
-# Using Samtools to extract chrM
-echo "Extracting Mitochondrial DNA from exome BAM file..."
+# Prepare the BAM consumed by MToolBox
+echo "Preparing Mitochondrial DNA input BAM..."
 
 out_raw=$mtb_id.bam
 
-bam_raw=""
+export_pattern="../../*_gatk-4.6_w[ge]s_single_*/04_mtdna_input/${mtb_id}.bam"
+export_list=$(ls -1 $export_pattern 2>/dev/null | grep -v 'ref_cbicall' || true)
+export_count=$(printf "%s\n" "$export_list" | sed '/^$/d' | wc -l)
 
-p35='../../*_bash_gatk-3.5_wes_single_*/01_bam/input.merged.filtered.realigned.fixed.bam'
-list35=$(ls -1 $p35 2>/dev/null | grep -v 'ref_cbicall' || true)
-n35=$(printf "%s\n" "$list35" | sed '/^$/d' | wc -l)
-
-if [ "$n35" -gt 1 ]; then
-  echo "ERROR: More than one GATK 3.5 BAM found (excluding ref_cbicall):" >&2
-  printf "%s\n" "$list35" >&2
+if [ "$export_count" -gt 1 ]; then
+  echo "ERROR: More than one exported mtDNA BAM found (excluding ref_cbicall):" >&2
+  printf "%s\n" "$export_list" >&2
   exit 1
-elif [ "$n35" -eq 1 ]; then
-  bam_raw=$(printf "%s\n" "$list35" | head -n 1)
-  echo "Using GATK 3.5 BAM: $bam_raw"
-fi
-
-if [ -z "$bam_raw" ]; then
-  p46="../../*_bash_gatk-4.6_w[ge]s_single_*/01_bam/${id}.rg.merged.dedup.recal.bam"
-  list46=$(ls -1 $p46 2>/dev/null | grep -v 'ref_cbicall' || true)
-  n46=$(printf "%s\n" "$list46" | sed '/^$/d' | wc -l)
-
-  if [ "$n46" -gt 1 ]; then
-    echo "ERROR: More than one GATK 4.6 BAM found (excluding ref_cbicall):" >&2
-    printf "%s\n" "$list46" >&2
-    exit 1
-  elif [ "$n46" -eq 1 ]; then
-    bam_raw=$(printf "%s\n" "$list46" | head -n 1)
-    echo "Using GATK 4.6 BAM: $bam_raw"
-  fi
-fi
-
-if [ -z "$bam_raw" ]; then
-  echo "ERROR: Could not find BAM for ID '$id' (excluding ref_cbicall) in either:" >&2
-  echo "  $p35" >&2
-  echo "  $p46" >&2
+elif [ "$export_count" -eq 0 ]; then
+  echo "ERROR: No exported mtDNA BAM found for ID '$id'." >&2
+  echo "Run WES/WGS single-sample processing with export_mtdna_bam: true first." >&2
+  echo "Expected: $export_pattern" >&2
   exit 1
 fi
 
-BAMDIR=$(dirname "$bam_raw")
-bam_raw_index="${bam_raw%.bam}.bai"
-
-case "$bam_raw" in
-  *_b37_*)
-    chrM=MT
-    ;;
-  *)
-    chrM=chrM
-    ;;
-esac
-
-echo "Extracting mitochondrial contig '$chrM' from BAM: $bam_raw"
-
-"$MIT_EXTRACT_SAM" view -b "$bam_raw" "$chrM" > "$out_raw"
-"$MIT_EXTRACT_SAM" index "$out_raw"
+exported_bam=$(printf "%s\n" "$export_list" | head -n 1)
+exported_bai="${exported_bam}.bai"
+if [ ! -s "$exported_bai" ]; then
+  echo "ERROR: Exported mtDNA BAM index not found: $exported_bai" >&2
+  exit 1
+fi
+echo "Using exported mtDNA BAM: $exported_bam"
+cp "$exported_bam" "$out_raw"
+cp "$exported_bai" "${out_raw}.bai"
 
 # Performing Variant calling and annotation with MToolBox
 echo "Analyzing mitochondrial DNA with MToolBox..."

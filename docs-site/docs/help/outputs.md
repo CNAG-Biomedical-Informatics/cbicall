@@ -161,6 +161,8 @@ Applies to `pipeline: wes` or `pipeline: wgs` with `mode: single`.
 | `03_stats/<id>.coverage.txt` | Coverage summary with a `region`-first tabular schema. |
 | `03_stats/<id>.sex.txt` | Sex inference result from the final VCF. |
 | `03_stats/<id>.vcf.sha256.txt` | Per-VCF SHA-256 report with raw-file, sample count/order, call-level, and strict-record VCF fingerprints. |
+| `04_mtdna_input/<id>-DNA_MIT.bam` | Optional mtDNA-only handoff BAM created when `export_mtdna_bam: true`. |
+| `04_mtdna_input/<id>-DNA_MIT.bam.bai` | Index for the mtDNA-only handoff BAM. |
 
 Coverage files use one tabular row per sample:
 
@@ -293,7 +295,9 @@ Applies to `pipeline: mit` with `mode: single`.
 
 Applies to `pipeline: mit` with `mode: cohort`.
 
-The cohort workflow uses the same output directories as mtDNA single-sample mode, but extracts mtDNA BAMs from all matching sibling sample directories before running MToolBox jointly.
+The cohort workflow uses the same output directories as mtDNA single-sample
+mode, but collects the exported mtDNA BAM from each matching sibling sample
+directory before running MToolBox jointly.
 
 ### Recommended Files
 
@@ -310,8 +314,8 @@ The cohort workflow uses the same output directories as mtDNA single-sample mode
 
 | File | Meaning |
 | --- | --- |
-| `01_mtoolbox/<sample-id>-DNA_MIT.bam` | Extracted mitochondrial BAM for each cohort sample. |
-| `01_mtoolbox/<sample-id>-DNA_MIT.bam.bai` | BAM index for each extracted mitochondrial BAM. |
+| `01_mtoolbox/<sample-id>-DNA_MIT.bam` | Working copy of each exported mitochondrial BAM. |
+| `01_mtoolbox/<sample-id>-DNA_MIT.bam.bai` | BAM index copied with each exported mitochondrial BAM. |
 | `01_mtoolbox/prioritized_variants.txt` | Raw MToolBox prioritized variant list. |
 | `01_mtoolbox/missing_variants.txt` | Temporary variant list used while appending cohort genotype/depth/HF fields. |
 | `01_mtoolbox/OUT_*/` | MToolBox working directories and intermediate outputs. |

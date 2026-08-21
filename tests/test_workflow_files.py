@@ -29,21 +29,49 @@ def test_mtoolbox_config_uses_runtime_profile_java_and_samtools():
             in profile
         )
         assert (
-            'MIT_EXTRACT_SAM="${CBICALL_MIT_EXTRACT_SAM:-$NGSUTILS/samtools-0.1.19-cnaghpc/samtools}"'
-            in profile
-        )
-        assert (
             'MTOOLBOX_SAM="${CBICALL_MTOOLBOX_SAM:-$NGSUTILS/samtools-1.3-cnaghpc/samtools}"'
             in profile
         )
 
+
+def test_mtdna_workflows_require_exported_bams():
     for workflow in ("mit_single.sh", "mit_cohort.sh"):
         workflow_text = (
             REPO_ROOT / "workflows" / "bash" / "gatk-3.5" / workflow
         ).read_text(encoding="utf-8")
-        assert 'MIT_EXTRACT_SAM="${MIT_EXTRACT_SAM:-$SAM}"' in workflow_text
-        assert '"$MIT_EXTRACT_SAM" view -b' in workflow_text
-        assert '"$MIT_EXTRACT_SAM" index' in workflow_text
+        assert "04_mtdna_input" in workflow_text
+        assert "export_mtdna_bam: true" in workflow_text
+        assert "MIT_EXTRACT_SAM" not in workflow_text
+        assert "rg.merged.dedup.recal.bam" not in workflow_text
+        assert "input.merged.filtered.realigned.fixed.bam" not in workflow_text
+
+
+def test_native_gatk46_single_workflows_support_mtdna_export():
+    workflow_files = [
+        "workflows/bash/gatk-4.6/wes_single.sh",
+        "workflows/bash/gatk-4.6/wgs_single.sh",
+        "workflows/snakemake/gatk-4.6/wes_single.smk",
+        "workflows/snakemake/gatk-4.6/wgs_single.smk",
+        "workflows/nextflow/gatk-4.6/wes_single.nf",
+        "workflows/nextflow/gatk-4.6/wgs_single.nf",
+        "workflows/cromwell/gatk-4.6/wes_single.wdl",
+        "workflows/cromwell/gatk-4.6/wgs_single.wdl",
+    ]
+    for relpath in workflow_files:
+        text = (REPO_ROOT / relpath).read_text(encoding="utf-8")
+        assert "export_mtdna_bam" in text or "--export-mtdna-bam" in text, relpath
+        assert "04_mtdna_input" in text, relpath
+        assert "-DNA_MIT.bam" in text, relpath
+        assert "view -c" in text, relpath
+
+
+def test_backend_local_gatk46_config_files_are_identical():
+    config_paths = [
+        REPO_ROOT / "workflows" / backend / "gatk-4.6" / "config.yaml"
+        for backend in ("snakemake", "nextflow", "cromwell")
+    ]
+    assert config_paths[0].read_bytes() == config_paths[1].read_bytes()
+    assert config_paths[0].read_bytes() == config_paths[2].read_bytes()
 
 
 def test_gatk46_cohort_merge_input_intervals_is_wes_only():

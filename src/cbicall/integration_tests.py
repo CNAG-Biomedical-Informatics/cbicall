@@ -1112,8 +1112,7 @@ def selected_tests_from_args(args: argparse.Namespace) -> List[TestSelection]:
     selected: List[TestSelection] = []
     if args.all or args.wes_bash:
         selected.append(TESTS["wes-bash"])
-    # In --all, run MIT before cohort tests create additional WES setup dirs.
-    # The MIT Bash workflow discovers the upstream WES BAM from the sample tree.
+    # In --all, run MIT immediately after WES creates its mtDNA handoff BAM.
     if args.all or args.mit_bash:
         selected.append(TESTS["mit-bash"])
     if args.all or args.wes_cohort_bash:

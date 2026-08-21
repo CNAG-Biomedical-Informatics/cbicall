@@ -47,6 +47,7 @@ genome: $GENOME
 resource: cbicall-germline-resources-v1
 input_dir: "$INPUT_DIR"
 cleanup_bam: false
+export_mtdna_bam: true
 EOF
 
 cat > "$JOB_SCRIPT" <<EOF

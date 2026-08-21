@@ -21,7 +21,7 @@ For a new CBIcall-native workflow, usually do this:
 
 1. Add the workflow entrypoint under `workflows/<backend>/<software_stack>/`.
 2. Make the workflow write the CBIcall output layout: `01_bam/`, `02_varcall/`,
-   `03_stats/`, `logs/`, and any expected final files.
+   `03_stats/`, `logs/`, optional `04_mtdna_input/`, and any expected final files.
 3. Register it in `workflows/registry/cbicall-workflow-registry.yaml`.
 4. Add or update resource-catalog compatibility if it needs a resource bundle.
 5. Run `cbicall validate-registry` and a small test run.
@@ -211,7 +211,7 @@ CBIcall writes `cbicall_cromwell.inputs.json`,
 `cbicall_cromwell.options.json`, and `cbicall_cromwell.metadata.json` in the run
 directory. The WDL receives absolute paths for inputs, tools, references, and
 helper scripts. Final outputs are promoted back into the standard CBIcall
-`01_bam/`, `02_varcall/`, `03_stats/`, and `logs/` layout so run reports and
+`01_bam/`, `02_varcall/`, `03_stats/`, optional `04_mtdna_input/`, and `logs/` layout so run reports and
 `compare-runs` work like the other native backends.
 
 ### External Workflow Integration

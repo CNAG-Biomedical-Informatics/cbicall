@@ -12,6 +12,8 @@ required_files:
   - 02_varcall/CNAG99901P.hc.QC.vcf.gz
   - 03_stats/CNAG99901P.coverage.txt
   - 03_stats/CNAG99901P.sex.txt
+  - 04_mtdna_input/CNAG99901P-DNA_MIT.bam
+  - 04_mtdna_input/CNAG99901P-DNA_MIT.bam.bai
 text_expectations:
   - path: 03_stats/CNAG99901P.coverage.txt
     startswith: "region\tsampleID"
@@ -35,6 +37,8 @@ json_expectations:
     equals: b37
   - path: run.qc_coverage_region
     equals: chr22
+  - path: parameters.export_mtdna_bam
+    equals: true
 hashes:
   - name: wes_filtered_vcf
     type: normalized_vcf

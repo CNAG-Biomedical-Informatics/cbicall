@@ -3,6 +3,7 @@
 ## 1.2.1 - 2026-08-21
 
 - Correct MToolBox deletion handling and annotation CSV detection.
+- Add an optional mtDNA BAM export to native WES/WGS single-sample workflows and require it for mtDNA input.
 
 ## 1.2.0 - 2026-08-06
 

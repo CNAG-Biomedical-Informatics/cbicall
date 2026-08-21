@@ -225,28 +225,26 @@ Run mtDNA workflows on an x86_64 Linux host. WES/WGS GATK 4.6 workflows can stil
 </details>
 
 <details>
-<summary>No usable BAM found for mtDNA</summary>
+<summary>No exported BAM found for mtDNA</summary>
 
 **Symptom**
 
 ```text
-ERROR: Could not find BAM for ID ...
-```
-
-or:
-
-```text
-ERROR: No usable sample BAMs found. Nothing to do.
+ERROR: No exported mtDNA BAM found for ID ...
 ```
 
 **Likely cause**
 
-The mtDNA workflow expects BAMs from previous bundled Bash WES/WGS
-single-sample runs in the expected project layout.
+The earlier WES/WGS single-sample run did not create the required
+`04_mtdna_input/<sample>-DNA_MIT.bam` and index, or the run directory is no
+longer under the expected sample directory.
 
 **Fix**
 
-Run WES/WGS single-sample processing first, keep the `01_bam` outputs, and then rerun the mtDNA workflow from the sample or project directory described in the mtDNA example.
+Run native GATK 4.6 WES/WGS single-sample processing with
+`export_mtdna_bam: true`, then rerun the mtDNA workflow from the sample or
+project directory described in the mtDNA example. Keeping `01_bam` is not
+required.
 
 </details>
 

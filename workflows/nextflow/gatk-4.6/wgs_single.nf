@@ -51,9 +51,13 @@ params.pipeline            = params.pipeline ?: "wes"
 params.genome              = params.genome ?: "b37"
 params.threads             = params.threads ?: 4
 params.cleanup_bam         = params.cleanup_bam ?: false
+params.export_mtdna_bam    = params.export_mtdna_bam ?: false
 params.min_snp_for_vqsr    = params.min_snp_for_vqsr ?: 1000
 params.min_indel_for_vqsr  = params.min_indel_for_vqsr ?: 8000
 params.mem                 = params.mem ?: "8G"
+
+def CLEANUP_BAM = params.cleanup_bam.toString().toBoolean()
+def EXPORT_MTDNA_ENABLED = params.export_mtdna_bam.toString().toBoolean()
 
 def PIPELINE = params.pipeline.toString().toLowerCase()
 if( !['wes','wgs'].contains(PIPELINE) ) {
@@ -152,6 +156,7 @@ def VCF2HASH = params.vcf2hash_script ? params.vcf2hash_script.toString() : file
 def BAMDIR     = "01_bam"
 def VARCALLDIR = "02_varcall"
 def STATSDIR   = "03_stats"
+def MTDNADIR   = "04_mtdna_input"
 def LOGDIR     = "logs"
 
 new File(BAMDIR).mkdirs()
@@ -167,6 +172,8 @@ new File(LOGDIR).mkdirs()
 def launchDirFile = new File(workflow.launchDir.toString())
 def rawid = launchDirFile.getParentFile()?.getName() ?: launchDirFile.getName()
 def ID = rawid.split("_", 2)[0]
+def MT_CONTIG = GENOME == 'hg38' ? 'chrM' : 'MT'
+def RUN_BAMDIR = new File(workflow.launchDir.toString(), BAMDIR).toString()
 
 def requestedCoverageRegion = (params.qc_coverage_region ?: System.getenv('CBICALL_COVERAGE_REGION') ?: 'chr1').toString().trim()
 if( !requestedCoverageRegion ) {
@@ -348,6 +355,32 @@ process BQSR {
       2>> ${q("${ID}.04_bqsr.log")}
 
     ${SAM} index ${q("${ID}.rg.merged.dedup.recal.bam")} 2>> ${q("${ID}.04_bqsr.log")}
+    """
+}
+
+process EXPORT_MTDNA_BAM {
+    publishDir MTDNADIR, mode: 'copy'
+    publishDir LOGDIR, mode: 'copy', pattern: '*.log'
+
+    input:
+    path(recal_bam)
+    path(recal_bai)
+
+    output:
+    tuple path("${ID}-DNA_MIT.bam"), path("${ID}-DNA_MIT.bam.bai")
+
+    script:
+    """
+    set -eu
+    ${ENV_BLOCK}
+
+    ${SAM} view -b ${q(recal_bam)} ${q(MT_CONTIG)} > ${q("${ID}-DNA_MIT.bam")} 2>> ${q("${ID}.04_export_mtdna_bam.log")}
+    ${SAM} index ${q("${ID}-DNA_MIT.bam")} ${q("${ID}-DNA_MIT.bam.bai")} 2>> ${q("${ID}.04_export_mtdna_bam.log")}
+    mt_reads=\$(${SAM} view -c ${q("${ID}-DNA_MIT.bam")} 2>> ${q("${ID}.04_export_mtdna_bam.log")})
+    if [ "\$mt_reads" -eq 0 ]; then
+      echo "ERROR: Exported mtDNA BAM contains no alignments for contig '${MT_CONTIG}'." >&2
+      exit 1
+    fi
     """
 }
 
@@ -577,18 +610,22 @@ process CLEANUP_BAMS {
 
     input:
     path(qc_vcf)
+    path(coverage_file)
+    path(sex_file)
+    path(vcf_hash_file)
+    val(mtdna_ready)
 
     output:
     path("${ID}.cleanup.done")
 
     script:
-    def cleanup = params.cleanup_bam ? "true" : "false"
+    def cleanup = CLEANUP_BAM ? "true" : "false"
     """
     set -eu
     ${ENV_BLOCK}
 
     if [ "${cleanup}" = "true" ]; then
-      find ${q(BAMDIR)} -maxdepth 1 \\( -name "*.bam" -o -name "*.bai" \\) -type f -delete 2>> ${q("${ID}.11_cleanup_bams.log")} || true
+      find ${q(RUN_BAMDIR)} -maxdepth 1 \\( -name "*.bam" -o -name "*.bai" \\) -type f -delete 2>> ${q("${ID}.11_cleanup_bams.log")} || true
     fi
 
     echo ok > ${q("${ID}.cleanup.done")}
@@ -603,6 +640,11 @@ workflow {
     merged  = MERGE_BAMS(aligned.collect())
     dedup   = MARK_DUPLICATES(merged[0])
     bqsr    = BQSR(dedup[0])
+    mtdna_ready = Channel.value('not-requested')
+    if (EXPORT_MTDNA_ENABLED) {
+        mtdna = EXPORT_MTDNA_BAM(bqsr[1], bqsr[2])
+        mtdna_ready = mtdna.map { bam, bai -> 'exported' }
+    }
     gvcf    = HAPLOTYPECALLER(bqsr[1], bqsr[2])
     rawvcf  = GENOTYPE_GVCFS(gvcf[0], gvcf[1])
     qcvcf   = VQSR_AND_QC(rawvcf[0], rawvcf[1])
@@ -613,7 +655,7 @@ workflow {
     sex = SEX_DETERMINATION(qcvcf[0])
     vcfhash = VCF_HASH(qcvcf[0])
 
-    if (params.cleanup_bam) {
-        CLEANUP_BAMS(qcvcf[0])
+    if (CLEANUP_BAM) {
+        CLEANUP_BAMS(qcvcf[0], coverage, sex, vcfhash, mtdna_ready)
     }
 }

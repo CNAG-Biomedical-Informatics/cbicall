@@ -1940,6 +1940,36 @@ def test_merge_param_values_tolerates_known_mode_specific_keys():
     assert cfg["cleanup_bam"] is True
 
 
+def test_export_mtdna_bam_is_limited_to_native_gatk46_single_runs():
+    cfg = config_mod._merge_and_validate_param_values(
+        {
+            "mode": "single",
+            "pipeline": "wes",
+            "workflow_backend": "bash",
+            "software_stack": "gatk-4.6",
+            "export_mtdna_bam": True,
+        }
+    )
+    assert cfg["export_mtdna_bam"] is True
+
+    invalid = [
+        {"export_mtdna_bam": "true"},
+        {"export_mtdna_bam": True, "mode": "cohort"},
+        {"export_mtdna_bam": True, "pipeline": "mit", "software_stack": "gatk-3.5"},
+        {
+            "export_mtdna_bam": True,
+            "workflow_provider": "nf-core",
+            "workflow_backend": "nextflow",
+            "pipeline": "demo",
+            "genome": "external",
+            "nfcore_profile": "test",
+        },
+    ]
+    for params in invalid:
+        with pytest.raises(ParameterValidationError, match="export_mtdna_bam"):
+            config_mod._merge_and_validate_param_values(params)
+
+
 def test_merge_param_values_rejects_backend_parameter_edge_cases():
     cases = [
         ({"snakemake_parameters": []}, "snakemake_parameters must be a mapping"),
@@ -1951,6 +1981,7 @@ def test_merge_param_values_rejects_backend_parameter_edge_cases():
         ({"cromwell_parameters": {"foo": "bar"}, "workflow_backend": "bash"}, "cromwell_parameters requires"),
         ({"workflow_backend": "snakemake", "snakemake_parameters": {"target": "   "}}, "target must be"),
         ({"workflow_backend": "snakemake", "snakemake_parameters": {"genome": "b37"}}, "snakemake_parameters cannot set"),
+        ({"workflow_backend": "snakemake", "snakemake_parameters": {"export_mtdna_bam": True}}, "snakemake_parameters cannot set"),
         ({"workflow_backend": "nextflow", "nextflow_parameters": {"threads": 1}}, "nextflow_parameters cannot set"),
         ({"workflow_backend": "cromwell", "cromwell_parameters": {"ref": "x"}}, "cromwell_parameters cannot set"),
     ]

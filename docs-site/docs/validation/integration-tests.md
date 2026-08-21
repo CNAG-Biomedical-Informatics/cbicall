@@ -113,7 +113,7 @@ examples.
 | `cbicall test --wes-snakemake -t 1` | **Bundled WES**, Snakemake | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `snakemake` on `PATH` | Run report fields, expected files, **normalized VCF hash** |
 | `cbicall test --wes-nextflow -t 1` | **Bundled WES**, Nextflow | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `nextflow` on `PATH` | Run report fields, expected files, **normalized VCF hash** |
 | `cbicall test --wes-cromwell -t 1` | **Bundled WES**, Cromwell | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | `CROMWELL_JAR` or `cromwell` on `PATH` | Generated inputs/options/metadata, run report fields, expected files, **normalized VCF hash** |
-| `cbicall test --mit-bash -t 1` | **Bundled mtDNA**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | x86_64 host | Run report fields, expected files, **prioritized variants hash**, **filtered JSON hash** |
+| `cbicall test --mit-bash -t 1` | **Bundled mtDNA**, Bash | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | x86_64 host and a prior WES test export | Run report fields, expected files, **prioritized variants hash**, **filtered JSON hash** |
 | `cbicall test --nf-core-demo -t 4` | **nf-core/demo** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile | Generated params/config, run reports, **pipeline info**, **MultiQC anchors** |
 | `cbicall test --nf-core-sarek -t 4` | **nf-core/Sarek** | <span className="cbicallTestBadge cbicallTestBadgeNo">X bundle</span> | Nextflow plus selected nf-core runtime profile and Sarek inputs/resources | Generated params/config, run reports, **pipeline info**, **MultiQC anchors**, declared canonical outputs when produced |
 | `cbicall test --backend-equivalence -t 1` | **Bundled WES backend equivalence** | <span className="cbicallTestBadge cbicallTestBadgeYes">V bundle</span> | At least one non-Bash backend available | Bash baseline plus available bundled WES backends; **same normalized final VCF** required |
@@ -186,8 +186,12 @@ CNAG999_exome/CNAG99901P_ex/cbicall_bash_gatk-4.6_wes_single_b37_*/
   01_bam/
   02_varcall/
   03_stats/
+  04_mtdna_input/
   logs/
 ```
+
+The Bash WES integration contract enables `export_mtdna_bam` so the following
+mtDNA contract can consume the indexed BAM in `04_mtdna_input`.
 
 The optional Snakemake WES test uses the same input and expected VCF records, but
 the run directory starts with `cbicall_snakemake_gatk-4.6_wes_single_b37_*`.
