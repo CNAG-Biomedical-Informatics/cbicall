@@ -73,6 +73,12 @@ Both modes produce the same principal artifacts:
 | `01_mtoolbox/mit.filtered.json` | Canonical filtered records used to generate the browser. |
 | `02_browser/<run-id>.html` | Standalone interactive mtDNA report. |
 
+:::note[Haplogroup assignments]
+When the available mtDNA sequence does not distinguish a single haplogroup,
+MToolBox may report multiple candidate assignments. CBIcall preserves these
+assignments and does not select among them.
+:::
+
 See the [mtDNA end-to-end example](../usage/end-to-end-example-mit) for the
 complete run procedure and browser screenshots.
 

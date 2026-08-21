@@ -111,33 +111,22 @@ edited to select an installation directory.
 Some workflow branches may use architecture-specific executable paths or legacy tool paths. The catalog records the intended bundle identity; the workflow logs and `log.json` record the concrete paths resolved during a run.
 :::
 
-:::caution[When a bundled executable is incompatible]
+:::caution[If a bundled executable does not run]
 The bundle includes precompiled executables for both `amd64` and `arm64`
-architectures. These binaries should work on most common Linux distributions,
-such as Ubuntu and CentOS, but compatibility with every Linux environment cannot
-be guaranteed.
+architectures. They run on many common Linux distributions, but some older
+tools, such as BWA or Samtools, may depend on libraries that are not available
+on a particular system.
 
-In some environments, precompiled executables for external dependencies such as
-BWA or Samtools may fail to run because of missing or incompatible shared
-libraries (`.so` files) or other system-level dependencies.
+If this happens, rebuild the same pinned version in a separate, site-specific
+directory and select it through the institutional runtime profile. Run the
+relevant integration test before using it in production.
 
-If a bundled executable is incompatible with the target system, we recommend
-rebuilding the same pinned tool version from source in a separate, site-specific
-directory. Before using the rebuilt executable in production, run a small smoke
-test and, if successful, select it in the institutional runtime profile.
-
-It is also possible to use a different tool version available on the system—for
-example, on an HPC cluster via `module load foo.new`. However, using versions
-other than those pinned by the bundle may affect reproducibility. In that case,
-we cannot guarantee that the integration tests will produce exactly the same
-results across different machines or environments.
-
-For example, during the CNAG migration from CentOS to AlmaLinux, the WES
-contract continued to pass with newer BWA and Samtools releases, but the mtDNA
-contract produced different record counts and hashes. Rebuilding and selecting
-the pinned BWA 0.7.18 and Samtools 0.1.19/1.3 versions restored the expected
-mtDNA outputs. Run the relevant integration test after replacing any bundled
-executable.
+You can also use another tool version already provided by the system, for
+example through an HPC module. Keep in mind that even small version or build
+differences can change analytical outputs, including variant counts and test
+hashes. This does not necessarily mean that the workflow is wrong, but the
+user is responsible for validating the local tool setup before production
+use.
 :::
 
 ## Reference Resources

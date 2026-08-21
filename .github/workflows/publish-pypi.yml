@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing annotated release tag to publish, for example v1.2.0"
+        description: "Existing annotated release tag to publish (vX.Y.Z)"
         required: true
         type: string
 

@@ -181,8 +181,10 @@ def test_release_workflows_enforce_tag_only_policy():
 
     assert 'push:\n    tags:\n      - "v*"' in stable
     assert "\n  release:" not in stable
-    assert "refs/tags/$GITHUB_REF_NAME" in stable
-    assert "Release tag $GITHUB_REF_NAME must be annotated" in stable
+    assert "RELEASE_TAG: ${{ inputs.tag || github.ref_name }}" in stable
+    assert "ref: ${{ env.RELEASE_TAG }}" in stable
+    assert "refs/tags/$RELEASE_TAG" in stable
+    assert "Release tag $RELEASE_TAG must be annotated" in stable
     assert "name: pypi" in stable
     assert "python -m build" in stable
     assert "python -m twine check dist/*" in stable
