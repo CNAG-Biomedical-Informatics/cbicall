@@ -150,22 +150,39 @@ def test_gatk46_qd_filters_are_guarded():
 def test_gatk46_single_bwa_stderr_is_logged_before_pipe():
     expected_by_file = {
         "workflows/bash/gatk-4.6/wes_single.sh": (
-            '$BWA mem -M -t "$THREADS" "$REFGZ" "$R1" "$R2" 2>> "$LOG" \\'
+            '$BWA mem -M -K 40000000 -t "$THREADS" "$REFGZ" "$R1" "$R2" 2>> "$LOG" \\'
         ),
         "workflows/snakemake/gatk-4.6/wes_single.smk": (
-            "{BWA} mem -M -t {threads} {REFGZ} {input.r1} {input.r2} 2>> {log} \\"
+            "{BWA} mem -M -K 40000000 -t {threads} {REFGZ} {input.r1} {input.r2} 2>> {log} \\"
         ),
         "workflows/nextflow/gatk-4.6/wes_single.nf": (
-            '${BWA} mem -M -t ${task.cpus} ${q(REFGZ)} ${q(r1)} ${q(r2)} '
+            '${BWA} mem -M -K 40000000 -t ${task.cpus} ${q(REFGZ)} ${q(r1)} ${q(r2)} '
             '2>> ${q("${ID}.01_align_rg.${base}.log")} \\\\'
         ),
         "workflows/cromwell/gatk-4.6/wes_single.wdl": (
-            '~{bwa} mem -M -t ~{threads} "~{refgz}" "$R1" "$R2" 2>> "$LOG" \\'
+            '~{bwa} mem -M -K 40000000 -t ~{threads} "~{refgz}" "$R1" "$R2" 2>> "$LOG" \\'
         ),
     }
     for relpath, expected in expected_by_file.items():
         text = (REPO_ROOT / relpath).read_text(encoding="utf-8")
         assert expected in text, relpath
+
+
+def test_native_bwa_mem_uses_fixed_reproducible_batch_size():
+    workflow_files = [
+        "workflows/bash/gatk-3.5/wes_single.sh",
+        "workflows/bash/gatk-4.6/wes_single.sh",
+        "workflows/bash/gatk-4.6/wgs_single.sh",
+        "workflows/snakemake/gatk-4.6/wes_single.smk",
+        "workflows/snakemake/gatk-4.6/wgs_single.smk",
+        "workflows/nextflow/gatk-4.6/wes_single.nf",
+        "workflows/nextflow/gatk-4.6/wgs_single.nf",
+        "workflows/cromwell/gatk-4.6/wes_single.wdl",
+        "workflows/cromwell/gatk-4.6/wgs_single.wdl",
+    ]
+    for relpath in workflow_files:
+        text = (REPO_ROOT / relpath).read_text(encoding="utf-8")
+        assert "mem -M -K 40000000 -t" in text, relpath
 
 
 def test_native_single_alignment_pipelines_enable_pipefail():

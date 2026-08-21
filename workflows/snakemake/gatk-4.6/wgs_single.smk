@@ -173,7 +173,7 @@ rule align_rg:
         RGID="{SAMPLE_NAME}.{wildcards.base}"
         RGPU="{SAMPLE_NAME}.{wildcards.base}.unit1"
 
-        {BWA} mem -M -t {threads} {REFGZ} {input.r1} {input.r2} 2>> {log} \
+        {BWA} mem -M -K 40000000 -t {threads} {REFGZ} {input.r1} {input.r2} 2>> {log} \
           | {GATK4} AddOrReplaceReadGroups \
               --INPUT /dev/stdin \
               --OUTPUT {output.bam} \

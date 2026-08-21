@@ -4,6 +4,7 @@
 
 - Correct MToolBox deletion handling and annotation CSV detection.
 - Add an optional mtDNA BAM export to native WES/WGS single-sample workflows and require it for mtDNA input.
+- Pin BWA-MEM input batching so alignments and exported mtDNA reads remain stable across thread counts.
 
 ## 1.2.0 - 2026-08-06
 

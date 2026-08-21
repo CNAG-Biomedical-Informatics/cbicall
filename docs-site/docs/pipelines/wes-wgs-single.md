@@ -34,6 +34,10 @@ the GATK bundle / Broad b37 exome interval list. See the
 - Add read groups (sample, library, lane, platform) required by GATK.
 - Output: lane-level BAMs with correct RG tags.
 
+CBIcall fixes the BWA-MEM input batch size with `-K 40000000`. This keeps
+alignments stable when the thread count changes; `-t/--threads` still controls
+parallelism.
+
 ### 2. Lane Merging
 
 - Merge all lane BAMs for the same sample into a single BAM.

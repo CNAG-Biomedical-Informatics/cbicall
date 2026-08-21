@@ -249,7 +249,7 @@ process ALIGN_RG {
     RGID="${ID}.${base}"
     RGPU="${ID}.${base}.unit1"
 
-    ${BWA} mem -M -t ${task.cpus} ${q(REFGZ)} ${q(r1)} ${q(r2)} 2>> ${q("${ID}.01_align_rg.${base}.log")} \\
+    ${BWA} mem -M -K 40000000 -t ${task.cpus} ${q(REFGZ)} ${q(r1)} ${q(r2)} 2>> ${q("${ID}.01_align_rg.${base}.log")} \\
       | ${GATK4} AddOrReplaceReadGroups \\
           --INPUT /dev/stdin \\
           --OUTPUT ${q("${base}.rg.bam")} \\

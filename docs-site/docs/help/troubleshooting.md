@@ -190,7 +190,7 @@ Secondary or supplementary alignments can introduce records that Picard/GATK rej
 Filter secondary and supplementary alignments before adding read groups:
 
 ```bash
-bwa mem -M -t "$THREADS" "$REFGZ" "$R1" "$R2" \
+bwa mem -M -K 40000000 -t "$THREADS" "$REFGZ" "$R1" "$R2" \
   | samtools view -bSh -F 0x900 - \
   | gatk AddOrReplaceReadGroups ...
 ```

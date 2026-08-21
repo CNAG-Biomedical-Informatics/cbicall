@@ -126,7 +126,7 @@ do
 
  in=/dev/stdin
  out=$BAMDIR/$string_R1.grp.bam
- $BWA mem -t$THREADS -M $REFGZ $R1 $R2 2> $LOG | \
+ $BWA mem -M -K 40000000 -t "$THREADS" $REFGZ $R1 $R2 2> $LOG | \
       $PIC \
       AddOrReplaceReadGroups \
       TMP_DIR=$TMPDIR \

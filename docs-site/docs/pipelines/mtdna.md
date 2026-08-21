@@ -22,6 +22,11 @@ mtDNA workflows require `04_mtdna_input/<sample>-DNA_MIT.bam` and its index;
 they do not extract reads from a full BAM.
 :::
 
+The exported BAM inherits mitochondrial read placement from the preceding
+BWA-MEM alignment. CBIcall uses a fixed BWA input batch size so changing the
+workflow thread count does not change which reads are passed to MToolBox. See
+the [WES/WGS single-sample pipeline](./wes-wgs-single) for details.
+
 <Tabs groupId="workflow-mode">
 <TabItem value="single" label="Single sample" default>
 
