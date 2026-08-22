@@ -9,7 +9,7 @@ only for bundled `cbicall-core` workflows.
 For reproducible analyses, use a released version rather than `latest`:
 
 ```bash
-export CBICALL_IMAGE=manuelrueda/cbicall:1.2.1
+export CBICALL_IMAGE=manuelrueda/cbicall:1.3.0
 docker pull "$CBICALL_IMAGE"
 ```
 
@@ -19,7 +19,7 @@ docker pull "$CBICALL_IMAGE"
 ```bash
 git clone https://github.com/CNAG-Biomedical-Informatics/cbicall.git
 cd cbicall
-git checkout v1.2.1
+git checkout v1.3.0
 
 docker buildx build --load \
   -f docker/Dockerfile \

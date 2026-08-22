@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Use the error text from the terminal or workflow log to find the matching section. Most failures fall into three groups: missing external data, GATK/Picard input problems, or mtDNA-specific MToolBox issues.
+Use the error text from the terminal or workflow log to find the matching section. Most failures involve missing external data, the execution environment, GATK/Picard input problems, or mtDNA-specific MToolBox issues.
 
 :::tip[Identify the execution path]
 Before debugging, identify the selected workflow provider.
@@ -129,6 +129,46 @@ Relative `input_dir` and `sample_map` paths are resolved from the YAML file loca
 **Fix**
 
 Use absolute paths, or keep the YAML file next to the relative paths it references. Confirm the resolved paths in `log.json`.
+
+</details>
+
+## Workflow Execution
+
+<details>
+<summary>Snakemake reports clock skew</summary>
+
+**Symptom**
+
+```text
+Output ... has older modification time than input ...
+This could indicate a clock skew problem
+```
+
+Picard may also report a negative elapsed time.
+
+**Likely cause**
+
+The system clock changed during execution, or clocks are not synchronized
+across machines that access the same filesystem. Snakemake stops because the
+output appears older than its input.
+
+**Fix**
+
+Check the clock synchronization status:
+
+```bash
+timedatectl status
+chronyc tracking
+```
+
+Stop active jobs before correcting the clock. On a machine using Chrony,
+apply the pending correction with:
+
+```bash
+sudo chronyc makestep
+```
+
+Confirm that the offset is close to zero before rerunning the workflow.
 
 </details>
 

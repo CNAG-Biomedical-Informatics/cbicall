@@ -34,9 +34,18 @@ the GATK bundle / Broad b37 exome interval list. See the
 - Add read groups (sample, library, lane, platform) required by GATK.
 - Output: lane-level BAMs with correct RG tags.
 
-CBIcall fixes the BWA-MEM input batch size with `-K 40000000`. This keeps
-alignments stable when the thread count changes; `-t/--threads` still controls
-parallelism.
+In the bundled BWA 0.7.18, the default batch target is `10,000,000` input bases
+per thread. Changing `-t/--threads` therefore changes the batch boundaries,
+which can alter paired-end insert-size estimation and, in a small number of
+cases, read placement. CBIcall fixes the batch size at `-K 40000000`:
+`10,000,000` bases multiplied by the recommended four-thread setting. This
+preserves the validated four-thread behavior while allowing other thread counts
+to produce the same alignments; `-t/--threads` still controls parallelism. The
+behavior is defined in the BWA 0.7.18 source ([default batch
+target](https://github.com/lh3/bwa/blob/v0.7.18/bwamem.c#L99) and [effective
+batch size](https://github.com/lh3/bwa/blob/v0.7.18/fastmap.c#L394)); the newer
+[bwa-mem3 guide](https://bwa-mem3.readthedocs.io/en/latest/user-guide/aligning.html#chunk-size-k)
+provides a readable explanation of the inherited behavior.
 
 ### 2. Lane Merging
 

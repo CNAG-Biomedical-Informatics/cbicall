@@ -12,8 +12,8 @@ a versioned image:
 ```bash
 module load apptainer 2>/dev/null || true
 
-export SIF_IMAGE=/absolute/path/to/cbicall_1.2.1.sif
-apptainer pull "$SIF_IMAGE" docker://manuelrueda/cbicall:1.2.1
+export SIF_IMAGE=/absolute/path/to/cbicall_1.3.0.sif
+apptainer pull "$SIF_IMAGE" docker://manuelrueda/cbicall:1.3.0
 ```
 
 Keep the `.sif` file for later interactive and scheduled runs. Pinning the image
