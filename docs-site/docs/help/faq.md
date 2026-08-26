@@ -36,6 +36,28 @@ WGS mode does not use WES capture intervals.
 
 </details>
 
+<details>
+<summary>Can I use minibwa with GATK?</summary>
+
+Not yet as a supported `cbicall-core` stack. The
+[minibwa paper](https://arxiv.org/abs/2606.15357) reports faster alignment than
+BWA-MEM at comparable accuracy. Our exploratory ARM64 test with one million
+WES read pairs found:
+
+| Measure | Result |
+| --- | --- |
+| Alignment | minibwa was 3.0x faster: 19.1s versus 57.8s |
+| Complete WES workflow | No end-to-end speedup was demonstrated in this preliminary run |
+| Allele overlap | 97.97% overall; 97.32% for PASS alleles |
+| Exact-call overlap | 90.31%, including `FILTER` and genotype |
+
+This is not a formal accuracy benchmark. minibwa still requires GIAB and WGS
+validation. If supported, it will be introduced as a separate opt-in stack,
+such as `gatk-4.6-minibwa`; the current `gatk-4.6` stack will continue to use
+BWA-MEM.
+
+</details>
+
 ## mtDNA (MToolBox)
 
 <details>
