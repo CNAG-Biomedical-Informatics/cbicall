@@ -7,10 +7,10 @@ Use them to confirm that an installation can execute the shipped examples and
 reproduce their expected outputs. They do not replace biological or clinical
 validation of the underlying variant-calling methods.
 
-This page is about execution tests. If the question is whether a parameters YAML
-resolves before launch, use `validate-parameters` as described in
-[Configuration Reference](../help/configuration-reference). If the question is
-whether a custom resource catalog or installed resource directory is valid, use
+To check whether a parameters YAML resolves before launch, use
+`validate-parameters` as described in the
+[Configuration Reference](../help/configuration-reference). To check a custom
+resource catalog or installed resource directory, see
 [Resource Validation](../usage/resource-validation).
 
 ## Minimal Test
@@ -89,12 +89,6 @@ Status: [PASS] PASSED
 Exit code: 0
 ========================================
 ```
-
-:::tip[Where to go next]
-Use this page to run the shipped examples. For parameter-file checks, see
-[Configuration Reference](../help/configuration-reference). For comparing
-repeated runs, see [Run Comparison](../help/run-comparison).
-:::
 
 ## Test Matrix
 

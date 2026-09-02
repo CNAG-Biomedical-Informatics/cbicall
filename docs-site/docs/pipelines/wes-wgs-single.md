@@ -1,6 +1,4 @@
 # WES/WGS Single-Sample Pipeline
-A user-focused guide to processing whole-exome (WES) and whole-genome (WGS) data using GATK Best Practices.
----
 
 ## Diagram: Single-Sample WES/WGS Workflow
 
@@ -45,7 +43,7 @@ behavior is defined in the BWA 0.7.18 source ([default batch
 target](https://github.com/lh3/bwa/blob/v0.7.18/bwamem.c#L99) and [effective
 batch size](https://github.com/lh3/bwa/blob/v0.7.18/fastmap.c#L394)); the newer
 [bwa-mem3 guide](https://bwa-mem3.readthedocs.io/en/latest/user-guide/aligning.html#chunk-size-k)
-provides a readable explanation of the inherited behavior.
+describes the same batching behavior.
 
 ### 2. Lane Merging
 

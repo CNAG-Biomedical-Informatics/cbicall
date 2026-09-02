@@ -1,7 +1,7 @@
 # Quickstart
 
-Use this page to inspect CBIcall's reports immediately, then choose the workflow
-family you want to execute first.
+Install CBIcall, inspect its reports with the packaged demo, then run the
+workflow family you need.
 
 If you still need to choose an installation method or workflow, start with the
 [Overview](../overview).

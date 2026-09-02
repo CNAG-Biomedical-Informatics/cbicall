@@ -1,10 +1,10 @@
 # Developer Overview
 
-Use this section when you are maintaining CBIcall itself: adding workflows,
-editing the workflow registry, or declaring resource entries. The **workflow
+This section is for maintainers adding workflows, editing the workflow
+registry, or declaring resource entries. The **workflow
 registry** maps YAML workflow choices to concrete Bash, Snakemake, Nextflow, or Cromwell entrypoints;
 the **resource catalog** lists external resource entries, their versions, and
-their compatibility metadata. Normal users usually only need the Run, Pipelines, and
+their compatibility metadata. Most users only need the Run, Pipelines, and
 Reproducibility sections.
 
 CBIcall can be extended in two main ways:

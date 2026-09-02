@@ -2,7 +2,8 @@ import WorkflowCompatibilityMatrix from '@site/src/components/WorkflowCompatibil
 
 # Included Pipelines
 
-This page summarizes the analysis pipelines CBIcall can launch and the backend combinations currently supported.
+The matrix below lists the pipelines CBIcall can launch and their supported
+backend combinations.
 
 | Concept | YAML key | Meaning |
 | --- | --- | --- |

@@ -7,9 +7,9 @@ agree with a reference benchmark, while CBIcall reports ask whether two
 executions used the same workflow, resources, runtime context, and outputs.
 
 :::important[Scope]
-This page documents a WGS benchmark for the bundled `cbicall-core` GATK 4.6 workflow on
-GRCh38. It is a workflow-level analytical benchmark, not a validation of the
-CBIcall Python wrapper itself.
+The benchmark below evaluates the bundled `cbicall-core` GATK 4.6 WGS workflow
+on GRCh38. It evaluates the workflow's analytical results, not the CBIcall
+Python wrapper itself.
 :::
 
 ## Benchmark Design

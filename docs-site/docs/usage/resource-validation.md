@@ -13,7 +13,7 @@ The **resource catalog** is the JSON inventory of those resource entries:
 **resource version**, **workflow compatibility**, and optional identity metadata.
 
 <div className="cbicallNotePanel">
-  <p>Use this page to check that the resource catalog and installed bundle match the workflow you plan to run.</p>
+  <p>Before launching a workflow, check that its resource entry and installed bundle are valid.</p>
 </div>
 
 Use [Integration Tests](../validation/integration-tests) when you want to run the shipped

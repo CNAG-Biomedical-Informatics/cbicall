@@ -1,8 +1,8 @@
 # Validation & Reproducibility
 
 CBIcall separates framework validation from biological validation of the
-underlying variant-calling methods. This section collects the evidence and tools
-used to audit CBIcall executions.
+underlying variant-calling methods. The pages below cover the evidence and tools
+used to audit an execution.
 
 | Question | Page |
 | --- | --- |

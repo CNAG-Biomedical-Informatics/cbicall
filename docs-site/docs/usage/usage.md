@@ -6,7 +6,8 @@ CBIcall is normally run with a YAML parameters file and a thread count:
 cbicall run -p parameters.yaml -t 4
 ```
 
-Use this page for command syntax and common execution patterns. For YAML keys and supported combinations, see [Configuration Reference](../help/configuration-reference).
+Command syntax and common execution patterns are shown below. YAML keys and
+supported combinations are listed in the [Configuration Reference](../help/configuration-reference).
 
 To inspect the WES and mtDNA reports before configuring an analysis, run the
 resource-free `cbicall demo` command described in the [Quickstart](quickstart).

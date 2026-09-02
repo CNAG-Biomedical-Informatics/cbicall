@@ -15,9 +15,8 @@ resource entries and their compatibility metadata:
 resources/cbicall-resource-catalog.json
 ```
 
-The resource catalog can contain different resource types. This page documents
-the current `bundle` type and the CBIcall-provided bundle used by the packaged
-workflows.
+The resource catalog supports several resource types. Packaged workflows use
+the CBIcall-provided `bundle` described below.
 
 The `scripts/download_cbicall_bundle.py` utility installs CBIcall bundle entries
 from the resource catalog. It uses the local catalog when available and

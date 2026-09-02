@@ -237,10 +237,10 @@ configuration or profile mechanisms and do not use this Bash switch.
 
 ## Related commands
 
-This page documents YAML configuration. See [General Usage](../usage) for
-CLI syntax, [Integration Tests](../validation/integration-tests) for shipped
-workflow checks, [Resource Validation](../usage/resource-validation) for the
-resource catalog, and [Run Comparison](run-comparison) for audit reports.
+See [General Usage](../usage) for CLI syntax,
+[Integration Tests](../validation/integration-tests) for shipped workflow
+checks, [Resource Validation](../usage/resource-validation) for the resource
+catalog, and [Run Comparison](run-comparison) for audit reports.
 
 ## Advanced Keys
 
