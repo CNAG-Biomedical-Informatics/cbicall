@@ -43,6 +43,13 @@ This bundle supplies the external tools and reference data used by the
 matrix](../pipelines/overview#compatibility-matrix) for supported pipelines,
 modes, software stacks, and backends.
 
+:::note[Third-party licenses]
+CBIcall is distributed under GPLv3. Third-party executables and biological
+resources included in the bundle retain their own licenses and terms; they are
+not relicensed under the CBIcall license. Users are responsible for reviewing
+and complying with those terms.
+:::
+
 CBIcall checks compatibility using the exact versioned workflow keys declared
 in the resource catalog, for example `nextflow/wgs/cohort/gatk-4.6/v1`.
 External nf-core workflows manage their own dependencies and do not use this
