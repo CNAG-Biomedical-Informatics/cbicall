@@ -13,10 +13,9 @@
 [![Documentation Status](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/documentation.yml/badge.svg)](https://github.com/cnag-biomedical-informatics/cbicall/actions/workflows/documentation.yml)
 [![License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-> **Research use only. Not a medical device.**
-> This software was developed in the HEREDITARY project as a research prototype. It has not been assessed or certified under the EU Medical Device Regulation (EU) 2017/745. It must not be used to diagnose, treat, monitor or make any other decision about individual patients. See [MODEL_CARD.md](MODEL_CARD.md).
+>See the [CBIcall model card](MODEL_CARD.md) for intended use, limitations, and
+responsible-use information.
 
----
 
 **CBIcall** (**C**NAG **B**iomedical **I**nformatics framework for variant **call**ing) is a
 configuration-driven framework for running and auditing variant-calling
