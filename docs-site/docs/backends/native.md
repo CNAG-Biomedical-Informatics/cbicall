@@ -11,12 +11,18 @@ that output contract, not the workflow language.
 
 ## Supported Native Backends
 
-| Backend | Workflow form | Required runner |
-| --- | --- | --- |
-| **Bash** | Shell scripts | Bash |
-| **Snakemake** | Snakefile rules | Snakemake |
-| **Nextflow** | Nextflow processes | Nextflow and Java |
-| **Cromwell** | WDL workflows and tasks | Cromwell and Java |
+| Backend | Role | Workflow form | Required runner |
+| --- | --- | --- | --- |
+| **Bash** | **Default and recommended** | Shell scripts | Bash |
+| **Snakemake** | Illustrative and backend-equivalence testing | Snakefile rules | Snakemake |
+| **Nextflow** | Illustrative and backend-equivalence testing | Nextflow processes | Nextflow and Java |
+| **Cromwell** | Illustrative and backend-equivalence testing | WDL workflows and tasks | Cromwell and Java |
+
+:::tip[Recommended backend]
+Bash is the default and recommended backend for routine use of the bundled
+`cbicall-core` pipelines. The Snakemake, Nextflow, and Cromwell implementations
+demonstrate backend portability and support backend-equivalence testing.
+:::
 
 :::tip[What `cbicall-core` means]
 CBIcall is the framework. `cbicall-core` is the ready-to-run workflow collection
@@ -41,9 +47,8 @@ software_stack: gatk-4.6
 ```
 
 For these bundled workflows, `workflow_provider: cbicall-core` is the default
-and can be omitted. Change `workflow_backend` to `snakemake`, `nextflow`, or
-`cromwell` when the selected pipeline, mode, and software stack support that
-backend.
+and can be omitted. Keep `workflow_backend: bash` for routine use. The other
+backends can be selected when testing portability or backend equivalence.
 
 Use [Included Pipelines](../pipelines/overview) for the compatibility matrix and
 pipeline-specific guides.

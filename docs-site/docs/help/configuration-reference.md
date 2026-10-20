@@ -33,7 +33,7 @@ genome:          b37
 | --- | --- | --- | --- |
 | `mode` | `single` | `single`, `cohort` | Selects one-sample processing or cohort-level processing. |
 | `pipeline` | `wes` | `wes`, `wgs`, `mit`; external names are registry-defined | Selects the analysis type. For `workflow_provider: nf-core`, the value is resolved through the workflow registry. |
-| `workflow_backend` | `bash` | `bash`, `snakemake`, `nextflow`, `cromwell` | Selects the execution backend supported by the current workflows. |
+| `workflow_backend` | `bash` | `bash`, `snakemake`, `nextflow`, `cromwell` | Selects the execution backend. Bash is recommended for routine use; the other native backends are illustrative implementations used for portability and backend-equivalence testing. |
 | `software_stack` | `gatk-3.5` | `gatk-3.5`, `gatk-4.6` | Selects the GATK release for bundled workflows. Use `gatk-4.6` for current WES/WGS workflows. |
 | `workflow_provider` | `cbicall-core` | `cbicall-core`, `nf-core` | Selects the registered workflow collection. `cbicall-core` contains CBIcall's bundled native implementations; use `nf-core` for registered external nf-core workflows. |
 | `resource` | `cbicall-germline-resources-v1` | resource key | Selects one entry from `resources/cbicall-resource-catalog.json`. |
